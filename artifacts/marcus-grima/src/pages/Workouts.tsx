@@ -317,7 +317,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
         key={program.id}
         onClick={handleClick}
         whileTap={{ scale: 0.98 }}
-        className={`w-full text-left rounded-sm overflow-hidden transition-colors group relative
+        className={`w-full text-left rounded-2xl overflow-hidden transition-colors group relative
           ${locked
             ? 'bg-[#0F0D08] border border-amber-500/25 hover:border-amber-500/50'
             : 'bg-[#111111] border border-white/6 hover:border-primary/30'}`}
@@ -332,6 +332,20 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-[#111111]/30 to-transparent" />
           <div className={`absolute bottom-0 left-0 h-[2px] w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-white/60 to-white/10'}`} />
+
+          {/* Stats on the visual */}
+          <div className="absolute bottom-3 left-4 right-4 flex items-end gap-5">
+            {[
+              { label: 'Days/Week', value: `${program.daysPerWeek}` },
+              { label: 'Goal',      value: program.goal.split(' & ')[0] },
+              { label: 'Workouts',  value: `${program.workouts.length}` },
+            ].map(stat => (
+              <div key={stat.label}>
+                <p className="text-base font-black text-white leading-none drop-shadow">{stat.value}</p>
+                <p className="text-[8px] font-bold tracking-widest text-white/60 uppercase mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="p-5">
@@ -358,30 +372,14 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             </div>
 
             {locked ? (
-              <div className="shrink-0 mt-1 flex flex-col items-center gap-1">
-                <Lock size={18} className="text-amber-400/60" />
-                <span className="text-[11px] font-black text-amber-400">{program.price}</span>
-              </div>
+              <Lock size={18} className="text-amber-400/60 shrink-0 mt-1" />
             ) : (
               <ChevronRight size={18} className="text-primary/60 group-hover:text-primary transition-colors shrink-0 mt-1" />
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Days/Week', value: `${program.daysPerWeek}` },
-              { label: 'Goal',      value: program.goal.split(' & ')[0] },
-              { label: 'Workouts',  value: `${program.workouts.length}` },
-            ].map(stat => (
-              <div key={stat.label} className={`border p-3 rounded-sm ${locked ? 'bg-[#0A0A0A] border-amber-500/10' : 'bg-[#0A0A0A] border-white/5'}`}>
-                <p className="text-[9px] font-bold tracking-widest text-foreground/35 uppercase mb-1">{stat.label}</p>
-                <p className="text-sm font-bold">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Day chips */}
-          <div className="flex gap-1.5 mt-4 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
             {program.workouts.map(w => (
               <span key={w.id} className={`text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border
                 ${locked
@@ -394,7 +392,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
 
           {/* Lock CTA overlay strip */}
           {locked && (
-            <div className="mt-4 flex items-center justify-center gap-2 py-2.5 border border-amber-500/30 bg-amber-500/5">
+            <div className="mt-4 flex items-center justify-center gap-2 py-3 rounded-full border border-amber-500/30 bg-amber-500/5">
               <Crown size={13} className="text-amber-400" />
               <span className="text-[11px] font-bold tracking-[0.2em] text-amber-400 uppercase">Unlock for {program.price}</span>
             </div>
@@ -470,7 +468,7 @@ function ProgramView({
               key={workout.id}
               onClick={() => onSelectWorkout(workout.id)}
               whileTap={{ scale: 0.98 }}
-              className="w-full text-left bg-[#111111] border border-white/6 rounded-sm overflow-hidden hover:border-primary/30 transition-colors group"
+              className="w-full text-left bg-[#111111] border border-white/6 rounded-2xl overflow-hidden hover:border-primary/30 transition-colors group"
             >
               <div className="p-5 flex items-center gap-5">
                 {/* Day badge */}
@@ -556,7 +554,7 @@ function WorkoutOverview({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
-              className="bg-[#111111] border border-white/5 rounded-sm flex items-center gap-4 p-3 pr-4"
+              className="bg-[#111111] border border-white/5 rounded-2xl flex items-center gap-4 p-3 pr-4"
             >
               {/* Thumbnail */}
               <div className="w-16 h-16 rounded-sm overflow-hidden shrink-0 bg-[#0D0D0D] border border-white/5">
