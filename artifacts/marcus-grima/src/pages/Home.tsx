@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Flame, Heart, Activity } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
 import { BottomNav } from '@/components/BottomNav';
+import type { Page } from '@/App';
 
 const stepData = [
   { day: 'M', steps: 6000 },
@@ -27,7 +28,11 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
-export const Home = () => {
+interface HomeProps {
+  setPage: (page: Page) => void;
+}
+
+export const Home = ({ setPage }: HomeProps) => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-24 overflow-x-hidden">
       {/* Top Bar */}
@@ -71,7 +76,10 @@ export const Home = () => {
               <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-foreground/30 rounded-full" /> 60 MIN</p>
               <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-foreground/30 rounded-full" /> MARCUS GRIMA STUDIO, LONDON</p>
             </div>
-            <button className="text-xs font-bold tracking-[0.2em] text-foreground hover:text-primary transition-colors flex items-center gap-2 uppercase">
+            <button
+              onClick={() => setPage('sessions')}
+              className="text-xs font-bold tracking-[0.2em] text-foreground hover:text-primary transition-colors flex items-center gap-2 uppercase"
+            >
               View Details <span>→</span>
             </button>
           </div>
@@ -121,7 +129,7 @@ export const Home = () => {
         {/* Messages */}
         <motion.section variants={itemVariants} className="space-y-4">
           <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Messages</h3>
-          <div className="bg-[#111111] border border-white/5 p-4 rounded-sm flex gap-4 items-start">
+          <button onClick={() => setPage('messages')} className="w-full bg-[#111111] border border-white/5 p-4 rounded-sm flex gap-4 items-start text-left hover:border-primary/20 transition-colors">
             <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold shrink-0">
               MG
             </div>
@@ -135,7 +143,7 @@ export const Home = () => {
               </p>
             </div>
             <div className="w-2 h-2 bg-primary rounded-full mt-2 shrink-0" />
-          </div>
+          </button>
         </motion.section>
 
         {/* Book A Session */}
@@ -144,7 +152,7 @@ export const Home = () => {
           <div className="relative z-10 p-6 flex flex-col items-center text-center border border-primary/20">
             <h3 className="text-xl font-bold tracking-widest mb-1">BOOK YOUR NEXT SESSION</h3>
             <p className="text-xs font-semibold text-foreground/60 tracking-wider uppercase mb-6">Schedule time with Marcus</p>
-            <button className="w-full bg-primary hover:bg-primary/90 text-foreground py-4 font-bold tracking-[0.2em] uppercase transition-all relative overflow-hidden group-hover:shadow-[0_0_20px_rgba(40,24,77,0.5)]">
+            <button onClick={() => setPage('sessions')} className="w-full bg-primary hover:bg-primary/90 text-foreground py-4 font-bold tracking-[0.2em] uppercase transition-all relative overflow-hidden group-hover:shadow-[0_0_20px_rgba(40,24,77,0.5)]">
               <span className="relative z-10">Book Now →</span>
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
             </button>
@@ -198,7 +206,7 @@ export const Home = () => {
         </motion.section>
       </motion.main>
 
-      <BottomNav />
+      <BottomNav activePage="home" onNavigate={setPage} />
     </div>
   );
 };

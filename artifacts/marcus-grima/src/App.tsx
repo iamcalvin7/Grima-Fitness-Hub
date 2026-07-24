@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { SplashScreen } from '@/pages/SplashScreen';
 import { Home } from '@/pages/Home';
+import { Sessions } from '@/pages/Sessions';
+import { Messages } from '@/pages/Messages';
+import { Profile } from '@/pages/Profile';
+
+export type Page = 'home' | 'sessions' | 'messages' | 'profile';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [activePage, setActivePage] = useState<Page>('home');
 
   return (
     <div className="bg-[#050505] min-h-screen flex items-center justify-center font-sans">
@@ -11,7 +17,12 @@ function App() {
         {showSplash ? (
           <SplashScreen onComplete={() => setShowSplash(false)} />
         ) : (
-          <Home />
+          <>
+            {activePage === 'home' && <Home setPage={setActivePage} />}
+            {activePage === 'sessions' && <Sessions setPage={setActivePage} />}
+            {activePage === 'messages' && <Messages setPage={setActivePage} />}
+            {activePage === 'profile' && <Profile setPage={setActivePage} />}
+          </>
         )}
       </div>
     </div>
