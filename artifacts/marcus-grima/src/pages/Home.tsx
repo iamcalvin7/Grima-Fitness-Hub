@@ -594,13 +594,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
-      <div className="px-5 md:px-8 pt-10 pb-10 flex flex-col items-center text-center relative overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #e8e4f0 0%, #f0edf8 40%, #ddd8ec 100%)' }}>
-        {/* Subtle purple tint blobs */}
-        <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(139,69,217,0.12) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(139,69,217,0.08) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+      <div className="px-5 md:px-8 pt-10 pb-8 flex flex-col items-center text-center">
 
         {/* Profile photo */}
         <motion.div
@@ -623,7 +617,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           </div>
 
           {/* Camera badge */}
-          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary border-2 border-white flex items-center justify-center">
+          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary border-2 border-[#07050e] flex items-center justify-center">
             <Camera size={12} className="text-white" />
           </div>
 
@@ -634,7 +628,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-sm font-medium text-[#3d2f55] mb-1"
+          className="text-sm font-medium text-foreground/40 mb-1"
         >
           {getGreeting()}
         </motion.p>
@@ -643,7 +637,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="text-5xl font-black text-[#1a0f2e] leading-none tracking-tight"
+          className="text-5xl font-black text-white leading-none tracking-tight"
         >
           {firstName}
         </motion.h1>
