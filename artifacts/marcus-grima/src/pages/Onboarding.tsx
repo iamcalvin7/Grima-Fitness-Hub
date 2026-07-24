@@ -289,8 +289,8 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
 
       {/* Bottom content */}
       <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-12">
-        <h1 className="text-[56px] font-black leading-[0.88] tracking-[-0.02em] text-white mb-5">
-          {['TRAIN', 'HARDER.'].map((line, i) => (
+        <h1 className="text-[44px] font-black leading-[0.92] tracking-[-0.02em] text-white mb-5">
+          {['STRONGER', 'STARTS HERE.'].map((line, i) => (
             <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 + i * 0.1, duration: 0.45, ease: [0.22,1,0.36,1] }}
               className="block">{line}</motion.span>
@@ -298,7 +298,7 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
         </h1>
         <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
           className="text-base text-white/90 leading-relaxed font-medium mb-8 max-w-xs">
-          Elite personal training designed around your potential.
+          Elite personal training designed around your potential, by Marcus Grima.
         </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
