@@ -142,13 +142,13 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         transition={{ duration: 0.45 }}
         className="relative overflow-hidden rounded-2xl"
         style={{
-          height: 165,
+          height: 230,
           border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.1)',
         }}
       >
         {/* Full-bleed photo */}
         <img src={`${import.meta.env.BASE_URL}challenge.png`} alt="" className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center 12%', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
+          style={{ objectPosition: 'center 18%', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
         {/* Dark gradient */}
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
