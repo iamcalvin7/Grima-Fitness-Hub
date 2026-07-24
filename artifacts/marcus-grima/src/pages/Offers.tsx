@@ -10,7 +10,8 @@ const OFFERS = [
     desc: 'Exclusive discount on any Fort Fitness membership plan for Marcus Grima PT clients.',
     discount: '20%',
     code: 'MGPT20',
-    logo: 'FF',
+    logo: 'offers/fort-fitness.jpg',
+    logoBg: '#FFFFFF',
   },
   {
     id: 'protein-house',
@@ -19,7 +20,8 @@ const OFFERS = [
     desc: 'Save on supplements, shakes and meals across the full Protein House range.',
     discount: '10%',
     code: 'MGPT10',
-    logo: 'PH',
+    logo: 'offers/protein-house.jpg',
+    logoBg: '#FFFFFF',
   },
   {
     id: '157-media',
@@ -28,7 +30,8 @@ const OFFERS = [
     desc: 'Discounted content creation and media packages from 157 Media.',
     discount: '35%',
     code: 'MGPT35',
-    logo: '157',
+    logo: 'offers/157-media.png',
+    logoBg: '#000000',
   },
 ];
 
@@ -64,10 +67,16 @@ export function Offers() {
             >
               <div className="p-5">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-white text-black flex items-center justify-center shrink-0">
-                    <span className="font-black tracking-tight" style={{ fontSize: offer.logo.length > 2 ? 13 : 16 }}>
-                      {offer.logo}
-                    </span>
+                  <div
+                    className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-white/10"
+                    style={{ background: offer.logoBg }}
+                  >
+                    <img
+                      src={`${import.meta.env.BASE_URL}${offer.logo}`}
+                      alt={offer.brand}
+                      className="w-full h-full object-contain p-1"
+                      loading="lazy"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/40 uppercase">{offer.brand}</p>
