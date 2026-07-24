@@ -6,10 +6,11 @@ import { Sessions }    from '@/pages/Sessions';
 import { Messages }    from '@/pages/Messages';
 import { Profile }     from '@/pages/Profile';
 import { Workouts }    from '@/pages/Workouts';
-import { MealPlan }    from '@/pages/MealPlan';
-import { Layout }      from '@/components/Layout';
+import { MealPlan }     from '@/pages/MealPlan';
+import { Leaderboard } from '@/pages/Leaderboard';
+import { Layout }       from '@/components/Layout';
 
-export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile';
+export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile' | 'leaderboard';
 
 function isAuthed() {
   try {
@@ -54,7 +55,8 @@ function App() {
       {activePage === 'workouts' && <Workouts />}
       {activePage === 'meals'    && <MealPlan />}
       {activePage === 'messages' && <Messages setPage={handleSetPage} />}
-      {activePage === 'profile'  && <Profile  setPage={handleSetPage} onLogout={handleLogout} />}
+      {activePage === 'profile'      && <Profile      setPage={handleSetPage} onLogout={handleLogout} />}
+      {activePage === 'leaderboard'  && <Leaderboard />}
     </Layout>
   );
 }

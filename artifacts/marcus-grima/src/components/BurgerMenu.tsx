@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, UtensilsCrossed, ChevronRight, Crown } from 'lucide-react';
+import { X, Dumbbell, UtensilsCrossed, ChevronRight, Crown, Trophy } from 'lucide-react';
 import type { Page } from '@/App';
 
 interface BurgerMenuProps {
@@ -31,6 +31,13 @@ const MENU_ITEMS: {
     sub:    'Recipes, macros & daily planning',
     icon:   <UtensilsCrossed size={26} />,
     accent: '#16a34a',
+  },
+  {
+    id:     'leaderboard',
+    label:  'Leaderboard',
+    sub:    'Compete for weekly points vs everyone',
+    icon:   <Trophy size={26} />,
+    accent: '#FFD700',
   },
 ];
 

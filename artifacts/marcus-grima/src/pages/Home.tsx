@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
-  Clock, MapPin, CheckCircle2, Dumbbell, Quote,
+  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap,
 } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from 'recharts';
+import {
+  getTodayChallenge, isChallengeComplete, completeChallenge,
+} from '@/data/challenges';
 import type { Page } from '@/App';
 
 /* ── Animated counter ─────────────────────────────────────────────────────── */
@@ -45,6 +48,106 @@ const QUOTES = [
 function getDailyQuote() {
   const day = new Date().getDay();
   return QUOTES[day % QUOTES.length];
+}
+
+/* ── Countdown to midnight ────────────────────────────────────────────────── */
+function useCountdown() {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const update = () => {
+      const now      = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - now.getTime();
+      const h    = Math.floor(diff / 3_600_000);
+      const m    = Math.floor((diff % 3_600_000) / 60_000);
+      const s    = Math.floor((diff % 60_000) / 1_000);
+      setTime(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
+/* ── Daily challenge card ─────────────────────────────────────────────────── */
+function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
+  const [done, setDone]     = useState(isChallengeComplete);
+  const challenge            = getTodayChallenge();
+  const countdown            = useCountdown();
+  const [flash, setFlash]   = useState(false);
+
+  const handleComplete = () => {
+    completeChallenge();
+    setFlash(true);
+    setTimeout(() => { setDone(true); onComplete?.(); }, 700);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="relative overflow-hidden rounded-xl border"
+      style={done
+        ? { background: '#111111', borderColor: 'rgba(255,255,255,0.07)' }
+        : { background: 'linear-gradient(135deg,rgba(139,69,217,0.18) 0%,rgba(139,69,217,0.06) 100%)', borderColor: 'rgba(139,69,217,0.35)', boxShadow: '0 0 28px rgba(139,69,217,0.14)' }
+      }
+    >
+      {/* Top accent line */}
+      {!done && <div className="absolute inset-x-0 top-0 h-px bg-primary/60" />}
+
+      <AnimatePresence mode="wait">
+        {!done ? (
+          <motion.div key="pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="px-4 py-4 flex items-center gap-4">
+            {/* Emoji bubble */}
+            <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-2xl shrink-0">
+              {challenge.emoji}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] font-black tracking-widest text-primary/70 uppercase">Daily Challenge</span>
+                <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+                  <Star size={8} /> +{challenge.pts} pts
+                </span>
+              </div>
+              <p className="text-sm font-bold text-white leading-tight">{challenge.name}</p>
+              <p className="text-[10px] text-white/45 font-medium mt-0.5">{challenge.desc}</p>
+            </div>
+
+            <motion.button
+              onClick={handleComplete}
+              whileTap={{ scale: 0.94 }}
+              animate={flash ? { scale: [1, 1.15, 1], backgroundColor: ['#8B45D9','#A565F2','#8B45D9'] } : {}}
+              className="shrink-0 bg-primary hover:bg-primary/90 transition-colors rounded-lg px-3 py-2 flex items-center gap-1.5 text-[10px] font-black text-white uppercase tracking-wide"
+            >
+              <Zap size={11} /> Done
+            </motion.button>
+          </motion.div>
+        ) : (
+          <motion.div key="complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="px-4 py-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={22} className="text-primary/60" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] font-black tracking-widest text-primary/50 uppercase">Challenge Complete</span>
+                <span className="text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded">+50 pts earned</span>
+              </div>
+              <p className="text-sm font-bold text-white/60">{challenge.name}</p>
+              <p className="text-[10px] text-white/30 font-medium mt-0.5">
+                Next challenge in <span className="text-white/50 tabular-nums font-bold">{countdown}</span>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 }
 
 /* ── Purple palette ───────────────────────────────────────────────────────── */
@@ -347,6 +450,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
 
         {/* Col 1 */}
         <div className="flex flex-col gap-7">
+          <DailyChallengeCard />
           <MetricsSection />
           <QuoteCard />
         </div>
