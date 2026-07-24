@@ -4,9 +4,10 @@ import { Home } from '@/pages/Home';
 import { Sessions } from '@/pages/Sessions';
 import { Messages } from '@/pages/Messages';
 import { Profile } from '@/pages/Profile';
+import { Workouts } from '@/pages/Workouts';
 import { Layout } from '@/components/Layout';
 
-export type Page = 'home' | 'sessions' | 'messages' | 'profile';
+export type Page = 'home' | 'sessions' | 'workouts' | 'messages' | 'profile';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -18,10 +19,11 @@ function App() {
 
   return (
     <Layout activePage={activePage} setPage={setActivePage}>
-      {activePage === 'home' && <Home setPage={setActivePage} />}
+      {activePage === 'home'     && <Home     setPage={setActivePage} />}
       {activePage === 'sessions' && <Sessions setPage={setActivePage} />}
+      {activePage === 'workouts' && <Workouts />}
       {activePage === 'messages' && <Messages setPage={setActivePage} />}
-      {activePage === 'profile' && <Profile setPage={setActivePage} />}
+      {activePage === 'profile'  && <Profile  setPage={setActivePage} />}
     </Layout>
   );
 }

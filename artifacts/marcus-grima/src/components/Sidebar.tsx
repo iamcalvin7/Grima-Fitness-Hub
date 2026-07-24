@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home as HomeIcon, Calendar, MessageSquare, User, Zap } from 'lucide-react';
+import { Home as HomeIcon, Calendar, Dumbbell, MessageSquare, User, Zap } from 'lucide-react';
 import type { Page } from '@/App';
 
 interface SidebarProps {
@@ -8,10 +8,11 @@ interface SidebarProps {
 }
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; badge?: boolean }[] = [
-  { id: 'home', label: 'Home', icon: <HomeIcon size={18} /> },
-  { id: 'sessions', label: 'Sessions', icon: <Calendar size={18} /> },
+  { id: 'home',     label: 'Home',     icon: <HomeIcon      size={18} /> },
+  { id: 'sessions', label: 'Sessions', icon: <Calendar      size={18} /> },
+  { id: 'workouts', label: 'Workouts', icon: <Dumbbell      size={18} /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare size={18} />, badge: true },
-  { id: 'profile', label: 'Profile', icon: <User size={18} /> },
+  { id: 'profile',  label: 'Profile',  icon: <User          size={18} /> },
 ];
 
 export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
