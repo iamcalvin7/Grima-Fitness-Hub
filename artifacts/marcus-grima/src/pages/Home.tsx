@@ -408,17 +408,6 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
       <div className="px-5 md:px-8 pt-10 pb-8 flex flex-col items-center text-center">
-        {/* Avatar */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="w-14 h-14 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center text-primary font-bold text-lg mb-4"
-          style={{ boxShadow: '0 0 28px rgba(139,69,217,0.25)' }}
-        >
-          {initials}
-        </motion.div>
-
         <motion.p
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
