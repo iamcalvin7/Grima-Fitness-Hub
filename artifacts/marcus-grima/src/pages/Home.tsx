@@ -37,17 +37,44 @@ function getGreeting() {
 
 /* ── Quotes ───────────────────────────────────────────────────────────────── */
 const QUOTES = [
-  { text: 'The pain you feel today will be the strength you feel tomorrow.', author: 'Arnold Schwarzenegger' },
-  { text: "If something stands between you and your success, move it. Never be denied.", author: 'Dwayne Johnson' },
-  { text: 'Excellence is not a destination but a continuous journey that never ends.', author: 'Brian Tracy' },
-  { text: 'Push yourself because no one else is going to do it for you.', author: '' },
-  { text: 'You don\'t have to be extreme, just consistent.', author: '' },
-  { text: 'Your body can stand almost anything. It\'s your mind you have to convince.', author: '' },
-  { text: 'Wake up with determination. Go to bed with satisfaction.', author: '' },
+  {
+    text:   'The pain you feel today will be the strength you feel tomorrow.',
+    author: 'Arnold Schwarzenegger',
+    img:    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=80',
+  },
+  {
+    text:   'If something stands between you and your success, move it. Never be denied.',
+    author: 'Dwayne Johnson',
+    img:    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80',
+  },
+  {
+    text:   'Excellence is not a destination but a continuous journey that never ends.',
+    author: 'Brian Tracy',
+    img:    'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400&q=80',
+  },
+  {
+    text:   'Push yourself because no one else is going to do it for you.',
+    author: '',
+    img:    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80',
+  },
+  {
+    text:   "You don't have to be extreme, just consistent.",
+    author: '',
+    img:    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80',
+  },
+  {
+    text:   "Your body can stand almost anything. It's your mind you have to convince.",
+    author: '',
+    img:    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80',
+  },
+  {
+    text:   'Wake up with determination. Go to bed with satisfaction.',
+    author: '',
+    img:    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&q=80',
+  },
 ];
 function getDailyQuote() {
-  const day = new Date().getDay();
-  return QUOTES[day % QUOTES.length];
+  return QUOTES[new Date().getDay() % QUOTES.length];
 }
 
 /* ── Countdown to midnight ────────────────────────────────────────────────── */
@@ -363,23 +390,55 @@ function QuoteCard() {
   const q = getDailyQuote();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4, duration: 0.5 }}
-      className="relative bg-[#111111] border border-white/6 rounded-xl px-5 py-5 overflow-hidden"
+      className="relative overflow-hidden rounded-2xl bg-[#0D0D0D] border border-white/6"
+      style={{ minHeight: 120 }}
     >
-      {/* Subtle purple wash */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+      <div className="flex h-full">
 
-      <Quote size={20} className="text-primary/30 mb-3" />
-      <p className="text-sm font-medium text-foreground/80 leading-relaxed italic">
-        "{q.text}"
-      </p>
-      {q.author && (
-        <p className="text-[10px] font-bold text-primary/50 tracking-widest uppercase mt-3">
-          — {q.author}
-        </p>
-      )}
+        {/* ── Left: cinematic image ── */}
+        <div className="relative w-[42%] shrink-0 overflow-hidden" style={{ minHeight: 120 }}>
+          <img
+            src={q.img}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: 'center' }}
+          />
+          {/* Fade to dark on the right edge */}
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(to right, rgba(13,13,13,0) 40%, #0D0D0D 100%)',
+          }} />
+          {/* Subtle dark vignette at bottom */}
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(to top, rgba(13,13,13,0.6) 0%, transparent 60%)',
+          }} />
+        </div>
+
+        {/* ── Right: text ── */}
+        <div className="flex-1 flex flex-col justify-center pl-1 pr-4 py-5">
+          <p className="text-[9px] font-black tracking-[0.25em] text-primary uppercase mb-2">
+            Today's Focus
+          </p>
+          <p className="text-sm font-bold text-white leading-snug">
+            {q.text}
+          </p>
+          {q.author && (
+            <p className="text-[10px] text-white/35 font-medium mt-2">
+              — {q.author}
+            </p>
+          )}
+        </div>
+
+        {/* ── Arrow button ── */}
+        <div className="flex items-center pr-4 pl-1 shrink-0">
+          <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
+            <ChevronRight size={15} className="text-primary" />
+          </div>
+        </div>
+
+      </div>
     </motion.div>
   );
 }
