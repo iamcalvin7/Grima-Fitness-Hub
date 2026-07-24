@@ -274,37 +274,58 @@ function SlideScreen({ s, onNext, isLast, onSkip }: {
 ───────────────────────────────────────────────────────────────────────── */
 function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: () => void }) {
   return (
-    <motion.div {...slide} className="fixed inset-0 bg-[#0A0A0A] flex flex-col px-6">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full
-                      blur-[100px] opacity-10 pointer-events-none bg-primary" />
-      <div className="relative z-10 flex-1 flex flex-col justify-center">
-        <div className="w-14 h-14 bg-primary/10 border border-primary/30 flex items-center justify-center mb-10">
-          <MGLogo />
-        </div>
-        <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">Welcome</p>
-        <h1 className="text-4xl font-black tracking-tight text-white leading-tight mb-3">
-          GOOD TO<br />SEE YOU.
-        </h1>
-        <p className="text-sm text-white/40 font-medium mb-14">Are you a new client or have you trained with Marcus before?</p>
+    <motion.div {...slide} className="fixed inset-0 bg-[#060606] flex flex-col">
+      {/* Full-bleed hero photo */}
+      <img src={`${import.meta.env.BASE_URL}hero.png`} alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: 'center 20%' }} />
+      {/* Legibility gradient */}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.4) 100%)' }} />
 
-        <div className="flex flex-col gap-3">
+      {/* Top brand row */}
+      <div className="relative z-10 flex items-center gap-2 px-6 pt-14">
+        <MGLogo />
+        <span className="text-[10px] font-bold tracking-[0.25em] text-white/50 uppercase">Marcus Grima</span>
+      </div>
+
+      {/* Bottom content */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-12">
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+          className="text-[10px] font-bold tracking-[0.3em] text-white/60 uppercase mb-4">
+          Marcus Grima PT
+        </motion.p>
+        <h1 className="text-[56px] font-black leading-[0.88] tracking-[-0.02em] text-white mb-5">
+          {['TRAIN', 'HARDER.'].map((line, i) => (
+            <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.1, duration: 0.45, ease: [0.22,1,0.36,1] }}
+              className="block">{line}</motion.span>
+          ))}
+        </h1>
+        <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          className="text-sm text-white/60 leading-relaxed font-medium mb-9 max-w-xs">
+          Elite personal training designed around your goals, your schedule, and your potential.
+        </motion.p>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+          className="flex flex-col gap-3">
           <button onClick={onNew}
-            className="w-full py-4 rounded-full bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
+            className="w-full py-4 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm
                        flex items-center justify-between px-6">
-            <span>I'M A NEW CLIENT</span>
+            <span>SIGN UP</span>
             <ChevronRight size={18} />
           </button>
           <button onClick={onReturning}
-            className="w-full py-4 rounded-full border border-white/15 text-white/60 font-bold tracking-[0.15em] uppercase text-sm
-                       flex items-center justify-between px-6 hover:border-white/30 hover:text-white transition-colors">
-            <span>I HAVE AN ACCOUNT</span>
+            className="w-full py-4 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-sm
+                       flex items-center justify-between px-6 hover:border-white/50 transition-colors">
+            <span>SIGN IN</span>
             <ChevronRight size={18} />
           </button>
-        </div>
+        </motion.div>
+        <p className="text-center text-[10px] text-white/25 font-semibold tracking-wide mt-6">
+          Your account is provided or created with Marcus
+        </p>
       </div>
-      <p className="relative z-10 text-center text-[10px] text-white/15 font-semibold tracking-wide pb-10">
-        Your account is provided or created with Marcus
-      </p>
     </motion.div>
   );
 }
@@ -681,17 +702,11 @@ const DEFAULT_DRAFT = {
    Root Onboarding component
 ───────────────────────────────────────────────────────────────────────── */
 export function Onboarding({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep]   = useState<Step>({ kind: 'slide', idx: 0 });
+  const [step, setStep]   = useState<Step>({ kind: 'choice' });
   const [draft, setDraft] = useState({ ...DEFAULT_DRAFT });
 
   const go   = (s: Step) => setStep(s);
   const next = (s: Step) => go(s);
-
-  // Slide advance
-  const slideNext = (idx: number) => {
-    if (idx < SLIDES.length - 1) go({ kind: 'slide', idx: idx + 1 });
-    else go({ kind: 'choice' });
-  };
 
   // Sign-up step navigation
   const signupSteps: Step['kind'][] = ['name','gender','age','weight','height','goal','activity','login'];
@@ -730,12 +745,6 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
 
   return (
     <AnimatePresence mode="wait">
-      {step.kind === 'slide' && (
-        <SlideScreen key={`slide-${step.idx}`} s={SLIDES[step.idx]}
-          onNext={() => slideNext(step.idx)}
-          isLast={step.idx === SLIDES.length - 1}
-          onSkip={() => go({ kind: 'choice' })} />
-      )}
       {step.kind === 'choice' && (
         <ChoiceScreen key="choice"
           onNew={() => go({ kind: 'name' })}
