@@ -71,19 +71,22 @@ function getGreeting() {
 
 /* ── Metrics section ───────────────────────────────────────────────────── */
 
-// Dark forest green palette
-const G = {
-  text:   'text-[#16a34a]',          // green-600
-  border: 'border-[#14532d]/50',      // green-900/50
-  glow:   'rgba(22,163,74,0.10)',     // green-600 subtle
-  bar:    '#16a34a',
-  barDay: '#16a34a',
+// App purple palette
+const P = {
+  text:   'text-primary',
+  border: 'border-primary/25',
+  glow:   'rgba(139,69,217,0.12)',
+  bar:    '#8B45D9',
+  barLight: '#A565F2',
 };
+
+const TODAY_IDX = 3; // Thursday = index 3
 
 function MetricsSection() {
   const steps    = useCountUp(8432, 1600);
   const calories = useCountUp(647,  1200);
   const bpm      = useCountUp(72,   900);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   return (
     <section className="space-y-4">
@@ -95,7 +98,7 @@ function MetricsSection() {
       <div className="grid grid-cols-3 gap-3">
 
         {/* Steps — stride walk */}
-        <MetricCard delay={0} colour={G.text} borderColour={G.border} glowColour={G.glow}
+        <MetricCard delay={0} colour={P.text} borderColour={P.border} glowColour={P.glow}
           value={steps.toLocaleString()} sub="+12% today"
           icon={
             <motion.div
@@ -107,7 +110,7 @@ function MetricsSection() {
           } />
 
         {/* Calories — flame flicker */}
-        <MetricCard delay={0.1} colour={G.text} borderColour={G.border} glowColour={G.glow}
+        <MetricCard delay={0.1} colour={P.text} borderColour={P.border} glowColour={P.glow}
           value={`${calories}`} sub="kcal active"
           icon={
             <motion.div
@@ -125,7 +128,7 @@ function MetricsSection() {
           } />
 
         {/* Heart rate — lub-dub at 72 BPM (833 ms) */}
-        <MetricCard delay={0.2} colour={G.text} borderColour={G.border} glowColour={G.glow}
+        <MetricCard delay={0.2} colour={P.text} borderColour={P.border} glowColour={P.glow}
           value={`${bpm}`} sub="bpm resting"
           icon={
             <motion.div
@@ -143,43 +146,75 @@ function MetricsSection() {
 
       </div>
 
-      {/* Step bar chart — interactive */}
+      {/* Step bar chart — interactive with hover glow */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className={`bg-[#111111] border ${G.border} rounded-sm`}
-        style={{ boxShadow: `0 0 18px ${G.glow}` }}
+        className={`bg-[#111111] border ${P.border} rounded-sm`}
+        style={{ boxShadow: `0 0 18px ${P.glow}` }}
       >
         <ResponsiveContainer width="100%" height={120}>
-          <BarChart data={stepData} barCategoryGap="30%" margin={{ top: 12, right: 8, left: 8, bottom: 0 }}>
+          <BarChart
+            data={stepData}
+            barCategoryGap="30%"
+            margin={{ top: 12, right: 8, left: 8, bottom: 0 }}
+            onMouseMove={(state) => {
+              if (state.isTooltipActive && state.activeTooltipIndex !== undefined) {
+                setHoveredIdx(state.activeTooltipIndex);
+              }
+            }}
+            onMouseLeave={() => setHoveredIdx(null)}
+          >
             <Tooltip
               cursor={false}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload as typeof stepData[0];
                 return (
-                  <div className="bg-[#1a1a1a] border border-[#14532d]/60 px-3 py-2 rounded-sm shadow-lg"
-                    style={{ boxShadow: '0 0 16px rgba(22,163,74,0.2)' }}>
-                    <p className="text-[10px] font-bold tracking-widest text-[#16a34a] uppercase mb-0.5">{d.label}</p>
-                    <p className="text-sm font-bold text-white tabular-nums">{d.steps.toLocaleString()} <span className="text-[10px] text-white/40 font-semibold">steps</span></p>
+                  <div
+                    className="bg-[#1a1a1a] border border-primary/40 px-3 py-2 rounded-sm shadow-lg"
+                    style={{ boxShadow: '0 0 16px rgba(139,69,217,0.25)' }}
+                  >
+                    <p className="text-[10px] font-bold tracking-widest text-primary uppercase mb-0.5">{d.label}</p>
+                    <p className="text-sm font-bold text-white tabular-nums">
+                      {d.steps.toLocaleString()}{' '}
+                      <span className="text-[10px] text-white/40 font-semibold">steps</span>
+                    </p>
                   </div>
                 );
               }}
             />
             <Bar dataKey="steps" radius={[2, 2, 0, 0]}>
-              {stepData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={G.bar}
-                  opacity={entry.steps === 8432 ? 1 : 0.18}
-                />
-              ))}
+              {stepData.map((_, index) => {
+                const isHovered = hoveredIdx === index;
+                const isToday   = index === TODAY_IDX;
+                // hovered → full bright light purple; today (no hover) → solid purple; rest → dim
+                const fill    = isHovered ? P.barLight : P.bar;
+                const opacity = isHovered ? 1 : hoveredIdx !== null ? 0.12 : isToday ? 1 : 0.18;
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={fill}
+                    opacity={opacity}
+                    style={isHovered ? { filter: 'drop-shadow(0 0 6px rgba(165,101,242,0.7))' } : undefined}
+                  />
+                );
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex justify-between text-[10px] font-bold text-foreground/25 px-4 pb-3">
-          <span>M</span><span>T</span><span>W</span>
-          <span className={G.text}>T</span>
-          <span>F</span><span>S</span><span>S</span>
+        <div className="flex justify-between text-[10px] font-bold px-4 pb-3">
+          {stepData.map((d, i) => (
+            <span
+              key={i}
+              className={
+                hoveredIdx === i ? 'text-primary font-black' :
+                i === TODAY_IDX && hoveredIdx === null ? 'text-primary' :
+                'text-foreground/25'
+              }
+            >
+              {d.day}
+            </span>
+          ))}
         </div>
       </motion.div>
     </section>
@@ -187,14 +222,15 @@ function MetricsSection() {
 }
 
 interface HomeProps {
-  setPage: (page: Page) => void;
+  setPage:     (page: Page) => void;
+  goToSession: (id: number) => void;
 }
 
 function loadProfile() {
   try { return JSON.parse(localStorage.getItem('mg_profile') || 'null'); } catch { return null; }
 }
 
-export const Home = ({ setPage }: HomeProps) => {
+export const Home = ({ setPage, goToSession }: HomeProps) => {
   const profile   = loadProfile();
   const firstName = profile?.firstName ? profile.firstName.toUpperCase() : 'MARCUS';
   const initials  = profile
@@ -253,7 +289,7 @@ export const Home = ({ setPage }: HomeProps) => {
             <section className="space-y-3">
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Next Session</h3>
               <motion.button
-                onClick={() => setPage('sessions')}
+                onClick={() => goToSession(1)}
                 whileTap={{ scale: 0.98 }}
                 className="w-full text-left bg-[#111111] border-l-2 border-l-primary border-y border-r border-white/5 hover:border-primary/30 transition-colors group flex items-center gap-4 px-4 py-4"
               >
@@ -286,7 +322,7 @@ export const Home = ({ setPage }: HomeProps) => {
             <section className="space-y-3">
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Last Session</h3>
               <motion.button
-                onClick={() => setPage('sessions')}
+                onClick={() => goToSession(4)}
                 whileTap={{ scale: 0.98 }}
                 className="w-full text-left bg-[#111111] border border-white/5 hover:border-white/15 transition-colors group flex items-center gap-4 px-4 py-4"
               >
@@ -321,20 +357,6 @@ export const Home = ({ setPage }: HomeProps) => {
               </motion.button>
             </section>
 
-            {/* Book A Session */}
-            <section className="relative overflow-hidden rounded-sm group">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-[#0A0A0A] z-0" />
-              <div className="relative z-10 p-6 flex flex-col items-center text-center border border-primary/20">
-                <h3 className="text-xl font-bold tracking-widest mb-1">BOOK YOUR NEXT SESSION</h3>
-                <p className="text-xs font-semibold text-foreground/50 tracking-wider uppercase mb-6">Schedule time with Marcus</p>
-                <button
-                  onClick={() => setPage('sessions')}
-                  className="w-full bg-primary hover:bg-primary/90 text-white py-4 font-bold tracking-[0.2em] uppercase transition-all group-hover:shadow-[0_0_20px_rgba(100,60,160,0.4)]"
-                >
-                  Book Now →
-                </button>
-              </div>
-            </section>
           </div>
 
           {/* RIGHT COLUMN */}
