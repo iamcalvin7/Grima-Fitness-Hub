@@ -236,85 +236,77 @@ function MetricsSection() {
       {/* ── Two always-visible cards ── */}
       <div className="grid grid-cols-2 gap-3">
 
-        {/* Steps */}
+        {/* Steps — green */}
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="relative overflow-hidden rounded-2xl bg-[#130d1f] border border-primary/30 p-4"
-          style={{ boxShadow: '0 0 24px rgba(139,69,217,0.18)' }}
+          className="relative overflow-hidden rounded-2xl p-4"
+          style={{ background: '#0d1a0f', border: '1px solid rgba(34,197,94,0.3)', boxShadow: '0 0 24px rgba(34,197,94,0.1)' }}
         >
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
-          <span className="text-primary mb-2 block">
-            <Activity className="w-5 h-5" />
-          </span>
+          <div className="absolute inset-x-0 top-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent)' }} />
+          <span className="text-green-400 mb-2 block"><Activity className="w-5 h-5" /></span>
           <p className="text-3xl font-black text-white tabular-nums leading-none">{stepsVal.toLocaleString()}</p>
-          <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Steps</p>
-          <span className="mt-2 inline-block text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-lg">+12% today</span>
+          <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider mt-1">Steps</p>
+          <span className="mt-2 inline-block text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-lg">+12% today</span>
           <div className="mt-3 -mx-1">
             <ResponsiveContainer width="100%" height={48}>
               <AreaChart data={SPARKLINES.steps} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="sg-steps" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.55} />
-                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}    />
+                    <stop offset="0%"   stopColor="#22c55e" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#22c55e" stopOpacity={0}   />
                   </linearGradient>
                 </defs>
-                <Tooltip
-                  cursor={{ stroke: 'rgba(139,69,217,0.3)', strokeWidth: 1, strokeDasharray: '3 2' }}
+                <Tooltip cursor={{ stroke: 'rgba(34,197,94,0.3)', strokeWidth: 1, strokeDasharray: '3 2' }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload as { day: string; v: number };
                     return (
-                      <div className="bg-[#1a1225] border border-primary/50 px-2 py-1 rounded-lg text-[10px] font-bold text-white"
-                        style={{ boxShadow: '0 0 12px rgba(139,69,217,0.35)' }}>
+                      <div className="bg-[#0d1a0f] border border-green-500/50 px-2 py-1 rounded-lg text-[10px] font-bold text-white">
                         {d.day} · {d.v.toLocaleString()}
                       </div>
                     );
-                  }}
-                />
-                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={2}
+                  }} />
+                <Area type="monotone" dataKey="v" stroke="#22c55e" strokeWidth={2}
                   fill="url(#sg-steps)" isAnimationActive
-                  activeDot={{ r: 4, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }} />
+                  activeDot={{ r: 4, fill: '#22c55e', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* Calories */}
+        {/* Calories — orange */}
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="relative overflow-hidden rounded-2xl bg-[#130d1f] border border-primary/30 p-4"
-          style={{ boxShadow: '0 0 24px rgba(139,69,217,0.18)' }}
+          className="relative overflow-hidden rounded-2xl p-4"
+          style={{ background: '#1a100a', border: '1px solid rgba(249,115,22,0.3)', boxShadow: '0 0 24px rgba(249,115,22,0.1)' }}
         >
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
-          <span className="text-primary mb-2 block">
-            <Flame className="w-5 h-5" />
-          </span>
+          <div className="absolute inset-x-0 top-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.6), transparent)' }} />
+          <span className="text-orange-400 mb-2 block"><Flame className="w-5 h-5" /></span>
           <p className="text-3xl font-black text-white tabular-nums leading-none">{calsVal}</p>
-          <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Kcal Active</p>
-          <span className="mt-2 inline-block text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-lg">↑ 8% vs yesterday</span>
+          <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wider mt-1">Kcal Active</p>
+          <span className="mt-2 inline-block text-[10px] font-bold text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-lg">↑ 8% vs yesterday</span>
           <div className="mt-3 -mx-1">
             <ResponsiveContainer width="100%" height={48}>
               <AreaChart data={SPARKLINES.calories} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="sg-cals" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.55} />
-                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}    />
+                    <stop offset="0%"   stopColor="#f97316" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity={0}   />
                   </linearGradient>
                 </defs>
-                <Tooltip
-                  cursor={{ stroke: 'rgba(139,69,217,0.3)', strokeWidth: 1, strokeDasharray: '3 2' }}
+                <Tooltip cursor={{ stroke: 'rgba(249,115,22,0.3)', strokeWidth: 1, strokeDasharray: '3 2' }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload as { day: string; v: number };
                     return (
-                      <div className="bg-[#1a1225] border border-primary/50 px-2 py-1 rounded-lg text-[10px] font-bold text-white"
-                        style={{ boxShadow: '0 0 12px rgba(139,69,217,0.35)' }}>
+                      <div className="bg-[#1a100a] border border-orange-500/50 px-2 py-1 rounded-lg text-[10px] font-bold text-white">
                         {d.day} · {d.v} kcal
                       </div>
                     );
-                  }}
-                />
-                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={2}
+                  }} />
+                <Area type="monotone" dataKey="v" stroke="#f97316" strokeWidth={2}
                   fill="url(#sg-cals)" isAnimationActive
                   activeDot={{ r: 4, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
@@ -329,17 +321,20 @@ function MetricsSection() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden"
+        style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.08)' }}
+        className="rounded-2xl overflow-hidden"
       >
         {/* Chart header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="flex items-center gap-2">
-            <Activity size={14} className="text-primary/60" />
-            <span className="text-xs font-bold text-white/60">Weekly Activity</span>
+            <Activity size={14} className="text-white/40" />
+            <span className="text-xs font-bold text-white/50">Weekly Activity</span>
           </div>
-          <span className="text-[10px] font-bold text-white/30 bg-white/5 border border-white/8 rounded-lg px-2.5 py-1">
-            This Week
-          </span>
+          <div className="flex items-center gap-3 text-[9px] font-bold text-white/30 uppercase tracking-wider">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"/>Goal</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block"/>Close</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"/>Low</span>
+          </div>
         </div>
 
         <ResponsiveContainer width="100%" height={150}>
@@ -363,9 +358,9 @@ function MetricsSection() {
             />
             <ReferenceLine
               y={GOAL_STEPS}
-              stroke="rgba(139,69,217,0.4)"
+              stroke="rgba(200,200,200,0.2)"
               strokeDasharray="4 3"
-              label={{ value: '7.5K', position: 'right', fontSize: 9, fill: 'rgba(139,69,217,0.7)', fontWeight: 700 }}
+              label={{ value: '7.5K', position: 'right', fontSize: 9, fill: 'rgba(200,200,200,0.4)', fontWeight: 700 }}
             />
             <Tooltip
               cursor={false}
@@ -373,14 +368,11 @@ function MetricsSection() {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload as typeof STEP_DATA[0];
                 const isToday = payload[0].payload === STEP_DATA[TODAY_IDX];
+                const col = d.steps >= GOAL_STEPS ? '#22c55e' : d.steps >= 5000 ? '#f97316' : '#ef4444';
                 return (
-                  <div
-                    className="bg-[#1a1225] border border-primary/50 px-3 py-2 rounded-xl"
-                    style={{ boxShadow: '0 0 20px rgba(139,69,217,0.3)' }}
-                  >
-                    {isToday && (
-                      <p className="text-[9px] font-black tracking-widest text-primary uppercase mb-0.5">Today</p>
-                    )}
+                  <div className="bg-[#1a1a1a] border border-white/15 px-3 py-2 rounded-xl"
+                    style={{ boxShadow: `0 0 16px ${col}33` }}>
+                    {isToday && <p className="text-[9px] font-black tracking-widest uppercase mb-0.5" style={{ color: col }}>Today</p>}
                     <p className="text-xs font-black text-white tabular-nums">
                       {d.steps.toLocaleString()} <span className="text-[10px] text-white/40 font-medium">steps</span>
                     </p>
@@ -389,17 +381,16 @@ function MetricsSection() {
               }}
             />
             <Bar dataKey="steps" radius={[4,4,0,0]}>
-              {STEP_DATA.map((_, i) => {
+              {STEP_DATA.map((entry, i) => {
                 const isHov   = hoveredBar === i;
                 const isToday = i === TODAY_IDX;
+                const base = entry.steps >= GOAL_STEPS ? '#22c55e' : entry.steps >= 5000 ? '#f97316' : '#ef4444';
                 return (
                   <Cell
                     key={i}
-                    fill={isHov || isToday ? '#A565F2' : '#8B45D9'}
-                    opacity={isHov ? 1 : hoveredBar !== null ? 0.1 : isToday ? 1 : 0.22}
-                    style={isHov || isToday
-                      ? { filter: 'drop-shadow(0 0 8px rgba(165,101,242,0.6))' }
-                      : undefined}
+                    fill={base}
+                    opacity={isHov ? 1 : hoveredBar !== null ? 0.12 : isToday ? 1 : 0.35}
+                    style={(isHov || isToday) ? { filter: `drop-shadow(0 0 8px ${base}88)` } : undefined}
                   />
                 );
               })}
@@ -409,13 +400,15 @@ function MetricsSection() {
 
         {/* Day labels */}
         <div className="flex justify-between text-[10px] font-semibold px-5 pb-3" style={{ paddingLeft: 44 }}>
-          {STEP_DATA.map((d, i) => (
-            <span key={i} className={
-              hoveredBar === i          ? 'text-primary font-black' :
-              i === TODAY_IDX           ? 'text-primary' :
-              'text-white/25'
-            }>{d.day}</span>
-          ))}
+          {STEP_DATA.map((d, i) => {
+            const col = d.steps >= GOAL_STEPS ? '#22c55e' : d.steps >= 5000 ? '#f97316' : '#ef4444';
+            return (
+              <span key={i} style={{ color: hoveredBar === i || i === TODAY_IDX ? col : undefined }}
+                className={hoveredBar !== i && i !== TODAY_IDX ? 'text-white/25' : 'font-black'}>
+                {d.day}
+              </span>
+            );
+          })}
         </div>
       </motion.div>
 
@@ -595,14 +588,14 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #4a18a0 0%, #7c35c9 60%, #9b4de8 100%)' }}>
+        style={{ background: 'linear-gradient(160deg, #0e0e0e 0%, #1a1a1a 60%, #111111 100%)' }}>
 
-        {/* Shimmer blob top-right */}
-        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.13) 0%, transparent 60%)' }} />
-        {/* Shimmer blob bottom-left */}
-        <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 60%)' }} />
+        {/* Chrome sheen top-right */}
+        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(220,220,220,0.07) 0%, transparent 60%)' }} />
+        {/* Metallic bottom edge highlight */}
+        <div className="absolute inset-x-0 bottom-6 h-px pointer-events-none"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(200,200,200,0.15), transparent)' }} />
 
         {/* Content row */}
         <div className="relative px-5 md:px-8 pt-12 pb-8 flex items-center justify-between gap-4">
