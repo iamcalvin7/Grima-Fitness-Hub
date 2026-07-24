@@ -190,7 +190,17 @@ interface HomeProps {
   setPage: (page: Page) => void;
 }
 
+function loadProfile() {
+  try { return JSON.parse(localStorage.getItem('mg_profile') || 'null'); } catch { return null; }
+}
+
 export const Home = ({ setPage }: HomeProps) => {
+  const profile   = loadProfile();
+  const firstName = profile?.firstName ? profile.firstName.toUpperCase() : 'MARCUS';
+  const initials  = profile
+    ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'MG'
+    : 'MG';
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-24 md:pb-0">
 
@@ -201,7 +211,7 @@ export const Home = ({ setPage }: HomeProps) => {
           <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#C0C0C0" />
         </svg>
         <div className="w-9 h-9 rounded-full bg-primary border border-white/10 flex items-center justify-center text-white font-bold tracking-wider text-sm">
-          MG
+          {initials}
         </div>
       </header>
 
@@ -209,7 +219,7 @@ export const Home = ({ setPage }: HomeProps) => {
       <header className="hidden md:flex px-8 py-5 items-center justify-between border-b border-white/5 sticky top-0 z-30 bg-[#0A0A0A]/90 backdrop-blur-md">
         <div>
           <p className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">{getGreeting()}</p>
-          <h1 className="text-2xl font-bold tracking-[0.15em]">MARCUS</h1>
+          <h1 className="text-2xl font-bold tracking-[0.15em]">{firstName}</h1>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -219,7 +229,7 @@ export const Home = ({ setPage }: HomeProps) => {
             Book Session →
           </button>
           <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold text-sm">
-            MG
+            {initials}
           </div>
         </div>
       </header>
@@ -229,7 +239,7 @@ export const Home = ({ setPage }: HomeProps) => {
         {/* Mobile greeting */}
         <div className="md:hidden space-y-1 mb-8">
           <h2 className="text-muted-foreground text-sm font-semibold tracking-[0.2em] uppercase">{getGreeting()}</h2>
-          <h1 className="text-4xl font-bold tracking-wider">MARCUS</h1>
+          <h1 className="text-4xl font-bold tracking-wider">{firstName}</h1>
           <div className="w-12 h-1 bg-primary mt-3" />
         </div>
 
