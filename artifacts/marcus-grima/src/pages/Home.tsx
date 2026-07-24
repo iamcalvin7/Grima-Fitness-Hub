@@ -131,8 +131,8 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         background: 'linear-gradient(135deg, #1a1030 0%, #120d22 100%)',
         border: '1px solid rgba(139,69,217,0.18)',
       } : {
-        background: 'linear-gradient(135deg, #7c28e0 0%, #9b45f5 45%, #6b21d4 100%)',
-        boxShadow: '0 8px 32px rgba(139,69,217,0.45), 0 2px 8px rgba(0,0,0,0.4)',
+        background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 45%, #ea580c 100%)',
+        boxShadow: '0 8px 32px rgba(234,88,12,0.45), 0 2px 8px rgba(0,0,0,0.4)',
       }}
     >
       {/* Shimmer line at top */}
