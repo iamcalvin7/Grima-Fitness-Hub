@@ -16,7 +16,7 @@ export const BottomNav = ({ activePage, onNavigate }: BottomNavProps) => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-[#0A0A0A] border-t border-white/10 px-6 py-4 flex justify-between items-center z-40">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-white/10 px-6 py-4 flex justify-between items-center z-40">
       {items.map((item) => {
         const isActive = activePage === item.id;
         return (
