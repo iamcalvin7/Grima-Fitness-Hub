@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Heart, Activity } from 'lucide-react';
+import { Flame, Heart, Activity, ChevronRight, Clock, MapPin, CheckCircle2, Dumbbell } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { BodyMap } from '@/components/BodyMap';
 import type { Page } from '@/App';
@@ -247,53 +247,78 @@ export const Home = ({ setPage }: HomeProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
 
           {/* LEFT COLUMN */}
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-6">
 
-            {/* Next Session */}
-            <section className="space-y-4">
-              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your Next Session</h3>
-              <div className="bg-[#111111] border-l-2 border-l-primary p-5 rounded-r-sm shadow-lg">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-xs font-bold tracking-widest text-primary mb-1">STRENGTH & CONDITIONING</p>
-                    <h4 className="text-lg font-bold">THURSDAY, 24 JULY · 07:00 AM</h4>
+            {/* Next Session — compact tap card */}
+            <section className="space-y-3">
+              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Next Session</h3>
+              <motion.button
+                onClick={() => setPage('sessions')}
+                whileTap={{ scale: 0.98 }}
+                className="w-full text-left bg-[#111111] border-l-2 border-l-primary border-y border-r border-white/5 hover:border-primary/30 transition-colors group flex items-center gap-4 px-4 py-4"
+              >
+                {/* Date block */}
+                <div className="w-11 h-11 bg-primary/10 border border-primary/20 flex flex-col items-center justify-center shrink-0">
+                  <span className="text-[9px] font-bold tracking-widest text-primary/60 uppercase leading-none">Jul</span>
+                  <span className="text-lg font-black text-primary leading-none mt-0.5">24</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black tracking-[0.12em] text-foreground truncate">STRENGTH & CONDITIONING</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-foreground/45">
+                      <Clock size={10} /> 07:00 AM · 60 MIN
+                    </span>
                   </div>
-                  <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 font-bold tracking-wider shrink-0 ml-3">CONFIRMED</span>
+                  <div className="flex items-center gap-1 mt-0.5 text-[10px] font-semibold text-foreground/35">
+                    <MapPin size={10} /> Marcus Grima Studio
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2 text-sm text-foreground/70 font-semibold mb-5">
-                  <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-foreground/30 rounded-full" /> 60 MIN</p>
-                  <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-foreground/30 rounded-full" /> MARCUS GRIMA STUDIO, LONDON</p>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-[8px] font-bold tracking-widest text-primary bg-primary/10 px-1.5 py-0.5">CONFIRMED</span>
+                  <ChevronRight size={14} className="text-foreground/25 group-hover:text-primary transition-colors" />
                 </div>
-                <button
-                  onClick={() => setPage('sessions')}
-                  className="text-xs font-bold tracking-[0.2em] text-foreground hover:text-primary transition-colors flex items-center gap-2 uppercase"
-                >
-                  View Details <span>→</span>
-                </button>
-              </div>
+              </motion.button>
             </section>
 
-            {/* Messages */}
-            <section className="space-y-4">
-              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Messages</h3>
-              <button
-                onClick={() => setPage('messages')}
-                className="w-full bg-[#111111] border border-white/5 p-4 rounded-sm flex gap-4 items-start text-left hover:border-primary/20 transition-colors"
+            {/* Last Session — compact tap card */}
+            <section className="space-y-3">
+              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Last Session</h3>
+              <motion.button
+                onClick={() => setPage('sessions')}
+                whileTap={{ scale: 0.98 }}
+                className="w-full text-left bg-[#111111] border border-white/5 hover:border-white/15 transition-colors group flex items-center gap-4 px-4 py-4"
               >
-                <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold shrink-0">
-                  MG
+                {/* Check icon block */}
+                <div className="w-11 h-11 bg-green-500/8 border border-green-500/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={20} className="text-green-500/60" />
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h4 className="font-bold text-sm">Marcus Grima</h4>
-                    <span className="text-[10px] text-foreground/40 font-semibold tracking-wider">2h ago</span>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black tracking-[0.12em] text-foreground truncate">UPPER BODY POWER</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-foreground/45">
+                      <Clock size={10} /> TUE 22 JUL · 55 MIN
+                    </span>
                   </div>
-                  <p className="text-xs text-foreground/60 font-medium leading-relaxed">
-                    Great work on yesterday's session. Make sure you're getting enough protein today — aim for at least 180g. See you Thursday 💪
-                  </p>
+                  {/* Exercise chips — top 3 */}
+                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    {['Bench Press', 'OHP', '+5 more'].map(e => (
+                      <span key={e} className="text-[8px] font-bold tracking-wide text-foreground/35 bg-white/4 border border-white/8 px-1.5 py-0.5">
+                        {e}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 shrink-0" />
-              </button>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-foreground/30">
+                    <Dumbbell size={10} /> 7
+                  </span>
+                  <ChevronRight size={14} className="text-foreground/25 group-hover:text-foreground/60 transition-colors" />
+                </div>
+              </motion.button>
             </section>
 
             {/* Book A Session */}
@@ -317,49 +342,6 @@ export const Home = ({ setPage }: HomeProps) => {
 
             {/* Metrics */}
             <MetricsSection />
-
-            {/* Last Session Recap */}
-            <section className="space-y-4">
-              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Last Session Recap</h3>
-              <div className="bg-[#111111] border border-white/5 rounded-sm overflow-hidden">
-                {/* Header */}
-                <div className="p-5 border-b border-white/5">
-                  <p className="text-[10px] font-bold tracking-widest text-foreground/30 mb-1">TUESDAY, 22 JULY</p>
-                  <h4 className="text-lg font-bold tracking-wider mb-1">UPPER BODY POWER</h4>
-                  <div className="flex gap-4 text-xs font-semibold text-foreground/50 tracking-wider">
-                    <span>55 MIN</span><span>•</span><span>7 EXERCISES</span>
-                  </div>
-                </div>
-
-                {/* Body Map — full width */}
-                <div className="px-5 pt-5 pb-2 border-b border-white/5">
-                  <BodyMap musclesWorked={['CHEST', 'SHOULDERS', 'TRICEPS']} />
-                </div>
-
-                {/* Exercise list */}
-                <div className="divide-y divide-white/5">
-                  {[
-                    { name: 'Bench Press',           sets: '4 × 8 @ 80kg',  muscle: 'CHEST' },
-                    { name: 'Overhead Press',         sets: '3 × 10 @ 50kg', muscle: 'SHOULDERS' },
-                    { name: 'Incline Dumbbell Press', sets: '3 × 12 @ 28kg', muscle: 'CHEST' },
-                    { name: 'Lateral Raises',         sets: '4 × 15 @ 10kg', muscle: 'SHOULDERS' },
-                    { name: 'Skull Crushers',         sets: '3 × 12 @ 30kg', muscle: 'TRICEPS' },
-                    { name: 'Cable Flyes',            sets: '3 × 15 @ 15kg', muscle: 'CHEST' },
-                    { name: 'Tricep Dips',            sets: '3 × failure',   muscle: 'TRICEPS' },
-                  ].map((exercise, i) => (
-                    <div key={i} className="flex justify-between items-center px-4 py-3 hover:bg-white/[0.03] transition-colors">
-                      <div>
-                        <p className="text-sm font-bold">{exercise.name}</p>
-                        <p className="text-[10px] font-bold tracking-widest text-foreground/40 mt-0.5">{exercise.sets}</p>
-                      </div>
-                      <span className="text-[9px] font-bold tracking-widest text-primary/80 uppercase ml-3 shrink-0">
-                        {exercise.muscle}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
 
           </div>
         </div>

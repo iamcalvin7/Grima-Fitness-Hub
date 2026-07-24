@@ -1,7 +1,191 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info, Lock, Crown, CheckCircle2, CreditCard } from 'lucide-react';
 import { PROGRAMS, type Program, type Workout, type Exercise } from '@/data/programs';
+
+/* ── Unlock helpers ───────────────────────────────────────────────────────── */
+function getUnlocked(): string[] {
+  try { return JSON.parse(localStorage.getItem('mg_unlocked') || '[]'); } catch { return []; }
+}
+function unlock(id: string) {
+  const list = getUnlocked();
+  if (!list.includes(id)) localStorage.setItem('mg_unlocked', JSON.stringify([...list, id]));
+}
+function isUnlocked(id: string) { return getUnlocked().includes(id); }
+
+/* ── PaywallSheet ─────────────────────────────────────────────────────────── */
+const PAYMENT_METHODS = [
+  {
+    id: 'apple',
+    label: 'Apple Pay',
+    bg: '#000000',
+    textColour: '#FFFFFF',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'revolut',
+    label: 'Revolut Pay',
+    bg: '#191C1F',
+    textColour: '#FFFFFF',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+        <path d="M5 3h8.5C16 3 18 5 18 7.25c0 1.5-.75 2.75-2 3.5L18.5 21H15l-2.5-9.5H8.5V21H5V3zm3.5 6h4.75c.97 0 1.75-.78 1.75-1.75S14.22 5.5 13.25 5.5H8.5V9z"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'card',
+    label: 'Pay by Card',
+    bg: '#1A1A2E',
+    textColour: '#FFFFFF',
+    icon: <CreditCard size={18} />,
+  },
+];
+
+function PaywallSheet({
+  program,
+  onClose,
+  onUnlocked,
+}: {
+  program: Program;
+  onClose: () => void;
+  onUnlocked: () => void;
+}) {
+  const [paying, setPaying]   = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handlePay = (methodId: string) => {
+    setPaying(methodId);
+    // Simulate payment processing
+    setTimeout(() => {
+      unlock(program.id);
+      setSuccess(true);
+      setTimeout(onUnlocked, 1200);
+    }, 1400);
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <motion.div
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 34 }}
+        className="fixed bottom-0 inset-x-0 z-50 bg-[#0F0F0F] rounded-t-2xl overflow-hidden max-w-lg mx-auto"
+      >
+        {/* Gold accent bar */}
+        <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
+
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
+        <div className="px-6 pb-10 pt-3">
+          {success ? (
+            /* Success state */
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center text-center py-8 gap-4"
+            >
+              <motion.div
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center"
+              >
+                <CheckCircle2 size={32} className="text-amber-400" />
+              </motion.div>
+              <h3 className="text-2xl font-black text-white">UNLOCKED!</h3>
+              <p className="text-white/50 text-sm">{program.name} is ready to go.</p>
+            </motion.div>
+          ) : (
+            <>
+              {/* Header */}
+              <div className="flex items-start justify-between mb-5">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{program.emoji}</span>
+                    <span className="text-[10px] font-bold tracking-[0.25em] text-amber-400 uppercase bg-amber-500/10 border border-amber-500/30 px-2 py-0.5">
+                      PREMIUM
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-black text-white tracking-tight">{program.name}</h2>
+                  <p className="text-sm text-white/45 mt-1 leading-relaxed">{program.description}</p>
+                </div>
+                <button onClick={onClose} className="text-white/30 hover:text-white transition-colors ml-4 mt-1">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Price */}
+              <div className="bg-amber-500/8 border border-amber-500/20 rounded-sm p-4 mb-5 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold tracking-[0.2em] text-amber-400/70 uppercase">One-time unlock</p>
+                  <p className="text-3xl font-black text-white mt-0.5">{program.price}</p>
+                </div>
+                <Crown size={28} className="text-amber-400 opacity-60" />
+              </div>
+
+              {/* What's included */}
+              <div className="mb-6">
+                <p className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase mb-3">What's included</p>
+                <div className="flex flex-col gap-2">
+                  {program.highlights?.map((h, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                        <Check size={10} className="text-amber-400" />
+                      </div>
+                      <span className="text-sm text-white/70 font-medium">{h}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment buttons */}
+              <div className="flex flex-col gap-3">
+                {PAYMENT_METHODS.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => handlePay(m.id)}
+                    disabled={!!paying}
+                    style={{ background: m.bg, color: m.textColour }}
+                    className="w-full py-3.5 rounded-sm flex items-center justify-center gap-3 font-bold text-sm tracking-wider disabled:opacity-50 transition-opacity"
+                  >
+                    {paying === m.id ? (
+                      <motion.div
+                        animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                        className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                    ) : (
+                      <>
+                        <span className="opacity-90">{m.icon}</span>
+                        {m.label}
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-center text-[10px] text-white/20 font-semibold tracking-wide mt-4">
+                Secure payment · Instant access · No subscription
+              </p>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </>
+  );
+}
 
 /* ── View state machine ──────────────────────────────────────────────────── */
 
@@ -110,7 +294,103 @@ function ExercisePhoto({ id, name, className = '', muted = true, autoPlay = fals
    VIEW 1 — Programs list
 ══════════════════════════════════════════════════════════════════════════ */
 
-function ProgramsView({ onSelect }: { onSelect: (id: string) => void }) {
+function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void; onPaywall: (id: string) => void }) {
+  const [unlocked, setUnlocked] = useState<string[]>(getUnlocked());
+
+  // Refresh after purchase
+  useEffect(() => { setUnlocked(getUnlocked()); }, []);
+
+  const free    = PROGRAMS.filter(p => !p.premium);
+  const premium = PROGRAMS.filter(p => p.premium);
+
+  const renderCard = (program: Program) => {
+    const isPremium  = !!program.premium;
+    const isOwned    = isUnlocked(program.id);
+    const locked     = isPremium && !isOwned;
+
+    const handleClick = () => locked ? onPaywall(program.id) : onSelect(program.id);
+
+    return (
+      <motion.button
+        key={program.id}
+        onClick={handleClick}
+        whileTap={{ scale: 0.98 }}
+        className={`w-full text-left rounded-sm overflow-hidden transition-colors group relative
+          ${locked
+            ? 'bg-[#0F0D08] border border-amber-500/25 hover:border-amber-500/50'
+            : 'bg-[#111111] border border-white/6 hover:border-primary/30'}`}
+      >
+        {/* Accent bar */}
+        <div className={`h-1 w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-primary to-[#A565F2]'}`} />
+
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {program.emoji && <span className="text-base">{program.emoji}</span>}
+                <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${DIFFICULTY_COLOUR[program.difficulty]}`}>
+                  {program.difficulty}
+                </span>
+                {isPremium && (
+                  <span className={`text-[9px] font-bold tracking-[0.2em] uppercase px-1.5 py-0.5 border rounded-sm
+                    ${isOwned
+                      ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                      : 'text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>
+                    {isOwned ? '✓ OWNED' : 'PREMIUM'}
+                  </span>
+                )}
+              </div>
+              <h2 className="text-lg font-bold tracking-wider mt-0.5">{program.name}</h2>
+              <p className="text-xs text-foreground/50 mt-1 leading-relaxed line-clamp-2">{program.description}</p>
+            </div>
+
+            {locked ? (
+              <div className="shrink-0 mt-1 flex flex-col items-center gap-1">
+                <Lock size={18} className="text-amber-400/60" />
+                <span className="text-[11px] font-black text-amber-400">{program.price}</span>
+              </div>
+            ) : (
+              <ChevronRight size={18} className="text-primary/60 group-hover:text-primary transition-colors shrink-0 mt-1" />
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Days/Week', value: `${program.daysPerWeek}` },
+              { label: 'Goal',      value: program.goal.split(' & ')[0] },
+              { label: 'Workouts',  value: `${program.workouts.length}` },
+            ].map(stat => (
+              <div key={stat.label} className={`border p-3 rounded-sm ${locked ? 'bg-[#0A0A0A] border-amber-500/10' : 'bg-[#0A0A0A] border-white/5'}`}>
+                <p className="text-[9px] font-bold tracking-widest text-foreground/35 uppercase mb-1">{stat.label}</p>
+                <p className="text-sm font-bold">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Day chips */}
+          <div className="flex gap-1.5 mt-4 flex-wrap">
+            {program.workouts.map(w => (
+              <span key={w.id} className={`text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border
+                ${locked
+                  ? 'bg-amber-500/8 text-amber-400/60 border-amber-500/20'
+                  : 'bg-primary/10 text-primary/80 border-primary/20'}`}>
+                {w.day}
+              </span>
+            ))}
+          </div>
+
+          {/* Lock CTA overlay strip */}
+          {locked && (
+            <div className="mt-4 flex items-center justify-center gap-2 py-2.5 border border-amber-500/30 bg-amber-500/5">
+              <Crown size={13} className="text-amber-400" />
+              <span className="text-[11px] font-bold tracking-[0.2em] text-amber-400 uppercase">Unlock for {program.price}</span>
+            </div>
+          )}
+        </div>
+      </motion.button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-28 md:pb-12">
       <div className="px-5 md:px-8 pt-6">
@@ -120,52 +400,19 @@ function ProgramsView({ onSelect }: { onSelect: (id: string) => void }) {
           <div className="w-10 h-0.5 bg-primary mt-3" />
         </div>
 
+        {/* Free programs */}
+        <div className="flex flex-col gap-4 mb-8">
+          {free.map(renderCard)}
+        </div>
+
+        {/* Premium section */}
+        <div className="mb-3 flex items-center gap-3">
+          <Crown size={14} className="text-amber-400" />
+          <p className="text-[10px] font-bold tracking-[0.22em] text-amber-400 uppercase">Premium Add-Ons</p>
+          <div className="flex-1 h-px bg-amber-500/20" />
+        </div>
         <div className="flex flex-col gap-4">
-          {PROGRAMS.map(program => (
-            <motion.button
-              key={program.id}
-              onClick={() => onSelect(program.id)}
-              whileTap={{ scale: 0.98 }}
-              className="w-full text-left bg-[#111111] border border-white/6 rounded-sm overflow-hidden hover:border-primary/30 transition-colors group"
-            >
-              {/* Accent bar */}
-              <div className="h-1 w-full bg-gradient-to-r from-primary to-[#A565F2]" />
-
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${DIFFICULTY_COLOUR[program.difficulty]}`}>
-                      {program.difficulty}
-                    </span>
-                    <h2 className="text-lg font-bold tracking-wider mt-0.5">{program.name}</h2>
-                    <p className="text-xs text-foreground/50 mt-1 leading-relaxed">{program.description}</p>
-                  </div>
-                  <ChevronRight size={18} className="text-primary/60 group-hover:text-primary transition-colors shrink-0 mt-1" />
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: 'Days/Week', value: `${program.daysPerWeek}` },
-                    { label: 'Goal', value: program.goal.split(' & ')[0] },
-                    { label: 'Workouts', value: `${program.workouts.length}` },
-                  ].map(stat => (
-                    <div key={stat.label} className="bg-[#0A0A0A] border border-white/5 p-3 rounded-sm">
-                      <p className="text-[9px] font-bold tracking-widest text-foreground/35 uppercase mb-1">{stat.label}</p>
-                      <p className="text-sm font-bold">{stat.value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-1.5 mt-4 flex-wrap">
-                  {program.workouts.map(w => (
-                    <span key={w.id} className="text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 bg-primary/10 text-primary/80 border border-primary/20 rounded-full">
-                      {w.day}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </motion.button>
-          ))}
+          {premium.map(renderCard)}
         </div>
       </div>
     </div>
@@ -623,17 +870,23 @@ function ActiveWorkout({
 ══════════════════════════════════════════════════════════════════════════ */
 
 export const Workouts = () => {
-  const [view, setView] = useState<View>({ kind: 'programs' });
+  const [view, setView]         = useState<View>({ kind: 'programs' });
+  const [paywallId, setPaywall] = useState<string | null>(null);
 
-  const goPrograms = useCallback(() => setView({ kind: 'programs' }), []);
+  const goPrograms   = useCallback(() => setView({ kind: 'programs' }), []);
+  const paywallProg  = paywallId ? PROGRAMS.find(p => p.id === paywallId) ?? null : null;
 
   return (
+    <>
     <AnimatePresence mode="wait">
       {view.kind === 'programs' && (
         <motion.div key="programs"
           initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }}
           transition={{ duration: 0.18 }}>
-          <ProgramsView onSelect={id => setView({ kind: 'program', programId: id })} />
+          <ProgramsView
+            onSelect={id => setView({ kind: 'program', programId: id })}
+            onPaywall={id => setPaywall(id)}
+          />
         </motion.div>
       )}
 
@@ -676,5 +929,20 @@ export const Workouts = () => {
         </motion.div>
       )}
     </AnimatePresence>
+
+    {/* Paywall sheet */}
+    <AnimatePresence>
+      {paywallProg && (
+        <PaywallSheet
+          program={paywallProg}
+          onClose={() => setPaywall(null)}
+          onUnlocked={() => {
+            setPaywall(null);
+            setView({ kind: 'program', programId: paywallProg.id });
+          }}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 };
