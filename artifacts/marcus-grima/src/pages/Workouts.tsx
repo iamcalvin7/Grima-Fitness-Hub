@@ -228,7 +228,7 @@ const EXERCISE_VIDEOS: Record<string, string> = {
 };
 
 const EXERCISE_IMAGES: Record<string, string> = {
-  'pull-ups':              'pull-ups.jpg', // fallback poster only
+  'pull-ups':              'pull-ups.png',
   'seated-rows':           'seated-rows.jpg',
   'lat-pull-downs':        'lat-pull-downs.jpg',
   'narrow-grip-pull-down': 'narrow-grip-pull-down.jpg',
@@ -256,8 +256,8 @@ function exerciseImg(id: string) {
   return file ? `${import.meta.env.BASE_URL}exercises/${file}` : null;
 }
 
-function ExercisePhoto({ id, name, className = '', muted = true, autoPlay = false }: { id: string; name: string; className?: string; muted?: boolean; autoPlay?: boolean }) {
-  const videoFile = EXERCISE_VIDEOS[id];
+function ExercisePhoto({ id, name, className = '', muted = true, autoPlay = false, video = false }: { id: string; name: string; className?: string; muted?: boolean; autoPlay?: boolean; video?: boolean }) {
+  const videoFile = video ? EXERCISE_VIDEOS[id] : undefined;
   if (videoFile) {
     return (
       <video
@@ -689,7 +689,7 @@ function ActiveWorkout({
             transition={{ duration: 0.25 }}
             className="w-full"
           >
-            <ExercisePhoto id={exercise.id} name={exercise.name} className="w-full h-auto block" autoPlay muted />
+            <ExercisePhoto id={exercise.id} name={exercise.name} className="w-full h-auto block" autoPlay muted video />
             {/* dark gradient overlay at bottom */}
             <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0A0A] to-transparent pointer-events-none" />
           </motion.div>
