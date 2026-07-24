@@ -70,21 +70,26 @@ function getGreeting() {
 }
 
 /* ── Metrics section ───────────────────────────────────────────────────── */
+
+// Dark forest green palette
+const G = {
+  text:   'text-[#16a34a]',          // green-600
+  border: 'border-[#14532d]/50',      // green-900/50
+  glow:   'rgba(22,163,74,0.10)',     // green-600 subtle
+  bar:    '#16a34a',
+  barDay: '#16a34a',
+};
+
+// Slow breathing pulse — no positional movement
+const breathe = {
+  opacity: [0.7, 1, 0.7],
+  transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const },
+};
+
 function MetricsSection() {
   const steps    = useCountUp(8432, 1600);
   const calories = useCountUp(647,  1200);
   const bpm      = useCountUp(72,   900);
-
-  // Heart pulse: 72 bpm ≈ one beat every 833 ms
-  const heartVariants = {
-    beat: { scale: [1, 1.28, 1, 1.12, 1], transition: { duration: 0.5, repeat: Infinity, repeatDelay: 0.33, ease: 'easeInOut' as const } },
-  };
-  const flameVariants = {
-    flicker: { scale: [1, 1.08, 0.96, 1.04, 1], opacity: [1, 0.85, 1, 0.9, 1], transition: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' as const } },
-  };
-  const stepVariants = {
-    bounce: { y: [0, -3, 0], transition: { duration: 0.7, repeat: Infinity, ease: 'easeInOut' as const } },
-  };
 
   return (
     <section className="space-y-4">
@@ -94,73 +99,41 @@ function MetricsSection() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        {/* Steps — green */}
-        <MetricCard
-          delay={0}
-          colour="text-green-400"
-          borderColour="border-green-500/25"
-          glowColour="rgba(34,197,94,0.12)"
-          value={steps.toLocaleString()}
-          sub="+12% today"
-          icon={
-            <motion.div animate="bounce" variants={stepVariants}>
-              <Activity className="w-5 h-5" />
-            </motion.div>
-          }
-        />
+        <MetricCard delay={0}    colour={G.text} borderColour={G.border} glowColour={G.glow}
+          value={steps.toLocaleString()} sub="+12% today"
+          icon={<motion.div animate={breathe}><Activity className="w-5 h-5" /></motion.div>} />
 
-        {/* Calories — orange */}
-        <MetricCard
-          delay={0.08}
-          colour="text-orange-400"
-          borderColour="border-orange-500/25"
-          glowColour="rgba(249,115,22,0.12)"
-          value={`${calories}`}
-          sub="kcal active"
-          icon={
-            <motion.div animate="flicker" variants={flameVariants}>
-              <Flame className="w-5 h-5" />
-            </motion.div>
-          }
-        />
+        <MetricCard delay={0.1}  colour={G.text} borderColour={G.border} glowColour={G.glow}
+          value={`${calories}`} sub="kcal active"
+          icon={<motion.div animate={{ ...breathe, transition: { ...breathe.transition, delay: 0.5 } }}><Flame className="w-5 h-5" /></motion.div>} />
 
-        {/* Heart rate — red */}
-        <MetricCard
-          delay={0.16}
-          colour="text-red-400"
-          borderColour="border-red-500/25"
-          glowColour="rgba(239,68,68,0.12)"
-          value={`${bpm}`}
-          sub="bpm resting"
-          icon={
-            <motion.div animate="beat" variants={heartVariants}>
-              <Heart className="w-5 h-5" fill="currentColor" />
-            </motion.div>
-          }
-        />
+        <MetricCard delay={0.2}  colour={G.text} borderColour={G.border} glowColour={G.glow}
+          value={`${bpm}`} sub="bpm resting"
+          icon={<motion.div animate={{ ...breathe, transition: { ...breathe.transition, delay: 1.0 } }}><Heart className="w-5 h-5" fill="currentColor" /></motion.div>} />
       </div>
 
-      {/* Step bar chart — green accent on today */}
+      {/* Step bar chart */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className="bg-[#111111] border border-green-500/15 p-4 rounded-sm h-36"
-        style={{ boxShadow: '0 0 20px rgba(34,197,94,0.06)' }}
+        className={`bg-[#111111] border ${G.border} p-4 rounded-sm h-36`}
+        style={{ boxShadow: `0 0 18px ${G.glow}` }}
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={stepData} barCategoryGap="30%">
             <Bar dataKey="steps" radius={[2, 2, 0, 0]}>
               {stepData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.steps === 8432 ? '#22c55e' : '#C0C0C0'}
-                  opacity={entry.steps === 8432 ? 1 : 0.18}
+                <Cell key={`cell-${index}`}
+                  fill={entry.steps === 8432 ? G.bar : '#C0C0C0'}
+                  opacity={entry.steps === 8432 ? 1 : 0.15}
                 />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
         <div className="flex justify-between text-[10px] font-bold text-foreground/25 px-1 -mt-1">
-          <span>M</span><span>T</span><span>W</span><span className="text-green-400">T</span><span>F</span><span>S</span><span>S</span>
+          <span>M</span><span>T</span><span>W</span>
+          <span className={G.text}>T</span>
+          <span>F</span><span>S</span><span>S</span>
         </div>
       </motion.div>
     </section>
