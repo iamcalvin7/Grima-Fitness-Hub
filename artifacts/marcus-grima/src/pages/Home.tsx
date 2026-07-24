@@ -144,7 +144,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         className="relative overflow-hidden rounded-2xl"
         style={{
           aspectRatio: '1712 / 919',
-          border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.1)',
+          border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.2)',
         }}
       >
         {/* Full-bleed photo */}
@@ -341,7 +341,7 @@ function MetricsSection() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.08)' }}
+        style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.18)' }}
         className="rounded-2xl overflow-hidden !mt-3"
       >
         {/* In-card label + legend */}
@@ -444,7 +444,7 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
       <h3 className="text-sm font-bold text-white">Sessions</h3>
 
       {/* Unified card container */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.09)' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.18)' }}>
 
         {/* Next session row */}
         <motion.button
@@ -454,7 +454,7 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
         >
           {/* Date badge — metallic */}
           <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,200,200,0.14)' }}>
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,200,200,0.22)' }}>
             <span className="text-[8px] font-bold text-white/35 uppercase leading-none tracking-wider">Jul</span>
             <span className="text-xl font-black text-white leading-none mt-0.5">24</span>
           </div>
@@ -490,7 +490,7 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
         >
           {/* Done badge */}
           <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(200,200,200,0.08)' }}>
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(200,200,200,0.18)' }}>
             <CheckCircle2 size={22} className="text-white/20" />
           </div>
 
@@ -526,7 +526,7 @@ function QuoteCard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.5 }}
         className="relative overflow-hidden rounded-2xl"
-        style={{ height: 170, border: '1px solid rgba(200,200,200,0.08)' }}
+        style={{ height: 170, border: '1px solid rgba(200,200,200,0.18)' }}
       >
         {/* Full-bleed background photo */}
         <img
