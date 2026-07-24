@@ -13,6 +13,30 @@ const RANK_STYLES: Record<number, { icon: React.ReactNode; colour: string; bg: s
   3: { icon: <Trophy size={14} />, colour: '#CD7F32', bg: 'rgba(205,127,50,0.10)' },
 };
 
+/* Profile photos per player */
+const PHOTOS: Record<string, string> = {
+  marcus: `${import.meta.env.BASE_URL}marcus.png`,
+  jake:   'https://i.pravatar.cc/128?img=12',
+  sophie: 'https://i.pravatar.cc/128?img=47',
+  tom:    'https://i.pravatar.cc/128?img=53',
+  emma:   'https://i.pravatar.cc/128?img=44',
+  chris:  'https://i.pravatar.cc/128?img=59',
+};
+
+function Avatar({ entry, size, ring }: { entry: { id: string; avatar: string; role: string }; size: number; ring: string }) {
+  const photo = PHOTOS[entry.id];
+  return (
+    <div
+      className="rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 bg-white/8"
+      style={{ width: size, height: size, border: ring, fontSize: size * 0.32, color: '#fff' }}
+    >
+      {photo
+        ? <img src={photo} alt={entry.id} className="w-full h-full object-cover" loading="lazy" />
+        : entry.avatar}
+    </div>
+  );
+}
+
 export function Leaderboard() {
   const profile      = loadProfile();
   const firstName    = profile?.firstName ? profile.firstName.charAt(0).toUpperCase() + profile.firstName.slice(1).toLowerCase() : 'You';
@@ -96,12 +120,48 @@ export function Leaderboard() {
         </div>
       </div>
 
-      {/* ── Ranked list ──────────────────────────────────────────────────── */}
-      <div className="px-5 md:px-8 flex flex-col gap-2">
-        <p className="text-[10px] font-bold tracking-[0.25em] text-white/30 uppercase mb-1">Weekly standings</p>
+      {/* ── Podium: top 3 ────────────────────────────────────────────────── */}
+      <div className="px-5 md:px-8 mb-8">
+        <p className="text-[10px] font-bold tracking-[0.25em] text-white/30 uppercase mb-5">Weekly standings</p>
+        <div className="flex items-end justify-center gap-6">
+          {[board[1], board[0], board[2]].filter(Boolean).map(entry => {
+            const rank = board.indexOf(entry) + 1;
+            const first = rank === 1;
+            const rs = RANK_STYLES[rank];
+            return (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: rank * 0.08 }}
+                className="flex flex-col items-center text-center"
+              >
+                {first && <Crown size={18} className="text-[#FFD700] mb-1.5" />}
+                <div className="relative">
+                  <Avatar entry={entry} size={first ? 84 : 64} ring={`2.5px solid ${rs.colour}`} />
+                  <span
+                    className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-black"
+                    style={{ background: rs.colour }}
+                  >
+                    {rank}
+                  </span>
+                </div>
+                <p className={`font-bold text-white mt-4 ${first ? 'text-sm' : 'text-xs'} max-w-[90px] truncate`}>
+                  {entry.name}
+                </p>
+                <p className="text-[10px] font-semibold text-white/40 tabular-nums mt-0.5">
+                  {entry.weekPts.toLocaleString()} pts
+                </p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
 
-        {board.map((entry, i) => {
-          const rank    = i + 1;
+      {/* ── Ranked list (4th onwards) ────────────────────────────────────── */}
+      <div className="px-5 md:px-8 flex flex-col gap-2">
+        {board.slice(3).map((entry, i) => {
+          const rank    = i + 4;
           const isYou   = entry.role === 'you';
           const isMarcus= entry.role === 'trainer';
           const rs      = RANK_STYLES[rank];
@@ -139,24 +199,15 @@ export function Leaderboard() {
               </div>
 
               {/* Avatar */}
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                style={{
-                  background: isYou
-                    ? 'rgba(229,229,229,0.2)'
-                    : isMarcus
-                    ? 'rgba(255,215,0,0.12)'
-                    : 'rgba(255,255,255,0.06)',
-                  color: isYou ? '#FFFFFF' : isMarcus ? '#FFD700' : '#ffffff80',
-                  border: isYou
-                    ? '1.5px solid rgba(229,229,229,0.45)'
-                    : isMarcus
-                    ? '1.5px solid rgba(255,215,0,0.3)'
-                    : '1.5px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                {entry.avatar}
-              </div>
+              <Avatar
+                entry={entry}
+                size={36}
+                ring={isYou
+                  ? '1.5px solid rgba(229,229,229,0.45)'
+                  : isMarcus
+                  ? '1.5px solid rgba(255,215,0,0.3)'
+                  : '1.5px solid rgba(255,255,255,0.08)'}
+              />
 
               {/* Name */}
               <div className="flex-1 min-w-0">
