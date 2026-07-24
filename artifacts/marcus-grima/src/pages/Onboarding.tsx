@@ -55,19 +55,19 @@ const SLIDES = [
     id: 0, eyebrow: 'MARCUS GRIMA PT',
     headline: ['TRAIN', 'HARDER.'],
     body: 'Elite personal training designed around your goals, your schedule, and your potential.',
-    accent: '#8B45D9', bg: 'from-[#0A0A0A] via-[#0D0A14] to-[#0A0A0A]',
+    accent: '#E5E5E5', bg: 'from-[#0A0A0A] via-[#101010] to-[#0A0A0A]',
   },
   {
     id: 1, eyebrow: 'TRACK EVERYTHING',
     headline: ['RESULTS', 'FOLLOW.'],
     body: 'Log every set, monitor your nutrition, and watch your metrics move in real time.',
-    accent: '#16a34a', bg: 'from-[#0A0A0A] via-[#0A110D] to-[#0A0A0A]',
+    accent: '#E5E5E5', bg: 'from-[#0A0A0A] via-[#101010] to-[#0A0A0A]',
   },
   {
     id: 2, eyebrow: 'BUILT FOR YOU',
     headline: ['YOUR PT,', 'YOUR WAY.'],
     body: 'Book sessions, get coaching cues, and stay connected with Marcus wherever you are.',
-    accent: '#8B45D9', bg: 'from-[#0A0A0A] via-[#0D0A14] to-[#0A0A0A]',
+    accent: '#E5E5E5', bg: 'from-[#0A0A0A] via-[#101010] to-[#0A0A0A]',
   },
 ];
 
@@ -357,8 +357,8 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
         </button>
         <div className="w-12 h-12 bg-primary/10 border border-primary/30 flex items-center justify-center mb-8">
           <svg viewBox="0 0 100 100" fill="none" className="w-7 h-7">
-            <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#8B45D9"/>
-            <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#8B45D9"/>
+            <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#E5E5E5"/>
+            <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#E5E5E5"/>
           </svg>
         </div>
         <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-2">Welcome back</p>

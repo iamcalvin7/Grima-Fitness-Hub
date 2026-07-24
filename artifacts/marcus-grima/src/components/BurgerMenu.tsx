@@ -23,21 +23,21 @@ const MENU_ITEMS: {
     label:  'Workouts',
     sub:    'Programs, circuits & active sessions',
     icon:   <Dumbbell size={26} />,
-    accent: '#8B45D9',
+    accent: '#E5E5E5',
   },
   {
     id:     'meals',
     label:  'Meal Plans',
     sub:    'Recipes, macros & daily planning',
     icon:   <UtensilsCrossed size={26} />,
-    accent: '#16a34a',
+    accent: '#E5E5E5',
   },
   {
     id:     'leaderboard',
     label:  'Leaderboard',
     sub:    'Compete for weekly points vs everyone',
     icon:   <Trophy size={26} />,
-    accent: '#FFD700',
+    accent: '#E5E5E5',
   },
 ];
 
@@ -101,15 +101,15 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06, duration: 0.25 }}
                     onClick={() => handleNav(item.id)}
-                    className={`w-full text-left flex items-center gap-4 p-5 rounded-sm border transition-all
+                    className={`w-full text-left flex items-center gap-4 p-5 rounded-2xl border transition-all
                       ${isActive
                         ? 'border-primary/40 bg-primary/8'
                         : 'border-white/8 bg-[#141414] hover:border-white/20'}`}
                   >
                     {/* Icon bubble */}
                     <div
-                      className="w-12 h-12 rounded-sm flex items-center justify-center shrink-0"
-                      style={{ background: `${item.accent}18`, border: `1px solid ${item.accent}35`, color: item.accent }}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: item.accent }}
                     >
                       {item.icon}
                     </div>
