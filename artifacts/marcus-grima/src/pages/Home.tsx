@@ -209,9 +209,10 @@ const STEP_DATA = [
 const TODAY_IDX = 3;
 const GOAL_STEPS = 7500;
 
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SPARKLINES = {
-  steps:    [5200, 6800, 7100, 6200, 8500, 7200, 8432].map((v, i) => ({ i, v })),
-  calories: [510,  580,  620,  490,  700,  580,  647 ].map((v, i) => ({ i, v })),
+  steps:    [5200, 6800, 7100, 6200, 8500, 7200, 8432].map((v, i) => ({ day: DAYS[i], v })),
+  calories: [510,  580,  620,  490,  700,  580,  647 ].map((v, i) => ({ day: DAYS[i], v })),
 };
 
 /* ── Metrics section ──────────────────────────────────────────────────────── */
@@ -249,16 +250,30 @@ function MetricsSection() {
           <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Steps</p>
           <span className="mt-2 inline-block text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-lg">+12% today</span>
           <div className="mt-3 -mx-1">
-            <ResponsiveContainer width="100%" height={36}>
-              <AreaChart data={SPARKLINES.steps} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={48}>
+              <AreaChart data={SPARKLINES.steps} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="sg-steps" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}   />
+                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.55} />
+                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}    />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={1.5}
-                  fill="url(#sg-steps)" dot={false} isAnimationActive={false} />
+                <Tooltip
+                  cursor={{ stroke: 'rgba(139,69,217,0.3)', strokeWidth: 1, strokeDasharray: '3 2' }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload as { day: string; v: number };
+                    return (
+                      <div className="bg-[#1a1225] border border-primary/50 px-2 py-1 rounded-lg text-[10px] font-bold text-white"
+                        style={{ boxShadow: '0 0 12px rgba(139,69,217,0.35)' }}>
+                        {d.day} · {d.v.toLocaleString()}
+                      </div>
+                    );
+                  }}
+                />
+                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={2}
+                  fill="url(#sg-steps)" isAnimationActive
+                  activeDot={{ r: 4, fill: '#A565F2', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -278,16 +293,30 @@ function MetricsSection() {
           <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Kcal Active</p>
           <span className="mt-2 inline-block text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-lg">↑ 8% vs yesterday</span>
           <div className="mt-3 -mx-1">
-            <ResponsiveContainer width="100%" height={36}>
-              <AreaChart data={SPARKLINES.calories} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={48}>
+              <AreaChart data={SPARKLINES.calories} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="sg-cals" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}   />
+                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.55} />
+                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}    />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={1.5}
-                  fill="url(#sg-cals)" dot={false} isAnimationActive={false} />
+                <Tooltip
+                  cursor={{ stroke: 'rgba(139,69,217,0.3)', strokeWidth: 1, strokeDasharray: '3 2' }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload as { day: string; v: number };
+                    return (
+                      <div className="bg-[#1a1225] border border-primary/50 px-2 py-1 rounded-lg text-[10px] font-bold text-white"
+                        style={{ boxShadow: '0 0 12px rgba(139,69,217,0.35)' }}>
+                        {d.day} · {d.v} kcal
+                      </div>
+                    );
+                  }}
+                />
+                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={2}
+                  fill="url(#sg-cals)" isAnimationActive
+                  activeDot={{ r: 4, fill: '#A565F2', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
