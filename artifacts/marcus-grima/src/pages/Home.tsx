@@ -108,98 +108,85 @@ function useCountdown() {
   return time;
 }
 
-/* ── Daily challenges — 3 photo cards ─────────────────────────────────────── */
+/* ── Daily challenge — single photo card ──────────────────────────────────── */
 function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
-  const challenges = getTodayChallenges();
+  const challenge  = getTodayChallenges()[0];
   const countdown  = useCountdown();
   const today      = new Date().toDateString();
-  const readDone   = () =>
-    Object.fromEntries(challenges.map(c => [c.name, isChallengeDone(c.name)]));
-  const [state, setState] = useState(() => ({ day: today, doneMap: readDone() }));
+  const [state, setState] = useState(() => ({ day: today, done: isChallengeDone(challenge.name) }));
 
-  // Re-sync from localStorage when the day rolls over (countdown re-renders every second)
-  if (state.day !== today) setState({ day: today, doneMap: readDone() });
-  const doneMap = state.doneMap;
+  // Re-sync when the day rolls over (countdown re-renders every second)
+  if (state.day !== today) setState({ day: today, done: isChallengeDone(challenge.name) });
+  const done = state.done;
 
-  const allDone = challenges.every(c => doneMap[c.name]);
-
-  const handleComplete = (name: string) => {
-    completeChallengeByName(name);
-    setState(s => ({ ...s, doneMap: { ...s.doneMap, [name]: true } }));
+  const handleComplete = () => {
+    completeChallengeByName(challenge.name);
+    setState(s => ({ ...s, done: true }));
     onComplete?.();
   };
 
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white/70">Daily Challenges</h3>
-        <span className="text-[10px] font-bold text-white/30 tabular-nums">
-          {allDone
-            ? <>Next in <span className="text-white/50">{countdown}</span></>
-            : `${challenges.filter(c => doneMap[c.name]).length}/3 done`}
-        </span>
+        <h3 className="text-sm font-bold text-white/70">Daily Challenge</h3>
+        {done && (
+          <span className="text-[10px] font-bold text-white/30 tabular-nums">
+            Next in <span className="text-white/50">{countdown}</span>
+          </span>
+        )}
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 snap-x snap-mandatory"
-        style={{ scrollbarWidth: 'none' }}>
-        {challenges.map((c, idx) => {
-          const done = doneMap[c.name];
-          return (
-            <motion.div
-              key={c.name}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.08 }}
-              className="relative overflow-hidden rounded-2xl shrink-0 snap-start"
-              style={{
-                width: 'min(78vw, 300px)', height: 165,
-                border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.1)',
-              }}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="relative overflow-hidden rounded-2xl"
+        style={{
+          height: 165,
+          border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.1)',
+        }}
+      >
+        {/* Full-bleed photo */}
+        <img src={challenge.img} alt="" className="absolute inset-0 w-full h-full object-cover"
+          style={done ? { filter: 'grayscale(0.7) brightness(0.55)' } : undefined} />
+        {/* Dark gradient */}
+        <div className="absolute inset-0"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
+
+        {/* Challenge pill */}
+        <div className="absolute top-3 left-3">
+          {done ? (
+            <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-green-500/30">
+              <CheckCircle2 size={11} /> Done · +{challenge.pts} pts
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-white bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
+              Challenge
+            </span>
+          )}
+        </div>
+
+        {/* Bottom content */}
+        <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-2xl font-black text-white leading-none tracking-tight truncate">{challenge.name}</p>
+            <div className="flex items-center gap-3 mt-2 text-[10px] font-semibold text-white/60">
+              {challenge.kcal > 0 && <span className="flex items-center gap-1"><Flame size={11} className="text-orange-400" /> {challenge.kcal} Kcal</span>}
+              {challenge.mins > 0 && <span className="flex items-center gap-1"><Clock size={11} /> {challenge.mins} min</span>}
+              {challenge.kcal === 0 && challenge.mins === 0 && <span>{challenge.desc}</span>}
+            </div>
+          </div>
+          {!done && (
+            <motion.button
+              onClick={handleComplete}
+              whileTap={{ scale: 0.93 }}
+              className="shrink-0 font-black text-[11px] px-4 py-2 rounded-full tracking-wide bg-white text-black shadow-lg"
             >
-              {/* Full-bleed photo */}
-              <img src={c.img} alt="" className="absolute inset-0 w-full h-full object-cover"
-                style={done ? { filter: 'grayscale(0.7) brightness(0.55)' } : undefined} />
-              {/* Dark gradient */}
-              <div className="absolute inset-0"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
-
-              {/* Challenge pill */}
-              <div className="absolute top-3 left-3">
-                {done ? (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-green-500/30">
-                    <CheckCircle2 size={11} /> Done · +{c.pts} pts
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-white bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
-                    Challenge
-                  </span>
-                )}
-              </div>
-
-              {/* Bottom content */}
-              <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-2xl font-black text-white leading-none tracking-tight truncate">{c.name}</p>
-                  <div className="flex items-center gap-3 mt-2 text-[10px] font-semibold text-white/60">
-                    {c.kcal > 0 && <span className="flex items-center gap-1"><Flame size={11} className="text-orange-400" /> {c.kcal} Kcal</span>}
-                    {c.mins > 0 && <span className="flex items-center gap-1"><Clock size={11} /> {c.mins} min</span>}
-                    {c.kcal === 0 && c.mins === 0 && <span>{c.desc}</span>}
-                  </div>
-                </div>
-                {!done && (
-                  <motion.button
-                    onClick={() => handleComplete(c.name)}
-                    whileTap={{ scale: 0.93 }}
-                    className="shrink-0 font-black text-[11px] px-4 py-2 rounded-full tracking-wide bg-white text-black shadow-lg"
-                  >
-                    START
-                  </motion.button>
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+              START
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
     </section>
   );
 }

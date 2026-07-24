@@ -52,7 +52,7 @@ export function completeChallengeByName(name: string) {
 }
 
 export function countChallengesDone(): number {
-  return getTodayChallenges().filter(c => isChallengeDone(c.name)).length;
+  return isChallengeDone(getTodayChallenges()[0].name) ? 1 : 0;
 }
 
 /* Legacy single-challenge helpers (kept for compatibility) */
