@@ -520,7 +520,7 @@ function QuoteCard() {
   const q = getDailyQuote();
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-bold text-white">Today's Focus</h3>
+      <h3 className="text-sm font-bold text-white">Mindset Memo</h3>
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
