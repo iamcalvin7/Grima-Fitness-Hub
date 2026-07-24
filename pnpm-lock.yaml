@@ -221,6 +221,10 @@ importers:
         version: 3.1.0
 
   artifacts/marcus-grima:
+    dependencies:
+      body-highlighter:
+        specifier: ^3.0.2
+        version: 3.0.2
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -1729,6 +1733,10 @@ packages:
     resolution: {integrity: sha512-AjYpR78kDWAY3Efj+cDTFH9t9SCoL7OoTp1BOb0mQV7S+6CiLwnWM3FyxhJtdPufDFKzmCSFoUncKjWgJEZTCQ==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  body-highlighter@3.0.2:
+    resolution: {integrity: sha512-1V32BDCbdEoFL/y3yr3xyO98u3SLPlcRjvbJy0/47E5gKmYezf8w+Hzsnm5M0vu92rArTOPNu0vawEdvruDhcQ==}
+    engines: {node: '>=18'}
 
   body-parser@2.3.0:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
@@ -4348,6 +4356,8 @@ snapshots:
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.10.43: {}
+
+  body-highlighter@3.0.2: {}
 
   body-parser@2.3.0:
     dependencies:

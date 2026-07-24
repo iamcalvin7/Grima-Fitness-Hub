@@ -1,0 +1,278 @@
+Redesign the Body Map component from scratch.
+
+The current version is too simplistic, geometric and mannequin-like. It uses blocky limbs, a circular head and unrealistic proportions. Do not refine or restyle the existing body illustration. Replace it completely.
+
+## Core Requirement
+
+Find a high-quality open-source anatomical SVG in a style similar to MuscleWiki, import it into the project, separate every muscle group into its own SVG path, and recolour it to match my brand.
+
+Do not draw a new human body using basic rectangles, circles, polygons or simplified geometric shapes.
+
+Before using any asset:
+
+- Confirm that it is genuinely open source
+- Confirm that its licence allows commercial use and modification
+- Record the asset source and licence in the project
+- Add the attribution required by the licence
+- Do not use or copy proprietary MuscleWiki artwork; use it only as a quality and style reference
+
+If a suitable commercially usable anatomical SVG cannot be found, stop and clearly explain the limitation instead of generating another simplified mannequin.
+
+## Desired Quality
+
+The body map should resemble the anatomy illustrations used in premium fitness applications.
+
+It must include:
+
+- Realistic athletic male anatomy
+- Natural human proportions
+- Anatomically accurate muscle placement
+- Proper head, neck and shoulder structure
+- Defined chest and torso
+- Natural waist and hips
+- Realistic arms and forearms
+- Proper hands and fingers
+- Realistic thighs, knees, calves and feet
+- Smooth organic vector curves
+- Clear separation between muscle groups
+- Front and back body views
+
+The body must look human, not robotic, cartoonish or diagrammatically blocky.
+
+## SVG Structure
+
+Convert the imported anatomy artwork into a reusable inline SVG React component.
+
+Each selectable muscle group must have:
+
+- Its own SVG path or grouped SVG paths
+- A stable and descriptive ID
+- A shared `data-muscle` attribute
+- Independent hover and selected states
+- A sufficiently large click or tap target
+- Keyboard accessibility where practical
+
+Use grouped paths when one muscle appears on both sides of the body.
+
+Example:
+
+```html
+<g id="chest" data-muscle="chest">
+  <!-- left and right pectoral paths -->
+</g>
+
+Do not use one flattened image for the entire body.
+
+Muscle Groups
+
+Support at least the following IDs.
+
+Front
+chest
+front_deltoids
+biceps
+forearms
+abs
+obliques
+quadriceps
+adductors
+tibialis
+calves
+Back
+trapezius
+rear_deltoids
+upper_back
+lats
+triceps
+forearms
+lower_back
+glutes
+hamstrings
+calves
+
+Create a central configuration object that maps each ID to its user-facing label and body view.
+
+Brand Styling
+
+Keep the existing dark premium aesthetic.
+
+Background
+Main background: #111111
+Card or body-map surface: #171717
+Unselected Anatomy
+Muscle fill: #1B1B1B
+Secondary body fill: #151515
+Muscle outlines: #505050
+Outer silhouette: #666666
+Use thin, consistent strokes
+Do not fill inactive muscles with purple
+Selected Anatomy
+Primary purple: #8B45D9
+Highlight purple: #A565F2
+Soft glow: rgba(139, 69, 217, 0.38)
+Use a subtle internal gradient
+Keep muscle outlines visible
+Avoid excessive neon effects
+
+Selected muscles should look illuminated but remain anatomically clear.
+
+Interaction
+
+Users must be able to:
+
+Tap or click a muscle to select it
+Tap it again to deselect it
+Select multiple muscle groups
+Use the chips below the illustration to select or deselect muscles
+Switch between front and back views
+Preserve selections when changing views
+See matching muscle chips update immediately
+See selected muscles reflected across both views where relevant
+
+Add smooth transitions of approximately 180–220ms.
+
+On hover:
+
+Slightly brighten the muscle
+Show a subtle outline
+Change the cursor to pointer
+
+On selection:
+
+Apply the purple gradient
+Add a restrained outer glow
+Slightly increase visual emphasis without distorting the anatomy
+Front and Back Toggle
+
+Keep the segmented control but refine it.
+
+Selected state:
+
+Purple background
+White text
+Rounded pill
+Clear active indicator
+
+Inactive state:
+
+Dark background
+Muted grey text
+
+Animate the active state smoothly. The body view should fade between front and back rather than abruptly switching.
+
+Muscle Chips
+
+Keep the chips below the body map, but make them dynamically reflect the available and selected muscle groups.
+
+Selected chip:
+
+Purple fill
+White text
+Subtle glow
+
+Unselected chip:
+
+Dark fill
+Grey border
+Light-grey text
+
+Use compact rounded pills with consistent spacing.
+
+Responsive Layout
+
+The component must work well on desktop and mobile.
+
+On mobile:
+
+Keep the full body visible without horizontal scrolling
+Preserve anatomical proportions
+Ensure muscle paths remain easy to tap
+Allow the chips to wrap naturally
+Keep the Front / Back control centred
+Avoid making the illustration excessively tall
+
+Use the SVG viewBox for scaling. Do not position the body using fixed pixel coordinates outside the SVG.
+
+Technical Requirements
+
+Use:
+
+React
+TypeScript
+Inline SVG
+Existing project styling conventions
+Existing state-management patterns where possible
+
+Create a reusable component such as:
+
+<BodyMap
+  view="front"
+  selectedMuscles={selectedMuscles}
+  onMuscleToggle={handleMuscleToggle}
+  onViewChange={handleViewChange}
+/>
+
+Suggested types:
+
+type BodyView = "front" | "back";
+
+type MuscleId =
+  | "chest"
+  | "front_deltoids"
+  | "rear_deltoids"
+  | "biceps"
+  | "triceps"
+  | "forearms"
+  | "abs"
+  | "obliques"
+  | "trapezius"
+  | "upper_back"
+  | "lats"
+  | "lower_back"
+  | "glutes"
+  | "quadriceps"
+  | "adductors"
+  | "hamstrings"
+  | "tibialis"
+  | "calves";
+
+Keep the anatomy SVG, interaction logic and muscle configuration modular. Avoid unnecessary dependencies.
+
+Accessibility
+Add accessible labels for the front and back controls
+Give interactive muscle groups readable names
+Ensure focus states are visible
+Do not rely on colour alone to indicate selection
+Maintain sufficient text and outline contrast
+Asset Documentation
+
+Create a short file such as:
+
+ANATOMY_ASSET_LICENSE.md
+
+Include:
+
+Asset name
+Original creator
+Source
+Licence
+Commercial-use status
+Modification permissions
+Required attribution
+Description of changes made
+Acceptance Criteria
+
+The work is complete only when:
+
+The old geometric mannequin has been removed.
+A properly licensed anatomical SVG is used.
+Front and back views are anatomically detailed.
+Every supported muscle group is independently selectable.
+The body retains realistic proportions at all screen sizes.
+Selected muscles use the brand-purple treatment.
+The component works with the existing chips and view toggle.
+The asset source and licence are documented.
+The result looks suitable for a premium commercial fitness app.
+No part of the new figure is constructed from crude rectangles or circles.
+
+First inspect the existing Body Map component, its props, state and styling. Then locate and validate the SVG asset, document its licence, integrate it, and replace the existing implementation without breaking the rest of the page.
