@@ -548,7 +548,7 @@ function QuoteCard() {
         src={q.img}
         alt=""
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ objectPosition: 'center 30%' }}
+        style={{ objectPosition: 'center top' }}
       />
 
       {/* Dark gradient — heavy at bottom, light at top */}
