@@ -12,6 +12,7 @@ import {
   getTodayChallenges, isChallengeDone, completeChallengeByName,
 } from '@/data/challenges';
 import type { Page } from '@/App';
+import { BodyMap } from '@/components/BodyMap';
 
 /* ── Animated counter ─────────────────────────────────────────────────────── */
 function useCountUp(target: number, duration = 1400) {
@@ -515,6 +516,21 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
   );
 }
 
+/* ── Muscles worked (last session) ────────────────────────────────────────── */
+function MusclesWorkedBlock() {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-sm font-bold text-white">Muscles Worked</h3>
+        <span className="text-[10px] font-bold tracking-wider uppercase text-white/30">Last Session</span>
+      </div>
+      <div className="rounded-2xl px-4 py-5" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.18)' }}>
+        <BodyMap musclesWorked={['CHEST', 'SHOULDERS', 'TRICEPS']} />
+      </div>
+    </section>
+  );
+}
+
 /* ── Quote of the day ─────────────────────────────────────────────────────── */
 function QuoteCard() {
   const q = getDailyQuote();
@@ -641,6 +657,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
         {/* Col 2 */}
         <div className="flex flex-col gap-7">
           <SessionsBlock goToSession={goToSession} />
+          <MusclesWorkedBlock />
 
           {/* Desktop: Book session CTA */}
           <div className="hidden md:block">
