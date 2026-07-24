@@ -243,10 +243,7 @@ function MetricsSection() {
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
           <span className="text-primary mb-2 block">
-            <motion.div animate={{ x:[0,3,0,-1,0], rotate:[0,7,0,-3,0] }}
-              transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}>
-              <Activity className="w-5 h-5" />
-            </motion.div>
+            <Activity className="w-5 h-5" />
           </span>
           <p className="text-3xl font-black text-white tabular-nums leading-none">{stepsVal.toLocaleString()}</p>
           <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Steps</p>
@@ -275,12 +272,7 @@ function MetricsSection() {
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
           <span className="text-primary mb-2 block">
-            <motion.div
-              animate={{ scaleX:[1,.88,1.08,.93,1.05,1], scaleY:[1,1.12,.92,1.08,.96,1], rotate:[0,-4,3,-3,2,0] }}
-              transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ originX:'50%', originY:'100%' }}>
-              <Flame className="w-5 h-5" />
-            </motion.div>
+            <Flame className="w-5 h-5" />
           </span>
           <p className="text-3xl font-black text-white tabular-nums leading-none">{calsVal}</p>
           <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Kcal Active</p>
