@@ -108,76 +108,85 @@ function useCountdown() {
   return time;
 }
 
-/* ── Daily challenge card ─────────────────────────────────────────────────── */
+/* ── Daily challenge banner ───────────────────────────────────────────────── */
 function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
-  const [done, setDone]     = useState(isChallengeComplete);
-  const challenge            = getTodayChallenge();
-  const countdown            = useCountdown();
-  const [flash, setFlash]   = useState(false);
+  const [done, setDone]   = useState(isChallengeComplete);
+  const challenge          = getTodayChallenge();
+  const countdown          = useCountdown();
+  const [flash, setFlash] = useState(false);
 
   const handleComplete = () => {
     completeChallenge();
     setFlash(true);
-    setTimeout(() => { setDone(true); onComplete?.(); }, 700);
+    setTimeout(() => { setDone(true); onComplete?.(); }, 600);
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="relative overflow-hidden rounded-xl border"
-      style={done
-        ? { background: '#111111', borderColor: 'rgba(255,255,255,0.07)' }
-        : { background: 'linear-gradient(135deg,rgba(139,69,217,0.18) 0%,rgba(139,69,217,0.06) 100%)', borderColor: 'rgba(139,69,217,0.35)', boxShadow: '0 0 28px rgba(139,69,217,0.14)' }
-      }
+      transition={{ duration: 0.45 }}
+      className="relative overflow-hidden rounded-2xl"
+      style={done ? {
+        background: 'linear-gradient(135deg, #1a1030 0%, #120d22 100%)',
+        border: '1px solid rgba(139,69,217,0.18)',
+      } : {
+        background: 'linear-gradient(135deg, #7c28e0 0%, #9b45f5 45%, #6b21d4 100%)',
+        boxShadow: '0 8px 32px rgba(139,69,217,0.45), 0 2px 8px rgba(0,0,0,0.4)',
+      }}
     >
-      {/* Top accent line */}
-      {!done && <div className="absolute inset-x-0 top-0 h-px bg-primary/60" />}
+      {/* Shimmer line at top */}
+      {!done && (
+        <div className="absolute inset-x-0 top-0 h-px"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+      )}
 
       <AnimatePresence mode="wait">
         {!done ? (
-          <motion.div key="pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="px-4 py-4 flex items-center gap-4">
-            {/* Emoji bubble */}
-            <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-2xl shrink-0">
+          <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex items-center gap-3 px-4 py-3.5">
+
+            {/* Icon circle */}
+            <div className="w-11 h-11 rounded-full bg-black/25 flex items-center justify-center text-xl shrink-0 border border-white/10">
               {challenge.emoji}
             </div>
 
+            {/* Text */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] font-black tracking-widest text-primary/70 uppercase">Daily Challenge</span>
-                <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
-                  <Star size={8} /> +{challenge.pts} pts
-                </span>
-              </div>
-              <p className="text-sm font-bold text-white leading-tight">{challenge.name}</p>
-              <p className="text-[10px] text-white/45 font-medium mt-0.5">{challenge.desc}</p>
+              <p className="text-[9px] font-black tracking-[0.25em] text-white/60 uppercase leading-none mb-0.5">
+                Daily Challenge · <span className="text-amber-300">+{challenge.pts} pts</span>
+              </p>
+              <p className="text-[15px] font-black text-white leading-tight truncate">{challenge.name}</p>
+              <p className="text-[10px] text-white/55 font-medium mt-0.5 truncate">{challenge.desc}</p>
             </div>
 
+            {/* CTA pill */}
             <motion.button
               onClick={handleComplete}
-              whileTap={{ scale: 0.94 }}
-              animate={flash ? { scale: [1, 1.15, 1], backgroundColor: ['#8B45D9','#A565F2','#8B45D9'] } : {}}
-              className="shrink-0 bg-primary hover:bg-primary/90 transition-colors rounded-lg px-3 py-2 flex items-center gap-1.5 text-[10px] font-black text-white uppercase tracking-wide"
+              whileTap={{ scale: 0.93 }}
+              animate={flash ? { scale: [1, 1.12, 1] } : {}}
+              className="shrink-0 bg-white text-purple-700 font-black text-xs px-4 py-2.5 rounded-xl tracking-wide hover:bg-white/90 transition-colors shadow-lg"
             >
-              <Zap size={11} /> Done
+              START
             </motion.button>
           </motion.div>
         ) : (
-          <motion.div key="complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="px-4 py-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 size={22} className="text-primary/60" />
+          <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="flex items-center gap-3 px-4 py-3.5">
+
+            {/* Done icon */}
+            <div className="w-11 h-11 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={20} className="text-primary" />
             </div>
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] font-black tracking-widest text-primary/50 uppercase">Challenge Complete</span>
-                <span className="text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded">+50 pts earned</span>
+                <span className="text-[9px] font-black tracking-[0.2em] text-primary/60 uppercase">Complete</span>
+                <span className="text-[9px] font-black text-amber-400/80 bg-amber-400/10 px-1.5 py-0.5 rounded-md">+50 pts</span>
               </div>
-              <p className="text-sm font-bold text-white/60">{challenge.name}</p>
-              <p className="text-[10px] text-white/30 font-medium mt-0.5">
-                Next challenge in <span className="text-white/50 tabular-nums font-bold">{countdown}</span>
+              <p className="text-sm font-bold text-white/70">{challenge.name}</p>
+              <p className="text-[10px] text-white/30 mt-0.5">
+                Next challenge in <span className="text-white/50 font-bold tabular-nums">{countdown}</span>
               </p>
             </div>
           </motion.div>
@@ -639,12 +648,16 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
         />
       </div>
 
+      {/* ── Daily challenge — full width banner ──────────────────────────── */}
+      <div className="px-5 md:px-8 mb-7">
+        <DailyChallengeCard />
+      </div>
+
       {/* ── Page content ─────────────────────────────────────────────────── */}
       <div className="px-5 md:px-8 flex flex-col gap-7 md:grid md:grid-cols-2 md:gap-8">
 
         {/* Col 1 */}
         <div className="flex flex-col gap-7">
-          <DailyChallengeCard />
           <MetricsSection />
           <QuoteCard />
         </div>
