@@ -35,8 +35,14 @@ const DIFFICULTY_COLOUR: Record<string, string> = {
 
 /* ── Exercise photo map ─────────────────────────────────────────────────── */
 
+/* ── Exercise video map (overrides photo when present) ───────────────────── */
+
+const EXERCISE_VIDEOS: Record<string, string> = {
+  'pull-ups': 'pull-ups.mp4',
+};
+
 const EXERCISE_IMAGES: Record<string, string> = {
-  'pull-ups':              'pull-ups.jpg',
+  'pull-ups':              'pull-ups.jpg', // fallback poster only
   'seated-rows':           'seated-rows.jpg',
   'lat-pull-downs':        'lat-pull-downs.jpg',
   'narrow-grip-pull-down': 'narrow-grip-pull-down.jpg',
@@ -64,7 +70,21 @@ function exerciseImg(id: string) {
   return file ? `${import.meta.env.BASE_URL}exercises/${file}` : null;
 }
 
-function ExercisePhoto({ id, name, className = '' }: { id: string; name: string; className?: string }) {
+function ExercisePhoto({ id, name, className = '', muted = true, autoPlay = false }: { id: string; name: string; className?: string; muted?: boolean; autoPlay?: boolean }) {
+  const videoFile = EXERCISE_VIDEOS[id];
+  if (videoFile) {
+    return (
+      <video
+        src={`${import.meta.env.BASE_URL}exercises/${videoFile}`}
+        autoPlay={autoPlay}
+        loop
+        muted={muted}
+        playsInline
+        poster={exerciseImg(id) ?? undefined}
+        className={`w-full h-full object-cover ${className}`}
+      />
+    );
+  }
   const src = exerciseImg(id);
   if (src) {
     return (
