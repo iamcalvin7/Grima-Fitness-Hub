@@ -443,7 +443,7 @@ function ActiveWorkout({
             transition={{ duration: 0.25 }}
             className="absolute inset-0"
           >
-            <ExercisePhoto id={exercise.id} name={exercise.name} className="object-cover" autoPlay muted />
+            <ExercisePhoto id={exercise.id} name={exercise.name} className="object-contain" autoPlay muted />
             {/* dark gradient overlay so text above is readable */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/10 to-transparent" />
           </motion.div>
