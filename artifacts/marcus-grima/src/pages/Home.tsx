@@ -128,17 +128,18 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
       transition={{ duration: 0.45 }}
       className="relative overflow-hidden rounded-2xl"
       style={done ? {
-        background: 'linear-gradient(135deg, #1a1030 0%, #120d22 100%)',
-        border: '1px solid rgba(139,69,217,0.18)',
+        background: '#111111',
+        border: '1px solid rgba(200,200,200,0.08)',
       } : {
-        background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 45%, #ea580c 100%)',
-        boxShadow: '0 8px 32px rgba(234,88,12,0.45), 0 2px 8px rgba(0,0,0,0.4)',
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
+        border: '1px solid rgba(249,115,22,0.35)',
+        boxShadow: '0 4px 24px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      {/* Shimmer line at top */}
+      {/* Orange accent line at top */}
       {!done && (
         <div className="absolute inset-x-0 top-0 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.8), transparent)' }} />
       )}
 
       <AnimatePresence mode="wait">
@@ -147,17 +148,18 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
             className="flex items-center gap-3 px-4 py-3.5">
 
             {/* Icon circle */}
-            <div className="w-11 h-11 rounded-full bg-black/25 flex items-center justify-center text-xl shrink-0 border border-white/10">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
+              style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)' }}>
               {challenge.emoji}
             </div>
 
             {/* Text */}
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black tracking-[0.25em] text-white/60 uppercase leading-none mb-0.5">
-                Daily Challenge · <span className="text-amber-300">+{challenge.pts} pts</span>
+              <p className="text-[9px] font-black tracking-[0.25em] text-white/40 uppercase leading-none mb-0.5">
+                Daily Challenge · <span className="text-orange-400">+{challenge.pts} pts</span>
               </p>
               <p className="text-[15px] font-black text-white leading-tight truncate">{challenge.name}</p>
-              <p className="text-[10px] text-white/55 font-medium mt-0.5 truncate">{challenge.desc}</p>
+              <p className="text-[10px] text-white/40 font-medium mt-0.5 truncate">{challenge.desc}</p>
             </div>
 
             {/* CTA pill */}
@@ -165,7 +167,8 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
               onClick={handleComplete}
               whileTap={{ scale: 0.93 }}
               animate={flash ? { scale: [1, 1.12, 1] } : {}}
-              className="shrink-0 bg-white text-purple-700 font-black text-xs px-4 py-2.5 rounded-full tracking-wide hover:bg-white/90 transition-colors shadow-lg"
+              className="shrink-0 font-black text-xs px-4 py-2.5 rounded-full tracking-wide transition-colors shadow-lg"
+              style={{ background: '#f97316', color: '#fff' }}
             >
               START
             </motion.button>
@@ -175,14 +178,15 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
             className="flex items-center gap-3 px-4 py-3.5">
 
             {/* Done icon */}
-            <div className="w-11 h-11 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-              <CheckCircle2 size={20} className="text-primary" />
+            <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)' }}>
+              <CheckCircle2 size={20} className="text-green-400" />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] font-black tracking-[0.2em] text-primary/60 uppercase">Complete</span>
-                <span className="text-[9px] font-black text-amber-400/80 bg-amber-400/10 px-1.5 py-0.5 rounded-md">+50 pts</span>
+                <span className="text-[9px] font-black tracking-[0.2em] text-white/40 uppercase">Complete</span>
+                <span className="text-[9px] font-black text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-md">+50 pts</span>
               </div>
               <p className="text-sm font-bold text-white/70">{challenge.name}</p>
               <p className="text-[10px] text-white/30 mt-0.5">
@@ -227,9 +231,9 @@ function MetricsSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white/50">Your Metrics</h3>
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/30">
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/25">
           via Apple Health
-          <Heart size={11} className="text-primary/60" fill="currentColor" />
+          <Heart size={11} className="text-white/25" fill="currentColor" />
         </span>
       </div>
 
@@ -380,17 +384,19 @@ function MetricsSection() {
                 );
               }}
             />
-            <Bar dataKey="steps" radius={[4,4,0,0]}>
+            <Bar dataKey="steps" radius={[5,5,0,0]}>
               {STEP_DATA.map((entry, i) => {
                 const isHov   = hoveredBar === i;
                 const isToday = i === TODAY_IDX;
-                const base = entry.steps >= GOAL_STEPS ? '#22c55e' : entry.steps >= 5000 ? '#f97316' : '#ef4444';
+                const base = entry.steps >= GOAL_STEPS ? '#4ade80' : entry.steps >= 5000 ? '#fb923c' : '#f87171';
+                const dim  = entry.steps >= GOAL_STEPS ? '#16a34a' : entry.steps >= 5000 ? '#c2410c' : '#b91c1c';
+                const col  = (isHov || isToday) ? base : dim;
                 return (
                   <Cell
                     key={i}
-                    fill={base}
-                    opacity={isHov ? 1 : hoveredBar !== null ? 0.12 : isToday ? 1 : 0.35}
-                    style={(isHov || isToday) ? { filter: `drop-shadow(0 0 8px ${base}88)` } : undefined}
+                    fill={col}
+                    opacity={isHov ? 1 : hoveredBar !== null ? 0.15 : isToday ? 1 : 0.5}
+                    style={(isHov || isToday) ? { filter: `drop-shadow(0 0 10px ${base}cc) drop-shadow(0 0 4px ${base})` } : undefined}
                   />
                 );
               })}
@@ -423,7 +429,7 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
       <h3 className="text-sm font-semibold text-foreground/50">Sessions</h3>
 
       {/* Unified card container */}
-      <div className="bg-[#111111] border border-white/8 rounded-xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.09)' }}>
 
         {/* Next session row */}
         <motion.button
@@ -431,34 +437,35 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
           whileTap={{ scale: 0.99 }}
           className="w-full text-left flex items-center gap-4 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
         >
-          {/* Date badge */}
-          <div className="w-12 h-12 bg-primary/10 border border-primary/25 rounded-lg flex flex-col items-center justify-center shrink-0">
-            <span className="text-[8px] font-bold text-primary/50 uppercase leading-none tracking-wider">Jul</span>
+          {/* Date badge — metallic */}
+          <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center shrink-0"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,200,200,0.14)' }}>
+            <span className="text-[8px] font-bold text-white/35 uppercase leading-none tracking-wider">Jul</span>
             <span className="text-xl font-black text-white leading-none mt-0.5">24</span>
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[9px] font-bold tracking-wider text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] font-bold tracking-wider text-white/40 bg-white/6 px-1.5 py-0.5 rounded">
                 NEXT
               </span>
-              <span className="text-[9px] font-bold tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] font-bold tracking-wider text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
                 CONFIRMED
               </span>
             </div>
-            <p className="text-sm font-bold text-foreground">Strength & Conditioning</p>
+            <p className="text-sm font-bold text-white">Strength & Conditioning</p>
             <div className="flex items-center gap-3 mt-0.5">
-              <span className="flex items-center gap-1 text-[10px] text-foreground/40 font-medium">
+              <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
                 <Clock size={10} /> Thu 24 Jul · 07:00 · 60 min
               </span>
             </div>
           </div>
 
-          <ChevronRight size={16} className="text-foreground/20 group-hover:text-primary transition-colors shrink-0" />
+          <ChevronRight size={16} className="text-white/15 group-hover:text-white/50 transition-colors shrink-0" />
         </motion.button>
 
         {/* Divider */}
-        <div className="h-px bg-white/5 mx-4" />
+        <div className="h-px mx-4" style={{ background: 'rgba(200,200,200,0.06)' }} />
 
         {/* Last session row */}
         <motion.button
@@ -467,25 +474,26 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
           className="w-full text-left flex items-center gap-4 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
         >
           {/* Done badge */}
-          <div className="w-12 h-12 bg-white/4 border border-white/10 rounded-lg flex items-center justify-center shrink-0">
-            <CheckCircle2 size={22} className="text-foreground/30" />
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(200,200,200,0.08)' }}>
+            <CheckCircle2 size={22} className="text-white/20" />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[9px] font-bold tracking-wider text-foreground/40 bg-white/5 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] font-bold tracking-wider text-white/30 bg-white/5 px-1.5 py-0.5 rounded">
                 LAST
               </span>
             </div>
-            <p className="text-sm font-bold text-foreground/70">Upper Body Power</p>
+            <p className="text-sm font-bold text-white/60">Upper Body Power</p>
             <div className="flex items-center gap-3 mt-0.5">
-              <span className="flex items-center gap-1 text-[10px] text-foreground/35 font-medium">
+              <span className="flex items-center gap-1 text-[10px] text-white/30 font-medium">
                 <Dumbbell size={10} /> Tue 22 Jul · 7 exercises · 55 min
               </span>
             </div>
           </div>
 
-          <ChevronRight size={16} className="text-foreground/20 group-hover:text-foreground/50 transition-colors shrink-0" />
+          <ChevronRight size={16} className="text-white/10 group-hover:text-white/35 transition-colors shrink-0" />
         </motion.button>
       </div>
     </section>
@@ -520,16 +528,16 @@ function QuoteCard() {
         }}
       />
 
-      {/* Subtle purple tint overlay */}
+      {/* Metallic chrome tint overlay */}
       <div
-        className="absolute inset-0 opacity-20"
-        style={{ background: 'linear-gradient(135deg, #8B45D9 0%, transparent 60%)' }}
+        className="absolute inset-0 opacity-15"
+        style={{ background: 'linear-gradient(135deg, rgba(220,220,220,0.3) 0%, transparent 50%)' }}
       />
 
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-between p-5">
         {/* Top label */}
-        <span className="text-[9px] font-black tracking-[0.3em] text-primary uppercase">
+        <span className="text-[9px] font-black tracking-[0.3em] text-white/50 uppercase">
           Today's Focus
         </span>
 
@@ -614,12 +622,6 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
             >
               {firstName}
             </motion.h1>
-            <motion.p
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.22 }}
-              className="text-xs text-white/40 font-medium mt-2"
-            >
-              Marcus Grima PT
-            </motion.p>
           </div>
 
           {/* Right — profile photo */}
