@@ -155,8 +155,8 @@ function StepShell({
           onClick={onContinue}
           disabled={continueDisabled}
           whileTap={{ scale: 0.98 }}
-          className="w-full py-4 rounded-full bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
-                     flex items-center justify-between px-6 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="mx-auto w-56 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
+                     flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <span>{continueLabel}</span>
           <ChevronRight size={18} />
@@ -402,7 +402,7 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
           <div className="flex-1" />
 
           <motion.button type="submit" disabled={loading || !username || !password} whileTap={{ scale: 0.98 }}
-            className="w-full py-4 rounded-full bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
+            className="mx-auto w-56 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
                        disabled:opacity-35 flex items-center justify-center gap-2">
             {loading
               ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
@@ -673,7 +673,7 @@ function WelcomeScreen({ firstName, onComplete }: { firstName: string; onComplet
 
         <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75 }}
           onClick={onComplete} whileTap={{ scale: 0.98 }}
-          className="w-full max-w-xs py-4 rounded-full bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
+          className="w-full max-w-xs py-4 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm
                      flex items-center justify-between px-6">
           <span>START TRAINING</span>
           <ChevronRight size={18} />
