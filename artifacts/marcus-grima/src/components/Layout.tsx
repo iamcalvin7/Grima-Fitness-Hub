@@ -24,24 +24,35 @@ export const Layout = ({ activePage, setPage, children }: LayoutProps) => {
       {/* ── Global background ─────────────────────────────────────────────
           Black & metallic base + subtle silver glows + grain  */}
       <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-        {/* Base fill */}
-        <div className="absolute inset-0" style={{ background: '#080808' }} />
+        {/* Base fill — subtle vertical depth */}
+        <div className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, #101012 0%, #0a0a0b 35%, #060606 100%)' }} />
 
-        {/* Top-right silver sheen */}
+        {/* Top glow — Revolut-style bloom behind the header */}
+        <div className="absolute" style={{
+          top: '-25%', left: '50%',
+          transform: 'translateX(-50%)',
+          width: '120%', height: '55%',
+          borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(230,230,235,0.10) 0%, rgba(200,200,210,0.04) 45%, transparent 70%)',
+          filter: 'blur(2px)',
+        }} />
+
+        {/* Top-right chrome sheen */}
         <div className="absolute" style={{
           top: '-15%', right: '-10%',
           width: '65%', height: '65%',
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(220,220,220,0.06) 0%, rgba(200,200,200,0.02) 45%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(220,220,225,0.08) 0%, rgba(200,200,205,0.03) 45%, transparent 70%)',
           filter: 'blur(1px)',
         }} />
 
-        {/* Bottom-left soft wash */}
+        {/* Bottom-left graphite wash */}
         <div className="absolute" style={{
           bottom: '-10%', left: '-15%',
-          width: '55%', height: '55%',
+          width: '60%', height: '60%',
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(200,200,200,0.04) 0%, rgba(180,180,180,0.015) 50%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(190,190,200,0.05) 0%, rgba(170,170,180,0.02) 50%, transparent 70%)',
         }} />
 
         {/* Grain texture overlay */}

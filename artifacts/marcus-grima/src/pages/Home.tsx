@@ -129,7 +129,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white/70">Marcus' Daily Challenge</h3>
+        <h3 className="text-sm font-bold text-white">Marcus' Daily Challenge</h3>
         {done && (
           <span className="text-[10px] font-bold text-white/30 tabular-nums">
             Next in <span className="text-white/50">{countdown}</span>
@@ -249,7 +249,7 @@ function MetricsSection() {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white/70">Your Metrics</h3>
+        <h3 className="text-sm font-bold text-white">Your Metrics</h3>
         <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/25">
           via Apple Health
           <Heart size={11} className="text-white/25" fill="currentColor" />
@@ -444,7 +444,7 @@ function MetricsSection() {
 function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-bold text-white/70">Sessions</h3>
+      <h3 className="text-sm font-bold text-white">Sessions</h3>
 
       {/* Unified card container */}
       <div className="rounded-2xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.09)' }}>
@@ -523,7 +523,7 @@ function QuoteCard() {
   const q = getDailyQuote();
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-bold text-white/70">Today's Focus</h3>
+      <h3 className="text-sm font-bold text-white">Today's Focus</h3>
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
