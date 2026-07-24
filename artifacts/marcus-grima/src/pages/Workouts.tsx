@@ -432,20 +432,20 @@ function ActiveWorkout({
         </div>
       </div>
 
-      {/* ── Exercise photo ── */}
-      <div className="relative bg-[#0D0D0D] border-b border-white/5 overflow-hidden" style={{ height: 240 }}>
+      {/* ── Exercise photo / video ── */}
+      <div className="relative bg-[#0D0D0D] border-b border-white/5">
         <AnimatePresence mode="wait">
           <motion.div
             key={exercise.id}
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="absolute inset-0"
+            className="w-full"
           >
-            <ExercisePhoto id={exercise.id} name={exercise.name} className="object-contain" autoPlay muted />
-            {/* dark gradient overlay so text above is readable */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/10 to-transparent" />
+            <ExercisePhoto id={exercise.id} name={exercise.name} className="w-full h-auto block" autoPlay muted />
+            {/* dark gradient overlay at bottom */}
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0A0A] to-transparent pointer-events-none" />
           </motion.div>
         </AnimatePresence>
 
