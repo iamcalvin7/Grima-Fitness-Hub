@@ -112,10 +112,8 @@ const slide = {
 
 function MGLogo() {
   return (
-    <svg viewBox="0 0 100 100" fill="none" className="w-7 h-7">
-      <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#C0C0C0"/>
-      <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#C0C0C0"/>
-    </svg>
+    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Marcus Grima logo"
+      className="w-7 object-contain" />
   );
 }
 

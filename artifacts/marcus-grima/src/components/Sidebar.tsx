@@ -23,18 +23,8 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
       {/* Logo */}
       <div className="px-6 py-7 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-9 shrink-0">
-            <defs>
-              <linearGradient id="sb-silver" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#E0E0E0" />
-                <stop offset="40%" stopColor="#C0C0C0" />
-                <stop offset="60%" stopColor="#FFFFFF" />
-                <stop offset="100%" stopColor="#808080" />
-              </linearGradient>
-            </defs>
-            <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="url(#sb-silver)" />
-            <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="url(#sb-silver)" />
-          </svg>
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Marcus Grima logo"
+            className="w-9 shrink-0 object-contain" />
           <div>
             <p className="text-sm font-bold tracking-[0.15em] text-foreground">MARCUS GRIMA</p>
             <p className="text-[9px] font-bold tracking-[0.2em] text-primary uppercase">Personal Trainer</p>
