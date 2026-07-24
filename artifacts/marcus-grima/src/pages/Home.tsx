@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
-  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap, Info,
+  Clock, CheckCircle2, Info,
 } from 'lucide-react';
 import {
   BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
-  AreaChart, Area, YAxis, ReferenceLine, XAxis,
+  AreaChart, Area, YAxis, ReferenceLine,
 } from 'recharts';
 import {
   getTodayChallenges, isChallengeDone, completeChallengeByName,
 } from '@/data/challenges';
 import type { Page } from '@/App';
 import { BodyMap } from '@/components/BodyMap';
-import { upcoming, past } from '@/pages/Sessions';
+import { upcoming, past } from '@/data/sessions';
 
 /* ── Animated counter ─────────────────────────────────────────────────────── */
 function useCountUp(target: number, duration = 1400) {
@@ -440,25 +440,51 @@ function MetricsSection() {
 }
 
 /* ── Sessions block ───────────────────────────────────────────────────────── */
-function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
+function SessionsBlock({ goToSession, bookSession, buySessions }: { goToSession: (id: number) => void; bookSession: () => void; buySessions: () => void }) {
+  const next = upcoming[0];
+  if (!next) {
+    return (
+      <section className="space-y-3">
+        <h3 className="text-sm font-bold text-white">Upcoming Sessions</h3>
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.18)' }}>
+          <motion.button
+            onClick={bookSession}
+            whileTap={{ scale: 0.99 }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
+          >
+            <span className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-white/60 group-hover:text-white transition-colors">
+              + Book a Session
+            </span>
+          </motion.button>
+        </div>
+      </section>
+    );
+  }
+  // "THURSDAY, 24 JULY" → day "24", month "Jul", short "Thu 24 Jul"
+  const [dayName = '', rest = ''] = next.date.split(', ');
+  const [dayNum = '', monthName = ''] = rest.split(' ');
+  const month = monthName.slice(0, 3).toLowerCase().replace(/^./, c => c.toUpperCase());
+  const dayShort = dayName.slice(0, 3).toLowerCase().replace(/^./, c => c.toUpperCase());
+  const focusTitle = next.focus.toLowerCase().replace(/(^|\s|&\s?)\w/g, c => c.toUpperCase());
+  const time24 = next.time.replace(/\s?(AM|PM)$/i, '');
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-bold text-white">Sessions</h3>
+      <h3 className="text-sm font-bold text-white">Upcoming Sessions</h3>
 
       {/* Unified card container */}
       <div className="rounded-2xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.18)' }}>
 
         {/* Next session row */}
         <motion.button
-          onClick={() => goToSession(1)}
+          onClick={() => goToSession(next.id)}
           whileTap={{ scale: 0.99 }}
           className="w-full text-left flex items-center gap-4 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
         >
           {/* Date badge — metallic */}
           <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center shrink-0"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,200,200,0.22)' }}>
-            <span className="text-[8px] font-bold text-white/35 uppercase leading-none tracking-wider">Jul</span>
-            <span className="text-xl font-black text-white leading-none mt-0.5">24</span>
+            <span className="text-[8px] font-bold text-white/35 uppercase leading-none tracking-wider">{month}</span>
+            <span className="text-xl font-black text-white leading-none mt-0.5">{dayNum}</span>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -467,13 +493,13 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
                 NEXT
               </span>
               <span className="text-[9px] font-bold tracking-wider text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
-                CONFIRMED
+                {next.status}
               </span>
             </div>
-            <p className="text-sm font-bold text-white">Strength & Conditioning</p>
+            <p className="text-sm font-bold text-white">{focusTitle}</p>
             <div className="flex items-center gap-3 mt-0.5">
               <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
-                <Clock size={10} /> Thu 24 Jul · 07:00 · 60 min
+                <Clock size={10} /> {dayShort} {dayNum} {month} · {time24} · {next.duration.toLowerCase()}
               </span>
             </div>
           </div>
@@ -484,34 +510,28 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
         {/* Divider */}
         <div className="h-px mx-4" style={{ background: 'rgba(200,200,200,0.06)' }} />
 
-        {/* Last session row */}
-        <motion.button
-          onClick={() => goToSession(4)}
-          whileTap={{ scale: 0.99 }}
-          className="w-full text-left flex items-center gap-4 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
-        >
-          {/* Done badge */}
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(200,200,200,0.18)' }}>
-            <CheckCircle2 size={22} className="text-white/20" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[9px] font-bold tracking-wider text-white/30 bg-white/5 px-1.5 py-0.5 rounded">
-                LAST
-              </span>
-            </div>
-            <p className="text-sm font-bold text-white/60">Upper Body Power</p>
-            <div className="flex items-center gap-3 mt-0.5">
-              <span className="flex items-center gap-1 text-[10px] text-white/30 font-medium">
-                <Dumbbell size={10} /> Tue 22 Jul · 7 exercises · 55 min
-              </span>
-            </div>
-          </div>
-
-          <ChevronRight size={16} className="text-white/10 group-hover:text-white/35 transition-colors shrink-0" />
-        </motion.button>
+        {/* CTA row */}
+        <div className="flex">
+          <motion.button
+            onClick={bookSession}
+            whileTap={{ scale: 0.99 }}
+            className="flex-1 flex items-center justify-center px-4 py-3.5 hover:bg-white/[0.03] transition-colors group"
+          >
+            <span className="text-[10px] font-extrabold tracking-[0.16em] uppercase text-white/60 group-hover:text-white transition-colors">
+              + Book a Session
+            </span>
+          </motion.button>
+          <div className="w-px my-2" style={{ background: 'rgba(200,200,200,0.1)' }} />
+          <motion.button
+            onClick={buySessions}
+            whileTap={{ scale: 0.99 }}
+            className="flex-1 flex items-center justify-center px-4 py-3.5 hover:bg-white/[0.03] transition-colors group"
+          >
+            <span className="text-[10px] font-extrabold tracking-[0.16em] uppercase text-green-400/80 group-hover:text-green-300 transition-colors">
+              Buy More Sessions
+            </span>
+          </motion.button>
+        </div>
       </div>
     </section>
   );
@@ -522,19 +542,19 @@ function MusclesWorkedBlock() {
   const [which, setWhich] = useState<'last' | 'next'>('last');
   const [expanded, setExpanded] = useState(false);
 
-  const lastSession = past.find(s => s.id === 4);
-  const nextSession = upcoming.find(s => s.id === 1);
+  const lastSession = past.find(s => s.status === 'COMPLETED');
+  const nextSession = upcoming[0];
 
   const muscles = which === 'last'
     ? lastSession?.musclesWorked ?? []
-    : ['BACK', 'HAMSTRINGS', 'SHOULDERS', 'BICEPS']; // Strength & Conditioning — Thu 24 Jul
+    : [...new Set((nextSession?.plannedExercises ?? []).map(ex => ex.muscle))];
 
   const plan = which === 'last'
     ? lastSession?.exerciseList ?? []
     : nextSession?.plannedExercises ?? [];
   const planTitle = which === 'last'
-    ? `${lastSession?.name ?? ''} · ${lastSession?.date ?? ''}`
-    : `${nextSession?.focus ?? ''} · ${nextSession?.date ?? ''}`;
+    ? [lastSession?.name, lastSession?.date].filter(Boolean).join(' · ')
+    : [nextSession?.focus, nextSession?.date].filter(Boolean).join(' · ');
 
   return (
     <section className="space-y-3">
@@ -722,25 +742,23 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
         {/* Col 1 */}
         <div className="flex flex-col gap-7">
           <MetricsSection />
-          <QuoteCard />
         </div>
 
         {/* Col 2 */}
         <div className="flex flex-col gap-7">
-          <SessionsBlock goToSession={goToSession} />
+          <SessionsBlock
+            goToSession={goToSession}
+            bookSession={() => setPage('sessions')}
+            buySessions={() => setPage('memberships')}
+          />
           <MusclesWorkedBlock />
-
-          {/* Desktop: Book session CTA */}
-          <div className="hidden md:block">
-            <button
-              onClick={() => setPage('sessions')}
-              className="w-full bg-primary hover:bg-primary/90 transition-colors py-3.5 rounded-full text-sm font-bold tracking-wide text-white"
-            >
-              Book a Session →
-            </button>
-          </div>
         </div>
 
+      </div>
+
+      {/* ── Mindset Memo — bottom, full width ────────────────────────────── */}
+      <div className="px-5 md:px-8 mt-7">
+        <QuoteCard />
       </div>
     </div>
   );
