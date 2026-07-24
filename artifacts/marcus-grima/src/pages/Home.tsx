@@ -230,7 +230,7 @@ function MetricsSection() {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white/50">Your Metrics</h3>
+        <h3 className="text-sm font-bold text-white/70">Your Metrics</h3>
         <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/25">
           via Apple Health
           <Heart size={11} className="text-white/25" fill="currentColor" />
@@ -321,6 +321,18 @@ function MetricsSection() {
       </div>
 
       {/* ── Weekly Activity chart ── */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-white/70">Weekly Activity</h3>
+        <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider">
+          {([['#22c55e','Goal'],['#f97316','Close'],['#ef4444','Low']] as const).map(([col, label]) => (
+            <span key={label} className="flex items-center gap-1.5" style={{ color: `${col}99` }}>
+              <span className="w-2 h-2 rounded-full inline-block"
+                style={{ background: col, opacity: 0.7, boxShadow: `0 0 4px ${col}55` }} />
+              {label}
+            </span>
+          ))}
+        </div>
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -328,22 +340,6 @@ function MetricsSection() {
         style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.08)' }}
         className="rounded-2xl overflow-hidden"
       >
-        {/* Chart header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <div className="flex items-center gap-2">
-            <Activity size={14} className="text-white/40" />
-            <span className="text-xs font-bold text-white/50">Weekly Activity</span>
-          </div>
-          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider">
-            {([['#4ade80','Goal'],['#fb923c','Close'],['#f87171','Low']] as const).map(([col, label]) => (
-              <span key={label} className="flex items-center gap-1.5" style={{ color: col }}>
-                <span className="w-2 h-2 rounded-full inline-block"
-                  style={{ background: col, boxShadow: `0 0 6px ${col}` }} />
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
 
         <ResponsiveContainer width="100%" height={150}>
           <BarChart
@@ -392,15 +388,13 @@ function MetricsSection() {
               {STEP_DATA.map((entry, i) => {
                 const isHov   = hoveredBar === i;
                 const isToday = i === TODAY_IDX;
-                const base = entry.steps >= GOAL_STEPS ? '#4ade80' : entry.steps >= 5000 ? '#fb923c' : '#f87171';
-                const dim  = entry.steps >= GOAL_STEPS ? '#16a34a' : entry.steps >= 5000 ? '#c2410c' : '#b91c1c';
-                const col  = (isHov || isToday) ? base : dim;
+                const base = entry.steps >= GOAL_STEPS ? '#22c55e' : entry.steps >= 5000 ? '#f97316' : '#ef4444';
                 return (
                   <Cell
                     key={i}
-                    fill={col}
-                    opacity={isHov ? 1 : hoveredBar !== null ? 0.15 : isToday ? 1 : 0.5}
-                    style={(isHov || isToday) ? { filter: `drop-shadow(0 0 10px ${base}cc) drop-shadow(0 0 4px ${base})` } : undefined}
+                    fill={base}
+                    opacity={isHov ? 0.9 : hoveredBar !== null ? 0.12 : isToday ? 0.85 : 0.28}
+                    style={(isHov || isToday) ? { filter: `drop-shadow(0 0 6px ${base}66)` } : undefined}
                   />
                 );
               })}
@@ -430,10 +424,10 @@ function MetricsSection() {
 function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground/50">Sessions</h3>
+      <h3 className="text-sm font-bold text-white/70">Sessions</h3>
 
       {/* Unified card container */}
-      <div className="rounded-xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.09)' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.09)' }}>
 
         {/* Next session row */}
         <motion.button
@@ -508,56 +502,45 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
 function QuoteCard() {
   const q = getDailyQuote();
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.5 }}
-      className="relative overflow-hidden rounded-2xl"
-      style={{ height: 190 }}
-    >
-      {/* Full-bleed background photo */}
-      <img
-        src={q.img}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ objectPosition: 'center top' }}
-      />
+    <section className="space-y-3">
+      <h3 className="text-sm font-bold text-white/70">Today's Focus</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+        className="relative overflow-hidden rounded-2xl"
+        style={{ height: 170, border: '1px solid rgba(200,200,200,0.08)' }}
+      >
+        {/* Full-bleed background photo */}
+        <img
+          src={q.img}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: 'center top' }}
+        />
 
-      {/* Dark gradient — heavy at bottom, light at top */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.15) 100%)',
-        }}
-      />
+        {/* Dark gradient — heavy at bottom */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.65) 55%, rgba(0,0,0,0.3) 100%)',
+          }}
+        />
 
-      {/* Metallic chrome tint overlay */}
-      <div
-        className="absolute inset-0 opacity-15"
-        style={{ background: 'linear-gradient(135deg, rgba(220,220,220,0.3) 0%, transparent 50%)' }}
-      />
-
-      {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-between p-5">
-        {/* Top label */}
-        <span className="text-[9px] font-black tracking-[0.3em] text-white/50 uppercase">
-          Today's Focus
-        </span>
-
-        {/* Bottom text */}
-        <div>
+        {/* Content */}
+        <div className="absolute inset-0 flex flex-col justify-end p-5">
           <p className="text-base font-bold text-white leading-snug drop-shadow-lg">
             {q.text}
           </p>
           {q.author && (
-            <p className="text-[10px] text-white/50 font-medium mt-1.5">
+            <p className="text-[10px] text-white/45 font-medium mt-1.5">
               — {q.author}
             </p>
           )}
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </section>
   );
 }
 
