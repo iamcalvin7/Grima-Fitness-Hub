@@ -322,8 +322,17 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             ? 'bg-[#0F0D08] border border-amber-500/25 hover:border-amber-500/50'
             : 'bg-[#111111] border border-white/6 hover:border-primary/30'}`}
       >
-        {/* Accent bar */}
-        <div className={`h-1 w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-white/60 to-white/20'}`} />
+        {/* Photo header */}
+        <div className="relative h-36 w-full overflow-hidden">
+          <img
+            src={`${import.meta.env.BASE_URL}programs/${program.id}.png`}
+            alt={program.name}
+            className="w-full h-full object-cover object-[center_20%] group-hover:scale-[1.03] transition-transform duration-500"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-[#111111]/30 to-transparent" />
+          <div className={`absolute bottom-0 left-0 h-[2px] w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-white/60 to-white/10'}`} />
+        </div>
 
         <div className="p-5">
           <div className="flex items-start justify-between gap-4 mb-4">
