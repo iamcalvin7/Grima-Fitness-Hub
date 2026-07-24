@@ -594,7 +594,14 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
-      <div className="px-5 md:px-8 pt-10 pb-8 flex flex-col items-center text-center">
+      <div className="relative px-5 md:px-8 pt-12 pb-10 flex flex-col items-center text-center overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #5a1fa8 0%, #7c35c9 50%, #8B45D9 100%)' }}>
+        {/* Light shimmer top-right */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 65%)' }} />
+        {/* Bottom fade into dark */}
+        <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, transparent, rgba(7,5,14,0.25))' }} />
 
         {/* Profile photo */}
         <motion.div
@@ -617,8 +624,8 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           </div>
 
           {/* Camera badge */}
-          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary border-2 border-[#07050e] flex items-center justify-center">
-            <Camera size={12} className="text-white" />
+          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border-2 border-white flex items-center justify-center">
+            <Camera size={12} className="text-primary" />
           </div>
 
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -628,7 +635,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-sm font-medium text-foreground/40 mb-1"
+          className="text-sm font-medium text-white/60 mb-1"
         >
           {getGreeting()}
         </motion.p>
@@ -646,7 +653,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.3, duration: 0.4 }}
-          className="w-10 h-0.5 bg-primary mt-4 rounded-full"
+          className="w-10 h-0.5 bg-white/40 mt-4 rounded-full"
         />
       </div>
 
