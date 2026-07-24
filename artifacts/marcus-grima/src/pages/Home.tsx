@@ -143,16 +143,16 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         transition={{ duration: 0.45 }}
         className="relative overflow-hidden rounded-2xl"
         style={{
-          height: 230,
+          aspectRatio: '1712 / 919',
           border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.1)',
         }}
       >
         {/* Full-bleed photo */}
         <img src={`${import.meta.env.BASE_URL}challenge.png`} alt="" className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center 30%', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
-        {/* Dark gradient */}
+          style={done ? { filter: 'grayscale(0.7) brightness(0.55)' } : undefined} />
+        {/* Light gradient — just enough for text legibility */}
         <div className="absolute inset-0"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.15) 40%, transparent 100%)' }} />
 
         {/* Challenge pill + about CTA */}
         <div className="absolute top-3 inset-x-3 flex items-center justify-between">
