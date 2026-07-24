@@ -642,41 +642,39 @@ function WelcomeScreen({ firstName, onComplete }: { firstName: string; onComplet
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
-      className="fixed inset-0 bg-[#0A0A0A] flex flex-col items-center justify-center px-6 text-center"
+      className="fixed inset-0 bg-[#060606] flex flex-col"
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                        w-[500px] h-[500px] rounded-full blur-[140px] opacity-20 bg-primary" />
-      </div>
+      {/* Full-bleed welcome photo */}
+      <img src={`${import.meta.env.BASE_URL}welcome.png`} alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: 'center 15%' }} />
+      {/* Legibility gradient */}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.35) 100%)' }} />
 
-      <div className="relative z-10 flex flex-col items-center">
+      <div className="relative z-10 flex-1 flex flex-col justify-end items-center text-center px-6 pb-12">
         <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-          className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mb-8">
-          <CheckCircle2 size={36} className="text-primary" />
+          className="w-14 h-14 rounded-full border-2 border-white flex items-center justify-center mb-6">
+          <CheckCircle2 size={26} className="text-white" />
         </motion.div>
 
-        <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">
-          You're all set
-        </motion.p>
-
-        <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="text-5xl font-black tracking-tight text-white leading-tight mb-4">
-          READY,<br />{firstName.toUpperCase()}.
+        <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="text-[44px] font-black tracking-[-0.02em] text-white leading-[0.92] mb-4">
+          YOU'RE ALL SET,<br />{firstName.toUpperCase()}.
         </motion.h1>
 
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
-          className="text-sm text-white/40 font-medium mb-14 max-w-xs">
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+          className="text-base text-white/90 font-medium mb-8 max-w-xs">
           Your profile is set up. Marcus is ready when you are.
         </motion.p>
 
-        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75 }}
+        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
           onClick={onComplete} whileTap={{ scale: 0.98 }}
-          className="w-full max-w-xs py-4 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm
-                     flex items-center justify-between px-6">
-          <span>START TRAINING</span>
-          <ChevronRight size={18} />
+          className="mx-auto w-64 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
+                     flex items-center justify-center gap-2">
+          <span>START YOUR JOURNEY</span>
+          <ChevronRight size={15} />
         </motion.button>
       </div>
     </motion.div>
