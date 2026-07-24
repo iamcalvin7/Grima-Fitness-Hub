@@ -300,7 +300,7 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
         </h1>
         <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
           className="text-base text-white/90 leading-relaxed font-medium mb-8 max-w-xs">
-          Elite personal training designed around your goals, your schedule, and your potential.
+          Elite personal training designed around your potential.
         </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
