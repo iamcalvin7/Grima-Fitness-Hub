@@ -131,8 +131,8 @@ export const Messages = ({ setPage }: MessagesProps) => {
                 key={conv.id}
                 className="w-full p-5 flex gap-4 items-start text-left border-b border-white/5 bg-primary/5 border-l-2 border-l-primary cursor-pointer hover:bg-primary/10 transition-colors"
               >
-                <div className="w-11 h-11 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold shrink-0 text-sm">
-                  {conv.initials}
+                <div className="w-11 h-11 rounded-full overflow-hidden border border-white/25 shrink-0">
+                  <img src={`${import.meta.env.BASE_URL}marcus.png`} alt={conv.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-0.5">
@@ -171,8 +171,8 @@ export const Messages = ({ setPage }: MessagesProps) => {
                     className="w-full bg-[#111111] border border-white/5 p-4 rounded-sm flex gap-4 items-start text-left hover:border-primary/20 transition-colors"
                     onClick={() => setMobileOpenThread(true)}
                   >
-                    <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold shrink-0 text-sm">
-                      {conv.initials}
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-white/25 shrink-0">
+                      <img src={`${import.meta.env.BASE_URL}marcus.png`} alt={conv.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-0.5">
