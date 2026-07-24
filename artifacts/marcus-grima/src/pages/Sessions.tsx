@@ -31,7 +31,7 @@ interface PastSession {
   exerciseList: ExerciseRow[];
 }
 
-const upcoming: UpcomingSession[] = [
+export const upcoming: UpcomingSession[] = [
   {
     id: 1, date: 'THURSDAY, 24 JULY', time: '07:00 AM', duration: '60 MIN',
     location: 'Fort Fitness Mriehel', status: 'CONFIRMED',
@@ -74,7 +74,7 @@ const upcoming: UpcomingSession[] = [
   },
 ];
 
-const past: PastSession[] = [
+export const past: PastSession[] = [
   {
     id: 4, date: 'TUESDAY, 22 JULY', time: '07:00 AM', duration: '55 MIN',
     location: 'Fort Fitness Mriehel', status: 'COMPLETED', exercises: 7,

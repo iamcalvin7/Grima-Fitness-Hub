@@ -13,6 +13,7 @@ import {
 } from '@/data/challenges';
 import type { Page } from '@/App';
 import { BodyMap } from '@/components/BodyMap';
+import { upcoming, past } from '@/pages/Sessions';
 
 /* ── Animated counter ─────────────────────────────────────────────────────── */
 function useCountUp(target: number, duration = 1400) {
@@ -518,14 +519,84 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
 
 /* ── Muscles worked (last session) ────────────────────────────────────────── */
 function MusclesWorkedBlock() {
+  const [which, setWhich] = useState<'last' | 'next'>('last');
+  const [expanded, setExpanded] = useState(false);
+
+  const lastSession = past.find(s => s.id === 4);
+  const nextSession = upcoming.find(s => s.id === 1);
+
+  const muscles = which === 'last'
+    ? lastSession?.musclesWorked ?? []
+    : ['BACK', 'HAMSTRINGS', 'SHOULDERS', 'BICEPS']; // Strength & Conditioning — Thu 24 Jul
+
+  const plan = which === 'last'
+    ? lastSession?.exerciseList ?? []
+    : nextSession?.plannedExercises ?? [];
+  const planTitle = which === 'last'
+    ? `${lastSession?.name ?? ''} · ${lastSession?.date ?? ''}`
+    : `${nextSession?.focus ?? ''} · ${nextSession?.date ?? ''}`;
+
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-white">Muscles Worked</h3>
-        <span className="text-[10px] font-bold tracking-wider uppercase text-white/30">Last Session</span>
+        <div className="flex rounded-full p-[2px] bg-white/5 border border-white/8">
+          {(['last', 'next'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setWhich(v)}
+              aria-pressed={which === v}
+              className={`px-3 py-1 text-[9px] font-extrabold tracking-[0.18em] uppercase rounded-full transition-colors duration-150 ${
+                which === v ? 'bg-white/90 text-black' : 'text-white/35 hover:text-white/60'
+              }`}
+            >
+              {v === 'last' ? 'Last' : 'Next'}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="rounded-2xl px-4 py-5" style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.18)' }}>
-        <BodyMap musclesWorked={['CHEST', 'SHOULDERS', 'TRICEPS']} />
+        <BodyMap key={which} musclesWorked={muscles} />
+
+        {/* Expand toggle */}
+        <button
+          onClick={() => setExpanded(e => !e)}
+          aria-expanded={expanded}
+          className="mt-4 w-full flex items-center justify-center gap-1.5 text-[10px] font-extrabold tracking-[0.2em] uppercase text-white/40 hover:text-white/70 transition-colors py-1"
+        >
+          {expanded ? 'Hide session plan' : 'View session plan'}
+          <ChevronRight size={12} className={`transition-transform duration-200 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
+        </button>
+
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              key={which}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 space-y-2">
+                <p className="text-[9px] font-bold tracking-wider uppercase text-white/30">{planTitle}</p>
+                {plan.map((ex, i) => (
+                  <div
+                    key={`${ex.name}-${i}`}
+                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(200,200,200,0.08)' }}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white truncate">{ex.name}</p>
+                      <p className="text-[9px] font-bold tracking-wider uppercase text-green-400/70 mt-0.5">{ex.muscle}</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/45 whitespace-nowrap">{ex.sets}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

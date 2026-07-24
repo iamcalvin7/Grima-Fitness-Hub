@@ -235,7 +235,8 @@ export const BodyMap = ({
   const isMuscleActive = useCallback((id: MuscleId): boolean => activeIds.has(id), [activeIds]);
 
   const regions = view === 'front' ? FRONT_REGIONS : BACK_REGIONS;
-  const chipMuscles = view === 'front' ? FRONT_MUSCLE_ORDER : BACK_MUSCLE_ORDER;
+  const chipMuscles = (view === 'front' ? FRONT_MUSCLE_ORDER : BACK_MUSCLE_ORDER)
+    .filter(id => activeIds.has(id));
 
   return (
     <div className="flex flex-col items-center gap-5 w-full select-none">
@@ -286,9 +287,9 @@ export const BodyMap = ({
             >
               <defs>
                 <radialGradient id="bm-glow-grad">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.85)" />
-                  <stop offset="55%" stopColor="rgba(220,220,225,0.45)" />
-                  <stop offset="100%" stopColor="rgba(200,200,205,0)" />
+                  <stop offset="0%" stopColor="rgba(74,222,128,0.85)" />
+                  <stop offset="55%" stopColor="rgba(34,197,94,0.45)" />
+                  <stop offset="100%" stopColor="rgba(34,197,94,0)" />
                 </radialGradient>
                 <radialGradient id="bm-hover-grad">
                   <stop offset="0%" stopColor="rgba(255,255,255,0.30)" />
@@ -373,7 +374,7 @@ export const BodyMap = ({
                 disabled={!interactive}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase border transition-colors duration-150 ${
                   active
-                    ? 'bg-white/90 text-black border-white/90'
+                    ? 'bg-green-400/15 text-green-300 border-green-400/40'
                     : hovered
                       ? 'bg-white/10 text-white/80 border-white/20'
                       : 'bg-white/[0.03] text-white/40 border-white/10'
