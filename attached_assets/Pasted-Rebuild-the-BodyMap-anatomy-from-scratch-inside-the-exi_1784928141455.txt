@@ -1,0 +1,237 @@
+Rebuild the BodyMap anatomy from scratch inside the existing React component.
+
+Do not search for, import, or depend on any external SVG, npm anatomy package, stock asset, or third-party illustration.
+
+The current BodyMap already contains:
+- Front and back views
+- MuscleId mapping
+- Highlight logic
+- Front/back toggle
+- Muscle chips
+- Framer Motion transitions
+- Display and interactive modes
+
+Keep all of that logic.
+
+Replace only the anatomical drawing system.
+
+## Goal
+
+Create a complete, premium anatomical body illustration directly in SVG using custom paths.
+
+The result should feel like a polished fitness app body map, not a medical diagram and not a stick figure.
+
+It must have:
+
+- Natural athletic male proportions
+- Complete head and neck
+- Rounded shoulders
+- Full upper arms
+- Elbows
+- Forearms
+- Hands
+- Defined torso
+- Pelvis
+- Thighs
+- Knees
+- Lower legs
+- Ankles
+- Feet
+- Front and back views
+
+## Important
+
+Do not use one silhouette with floating muscle polygons placed over it.
+
+Instead, construct the body from coordinated anatomical regions so every muscle shape follows the body structure precisely.
+
+All paths must share the same coordinate system and align cleanly.
+
+Use a viewBox of:
+
+0 0 240 520
+
+Create separate front and back SVG definitions.
+
+## Layer structure
+
+Build each view using these layers:
+
+1. Base body shape
+2. Structural anatomy regions
+3. Selectable muscle regions
+4. Fine anatomical separator lines
+5. Selected-state glow
+
+## Front-view muscle groups
+
+Create dedicated paths for:
+
+- chest
+- front_deltoids
+- biceps
+- triceps
+- forearms
+- abs
+- obliques
+- quadriceps
+- adductors
+- tibialis
+- calves
+
+Each left and right side should be a separate path but map to the same MuscleId.
+
+## Back-view muscle groups
+
+Create dedicated paths for:
+
+- trapezius
+- rear_deltoids
+- upper_back
+- lats
+- triceps
+- forearms
+- lower_back
+- glutes
+- hamstrings
+- calves
+
+Again, left and right sides should be separate paths but map to the same MuscleId.
+
+## Anatomy style
+
+Use smooth SVG path curves.
+
+Avoid:
+- polygons
+- sharp geometric corners
+- rectangular limbs
+- disconnected muscle shapes
+- floating anatomy
+- exaggerated bodybuilding proportions
+- visible internal organs
+- overly medical detail
+
+The figure should be:
+- athletic
+- symmetrical
+- slightly stylised
+- premium
+- clean
+- anatomically believable
+
+## Visual styling
+
+Background:
+#111111
+
+Base body:
+#171717
+
+Unselected muscle:
+#1D1D1D
+
+Structural separators:
+#3A3A3A
+
+Outer body outline:
+#555555
+
+Selected muscle gradient:
+#A565F2 to #8B45D9
+
+Selected outline:
+#B879FF
+
+Selected glow:
+rgba(139,69,217,0.4)
+
+Use subtle internal lines to show:
+- chest separation
+- abdominal divisions
+- shoulder boundaries
+- elbow and knee landmarks
+- quadriceps separation
+- hamstring separation
+- calf definition
+- spine line on back view
+
+These lines should be understated and should not overpower the selected muscles.
+
+## Code architecture
+
+Create reusable data structures rather than writing every path directly inside JSX.
+
+Use a structure like:
+
+interface MusclePath {
+  id: MuscleId;
+  side?: 'left' | 'right' | 'center';
+  d: string;
+}
+
+const FRONT_MUSCLE_PATHS: MusclePath[] = [...]
+const BACK_MUSCLE_PATHS: MusclePath[] = [...]
+
+Also create:
+
+const FRONT_BASE_PATHS = [...]
+const BACK_BASE_PATHS = [...]
+const FRONT_DETAIL_PATHS = [...]
+const BACK_DETAIL_PATHS = [...]
+
+Render them in this order:
+
+- base paths
+- unselected muscle paths
+- detail lines
+- selected muscle paths
+
+## Interaction
+
+Preserve the current behaviour:
+
+- musclesWorked automatically highlights relevant muscles
+- interactive mode allows clicking muscles
+- chip clicks still work
+- hover states still work
+- front/back toggle still works
+- selectedMuscles remains controllable
+- onMuscleToggle remains supported
+- onViewChange remains supported
+
+Each path must include:
+- aria-label
+- role when interactive
+- pointer cursor when interactive
+- hover state
+- click handler
+
+## Responsive behaviour
+
+The body map must remain centred and scale cleanly.
+
+Target width:
+- mobile: 180–210px
+- desktop: 220–260px
+
+No body part may be clipped.
+
+## Quality control
+
+Before finishing, inspect both views and correct:
+
+- limb thickness
+- hand shape
+- foot shape
+- shoulder symmetry
+- torso-to-leg proportions
+- hip alignment
+- left/right path alignment
+- muscle boundaries
+- path overlaps
+- visible gaps
+
+The final figure must read immediately as one complete human body.
+
+Do not stop after creating a rough first pass. Refine the SVG paths until the anatomy feels cohesive and professional.
