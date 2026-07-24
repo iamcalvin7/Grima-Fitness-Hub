@@ -149,7 +149,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
       >
         {/* Full-bleed photo */}
         <img src={`${import.meta.env.BASE_URL}challenge.png`} alt="" className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center 0%', transform: 'translateX(7%) scale(1.12)', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
+          style={{ objectPosition: 'center 30%', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
         {/* Dark gradient */}
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
