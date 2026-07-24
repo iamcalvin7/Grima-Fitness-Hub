@@ -70,7 +70,7 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
       <div className="px-3 py-6 border-t border-white/5">
         <button
           onClick={() => onNavigate('sessions')}
-          className="w-full bg-primary hover:bg-primary/80 transition-colors px-4 py-3 flex items-center gap-3 text-foreground group"
+          className="w-full bg-primary hover:bg-primary/80 transition-colors px-4 py-3 flex items-center gap-3 text-primary-foreground group"
         >
           <Zap size={15} className="text-foreground/70 group-hover:text-foreground transition-colors" />
           <span className="text-xs font-bold tracking-[0.15em] uppercase">Book a Session</span>

@@ -62,7 +62,9 @@ export const Messages = ({ setPage }: MessagesProps) => {
         <button className="md:hidden text-foreground/60 hover:text-foreground transition-colors" onClick={() => setMobileOpenThread(false)}>
           <ChevronLeft size={22} />
         </button>
-        <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold text-xs shrink-0">MG</div>
+        <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 shrink-0">
+          <img src={`${import.meta.env.BASE_URL}marcus.png`} alt="Marcus Grima" className="w-full h-full object-cover" />
+        </div>
         <div>
           <h2 className="text-sm font-bold tracking-wider">Marcus Grima</h2>
           <p className="text-[10px] text-primary font-bold tracking-widest uppercase">Personal Trainer</p>
@@ -79,11 +81,13 @@ export const Messages = ({ setPage }: MessagesProps) => {
             animate={{ opacity: 1, y: 0 }}
           >
             {msg.from === 'marcus' && (
-              <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold shrink-0 text-[10px] mb-1">MG</div>
+              <div className="w-7 h-7 rounded-full overflow-hidden border border-white/25 shrink-0 mb-1">
+                <img src={`${import.meta.env.BASE_URL}marcus.png`} alt="Marcus Grima" className="w-full h-full object-cover" />
+              </div>
             )}
             <div className={`max-w-[75%] px-4 py-3 text-sm font-medium leading-relaxed ${
               msg.from === 'me'
-                ? 'bg-primary text-foreground rounded-sm rounded-br-none'
+                ? 'bg-primary text-primary-foreground rounded-sm rounded-br-none'
                 : 'bg-[#1A1A1A] text-foreground/90 rounded-sm rounded-bl-none border border-white/5'
             }`}>
               {msg.text}

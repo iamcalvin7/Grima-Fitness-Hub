@@ -409,7 +409,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
           {(['date','time','confirm'] as BookingStep[]).map((s, i) => (
             <React.Fragment key={s}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-colors ${
-                s === step ? 'bg-primary text-white' :
+                s === step ? 'bg-primary text-primary-foreground' :
                 ['date','time','confirm'].indexOf(s) < ['date','time','confirm'].indexOf(step)
                   ? 'bg-primary/30 text-primary' : 'bg-white/8 text-foreground/30'
               }`}>{i+1}</div>
@@ -440,7 +440,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                   const disabled   = isPast || isOff || !hasSlots;
                   return (
                     <button key={dateKey(d)} disabled={disabled} onClick={() => { setSelectedDate(d); setSelectedTime(null); }}
-                      className={`relative aspect-square rounded-sm flex flex-col items-center justify-center transition-all ${isSelected ? 'bg-primary text-white' : disabled ? 'text-foreground/15 cursor-default' : 'hover:bg-white/8 text-foreground'} ${isToday && !isSelected ? 'ring-1 ring-primary/40' : ''}`}>
+                      className={`relative aspect-square rounded-sm flex flex-col items-center justify-center transition-all ${isSelected ? 'bg-primary text-primary-foreground' : disabled ? 'text-foreground/15 cursor-default' : 'hover:bg-white/8 text-foreground'} ${isToday && !isSelected ? 'ring-1 ring-primary/40' : ''}`}>
                       <span className="text-sm font-bold leading-none">{d.getDate()}</span>
                       {!disabled && !isSelected && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary/60" />}
                     </button>
@@ -453,7 +453,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
               </div>
               {selectedDate && (
                 <motion.button initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} onClick={() => setStep('time')}
-                  className="w-full mt-6 bg-primary hover:bg-primary/90 py-4 rounded-full text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">
+                  className="w-full mt-6 bg-primary hover:bg-primary/90 py-4 rounded-full text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm transition-colors">
                   See Available Times
                 </motion.button>
               )}
@@ -471,7 +471,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                   const isAvail = status === 'available'; const isSel = selectedTime === time;
                   return (
                     <button key={time} disabled={!isAvail} onClick={() => setSelectedTime(time)}
-                      className={`py-3 rounded-xl border text-xs font-bold tracking-wider transition-all ${isSel ? 'bg-primary border-primary text-white' : isAvail ? 'border-white/12 text-foreground hover:border-primary/50 hover:bg-primary/8' : 'border-white/4 text-foreground/15 cursor-default line-through'}`}>
+                      className={`py-3 rounded-xl border text-xs font-bold tracking-wider transition-all ${isSel ? 'bg-primary border-primary text-primary-foreground' : isAvail ? 'border-white/12 text-foreground hover:border-primary/50 hover:bg-primary/8' : 'border-white/4 text-foreground/15 cursor-default line-through'}`}>
                       {fmt12(time)}
                     </button>
                   );
@@ -498,7 +498,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
 
               {selectedTime && (
                 <motion.button initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} onClick={() => setStep('confirm')}
-                  className="w-full mt-5 bg-primary hover:bg-primary/90 py-4 rounded-full text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">
+                  className="w-full mt-5 bg-primary hover:bg-primary/90 py-4 rounded-full text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm transition-colors">
                   Continue
                 </motion.button>
               )}
@@ -520,7 +520,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
               <p className="text-xs text-foreground/40 leading-relaxed mb-6">Marcus will receive your request and confirm shortly. You'll be notified once confirmed.</p>
-              <button onClick={() => setStep('done')} className="w-full bg-primary hover:bg-primary/90 py-4 rounded-full text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">Confirm Booking</button>
+              <button onClick={() => setStep('done')} className="w-full bg-primary hover:bg-primary/90 py-4 rounded-full text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm transition-colors">Confirm Booking</button>
             </motion.div>
           )}
 
@@ -574,14 +574,14 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
             <p className="text-xs text-foreground/40 font-semibold tracking-wider mt-0.5 hidden md:block">Manage your training schedule</p>
           </div>
           <button onClick={() => setShowBooking(true)}
-            className="flex items-center gap-2 bg-primary px-4 py-2.5 text-[11px] font-bold tracking-widest uppercase text-foreground hover:bg-primary/80 transition-colors">
+            className="flex items-center gap-2 bg-primary px-4 py-2.5 text-[11px] font-bold tracking-widest uppercase text-primary-foreground hover:bg-primary/80 transition-colors">
             <Plus size={13} /> Book Session
           </button>
         </div>
         <div className="flex gap-0 border border-white/10 w-fit">
           {(['upcoming','past'] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-6 py-2 text-[11px] font-bold tracking-widest uppercase transition-colors ${tab === t ? 'bg-primary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              className={`px-6 py-2 text-[11px] font-bold tracking-widest uppercase transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               {t}
             </button>
           ))}

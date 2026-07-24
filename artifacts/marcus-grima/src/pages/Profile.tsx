@@ -86,7 +86,7 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                     {initials}
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary border-2 border-[#0A0A0A] flex items-center justify-center">
-                    <Edit2 size={11} className="text-foreground" />
+                    <Edit2 size={11} className="text-primary-foreground" />
                   </div>
                 </div>
                 <div>

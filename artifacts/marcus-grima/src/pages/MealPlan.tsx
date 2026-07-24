@@ -144,7 +144,7 @@ function MealCard({
           <img src={mealImg(meal)} alt={meal.name} className="w-full h-full object-cover" loading="lazy" />
           {isBest && (
             <div className="absolute top-2 left-2 flex items-center gap-1 bg-primary/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
-              <Flame size={10} className="text-white" />
+              <Flame size={10} className="text-primary-foreground" />
               <span className="text-[9px] font-bold text-white uppercase tracking-wider">Best Match</span>
             </div>
           )}
@@ -225,7 +225,7 @@ function MealCard({
           className={`flex items-center justify-center gap-1.5 px-4 py-3 transition-colors ${
             isInPlan
               ? 'text-green-400 bg-green-400/8'
-              : 'bg-primary/90 hover:bg-primary text-white'
+              : 'bg-primary/90 hover:bg-primary text-primary-foreground'
           }`}
         >
           {isInPlan ? <Check size={14} /> : <Plus size={14} />}
@@ -263,7 +263,7 @@ function MealDetail({
           <button
             onClick={onSave}
             className={`w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-sm transition-all ${
-              isSaved ? 'bg-primary/80 text-white' : 'bg-black/50 text-white/70 hover:text-white'
+              isSaved ? 'bg-primary/80 text-primary-foreground' : 'bg-black/50 text-white/70 hover:text-white'
             }`}
           >
             {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
@@ -338,7 +338,7 @@ function MealDetail({
           className={`w-full py-4 font-bold tracking-[0.15em] uppercase text-sm flex items-center justify-center gap-2 transition-all ${
             isInPlan
               ? 'bg-green-600/20 border border-green-500/30 text-green-400'
-              : 'bg-primary hover:bg-primary/90 text-white'
+              : 'bg-primary hover:bg-primary/90 text-primary-foreground'
           }`}
         >
           {isInPlan ? <><Check size={16} /> Added to Daily Plan</> : <><Plus size={16} /> Add to Daily Plan</>}
@@ -399,7 +399,7 @@ function SavedView({
                     className={`px-3 py-2 text-[10px] font-bold tracking-widest uppercase rounded-sm transition-colors ${
                       dailyIds.has(meal.id)
                         ? 'bg-green-600/20 border border-green-500/30 text-green-400'
-                        : 'bg-primary/90 text-white hover:bg-primary'
+                        : 'bg-primary/90 text-primary-foreground hover:bg-primary'
                     }`}
                   >
                     {dailyIds.has(meal.id) ? '✓' : '+'}
@@ -621,7 +621,7 @@ export const MealPlan = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">1</span>
+                <span className="text-[10px] font-bold text-primary-foreground">1</span>
               </div>
               <h2 className="text-sm font-bold tracking-wider">Set Your Goal</h2>
             </div>
@@ -707,7 +707,7 @@ export const MealPlan = () => {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => setHasSearched(true)}
-            className="w-full mt-5 bg-primary hover:bg-primary/90 py-4 text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors"
+            className="w-full mt-5 bg-primary hover:bg-primary/90 py-4 text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm transition-colors"
           >
             Find Meals
           </motion.button>
@@ -719,7 +719,7 @@ export const MealPlan = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white">2</span>
+                  <span className="text-[10px] font-bold text-primary-foreground">2</span>
                 </div>
                 <h2 className="text-sm font-bold tracking-wider">Meal Suggestions</h2>
                 <span className="text-xs text-foreground/30">({results.length})</span>
