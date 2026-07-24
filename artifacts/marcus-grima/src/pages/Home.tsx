@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Heart, Activity, ChevronRight, Clock, MapPin, CheckCircle2, Dumbbell } from 'lucide-react';
+import {
+  Flame, Heart, Activity, ChevronRight,
+  Clock, MapPin, CheckCircle2, Dumbbell, Quote,
+} from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from 'recharts';
-import { BodyMap } from '@/components/BodyMap';
 import type { Page } from '@/App';
 
-/* ── Animated counter ──────────────────────────────────────────────────── */
+/* ── Animated counter ─────────────────────────────────────────────────────── */
 function useCountUp(target: number, duration = 1400) {
   const [val, setVal] = useState(0);
   useEffect(() => {
@@ -13,8 +15,7 @@ function useCountUp(target: number, duration = 1400) {
     let raf: number;
     const tick = (now: number) => {
       const p = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-      setVal(Math.round(eased * target));
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * target));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -23,35 +24,59 @@ function useCountUp(target: number, duration = 1400) {
   return val;
 }
 
-/* ── Metric card ───────────────────────────────────────────────────────── */
-interface MetricCardProps {
-  icon: React.ReactNode;
-  value: string;
-  sub: string;
-  colour: string;          // tailwind text colour e.g. 'text-green-400'
-  borderColour: string;    // e.g. 'border-green-500/30'
-  glowColour: string;      // rgba string for box-shadow
-  delay?: number;
+/* ── Greeting ─────────────────────────────────────────────────────────────── */
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning,';
+  if (h < 18) return 'Good afternoon,';
+  return 'Good evening,';
 }
 
-const MetricCard = ({ icon, value, sub, colour, borderColour, glowColour, delay = 0 }: MetricCardProps) => (
+/* ── Quotes ───────────────────────────────────────────────────────────────── */
+const QUOTES = [
+  { text: 'The pain you feel today will be the strength you feel tomorrow.', author: 'Arnold Schwarzenegger' },
+  { text: "If something stands between you and your success, move it. Never be denied.", author: 'Dwayne Johnson' },
+  { text: 'Excellence is not a destination but a continuous journey that never ends.', author: 'Brian Tracy' },
+  { text: 'Push yourself because no one else is going to do it for you.', author: '' },
+  { text: 'You don\'t have to be extreme, just consistent.', author: '' },
+  { text: 'Your body can stand almost anything. It\'s your mind you have to convince.', author: '' },
+  { text: 'Wake up with determination. Go to bed with satisfaction.', author: '' },
+];
+function getDailyQuote() {
+  const day = new Date().getDay();
+  return QUOTES[day % QUOTES.length];
+}
+
+/* ── Purple palette ───────────────────────────────────────────────────────── */
+const P = {
+  text:     'text-primary',
+  border:   'border-primary/25',
+  glow:     'rgba(139,69,217,0.12)',
+  bar:      '#8B45D9',
+  barLight: '#A565F2',
+};
+const TODAY_IDX = 3;
+
+/* ── Metric card ──────────────────────────────────────────────────────────── */
+const MetricCard = ({
+  icon, value, sub, delay = 0,
+}: { icon: React.ReactNode; value: string; sub: string; delay?: number }) => (
   <motion.div
-    initial={{ opacity: 0, y: 12 }}
+    initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.4, ease: 'easeOut' }}
-    className={`relative bg-[#111111] border rounded-sm flex flex-col items-center justify-center text-center p-4 overflow-hidden ${borderColour}`}
-    style={{ boxShadow: `0 0 24px ${glowColour}` }}
+    className="relative bg-[#111111] border border-primary/20 rounded-xl flex flex-col items-center justify-center text-center p-4 overflow-hidden"
+    style={{ boxShadow: `0 0 20px ${P.glow}` }}
   >
-    {/* Subtle colour wash at top */}
-    <div className="absolute inset-x-0 top-0 h-px" style={{ background: glowColour.replace('0.18', '0.6') }} />
-    <div className="absolute inset-x-0 top-0 h-6 opacity-20"
-      style={{ background: `linear-gradient(to bottom, ${glowColour.replace('0.18','0.4')}, transparent)` }} />
-    <div className={`mb-2 ${colour}`}>{icon}</div>
+    <div className="absolute inset-x-0 top-0 h-px bg-primary/40" />
+    <div className="absolute inset-x-0 top-0 h-8 opacity-10 bg-gradient-to-b from-primary to-transparent" />
+    <div className="mb-2 text-primary">{icon}</div>
     <p className="text-lg font-bold leading-tight tabular-nums">{value}</p>
-    <p className={`text-[9px] font-bold tracking-widest uppercase mt-1 ${colour} opacity-70`}>{sub}</p>
+    <p className="text-[9px] font-semibold tracking-widest uppercase mt-1 text-primary/60">{sub}</p>
   </motion.div>
 );
 
+/* ── Step chart ───────────────────────────────────────────────────────────── */
 const stepData = [
   { day: 'M', label: 'Monday',    steps: 6000 },
   { day: 'T', label: 'Tuesday',   steps: 8500 },
@@ -62,158 +87,91 @@ const stepData = [
   { day: 'S', label: 'Sunday',    steps: 3000 },
 ];
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'GOOD MORNING,';
-  if (h < 18) return 'GOOD AFTERNOON,';
-  return 'GOOD EVENING,';
-}
-
-/* ── Metrics section ───────────────────────────────────────────────────── */
-
-// App purple palette
-const P = {
-  text:   'text-primary',
-  border: 'border-primary/25',
-  glow:   'rgba(139,69,217,0.12)',
-  bar:    '#8B45D9',
-  barLight: '#A565F2',
-};
-
-const TODAY_IDX = 3; // Thursday = index 3
-
 function MetricsSection() {
   const steps    = useCountUp(8432, 1600);
   const calories = useCountUp(647,  1200);
-  const bpm      = useCountUp(72,   900);
+  const bpm      = useCountUp(72,    900);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your Metrics</h3>
-        <p className="text-[10px] text-foreground/30 font-semibold tracking-wide uppercase mt-1">Connected via Apple Health</p>
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-sm font-semibold text-foreground/50">Your Metrics</h3>
+        <p className="text-[10px] text-foreground/25 font-medium">via Apple Health</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-
-        {/* Steps — stride walk */}
-        <MetricCard delay={0} colour={P.text} borderColour={P.border} glowColour={P.glow}
-          value={steps.toLocaleString()} sub="+12% today"
+      <div className="grid grid-cols-3 gap-2.5">
+        <MetricCard delay={0} value={steps.toLocaleString()} sub="+12% today"
           icon={
-            <motion.div
-              animate={{ x: [0, 3, 0, -1, 0], rotate: [0, 7, 0, -3, 0] }}
-              transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}
-            >
+            <motion.div animate={{ x: [0,3,0,-1,0], rotate: [0,7,0,-3,0] }}
+              transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}>
               <Activity className="w-5 h-5" />
             </motion.div>
           } />
-
-        {/* Calories — flame flicker */}
-        <MetricCard delay={0.1} colour={P.text} borderColour={P.border} glowColour={P.glow}
-          value={`${calories}`} sub="kcal active"
+        <MetricCard delay={0.08} value={`${calories}`} sub="kcal active"
           icon={
             <motion.div
-              animate={{
-                scaleX:  [1, 0.88, 1.08, 0.93, 1.05, 1],
-                scaleY:  [1, 1.12, 0.92, 1.08, 0.96, 1],
-                rotate:  [0, -4,    3,   -3,    2,   0],
-                opacity: [1, 0.85,  1,   0.9,   1,   1],
-              }}
+              animate={{ scaleX:[1,.88,1.08,.93,1.05,1], scaleY:[1,1.12,.92,1.08,.96,1], rotate:[0,-4,3,-3,2,0] }}
               transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ originX: '50%', originY: '100%' }}
-            >
+              style={{ originX:'50%', originY:'100%' }}>
               <Flame className="w-5 h-5" />
             </motion.div>
           } />
-
-        {/* Heart rate — lub-dub at 72 BPM (833 ms) */}
-        <MetricCard delay={0.2} colour={P.text} borderColour={P.border} glowColour={P.glow}
-          value={`${bpm}`} sub="bpm resting"
+        <MetricCard delay={0.16} value={`${bpm}`} sub="bpm resting"
           icon={
             <motion.div
-              animate={{ scale: [1, 1.42, 0.88, 1.22, 1, 1, 1, 1] }}
-              transition={{
-                duration: 0.833,
-                repeat: Infinity,
-                times: [0, 0.1, 0.2, 0.32, 0.45, 0.6, 0.8, 1],
-                ease: 'easeInOut',
-              }}
-            >
+              animate={{ scale: [1,1.42,.88,1.22,1,1,1,1] }}
+              transition={{ duration: 0.833, repeat: Infinity, times:[0,.1,.2,.32,.45,.6,.8,1], ease:'easeInOut' }}>
               <Heart className="w-5 h-5" fill="currentColor" />
             </motion.div>
           } />
-
       </div>
 
-      {/* Step bar chart — interactive with hover glow */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className={`bg-[#111111] border ${P.border} rounded-sm`}
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+        className="bg-[#111111] border border-primary/20 rounded-xl overflow-hidden"
         style={{ boxShadow: `0 0 18px ${P.glow}` }}
       >
-        <ResponsiveContainer width="100%" height={120}>
-          <BarChart
-            data={stepData}
-            barCategoryGap="30%"
-            margin={{ top: 12, right: 8, left: 8, bottom: 0 }}
-            onMouseMove={(state) => {
-              if (state.isTooltipActive && state.activeTooltipIndex !== undefined) {
-                setHoveredIdx(state.activeTooltipIndex);
-              }
-            }}
+        <ResponsiveContainer width="100%" height={110}>
+          <BarChart data={stepData} barCategoryGap="30%" margin={{ top: 12, right: 10, left: 10, bottom: 0 }}
+            onMouseMove={s => { if (s.isTooltipActive && s.activeTooltipIndex !== undefined) setHoveredIdx(s.activeTooltipIndex); }}
             onMouseLeave={() => setHoveredIdx(null)}
           >
-            <Tooltip
-              cursor={false}
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const d = payload[0].payload as typeof stepData[0];
+            <Tooltip cursor={false} content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload as typeof stepData[0];
+              return (
+                <div className="bg-[#1a1a1a] border border-primary/40 px-3 py-2 rounded-lg shadow-lg"
+                  style={{ boxShadow: '0 0 16px rgba(139,69,217,0.25)' }}>
+                  <p className="text-[10px] font-bold text-primary uppercase mb-0.5">{d.label}</p>
+                  <p className="text-sm font-bold text-white tabular-nums">
+                    {d.steps.toLocaleString()} <span className="text-[10px] text-white/40 font-medium">steps</span>
+                  </p>
+                </div>
+              );
+            }} />
+            <Bar dataKey="steps" radius={[3,3,0,0]}>
+              {stepData.map((_, i) => {
+                const isHov   = hoveredIdx === i;
+                const isToday = i === TODAY_IDX;
                 return (
-                  <div
-                    className="bg-[#1a1a1a] border border-primary/40 px-3 py-2 rounded-sm shadow-lg"
-                    style={{ boxShadow: '0 0 16px rgba(139,69,217,0.25)' }}
-                  >
-                    <p className="text-[10px] font-bold tracking-widest text-primary uppercase mb-0.5">{d.label}</p>
-                    <p className="text-sm font-bold text-white tabular-nums">
-                      {d.steps.toLocaleString()}{' '}
-                      <span className="text-[10px] text-white/40 font-semibold">steps</span>
-                    </p>
-                  </div>
-                );
-              }}
-            />
-            <Bar dataKey="steps" radius={[2, 2, 0, 0]}>
-              {stepData.map((_, index) => {
-                const isHovered = hoveredIdx === index;
-                const isToday   = index === TODAY_IDX;
-                // hovered → full bright light purple; today (no hover) → solid purple; rest → dim
-                const fill    = isHovered ? P.barLight : P.bar;
-                const opacity = isHovered ? 1 : hoveredIdx !== null ? 0.12 : isToday ? 1 : 0.18;
-                return (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={fill}
-                    opacity={opacity}
-                    style={isHovered ? { filter: 'drop-shadow(0 0 6px rgba(165,101,242,0.7))' } : undefined}
+                  <Cell key={i}
+                    fill={isHov ? P.barLight : P.bar}
+                    opacity={isHov ? 1 : hoveredIdx !== null ? 0.12 : isToday ? 1 : 0.18}
+                    style={isHov ? { filter: 'drop-shadow(0 0 6px rgba(165,101,242,0.7))' } : undefined}
                   />
                 );
               })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex justify-between text-[10px] font-bold px-4 pb-3">
+        <div className="flex justify-between text-[10px] font-semibold px-4 pb-3">
           {stepData.map((d, i) => (
-            <span
-              key={i}
-              className={
-                hoveredIdx === i ? 'text-primary font-black' :
-                i === TODAY_IDX && hoveredIdx === null ? 'text-primary' :
-                'text-foreground/25'
-              }
-            >
-              {d.day}
-            </span>
+            <span key={i} className={
+              hoveredIdx === i         ? 'text-primary font-bold' :
+              i === TODAY_IDX && hoveredIdx === null ? 'text-primary' :
+              'text-foreground/25'
+            }>{d.day}</span>
           ))}
         </div>
       </motion.div>
@@ -221,6 +179,109 @@ function MetricsSection() {
   );
 }
 
+/* ── Sessions block ───────────────────────────────────────────────────────── */
+function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-semibold text-foreground/50">Sessions</h3>
+
+      {/* Unified card container */}
+      <div className="bg-[#111111] border border-white/8 rounded-xl overflow-hidden">
+
+        {/* Next session row */}
+        <motion.button
+          onClick={() => goToSession(1)}
+          whileTap={{ scale: 0.99 }}
+          className="w-full text-left flex items-center gap-4 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
+        >
+          {/* Date badge */}
+          <div className="w-12 h-12 bg-primary/10 border border-primary/25 rounded-lg flex flex-col items-center justify-center shrink-0">
+            <span className="text-[8px] font-bold text-primary/50 uppercase leading-none tracking-wider">Jul</span>
+            <span className="text-xl font-black text-primary leading-none mt-0.5">24</span>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[9px] font-bold tracking-wider text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">
+                NEXT
+              </span>
+              <span className="text-[9px] font-bold tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                CONFIRMED
+              </span>
+            </div>
+            <p className="text-sm font-bold text-foreground">Strength & Conditioning</p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <span className="flex items-center gap-1 text-[10px] text-foreground/40 font-medium">
+                <Clock size={10} /> Thu 24 Jul · 07:00 · 60 min
+              </span>
+            </div>
+          </div>
+
+          <ChevronRight size={16} className="text-foreground/20 group-hover:text-primary transition-colors shrink-0" />
+        </motion.button>
+
+        {/* Divider */}
+        <div className="h-px bg-white/5 mx-4" />
+
+        {/* Last session row */}
+        <motion.button
+          onClick={() => goToSession(4)}
+          whileTap={{ scale: 0.99 }}
+          className="w-full text-left flex items-center gap-4 px-4 py-4 hover:bg-white/[0.03] transition-colors group"
+        >
+          {/* Done badge */}
+          <div className="w-12 h-12 bg-white/4 border border-white/10 rounded-lg flex items-center justify-center shrink-0">
+            <CheckCircle2 size={22} className="text-foreground/30" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[9px] font-bold tracking-wider text-foreground/40 bg-white/5 px-1.5 py-0.5 rounded">
+                LAST
+              </span>
+            </div>
+            <p className="text-sm font-bold text-foreground/70">Upper Body Power</p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <span className="flex items-center gap-1 text-[10px] text-foreground/35 font-medium">
+                <Dumbbell size={10} /> Tue 22 Jul · 7 exercises · 55 min
+              </span>
+            </div>
+          </div>
+
+          <ChevronRight size={16} className="text-foreground/20 group-hover:text-foreground/50 transition-colors shrink-0" />
+        </motion.button>
+      </div>
+    </section>
+  );
+}
+
+/* ── Quote of the day ─────────────────────────────────────────────────────── */
+function QuoteCard() {
+  const q = getDailyQuote();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4, duration: 0.5 }}
+      className="relative bg-[#111111] border border-white/6 rounded-xl px-5 py-5 overflow-hidden"
+    >
+      {/* Subtle purple wash */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+
+      <Quote size={20} className="text-primary/30 mb-3" />
+      <p className="text-sm font-medium text-foreground/80 leading-relaxed italic">
+        "{q.text}"
+      </p>
+      {q.author && (
+        <p className="text-[10px] font-bold text-primary/50 tracking-widest uppercase mt-3">
+          — {q.author}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────────────────── */
 interface HomeProps {
   setPage:     (page: Page) => void;
   goToSession: (id: number) => void;
@@ -232,141 +293,79 @@ function loadProfile() {
 
 export const Home = ({ setPage, goToSession }: HomeProps) => {
   const profile   = loadProfile();
-  const firstName = profile?.firstName ? profile.firstName.toUpperCase() : 'MARCUS';
+  const firstName = profile?.firstName
+    ? profile.firstName.charAt(0).toUpperCase() + profile.firstName.slice(1).toLowerCase()
+    : 'Marcus';
   const initials  = profile
     ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'MG'
     : 'MG';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-24 md:pb-0">
+    <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-28 md:pb-8">
 
-      {/* Mobile-only top bar */}
-      <header className="md:hidden px-5 py-4 flex justify-between items-center sticky top-0 z-30 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8">
-          <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#C0C0C0" />
-          <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#C0C0C0" />
-        </svg>
-        <div className="w-9 h-9 rounded-full bg-primary border border-white/10 flex items-center justify-center text-white font-bold tracking-wider text-sm">
+      {/* ── Hero header ───────────────────────────────────────────────────── */}
+      <div className="px-5 md:px-8 pt-10 pb-8 flex flex-col items-center text-center">
+        {/* Avatar */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="w-14 h-14 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center text-primary font-bold text-lg mb-4"
+          style={{ boxShadow: '0 0 28px rgba(139,69,217,0.25)' }}
+        >
           {initials}
-        </div>
-      </header>
+        </motion.div>
 
-      {/* Desktop top bar */}
-      <header className="hidden md:flex px-8 py-5 items-center justify-between border-b border-white/5 sticky top-0 z-30 bg-[#0A0A0A]/90 backdrop-blur-md">
-        <div>
-          <p className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">{getGreeting()}</p>
-          <h1 className="text-2xl font-bold tracking-[0.15em]">{firstName}</h1>
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-sm font-medium text-foreground/40 mb-1"
+        >
+          {getGreeting()}
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="text-5xl font-black text-white leading-none tracking-tight"
+        >
+          {firstName}
+        </motion.h1>
+
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="w-10 h-0.5 bg-primary mt-4 rounded-full"
+        />
+      </div>
+
+      {/* ── Page content ─────────────────────────────────────────────────── */}
+      <div className="px-5 md:px-8 flex flex-col gap-7 md:grid md:grid-cols-2 md:gap-8">
+
+        {/* Col 1 */}
+        <div className="flex flex-col gap-7">
+          <MetricsSection />
+          <QuoteCard />
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setPage('sessions')}
-            className="bg-primary hover:bg-primary/80 transition-colors px-5 py-2.5 text-xs font-bold tracking-[0.15em] uppercase text-white"
-          >
-            Book Session →
-          </button>
-          <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary font-bold text-sm">
-            {initials}
+
+        {/* Col 2 */}
+        <div className="flex flex-col gap-7">
+          <SessionsBlock goToSession={goToSession} />
+
+          {/* Desktop: Book session CTA */}
+          <div className="hidden md:block">
+            <button
+              onClick={() => setPage('sessions')}
+              className="w-full bg-primary hover:bg-primary/90 transition-colors py-3.5 rounded-xl text-sm font-bold tracking-wide text-white"
+            >
+              Book a Session →
+            </button>
           </div>
         </div>
-      </header>
 
-      <div className="px-5 md:px-8 pt-6 pb-8">
-
-        {/* Mobile greeting */}
-        <div className="md:hidden space-y-1 mb-8">
-          <h2 className="text-muted-foreground text-sm font-semibold tracking-[0.2em] uppercase">{getGreeting()}</h2>
-          <h1 className="text-4xl font-bold tracking-wider">{firstName}</h1>
-          <div className="w-12 h-1 bg-primary mt-3" />
-        </div>
-
-        {/* Two-column grid on desktop, single column on mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
-
-          {/* LEFT COLUMN */}
-          <div className="flex flex-col gap-6">
-
-            {/* Next Session — compact tap card */}
-            <section className="space-y-3">
-              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Next Session</h3>
-              <motion.button
-                onClick={() => goToSession(1)}
-                whileTap={{ scale: 0.98 }}
-                className="w-full text-left bg-[#111111] border-l-2 border-l-primary border-y border-r border-white/5 hover:border-primary/30 transition-colors group flex items-center gap-4 px-4 py-4"
-              >
-                {/* Date block */}
-                <div className="w-11 h-11 bg-primary/10 border border-primary/20 flex flex-col items-center justify-center shrink-0">
-                  <span className="text-[9px] font-bold tracking-widest text-primary/60 uppercase leading-none">Jul</span>
-                  <span className="text-lg font-black text-primary leading-none mt-0.5">24</span>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black tracking-[0.12em] text-foreground truncate">STRENGTH & CONDITIONING</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-foreground/45">
-                      <Clock size={10} /> 07:00 AM · 60 MIN
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5 text-[10px] font-semibold text-foreground/35">
-                    <MapPin size={10} /> Marcus Grima Studio
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <span className="text-[8px] font-bold tracking-widest text-primary bg-primary/10 px-1.5 py-0.5">CONFIRMED</span>
-                  <ChevronRight size={14} className="text-foreground/25 group-hover:text-primary transition-colors" />
-                </div>
-              </motion.button>
-            </section>
-
-            {/* Last Session — compact tap card */}
-            <section className="space-y-3">
-              <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Last Session</h3>
-              <motion.button
-                onClick={() => goToSession(4)}
-                whileTap={{ scale: 0.98 }}
-                className="w-full text-left bg-[#111111] border border-white/5 hover:border-white/15 transition-colors group flex items-center gap-4 px-4 py-4"
-              >
-                {/* Check icon block */}
-                <div className="w-11 h-11 bg-green-500/8 border border-green-500/20 flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={20} className="text-green-500/60" />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black tracking-[0.12em] text-foreground truncate">UPPER BODY POWER</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-foreground/45">
-                      <Clock size={10} /> TUE 22 JUL · 55 MIN
-                    </span>
-                  </div>
-                  {/* Exercise chips — top 3 */}
-                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                    {['Bench Press', 'OHP', '+5 more'].map(e => (
-                      <span key={e} className="text-[8px] font-bold tracking-wide text-foreground/35 bg-white/4 border border-white/8 px-1.5 py-0.5">
-                        {e}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-foreground/30">
-                    <Dumbbell size={10} /> 7
-                  </span>
-                  <ChevronRight size={14} className="text-foreground/25 group-hover:text-foreground/60 transition-colors" />
-                </div>
-              </motion.button>
-            </section>
-
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="flex flex-col gap-8">
-
-            {/* Metrics */}
-            <MetricsSection />
-
-          </div>
-        </div>
       </div>
     </div>
   );
