@@ -114,7 +114,9 @@ function PaywallSheet({
               <div className="flex items-start justify-between mb-5">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{program.emoji}</span>
+                    <span className="w-8 h-8 rounded-sm bg-white/5 border border-white/15 flex items-center justify-center">
+                      <Dumbbell size={15} className="text-white/70" />
+                    </span>
                     <span className="text-[10px] font-bold tracking-[0.25em] text-amber-400 uppercase bg-amber-500/10 border border-amber-500/30 px-2 py-0.5">
                       PREMIUM
                     </span>
@@ -327,7 +329,9 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                {program.emoji && <span className="text-base">{program.emoji}</span>}
+                <span className="w-6 h-6 rounded-sm bg-white/5 border border-white/15 flex items-center justify-center">
+                  <Dumbbell size={12} className="text-white/70" />
+                </span>
                 <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${DIFFICULTY_COLOUR[program.difficulty]}`}>
                   {program.difficulty}
                 </span>

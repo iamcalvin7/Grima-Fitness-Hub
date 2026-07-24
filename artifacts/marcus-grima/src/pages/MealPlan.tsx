@@ -189,15 +189,11 @@ function MealCard({
             ))}
           </div>
 
-          {/* Ingredient emojis */}
-          <div className="flex items-center gap-0.5">
-            {meal.ingredients.slice(0, 5).map(ing => (
-              <span key={ing.name} title={ing.name} className="text-lg leading-none">{ing.emoji}</span>
-            ))}
-            {meal.ingredients.length > 5 && (
-              <span className="text-[10px] font-bold text-foreground/40 ml-1">+{meal.ingredients.length - 5}</span>
-            )}
-          </div>
+          {/* Ingredient summary */}
+          <p className="text-[10px] font-medium text-foreground/40 truncate">
+            {meal.ingredients.slice(0, 4).map(ing => ing.name).join(' · ')}
+            {meal.ingredients.length > 4 && ` +${meal.ingredients.length - 4}`}
+          </p>
         </div>
       </div>
 
@@ -305,7 +301,7 @@ function MealDetail({
           <div className="grid grid-cols-1 gap-2">
             {meal.ingredients.map((ing, i) => (
               <div key={i} className="flex items-center gap-3 bg-[#111] border border-white/5 rounded-sm p-3">
-                <span className="text-2xl leading-none w-8 text-center">{ing.emoji}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/30 shrink-0 mx-2" />
                 <div>
                   <p className="text-sm font-semibold">{ing.name}</p>
                   <p className="text-[10px] text-foreground/45 font-medium">{ing.amount}</p>
