@@ -22,35 +22,26 @@ export const Layout = ({ activePage, setPage, children }: LayoutProps) => {
     <div className="min-h-screen relative">
 
       {/* ── Global background ─────────────────────────────────────────────
-          Revolut-inspired: deep purple-black base + radial glows + grain  */}
+          Black & metallic base + subtle silver glows + grain  */}
       <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden>
         {/* Base fill */}
-        <div className="absolute inset-0" style={{ background: '#07050e' }} />
+        <div className="absolute inset-0" style={{ background: '#080808' }} />
 
-        {/* Top-right purple bloom */}
+        {/* Top-right silver sheen */}
         <div className="absolute" style={{
           top: '-15%', right: '-10%',
           width: '65%', height: '65%',
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(120,50,210,0.22) 0%, rgba(90,30,170,0.08) 45%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(220,220,220,0.06) 0%, rgba(200,200,200,0.02) 45%, transparent 70%)',
           filter: 'blur(1px)',
         }} />
 
-        {/* Bottom-left indigo wash */}
+        {/* Bottom-left soft wash */}
         <div className="absolute" style={{
           bottom: '-10%', left: '-15%',
           width: '55%', height: '55%',
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(80,30,160,0.14) 0%, rgba(60,20,120,0.05) 50%, transparent 70%)',
-        }} />
-
-        {/* Centre deep glow — very subtle */}
-        <div className="absolute" style={{
-          top: '35%', left: '50%',
-          transform: 'translateX(-50%)',
-          width: '80%', height: '40%',
-          borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(100,40,190,0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(200,200,200,0.04) 0%, rgba(180,180,180,0.015) 50%, transparent 70%)',
         }} />
 
         {/* Grain texture overlay */}

@@ -560,13 +560,8 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
   return (
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
 
-      {/* ── Hero header ───────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #0e0e0e 0%, #1a1a1a 60%, #111111 100%)' }}>
-
-        {/* Chrome sheen top-right */}
-        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(220,220,220,0.07) 0%, transparent 60%)' }} />
+      {/* ── Hero header — transparent, sits on the page background ───────── */}
+      <div className="relative">
 
         {/* Content row */}
         <div className="relative px-5 md:px-8 pt-12 pb-8 flex items-center justify-between gap-4">
@@ -602,9 +597,6 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           </motion.div>
         </div>
 
-        {/* Soft fade into page — no hard edge */}
-        <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, rgba(8,8,8,0) 0%, hsl(0 0% 3%) 100%)' }} />
       </div>
 
       {/* ── Daily challenge — full width banner ──────────────────────────── */}

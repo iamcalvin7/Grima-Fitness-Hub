@@ -88,19 +88,19 @@
   --sidebar: 0 0% 3%;
   --sidebar-foreground: 0 0% 94%;
   --sidebar-border: 0 0% 15%;
-  --sidebar-primary: 270 60% 55%;
+  --sidebar-primary: 0 0% 90%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 10%;
   --sidebar-accent-foreground: 0 0% 94%;
-  --sidebar-ring: 270 60% 55%;
+  --sidebar-ring: 0 0% 60%;
 
   --popover: 0 0% 7%;
   --popover-foreground: 0 0% 94%;
   --popover-border: 0 0% 15%;
 
-  /* Lighter Purple — visible on black */
-  --primary: 270 60% 55%;
-  --primary-foreground: 0 0% 100%;
+  /* Metallic white — primary on black */
+  --primary: 0 0% 92%;
+  --primary-foreground: 0 0% 8%;
 
   --secondary: 0 0% 15%;
   --secondary-foreground: 0 0% 94%;
@@ -115,11 +115,11 @@
   --destructive-foreground: 0 0% 100%;
 
   --input: 0 0% 15%;
-  --ring: 270 60% 55%;
-  --chart-1: 270 60% 55%;
+  --ring: 0 0% 60%;
+  --chart-1: 0 0% 90%;
   --chart-2: 0 0% 75%;
   --chart-3: 0 0% 50%;
-  --chart-4: 270 60% 70%;
+  --chart-4: 0 0% 35%;
   --chart-5: 0 0% 30%;
 
   --app-font-sans: 'DM Sans', sans-serif;
