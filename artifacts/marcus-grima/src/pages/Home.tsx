@@ -149,7 +149,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
       >
         {/* Full-bleed photo */}
         <img src={`${import.meta.env.BASE_URL}challenge.png`} alt="" className="absolute inset-0 w-full h-full object-cover"
-          style={done ? { filter: 'grayscale(0.7) brightness(0.55)' } : undefined} />
+        />
 
         {/* Challenge pill + about CTA */}
         <div className="absolute top-3 inset-x-3 flex items-center justify-between">
