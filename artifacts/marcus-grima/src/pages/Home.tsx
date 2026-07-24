@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Flame, Heart, Activity } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
+import { BodyMap } from '@/components/BodyMap';
 import type { Page } from '@/App';
 
 const stepData = [
@@ -35,7 +35,7 @@ export const Home = ({ setPage }: HomeProps) => {
           <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#C0C0C0" />
           <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#C0C0C0" />
         </svg>
-        <div className="w-9 h-9 rounded-full bg-primary border border-white/10 flex items-center justify-center text-foreground font-bold tracking-wider text-sm">
+        <div className="w-9 h-9 rounded-full bg-primary border border-white/10 flex items-center justify-center text-white font-bold tracking-wider text-sm">
           MG
         </div>
       </header>
@@ -49,7 +49,7 @@ export const Home = ({ setPage }: HomeProps) => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setPage('sessions')}
-            className="bg-primary hover:bg-primary/80 transition-colors px-5 py-2.5 text-xs font-bold tracking-[0.15em] uppercase text-foreground"
+            className="bg-primary hover:bg-primary/80 transition-colors px-5 py-2.5 text-xs font-bold tracking-[0.15em] uppercase text-white"
           >
             Book Session →
           </button>
@@ -75,7 +75,7 @@ export const Home = ({ setPage }: HomeProps) => {
           <div className="flex flex-col gap-8">
 
             {/* Next Session */}
-            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
+            <section className="space-y-4">
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your Next Session</h3>
               <div className="bg-[#111111] border-l-2 border-l-primary p-5 rounded-r-sm shadow-lg">
                 <div className="flex justify-between items-start mb-4">
@@ -85,7 +85,7 @@ export const Home = ({ setPage }: HomeProps) => {
                   </div>
                   <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 font-bold tracking-wider shrink-0 ml-3">CONFIRMED</span>
                 </div>
-                <div className="flex flex-col gap-2 text-sm text-foreground/80 font-semibold mb-5">
+                <div className="flex flex-col gap-2 text-sm text-foreground/70 font-semibold mb-5">
                   <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-foreground/30 rounded-full" /> 60 MIN</p>
                   <p className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-foreground/30 rounded-full" /> MARCUS GRIMA STUDIO, LONDON</p>
                 </div>
@@ -96,10 +96,10 @@ export const Home = ({ setPage }: HomeProps) => {
                   View Details <span>→</span>
                 </button>
               </div>
-            </motion.section>
+            </section>
 
             {/* Messages */}
-            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} className="space-y-4">
+            <section className="space-y-4">
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Messages</h3>
               <button
                 onClick={() => setPage('messages')}
@@ -113,55 +113,51 @@ export const Home = ({ setPage }: HomeProps) => {
                     <h4 className="font-bold text-sm">Marcus Grima</h4>
                     <span className="text-[10px] text-foreground/40 font-semibold tracking-wider">2h ago</span>
                   </div>
-                  <p className="text-xs text-foreground/70 font-medium leading-relaxed">
+                  <p className="text-xs text-foreground/60 font-medium leading-relaxed">
                     Great work on yesterday's session. Make sure you're getting enough protein today — aim for at least 180g. See you Thursday 💪
                   </p>
                 </div>
                 <div className="w-2 h-2 bg-primary rounded-full mt-2 shrink-0" />
               </button>
-            </motion.section>
+            </section>
 
             {/* Book A Session */}
-            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="relative overflow-hidden rounded-sm group">
+            <section className="relative overflow-hidden rounded-sm group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-[#0A0A0A] z-0" />
               <div className="relative z-10 p-6 flex flex-col items-center text-center border border-primary/20">
                 <h3 className="text-xl font-bold tracking-widest mb-1">BOOK YOUR NEXT SESSION</h3>
-                <p className="text-xs font-semibold text-foreground/60 tracking-wider uppercase mb-6">Schedule time with Marcus</p>
+                <p className="text-xs font-semibold text-foreground/50 tracking-wider uppercase mb-6">Schedule time with Marcus</p>
                 <button
                   onClick={() => setPage('sessions')}
-                  className="w-full bg-primary hover:bg-primary/90 text-foreground py-4 font-bold tracking-[0.2em] uppercase transition-all group-hover:shadow-[0_0_20px_rgba(40,24,77,0.5)]"
+                  className="w-full bg-primary hover:bg-primary/90 text-white py-4 font-bold tracking-[0.2em] uppercase transition-all group-hover:shadow-[0_0_20px_rgba(100,60,160,0.4)]"
                 >
                   Book Now →
                 </button>
               </div>
-            </motion.section>
+            </section>
           </div>
 
           {/* RIGHT COLUMN */}
           <div className="flex flex-col gap-8">
 
             {/* Metrics */}
-            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="space-y-4">
+            <section className="space-y-4">
               <div>
                 <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your Metrics</h3>
-                <p className="text-[10px] text-foreground/40 font-semibold tracking-wide uppercase mt-1">Connected via Apple Health</p>
+                <p className="text-[10px] text-foreground/30 font-semibold tracking-wide uppercase mt-1">Connected via Apple Health</p>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-[#111111] border border-white/5 p-4 rounded-sm flex flex-col items-center justify-center text-center">
-                  <Activity className="text-foreground/50 w-5 h-5 mb-2" />
-                  <p className="text-lg font-bold">8,432</p>
-                  <p className="text-[9px] font-bold tracking-widest text-primary uppercase mt-1">+12% vs yesterday</p>
-                </div>
-                <div className="bg-[#111111] border border-white/5 p-4 rounded-sm flex flex-col items-center justify-center text-center">
-                  <Flame className="text-foreground/50 w-5 h-5 mb-2" />
-                  <p className="text-lg font-bold">647 <span className="text-xs">kcal</span></p>
-                  <p className="text-[9px] font-bold tracking-widest text-foreground/40 uppercase mt-1">Active</p>
-                </div>
-                <div className="bg-[#111111] border border-white/5 p-4 rounded-sm flex flex-col items-center justify-center text-center">
-                  <Heart className="text-foreground/50 w-5 h-5 mb-2" />
-                  <p className="text-lg font-bold">72 <span className="text-xs">bpm</span></p>
-                  <p className="text-[9px] font-bold tracking-widest text-foreground/40 uppercase mt-1">Resting</p>
-                </div>
+                {[
+                  { icon: <Activity className="text-foreground/40 w-5 h-5 mb-2" />, value: '8,432',    sub: '+12% vs yesterday', subClass: 'text-primary' },
+                  { icon: <Flame    className="text-foreground/40 w-5 h-5 mb-2" />, value: '647 kcal', sub: 'Active',             subClass: 'text-foreground/40' },
+                  { icon: <Heart    className="text-foreground/40 w-5 h-5 mb-2" />, value: '72 bpm',   sub: 'Resting',            subClass: 'text-foreground/40' },
+                ].map((m, i) => (
+                  <div key={i} className="bg-[#111111] border border-white/5 p-4 rounded-sm flex flex-col items-center justify-center text-center">
+                    {m.icon}
+                    <p className="text-lg font-bold leading-tight">{m.value}</p>
+                    <p className={`text-[9px] font-bold tracking-widest uppercase mt-1 ${m.subClass}`}>{m.sub}</p>
+                  </div>
+                ))}
               </div>
               <div className="bg-[#111111] border border-white/5 p-4 rounded-sm h-36">
                 <ResponsiveContainer width="100%" height="100%">
@@ -170,62 +166,64 @@ export const Home = ({ setPage }: HomeProps) => {
                       {stepData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={entry.day === 'T' && entry.steps === 8432 ? 'hsl(var(--primary))' : '#C0C0C0'}
+                          fill={entry.day === 'T' && entry.steps === 8432 ? 'hsl(270 60% 55%)' : '#C0C0C0'}
                           opacity={entry.day === 'T' && entry.steps === 8432 ? 1 : 0.2}
                         />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="flex justify-between text-[10px] font-bold text-foreground/40 px-1">
+                <div className="flex justify-between text-[10px] font-bold text-foreground/30 px-1">
                   <span>M</span><span>T</span><span>W</span><span className="text-primary">T</span><span>F</span><span>S</span><span>S</span>
                 </div>
               </div>
-            </motion.section>
+            </section>
 
             {/* Last Session Recap */}
-            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }} className="space-y-4">
+            <section className="space-y-4">
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Last Session Recap</h3>
               <div className="bg-[#111111] border border-white/5 rounded-sm overflow-hidden">
+                {/* Header */}
                 <div className="p-5 border-b border-white/5">
-                  <p className="text-[10px] font-bold tracking-widest text-foreground/40 mb-1">TUESDAY, 22 JULY</p>
-                  <h4 className="text-lg font-bold tracking-wider mb-3">UPPER BODY POWER</h4>
-                  <div className="flex gap-4 text-xs font-semibold text-foreground/60 tracking-wider mb-4">
-                    <span>55 MIN</span><span>•</span><span>EXERCISES: 7</span>
+                  <p className="text-[10px] font-bold tracking-widest text-foreground/30 mb-1">TUESDAY, 22 JULY</p>
+                  <h4 className="text-lg font-bold tracking-wider mb-1">UPPER BODY POWER</h4>
+                  <div className="flex gap-4 text-xs font-semibold text-foreground/50 tracking-wider">
+                    <span>55 MIN</span><span>•</span><span>7 EXERCISES</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {['CHEST', 'SHOULDERS', 'TRICEPS'].map((part) => (
-                      <span key={part} className="px-2 py-1 border border-foreground/20 text-[10px] font-bold tracking-widest uppercase">
-                        {part}
-                      </span>
+                </div>
+
+                {/* Body Map + Exercise List */}
+                <div className="flex flex-col sm:flex-row">
+                  {/* Body Map */}
+                  <div className="sm:w-52 p-4 border-b sm:border-b-0 sm:border-r border-white/5 flex items-start justify-center pt-5">
+                    <BodyMap musclesWorked={['CHEST', 'SHOULDERS', 'TRICEPS']} compact />
+                  </div>
+
+                  {/* Exercise list */}
+                  <div className="flex-1 divide-y divide-white/5">
+                    {[
+                      { name: 'Bench Press',           sets: '4 × 8 @ 80kg',  muscle: 'CHEST' },
+                      { name: 'Overhead Press',         sets: '3 × 10 @ 50kg', muscle: 'SHOULDERS' },
+                      { name: 'Incline Dumbbell Press', sets: '3 × 12 @ 28kg', muscle: 'CHEST' },
+                      { name: 'Lateral Raises',         sets: '4 × 15 @ 10kg', muscle: 'SHOULDERS' },
+                      { name: 'Skull Crushers',         sets: '3 × 12 @ 30kg', muscle: 'TRICEPS' },
+                      { name: 'Cable Flyes',            sets: '3 × 15 @ 15kg', muscle: 'CHEST' },
+                      { name: 'Tricep Dips',            sets: '3 × failure',   muscle: 'TRICEPS' },
+                    ].map((exercise, i) => (
+                      <div key={i} className="flex justify-between items-center px-4 py-3 hover:bg-white/[0.03] transition-colors">
+                        <div>
+                          <p className="text-sm font-bold">{exercise.name}</p>
+                          <p className="text-[10px] font-bold tracking-widest text-foreground/40 mt-0.5">{exercise.sets}</p>
+                        </div>
+                        <span className="text-[9px] font-bold tracking-widest text-primary/80 uppercase ml-3 shrink-0">
+                          {exercise.muscle}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 </div>
-                <div className="p-2">
-                  {[
-                    { name: 'Bench Press', sets: '4 × 8 @ 80kg' },
-                    { name: 'Overhead Press', sets: '3 × 10 @ 50kg' },
-                    { name: 'Incline Dumbbell Press', sets: '3 × 12 @ 28kg' },
-                    { name: 'Lateral Raises', sets: '4 × 15 @ 10kg' },
-                    { name: 'Skull Crushers', sets: '3 × 12 @ 30kg' },
-                    { name: 'Cable Flyes', sets: '3 × 15 @ 15kg' },
-                    { name: 'Tricep Dips', sets: '3 × failure' },
-                  ].map((exercise, i) => (
-                    <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                      <div>
-                        <p className="text-sm font-bold">{exercise.name}</p>
-                        <p className="text-xs font-semibold text-foreground/40 tracking-wider">{exercise.sets}</p>
-                      </div>
-                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                          <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            </motion.section>
+            </section>
 
           </div>
         </div>
