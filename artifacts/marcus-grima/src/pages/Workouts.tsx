@@ -378,18 +378,6 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             )}
           </div>
 
-          {/* Day chips */}
-          <div className="flex gap-1.5 flex-wrap">
-            {program.workouts.map(w => (
-              <span key={w.id} className={`text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border
-                ${locked
-                  ? 'bg-amber-500/8 text-amber-400/60 border-amber-500/20'
-                  : 'bg-primary/10 text-primary/80 border-primary/20'}`}>
-                {w.day}
-              </span>
-            ))}
-          </div>
-
           {/* Lock CTA overlay strip */}
           {locked && (
             <div className="mt-4 flex items-center justify-center gap-2 py-3 rounded-full border border-amber-500/30 bg-amber-500/5">
