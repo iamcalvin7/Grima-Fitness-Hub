@@ -334,10 +334,14 @@ function MetricsSection() {
             <Activity size={14} className="text-white/40" />
             <span className="text-xs font-bold text-white/50">Weekly Activity</span>
           </div>
-          <div className="flex items-center gap-3 text-[9px] font-bold text-white/30 uppercase tracking-wider">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"/>Goal</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block"/>Close</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"/>Low</span>
+          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider">
+            {([['#4ade80','Goal'],['#fb923c','Close'],['#f87171','Low']] as const).map(([col, label]) => (
+              <span key={label} className="flex items-center gap-1.5" style={{ color: col }}>
+                <span className="w-2 h-2 rounded-full inline-block"
+                  style={{ background: col, boxShadow: `0 0 6px ${col}` }} />
+                {label}
+              </span>
+            ))}
           </div>
         </div>
 
