@@ -291,10 +291,6 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
 
       {/* Bottom content */}
       <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-12">
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-          className="text-[10px] font-bold tracking-[0.3em] text-white/60 uppercase mb-4">
-          Marcus Grima PT
-        </motion.p>
         <h1 className="text-[56px] font-black leading-[0.88] tracking-[-0.02em] text-white mb-5">
           {['TRAIN', 'HARDER.'].map((line, i) => (
             <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
@@ -303,23 +299,23 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
           ))}
         </h1>
         <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="text-sm text-white/60 leading-relaxed font-medium mb-9 max-w-xs">
+          className="text-base text-white/90 leading-relaxed font-medium mb-8 max-w-xs">
           Elite personal training designed around your goals, your schedule, and your potential.
         </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
           className="flex flex-col gap-3">
           <button onClick={onNew}
-            className="w-full py-4 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm
-                       flex items-center justify-between px-6">
+            className="w-full py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
+                       flex items-center justify-between px-5">
             <span>SIGN UP</span>
-            <ChevronRight size={18} />
+            <ChevronRight size={15} />
           </button>
           <button onClick={onReturning}
-            className="w-full py-4 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-sm
-                       flex items-center justify-between px-6 hover:border-white/50 transition-colors">
+            className="w-full py-3 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-xs
+                       flex items-center justify-between px-5 hover:border-white/50 transition-colors">
             <span>SIGN IN</span>
-            <ChevronRight size={18} />
+            <ChevronRight size={15} />
           </button>
         </motion.div>
         <p className="text-center text-[10px] text-white/25 font-semibold tracking-wide mt-6">
