@@ -12,7 +12,12 @@ import { Layout }       from '@/components/Layout';
 
 export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile' | 'leaderboard';
 
+function forceOnboarding() {
+  return new URLSearchParams(window.location.search).has('onboarding');
+}
+
 function isAuthed() {
+  if (forceOnboarding()) return false;
   try {
     const raw = localStorage.getItem('mg_auth');
     if (!raw) return false;
