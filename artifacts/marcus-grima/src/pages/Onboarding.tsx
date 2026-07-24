@@ -304,16 +304,16 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
         </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-          className="flex flex-col gap-3">
+          className="flex gap-3">
           <button onClick={onNew}
-            className="w-full py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
-                       flex items-center justify-between px-5">
+            className="flex-1 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
+                       flex items-center justify-center gap-1.5">
             <span>SIGN UP</span>
             <ChevronRight size={15} />
           </button>
           <button onClick={onReturning}
-            className="w-full py-3 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-xs
-                       flex items-center justify-between px-5 hover:border-white/50 transition-colors">
+            className="flex-1 py-3 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-xs
+                       flex items-center justify-center gap-1.5 hover:border-white/50 transition-colors">
             <span>SIGN IN</span>
             <ChevronRight size={15} />
           </button>
