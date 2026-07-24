@@ -34,7 +34,7 @@ interface PastSession {
 const upcoming: UpcomingSession[] = [
   {
     id: 1, date: 'THURSDAY, 24 JULY', time: '07:00 AM', duration: '60 MIN',
-    location: 'Marcus Grima Studio, London', status: 'CONFIRMED',
+    location: 'Fort Fitness Mriehel', status: 'CONFIRMED',
     focus: 'STRENGTH & CONDITIONING',
     plannedExercises: [
       { name: 'Deadlifts',             sets: '4 × 5 @ 120kg',  muscle: 'BACK'      },
@@ -48,7 +48,7 @@ const upcoming: UpcomingSession[] = [
   },
   {
     id: 2, date: 'SATURDAY, 26 JULY', time: '08:30 AM', duration: '60 MIN',
-    location: 'Marcus Grima Studio, London', status: 'CONFIRMED',
+    location: 'Fort Fitness Sliema', status: 'CONFIRMED',
     focus: 'LOWER BODY POWER',
     plannedExercises: [
       { name: 'Back Squat',            sets: '5 × 5 @ 100kg',  muscle: 'QUADS'     },
@@ -61,7 +61,7 @@ const upcoming: UpcomingSession[] = [
   },
   {
     id: 3, date: 'TUESDAY, 29 JULY', time: '07:00 AM', duration: '60 MIN',
-    location: 'Marcus Grima Studio, London', status: 'PENDING',
+    location: 'Fort Fitness Mriehel', status: 'PENDING',
     focus: 'UPPER BODY HYPERTROPHY',
     plannedExercises: [
       { name: 'Incline Bench Press',   sets: '4 × 8 @ 70kg',   muscle: 'CHEST'     },
@@ -77,7 +77,7 @@ const upcoming: UpcomingSession[] = [
 const past: PastSession[] = [
   {
     id: 4, date: 'TUESDAY, 22 JULY', time: '07:00 AM', duration: '55 MIN',
-    location: 'Marcus Grima Studio, London', status: 'COMPLETED', exercises: 7,
+    location: 'Fort Fitness Mriehel', status: 'COMPLETED', exercises: 7,
     name: 'UPPER BODY POWER',
     musclesWorked: ['CHEST', 'SHOULDERS', 'TRICEPS'],
     exerciseList: [
@@ -92,7 +92,7 @@ const past: PastSession[] = [
   },
   {
     id: 5, date: 'SATURDAY, 19 JULY', time: '09:00 AM', duration: '60 MIN',
-    location: 'Marcus Grima Studio, London', status: 'COMPLETED', exercises: 9,
+    location: 'Fort Fitness Sliema', status: 'COMPLETED', exercises: 9,
     name: 'BACK & BICEPS',
     musclesWorked: ['BACK', 'BICEPS', 'LATS'],
     exerciseList: [
@@ -109,7 +109,7 @@ const past: PastSession[] = [
   },
   {
     id: 6, date: 'THURSDAY, 17 JULY', time: '07:00 AM', duration: '60 MIN',
-    location: 'Marcus Grima Studio, London', status: 'COMPLETED', exercises: 8,
+    location: 'Fort Fitness Mriehel', status: 'COMPLETED', exercises: 8,
     name: 'LEGS & GLUTES',
     musclesWorked: ['QUADS', 'HAMSTRINGS', 'GLUTES'],
     exerciseList: [
@@ -125,12 +125,12 @@ const past: PastSession[] = [
   },
   {
     id: 7, date: 'TUESDAY, 15 JULY', time: '07:00 AM', duration: '45 MIN',
-    location: 'Marcus Grima Studio, London', status: 'CANCELLED', exercises: 0,
+    location: 'Fort Fitness Mriehel', status: 'CANCELLED', exercises: 0,
     name: 'CANCELLED', musclesWorked: [], exerciseList: [],
   },
   {
     id: 8, date: 'SATURDAY, 12 JULY', time: '09:00 AM', duration: '60 MIN',
-    location: 'Marcus Grima Studio, London', status: 'COMPLETED', exercises: 6,
+    location: 'Fort Fitness Sliema', status: 'COMPLETED', exercises: 6,
     name: 'FULL BODY STRENGTH',
     musclesWorked: ['CHEST', 'BACK', 'LEGS'],
     exerciseList: [
@@ -144,7 +144,7 @@ const past: PastSession[] = [
   },
   {
     id: 9, date: 'THURSDAY, 10 JULY', time: '07:00 AM', duration: '55 MIN',
-    location: 'Marcus Grima Studio, London', status: 'COMPLETED', exercises: 7,
+    location: 'Fort Fitness Mriehel', status: 'COMPLETED', exercises: 7,
     name: 'PUSH DAY',
     musclesWorked: ['CHEST', 'SHOULDERS', 'TRICEPS'],
     exerciseList: [
@@ -162,7 +162,12 @@ const past: PastSession[] = [
 /* ── Availability data ─────────────────────────────────────────────────────── */
 const TODAY = new Date(2026, 6, 24);
 type SlotStatus = 'available' | 'booked' | 'off';
-interface DaySlots { slots: { time: string; status: SlotStatus }[]; }
+interface DaySlots { slots: { time: string; status: SlotStatus }[]; location: string; }
+
+// Mon(1) Wed(3) Fri(5) Sat(6) → Sliema · Tue(2) Thu(4) → Mriehel
+function locationForDow(dow: number) {
+  return [1, 3, 5, 6].includes(dow) ? 'Fort Fitness Sliema' : 'Fort Fitness Mriehel';
+}
 
 function buildAvailability(): Map<string, DaySlots> {
   const map = new Map<string, DaySlots>();
@@ -179,10 +184,13 @@ function buildAvailability(): Map<string, DaySlots> {
   for (let i = 0; i < 28; i++) {
     const d = new Date(TODAY); d.setDate(TODAY.getDate() + i);
     const dow = d.getDay(); const key = d.toISOString().slice(0, 10);
-    if (dow === 0) { map.set(key, { slots: [] }); continue; }
+    if (dow === 0) { map.set(key, { slots: [], location: '' }); continue; }
     const rawSlots = dow === 6 ? satSlots : weekdaySlots;
-    const booked = bookedMap[key] ?? [];
-    map.set(key, { slots: rawSlots.map(t => ({ time: t, status: booked.includes(t) ? 'booked' : 'available' })) });
+    const booked   = bookedMap[key] ?? [];
+    map.set(key, {
+      slots:    rawSlots.map(t => ({ time: t, status: booked.includes(t) ? 'booked' : 'available' })),
+      location: locationForDow(dow),
+    });
   }
   return map;
 }
@@ -363,8 +371,10 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
     return { hasSlots: availableCount > 0, isPast, isOff: !info || info.slots.length === 0 };
   };
 
-  const selectedSlots  = selectedDate ? availability.get(dateKey(selectedDate))?.slots ?? [] : [];
-  const availableSlots = selectedSlots.filter(s => s.status === 'available');
+  const selectedDayInfo = selectedDate ? availability.get(dateKey(selectedDate)) : null;
+  const selectedSlots   = selectedDayInfo?.slots ?? [];
+  const selectedLocation = selectedDayInfo?.location ?? '';
+  const availableSlots  = selectedSlots.filter(s => s.status === 'available');
   const selectedDateStr = selectedDate
     ? selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : '';
@@ -443,7 +453,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
               </div>
               {selectedDate && (
                 <motion.button initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} onClick={() => setStep('time')}
-                  className="w-full mt-6 bg-primary hover:bg-primary/90 py-4 text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">
+                  className="w-full mt-6 bg-primary hover:bg-primary/90 py-4 rounded-full text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">
                   See Available Times
                 </motion.button>
               )}
@@ -461,16 +471,34 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                   const isAvail = status === 'available'; const isSel = selectedTime === time;
                   return (
                     <button key={time} disabled={!isAvail} onClick={() => setSelectedTime(time)}
-                      className={`py-3 rounded-sm border text-xs font-bold tracking-wider transition-all ${isSel ? 'bg-primary border-primary text-white' : isAvail ? 'border-white/12 text-foreground hover:border-primary/50 hover:bg-primary/8' : 'border-white/4 text-foreground/15 cursor-default line-through'}`}>
+                      className={`py-3 rounded-xl border text-xs font-bold tracking-wider transition-all ${isSel ? 'bg-primary border-primary text-white' : isAvail ? 'border-white/12 text-foreground hover:border-primary/50 hover:bg-primary/8' : 'border-white/4 text-foreground/15 cursor-default line-through'}`}>
                       {fmt12(time)}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[9px] text-foreground/30 mt-4 font-medium">All sessions are 60 minutes · Marcus Grima Studio, London</p>
+              <p className="text-[9px] text-foreground/30 mt-4 font-medium">All sessions are 60 minutes</p>
+
+              {/* Location reveal */}
+              <AnimatePresence>
+                {selectedTime && (
+                  <motion.div
+                    key="location"
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                    className="mt-4 flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-3"
+                  >
+                    <MapPin size={16} className="text-primary shrink-0" />
+                    <div>
+                      <p className="text-[9px] font-black tracking-[0.2em] text-primary/60 uppercase mb-0.5">Location</p>
+                      <p className="text-sm font-bold text-white">{selectedLocation}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {selectedTime && (
                 <motion.button initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} onClick={() => setStep('confirm')}
-                  className="w-full mt-6 bg-primary hover:bg-primary/90 py-4 text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">
+                  className="w-full mt-5 bg-primary hover:bg-primary/90 py-4 rounded-full text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">
                   Continue
                 </motion.button>
               )}
@@ -485,14 +513,14 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                   {[
                     { icon: <Calendar size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Date', value: selectedDateStr },
                     { icon: <Timer    size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Time', value: `${fmt12(selectedTime)} · 60 min` },
-                    { icon: <MapPin   size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Location', value: 'Marcus Grima Studio, London' },
+                    { icon: <MapPin   size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Location', value: selectedLocation },
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3">{icon}<div><p className="text-[9px] font-bold tracking-widest text-foreground/35 uppercase">{label}</p><p className="text-sm font-bold mt-0.5">{value}</p></div></div>
                   ))}
                 </div>
               </div>
               <p className="text-xs text-foreground/40 leading-relaxed mb-6">Marcus will receive your request and confirm shortly. You'll be notified once confirmed.</p>
-              <button onClick={() => setStep('done')} className="w-full bg-primary hover:bg-primary/90 py-4 text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">Confirm Booking</button>
+              <button onClick={() => setStep('done')} className="w-full bg-primary hover:bg-primary/90 py-4 rounded-full text-white font-bold tracking-[0.15em] uppercase text-sm transition-colors">Confirm Booking</button>
             </motion.div>
           )}
 
@@ -505,7 +533,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
               <p className="text-sm text-foreground/50 leading-relaxed mb-1">{selectedDateStr}</p>
               <p className="text-sm font-bold text-primary mb-6">{fmt12(selectedTime)}</p>
               <p className="text-xs text-foreground/35 leading-relaxed max-w-[260px]">Marcus will confirm your session within a few hours. You'll get a notification once it's locked in.</p>
-              <button onClick={onClose} className="mt-10 w-full border border-white/12 hover:border-white/25 py-4 text-sm font-bold tracking-[0.15em] uppercase text-foreground/60 hover:text-foreground transition-colors">Done</button>
+              <button onClick={onClose} className="mt-10 w-full border border-white/12 hover:border-white/25 py-4 rounded-full text-sm font-bold tracking-[0.15em] uppercase text-foreground/60 hover:text-foreground transition-colors">Done</button>
             </motion.div>
           )}
         </AnimatePresence>

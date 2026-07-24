@@ -136,7 +136,7 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
             <motion.section variants={itemVariants}>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-3 py-4 border border-white/10 text-sm font-bold tracking-[0.15em] uppercase text-foreground/50 hover:text-red-400 hover:border-red-500/20 transition-colors"
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-full border border-white/10 text-sm font-bold tracking-[0.15em] uppercase text-foreground/50 hover:text-red-400 hover:border-red-500/20 transition-colors"
               >
                 <LogOut size={16} />
                 Log Out

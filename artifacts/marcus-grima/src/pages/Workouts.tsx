@@ -159,7 +159,7 @@ function PaywallSheet({
                     onClick={() => handlePay(m.id)}
                     disabled={!!paying}
                     style={{ background: m.bg, color: m.textColour }}
-                    className="w-full py-3.5 rounded-sm flex items-center justify-center gap-3 font-bold text-sm tracking-wider disabled:opacity-50 transition-opacity"
+                    className="w-full py-3.5 rounded-full flex items-center justify-center gap-3 font-bold text-sm tracking-wider disabled:opacity-50 transition-opacity"
                   >
                     {paying === m.id ? (
                       <motion.div
@@ -576,7 +576,7 @@ function WorkoutOverview({
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onStart}
-          className="w-full bg-primary hover:bg-primary/90 transition-colors py-4 flex items-center justify-center gap-3 text-white font-bold tracking-[0.15em] uppercase text-sm"
+          className="w-full bg-primary hover:bg-primary/90 transition-colors py-4 rounded-full flex items-center justify-center gap-3 text-white font-bold tracking-[0.15em] uppercase text-sm"
         >
           <Play size={16} fill="white" />
           Start Workout
@@ -848,7 +848,7 @@ function ActiveWorkout({
             if (exerciseIdx < total - 1) onNavigate(exerciseIdx + 1);
             else onClose();
           }}
-          className={`w-full py-4 font-bold tracking-[0.15em] uppercase text-sm flex items-center justify-center gap-2 transition-colors ${
+          className={`w-full py-4 rounded-full font-bold tracking-[0.15em] uppercase text-sm flex items-center justify-center gap-2 transition-colors ${
             allDone
               ? 'bg-primary text-white hover:bg-primary/90'
               : 'bg-[#111] border border-white/8 text-foreground/50 hover:text-foreground hover:border-white/20'
