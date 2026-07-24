@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Crown, Zap, Footprints, Flame, Star } from 'lucide-react';
-import { buildLeaderboard, getTodayPoints, isChallengeComplete } from '@/data/challenges';
+import { buildLeaderboard, getTodayPoints, countChallengesDone } from '@/data/challenges';
 
 function loadProfile() {
   try { return JSON.parse(localStorage.getItem('mg_profile') || 'null'); } catch { return null; }
@@ -20,7 +20,7 @@ export function Leaderboard() {
     ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'ME'
     : 'ME';
 
-  const [done]       = useState(isChallengeComplete);
+  const [done]       = useState(countChallengesDone);
   const todayPts     = getTodayPoints(done);
   const board        = buildLeaderboard(done, initials, firstName);
   const myRank       = board.findIndex(e => e.role === 'you') + 1;

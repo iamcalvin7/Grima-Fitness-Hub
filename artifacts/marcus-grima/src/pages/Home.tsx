@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
   Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap,
@@ -9,7 +9,7 @@ import {
   AreaChart, Area, YAxis, ReferenceLine, XAxis,
 } from 'recharts';
 import {
-  getTodayChallenge, isChallengeComplete, completeChallenge,
+  getTodayChallenges, isChallengeDone, completeChallengeByName,
 } from '@/data/challenges';
 import type { Page } from '@/App';
 
@@ -108,95 +108,99 @@ function useCountdown() {
   return time;
 }
 
-/* ── Daily challenge banner ───────────────────────────────────────────────── */
+/* ── Daily challenges — 3 photo cards ─────────────────────────────────────── */
 function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
-  const [done, setDone]   = useState(isChallengeComplete);
-  const challenge          = getTodayChallenge();
-  const countdown          = useCountdown();
-  const [flash, setFlash] = useState(false);
+  const challenges = getTodayChallenges();
+  const countdown  = useCountdown();
+  const today      = new Date().toDateString();
+  const readDone   = () =>
+    Object.fromEntries(challenges.map(c => [c.name, isChallengeDone(c.name)]));
+  const [state, setState] = useState(() => ({ day: today, doneMap: readDone() }));
 
-  const handleComplete = () => {
-    completeChallenge();
-    setFlash(true);
-    setTimeout(() => { setDone(true); onComplete?.(); }, 600);
+  // Re-sync from localStorage when the day rolls over (countdown re-renders every second)
+  if (state.day !== today) setState({ day: today, doneMap: readDone() });
+  const doneMap = state.doneMap;
+
+  const allDone = challenges.every(c => doneMap[c.name]);
+
+  const handleComplete = (name: string) => {
+    completeChallengeByName(name);
+    setState(s => ({ ...s, doneMap: { ...s.doneMap, [name]: true } }));
+    onComplete?.();
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45 }}
-      className="relative overflow-hidden rounded-2xl"
-      style={done ? {
-        background: '#111111',
-        border: '1px solid rgba(200,200,200,0.08)',
-      } : {
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
-        border: '1px solid rgba(249,115,22,0.35)',
-        boxShadow: '0 4px 24px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.05)',
-      }}
-    >
-      {/* Orange accent line at top */}
-      {!done && (
-        <div className="absolute inset-x-0 top-0 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.8), transparent)' }} />
-      )}
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-white/70">Daily Challenges</h3>
+        <span className="text-[10px] font-bold text-white/30 tabular-nums">
+          {allDone
+            ? <>Next in <span className="text-white/50">{countdown}</span></>
+            : `${challenges.filter(c => doneMap[c.name]).length}/3 done`}
+        </span>
+      </div>
 
-      <AnimatePresence mode="wait">
-        {!done ? (
-          <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="flex items-center gap-3 px-4 py-3.5">
-
-            {/* Icon circle */}
-            <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
-              style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)' }}>
-              {challenge.emoji}
-            </div>
-
-            {/* Text */}
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black tracking-[0.25em] text-white/40 uppercase leading-none mb-0.5">
-                Daily Challenge · <span className="text-orange-400">+{challenge.pts} pts</span>
-              </p>
-              <p className="text-[15px] font-black text-white leading-tight truncate">{challenge.name}</p>
-              <p className="text-[10px] text-white/40 font-medium mt-0.5 truncate">{challenge.desc}</p>
-            </div>
-
-            {/* CTA pill */}
-            <motion.button
-              onClick={handleComplete}
-              whileTap={{ scale: 0.93 }}
-              animate={flash ? { scale: [1, 1.12, 1] } : {}}
-              className="shrink-0 font-black text-xs px-4 py-2.5 rounded-full tracking-wide transition-colors shadow-lg"
-              style={{ background: '#f97316', color: '#fff' }}
+      <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 snap-x snap-mandatory"
+        style={{ scrollbarWidth: 'none' }}>
+        {challenges.map((c, idx) => {
+          const done = doneMap[c.name];
+          return (
+            <motion.div
+              key={c.name}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.08 }}
+              className="relative overflow-hidden rounded-2xl shrink-0 snap-start"
+              style={{
+                width: 'min(78vw, 300px)', height: 165,
+                border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.1)',
+              }}
             >
-              START
-            </motion.button>
-          </motion.div>
-        ) : (
-          <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="flex items-center gap-3 px-4 py-3.5">
+              {/* Full-bleed photo */}
+              <img src={c.img} alt="" className="absolute inset-0 w-full h-full object-cover"
+                style={done ? { filter: 'grayscale(0.7) brightness(0.55)' } : undefined} />
+              {/* Dark gradient */}
+              <div className="absolute inset-0"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
 
-            {/* Done icon */}
-            <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)' }}>
-              <CheckCircle2 size={20} className="text-green-400" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] font-black tracking-[0.2em] text-white/40 uppercase">Complete</span>
-                <span className="text-[9px] font-black text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-md">+50 pts</span>
+              {/* Challenge pill */}
+              <div className="absolute top-3 left-3">
+                {done ? (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-green-500/30">
+                    <CheckCircle2 size={11} /> Done · +{c.pts} pts
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-white bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
+                    Challenge
+                  </span>
+                )}
               </div>
-              <p className="text-sm font-bold text-white/70">{challenge.name}</p>
-              <p className="text-[10px] text-white/30 mt-0.5">
-                Next challenge in <span className="text-white/50 font-bold tabular-nums">{countdown}</span>
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+
+              {/* Bottom content */}
+              <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-2xl font-black text-white leading-none tracking-tight truncate">{c.name}</p>
+                  <div className="flex items-center gap-3 mt-2 text-[10px] font-semibold text-white/60">
+                    {c.kcal > 0 && <span className="flex items-center gap-1"><Flame size={11} className="text-orange-400" /> {c.kcal} Kcal</span>}
+                    {c.mins > 0 && <span className="flex items-center gap-1"><Clock size={11} /> {c.mins} min</span>}
+                    {c.kcal === 0 && c.mins === 0 && <span>{c.desc}</span>}
+                  </div>
+                </div>
+                {!done && (
+                  <motion.button
+                    onClick={() => handleComplete(c.name)}
+                    whileTap={{ scale: 0.93 }}
+                    className="shrink-0 font-black text-[11px] px-4 py-2 rounded-full tracking-wide bg-white text-black shadow-lg"
+                  >
+                    START
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -575,9 +579,6 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
         {/* Chrome sheen top-right */}
         <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(220,220,220,0.07) 0%, transparent 60%)' }} />
-        {/* Metallic bottom edge highlight */}
-        <div className="absolute inset-x-0 bottom-6 h-px pointer-events-none"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(200,200,200,0.15), transparent)' }} />
 
         {/* Content row */}
         <div className="relative px-5 md:px-8 pt-12 pb-8 flex items-center justify-between gap-4">
@@ -613,13 +614,9 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           </motion.div>
         </div>
 
-        {/* Bottom wave separator */}
-        <div className="h-6 relative">
-          <svg viewBox="0 0 390 24" preserveAspectRatio="none" className="absolute inset-0 w-full h-full"
-            style={{ fill: '#07050e' }}>
-            <path d="M0,24 L0,12 Q97.5,0 195,12 Q292.5,24 390,12 L390,24 Z" />
-          </svg>
-        </div>
+        {/* Soft fade into page — no hard edge */}
+        <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, rgba(8,8,8,0) 0%, hsl(0 0% 3%) 100%)' }} />
       </div>
 
       {/* ── Daily challenge — full width banner ──────────────────────────── */}
