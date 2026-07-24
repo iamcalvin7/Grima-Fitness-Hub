@@ -8,9 +8,10 @@ import { Profile }     from '@/pages/Profile';
 import { Workouts }    from '@/pages/Workouts';
 import { MealPlan }     from '@/pages/MealPlan';
 import { Leaderboard } from '@/pages/Leaderboard';
+import { Offers } from '@/pages/Offers';
 import { Layout }       from '@/components/Layout';
 
-export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile' | 'leaderboard';
+export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile' | 'leaderboard' | 'offers';
 
 function forceOnboarding() {
   return new URLSearchParams(window.location.search).has('onboarding');
@@ -62,6 +63,7 @@ function App() {
       {activePage === 'messages' && <Messages setPage={handleSetPage} />}
       {activePage === 'profile'      && <Profile      setPage={handleSetPage} onLogout={handleLogout} />}
       {activePage === 'leaderboard'  && <Leaderboard />}
+      {activePage === 'offers'       && <Offers />}
     </Layout>
   );
 }
