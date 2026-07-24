@@ -4,7 +4,10 @@ import {
   Flame, Heart, Activity, ChevronRight,
   Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap,
 } from 'lucide-react';
-import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from 'recharts';
+import {
+  BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
+  AreaChart, Area, YAxis, ReferenceLine, XAxis,
+} from 'recharts';
 import {
   getTodayChallenge, isChallengeComplete, completeChallenge,
 } from '@/data/challenges';
@@ -184,37 +187,8 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
   );
 }
 
-/* ── Purple palette ───────────────────────────────────────────────────────── */
-const P = {
-  text:     'text-primary',
-  border:   'border-primary/25',
-  glow:     'rgba(139,69,217,0.12)',
-  bar:      '#8B45D9',
-  barLight: '#A565F2',
-};
-const TODAY_IDX = 3;
-
-/* ── Metric card ──────────────────────────────────────────────────────────── */
-const MetricCard = ({
-  icon, value, sub, delay = 0,
-}: { icon: React.ReactNode; value: string; sub: string; delay?: number }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.4, ease: 'easeOut' }}
-    className="relative bg-[#111111] border border-primary/20 rounded-xl flex flex-col items-center justify-center text-center p-4 overflow-hidden"
-    style={{ boxShadow: `0 0 20px ${P.glow}` }}
-  >
-    <div className="absolute inset-x-0 top-0 h-px bg-primary/40" />
-    <div className="absolute inset-x-0 top-0 h-8 opacity-10 bg-gradient-to-b from-primary to-transparent" />
-    <div className="mb-2 text-primary">{icon}</div>
-    <p className="text-lg font-bold leading-tight tabular-nums">{value}</p>
-    <p className="text-[9px] font-semibold tracking-widest uppercase mt-1 text-primary/60">{sub}</p>
-  </motion.div>
-);
-
-/* ── Step chart ───────────────────────────────────────────────────────────── */
-const stepData = [
+/* ── Metrics data ─────────────────────────────────────────────────────────── */
+const STEP_DATA = [
   { day: 'M', label: 'Monday',    steps: 6000 },
   { day: 'T', label: 'Tuesday',   steps: 8500 },
   { day: 'W', label: 'Wednesday', steps: 7200 },
@@ -223,95 +197,261 @@ const stepData = [
   { day: 'S', label: 'Saturday',  steps: 2000 },
   { day: 'S', label: 'Sunday',    steps: 3000 },
 ];
+const TODAY_IDX = 3;
+const GOAL_STEPS = 7500;
 
+const SPARKLINES = {
+  steps:    [5200, 6800, 7100, 6200, 8500, 7200, 8432].map((v, i) => ({ i, v })),
+  calories: [510,  580,  620,  490,  700,  580,  647 ].map((v, i) => ({ i, v })),
+  bpm:      [68,   71,   69,   73,   70,   74,   72  ].map((v, i) => ({ i, v })),
+};
+
+/* ── Metrics section ──────────────────────────────────────────────────────── */
 function MetricsSection() {
-  const steps    = useCountUp(8432, 1600);
-  const calories = useCountUp(647,  1200);
-  const bpm      = useCountUp(72,    900);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const stepsVal = useCountUp(8432, 1500);
+  const calsVal  = useCountUp(647,  1100);
+  const bpmVal   = useCountUp(72,    800);
+  const [active, setActive]       = useState(0);
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+
+  const CARDS = [
+    {
+      key: 'steps',
+      icon: (
+        <motion.div animate={{ x:[0,3,0,-1,0], rotate:[0,7,0,-3,0] }}
+          transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}>
+          <Activity className="w-6 h-6" />
+        </motion.div>
+      ),
+      value: stepsVal.toLocaleString(),
+      sub:   'Steps',
+      delta: '+12% today',
+      up:    true,
+      spark: SPARKLINES.steps,
+    },
+    {
+      key: 'calories',
+      icon: (
+        <motion.div
+          animate={{ scaleX:[1,.88,1.08,.93,1.05,1], scaleY:[1,1.12,.92,1.08,.96,1], rotate:[0,-4,3,-3,2,0] }}
+          transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ originX:'50%', originY:'100%' }}>
+          <Flame className="w-6 h-6" />
+        </motion.div>
+      ),
+      value: String(calsVal),
+      sub:   'Kcal Active',
+      delta: '↑ 8% vs yesterday',
+      up:    true,
+      spark: SPARKLINES.calories,
+    },
+    {
+      key: 'bpm',
+      icon: (
+        <motion.div animate={{ scale:[1,1.42,.88,1.22,1,1,1,1] }}
+          transition={{ duration: 0.833, repeat: Infinity, times:[0,.1,.2,.32,.45,.6,.8,1], ease:'easeInOut' }}>
+          <Heart className="w-6 h-6" fill="currentColor" />
+        </motion.div>
+      ),
+      value: String(bpmVal),
+      sub:   'Bpm Resting',
+      delta: '↓ 3 vs yesterday',
+      up:    false,
+      spark: SPARKLINES.bpm,
+    },
+  ];
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-foreground/50">Your Metrics</h3>
-        <p className="text-[10px] text-foreground/25 font-medium">via Apple Health</p>
+    <section className="space-y-4">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white/50">Your Metrics</h3>
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/30">
+          via Apple Health
+          <Heart size={11} className="text-primary/60" fill="currentColor" />
+        </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5">
-        <MetricCard delay={0} value={steps.toLocaleString()} sub="+12% today"
-          icon={
-            <motion.div animate={{ x: [0,3,0,-1,0], rotate: [0,7,0,-3,0] }}
-              transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}>
-              <Activity className="w-5 h-5" />
-            </motion.div>
-          } />
-        <MetricCard delay={0.08} value={`${calories}`} sub="kcal active"
-          icon={
-            <motion.div
-              animate={{ scaleX:[1,.88,1.08,.93,1.05,1], scaleY:[1,1.12,.92,1.08,.96,1], rotate:[0,-4,3,-3,2,0] }}
-              transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ originX:'50%', originY:'100%' }}>
-              <Flame className="w-5 h-5" />
-            </motion.div>
-          } />
-        <MetricCard delay={0.16} value={`${bpm}`} sub="bpm resting"
-          icon={
-            <motion.div
-              animate={{ scale: [1,1.42,.88,1.22,1,1,1,1] }}
-              transition={{ duration: 0.833, repeat: Infinity, times:[0,.1,.2,.32,.45,.6,.8,1], ease:'easeInOut' }}>
-              <Heart className="w-5 h-5" fill="currentColor" />
-            </motion.div>
-          } />
+      {/* ── Carousel ── */}
+      <div className="flex items-stretch gap-2.5">
+        {CARDS.map((card, i) => {
+          const isFeatured = i === active;
+          return (
+            <motion.button
+              key={card.key}
+              onClick={() => setActive(i)}
+              animate={{ flex: isFeatured ? 2.2 : 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className={`relative overflow-hidden rounded-2xl text-left border transition-colors
+                ${isFeatured
+                  ? 'bg-[#130d1f] border-primary/40'
+                  : 'bg-[#111111] border-white/6'}`}
+              style={isFeatured
+                ? { boxShadow: '0 0 32px rgba(139,69,217,0.22)' }
+                : undefined}
+            >
+              {/* Top accent */}
+              {isFeatured && (
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
+              )}
+
+              <div className={`flex flex-col ${isFeatured ? 'p-4' : 'p-3'}`}>
+                <span className={`text-primary mb-2 ${isFeatured ? '' : 'opacity-60'}`}>
+                  {card.icon}
+                </span>
+                <p className={`font-black tabular-nums leading-none
+                  ${isFeatured ? 'text-3xl text-white' : 'text-xl text-white/70'}`}>
+                  {card.value}
+                </p>
+                <p className={`font-bold uppercase tracking-wider mt-1
+                  ${isFeatured ? 'text-[10px] text-primary' : 'text-[9px] text-white/35'}`}>
+                  {card.sub}
+                </p>
+
+                {/* Delta — featured only */}
+                {isFeatured && (
+                  <span className={`mt-2 self-start flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg
+                    ${card.up
+                      ? 'bg-primary/15 text-primary'
+                      : 'bg-white/8 text-white/50'}`}>
+                    {card.delta}
+                  </span>
+                )}
+
+                {/* Sparkline — featured only */}
+                {isFeatured && (
+                  <div className="mt-3 -mx-1">
+                    <ResponsiveContainer width="100%" height={40}>
+                      <AreaChart data={card.spark} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id={`sg-${card.key}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.5} />
+                            <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}   />
+                          </linearGradient>
+                        </defs>
+                        <Area
+                          type="monotone" dataKey="v"
+                          stroke="#8B45D9" strokeWidth={1.5}
+                          fill={`url(#sg-${card.key})`}
+                          dot={false} isAnimationActive={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
 
+      {/* Pagination dots */}
+      <div className="flex justify-center gap-1.5">
+        {CARDS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setActive(i)}
+            className={`rounded-full transition-all ${i === active ? 'w-4 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-white/20'}`}
+          />
+        ))}
+      </div>
+
+      {/* ── Weekly Activity chart ── */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-        className="bg-[#111111] border border-primary/20 rounded-xl overflow-hidden"
-        style={{ boxShadow: `0 0 18px ${P.glow}` }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden"
       >
-        <ResponsiveContainer width="100%" height={110}>
-          <BarChart data={stepData} barCategoryGap="30%" margin={{ top: 12, right: 10, left: 10, bottom: 0 }}
-            onMouseMove={s => { if (s.isTooltipActive && s.activeTooltipIndex !== undefined) setHoveredIdx(s.activeTooltipIndex); }}
-            onMouseLeave={() => setHoveredIdx(null)}
+        {/* Chart header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2">
+            <Activity size={14} className="text-primary/60" />
+            <span className="text-xs font-bold text-white/60">Weekly Activity</span>
+          </div>
+          <span className="text-[10px] font-bold text-white/30 bg-white/5 border border-white/8 rounded-lg px-2.5 py-1">
+            This Week
+          </span>
+        </div>
+
+        <ResponsiveContainer width="100%" height={150}>
+          <BarChart
+            data={STEP_DATA}
+            barCategoryGap="35%"
+            margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+            onMouseMove={s => {
+              if (s.isTooltipActive && s.activeTooltipIndex !== undefined)
+                setHoveredBar(s.activeTooltipIndex);
+            }}
+            onMouseLeave={() => setHoveredBar(null)}
           >
-            <Tooltip cursor={false} content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const d = payload[0].payload as typeof stepData[0];
-              return (
-                <div className="bg-[#1a1a1a] border border-primary/40 px-3 py-2 rounded-lg shadow-lg"
-                  style={{ boxShadow: '0 0 16px rgba(139,69,217,0.25)' }}>
-                  <p className="text-[10px] font-bold text-primary uppercase mb-0.5">{d.label}</p>
-                  <p className="text-sm font-bold text-white tabular-nums">
-                    {d.steps.toLocaleString()} <span className="text-[10px] text-white/40 font-medium">steps</span>
-                  </p>
-                </div>
-              );
-            }} />
-            <Bar dataKey="steps" radius={[3,3,0,0]}>
-              {stepData.map((_, i) => {
-                const isHov   = hoveredIdx === i;
+            <YAxis
+              tickCount={5}
+              tickFormatter={v => v >= 1000 ? `${v / 1000}K` : String(v)}
+              tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.2)', fontWeight: 600 }}
+              axisLine={false} tickLine={false}
+              width={28}
+              domain={[0, 10000]}
+            />
+            <ReferenceLine
+              y={GOAL_STEPS}
+              stroke="rgba(139,69,217,0.4)"
+              strokeDasharray="4 3"
+              label={{ value: '7.5K', position: 'right', fontSize: 9, fill: 'rgba(139,69,217,0.7)', fontWeight: 700 }}
+            />
+            <Tooltip
+              cursor={false}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload as typeof STEP_DATA[0];
+                const isToday = payload[0].payload === STEP_DATA[TODAY_IDX];
+                return (
+                  <div
+                    className="bg-[#1a1225] border border-primary/50 px-3 py-2 rounded-xl"
+                    style={{ boxShadow: '0 0 20px rgba(139,69,217,0.3)' }}
+                  >
+                    {isToday && (
+                      <p className="text-[9px] font-black tracking-widest text-primary uppercase mb-0.5">Today</p>
+                    )}
+                    <p className="text-xs font-black text-white tabular-nums">
+                      {d.steps.toLocaleString()} <span className="text-[10px] text-white/40 font-medium">steps</span>
+                    </p>
+                  </div>
+                );
+              }}
+            />
+            <Bar dataKey="steps" radius={[4,4,0,0]}>
+              {STEP_DATA.map((_, i) => {
+                const isHov   = hoveredBar === i;
                 const isToday = i === TODAY_IDX;
                 return (
-                  <Cell key={i}
-                    fill={isHov ? P.barLight : P.bar}
-                    opacity={isHov ? 1 : hoveredIdx !== null ? 0.12 : isToday ? 1 : 0.18}
-                    style={isHov ? { filter: 'drop-shadow(0 0 6px rgba(165,101,242,0.7))' } : undefined}
+                  <Cell
+                    key={i}
+                    fill={isHov || isToday ? '#A565F2' : '#8B45D9'}
+                    opacity={isHov ? 1 : hoveredBar !== null ? 0.1 : isToday ? 1 : 0.22}
+                    style={isHov || isToday
+                      ? { filter: 'drop-shadow(0 0 8px rgba(165,101,242,0.6))' }
+                      : undefined}
                   />
                 );
               })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex justify-between text-[10px] font-semibold px-4 pb-3">
-          {stepData.map((d, i) => (
+
+        {/* Day labels */}
+        <div className="flex justify-between text-[10px] font-semibold px-5 pb-3" style={{ paddingLeft: 44 }}>
+          {STEP_DATA.map((d, i) => (
             <span key={i} className={
-              hoveredIdx === i         ? 'text-primary font-bold' :
-              i === TODAY_IDX && hoveredIdx === null ? 'text-primary' :
-              'text-foreground/25'
+              hoveredBar === i          ? 'text-primary font-black' :
+              i === TODAY_IDX           ? 'text-primary' :
+              'text-white/25'
             }>{d.day}</span>
           ))}
         </div>
       </motion.div>
+
     </section>
   );
 }
