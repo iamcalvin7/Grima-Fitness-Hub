@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Heart, Activity } from 'lucide-react';
-import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { BodyMap } from '@/components/BodyMap';
 import type { Page } from '@/App';
 
@@ -53,13 +53,13 @@ const MetricCard = ({ icon, value, sub, colour, borderColour, glowColour, delay 
 );
 
 const stepData = [
-  { day: 'M', steps: 6000 },
-  { day: 'T', steps: 8500 },
-  { day: 'W', steps: 7200 },
-  { day: 'T', steps: 8432 },
-  { day: 'F', steps: 4000 },
-  { day: 'S', steps: 2000 },
-  { day: 'S', steps: 3000 },
+  { day: 'M', label: 'Monday',    steps: 6000 },
+  { day: 'T', label: 'Tuesday',   steps: 8500 },
+  { day: 'W', label: 'Wednesday', steps: 7200 },
+  { day: 'T', label: 'Thursday',  steps: 8432 },
+  { day: 'F', label: 'Friday',    steps: 4000 },
+  { day: 'S', label: 'Saturday',  steps: 2000 },
+  { day: 'S', label: 'Sunday',    steps: 3000 },
 ];
 
 function getGreeting() {
@@ -143,25 +143,40 @@ function MetricsSection() {
 
       </div>
 
-      {/* Step bar chart */}
+      {/* Step bar chart — interactive */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className={`bg-[#111111] border ${G.border} p-4 rounded-sm h-36`}
+        className={`bg-[#111111] border ${G.border} rounded-sm`}
         style={{ boxShadow: `0 0 18px ${G.glow}` }}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={stepData} barCategoryGap="30%">
+        <ResponsiveContainer width="100%" height={120}>
+          <BarChart data={stepData} barCategoryGap="30%" margin={{ top: 12, right: 8, left: 8, bottom: 0 }}>
+            <Tooltip
+              cursor={false}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload as typeof stepData[0];
+                return (
+                  <div className="bg-[#1a1a1a] border border-[#14532d]/60 px-3 py-2 rounded-sm shadow-lg"
+                    style={{ boxShadow: '0 0 16px rgba(22,163,74,0.2)' }}>
+                    <p className="text-[10px] font-bold tracking-widest text-[#16a34a] uppercase mb-0.5">{d.label}</p>
+                    <p className="text-sm font-bold text-white tabular-nums">{d.steps.toLocaleString()} <span className="text-[10px] text-white/40 font-semibold">steps</span></p>
+                  </div>
+                );
+              }}
+            />
             <Bar dataKey="steps" radius={[2, 2, 0, 0]}>
               {stepData.map((entry, index) => (
-                <Cell key={`cell-${index}`}
-                  fill={entry.steps === 8432 ? G.bar : '#C0C0C0'}
-                  opacity={entry.steps === 8432 ? 1 : 0.15}
+                <Cell
+                  key={`cell-${index}`}
+                  fill={G.bar}
+                  opacity={entry.steps === 8432 ? 1 : 0.18}
                 />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex justify-between text-[10px] font-bold text-foreground/25 px-1 -mt-1">
+        <div className="flex justify-between text-[10px] font-bold text-foreground/25 px-4 pb-3">
           <span>M</span><span>T</span><span>W</span>
           <span className={G.text}>T</span>
           <span>F</span><span>S</span><span>S</span>
