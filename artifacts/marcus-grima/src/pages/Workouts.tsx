@@ -321,7 +321,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             : 'bg-[#111111] border border-white/6 hover:border-primary/30'}`}
       >
         {/* Accent bar */}
-        <div className={`h-1 w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-primary to-[#A565F2]'}`} />
+        <div className={`h-1 w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-white/60 to-white/20'}`} />
 
         <div className="p-5">
           <div className="flex items-start justify-between gap-4 mb-4">

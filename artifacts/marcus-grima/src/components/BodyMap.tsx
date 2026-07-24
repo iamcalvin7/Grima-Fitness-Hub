@@ -374,7 +374,7 @@ export const BodyMap = ({
       <div className="relative flex rounded-full p-[3px] bg-white/5 border border-white/8">
         <motion.div
           layout
-          className="absolute inset-[3px] rounded-full bg-[#8B45D9]"
+          className="absolute inset-[3px] rounded-full bg-white/90"
           style={{
             left: view === 'front' ? '3px' : '50%',
             right: view === 'front' ? '50%' : '3px',
@@ -387,7 +387,7 @@ export const BodyMap = ({
             aria-pressed={view === v}
             aria-label={`${v} view`}
             onClick={() => handleViewChange(v)}
-            className={`relative z-10 px-7 py-1.5 text-[10px] font-extrabold tracking-[0.22em] uppercase rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B45D9] ${
+            className={`relative z-10 px-7 py-1.5 text-[10px] font-extrabold tracking-[0.22em] uppercase rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
               view === v ? 'text-white' : 'text-white/38 hover:text-white/60'
             }`}
           >
@@ -425,8 +425,8 @@ export const BodyMap = ({
                 </filter>
                 {/* Gradient for selected muscles */}
                 <linearGradient id="bm-active-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#A565F2" />
-                  <stop offset="100%" stopColor="#8B45D9" />
+                  <stop offset="0%" stopColor="#F2F2F2" />
+                  <stop offset="100%" stopColor="#C8C8C8" />
                 </linearGradient>
                 {/* Hover gradient */}
                 <linearGradient id="bm-hover-grad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -459,7 +459,7 @@ export const BodyMap = ({
 
                 if (active) {
                   fill = 'url(#bm-active-grad)';
-                  stroke = '#A565F2';
+                  stroke = '#E8E8E8';
                   strokeWidth = 0.35;
                   filterAttr = 'url(#bm-glow)';
                 } else if (hovered && canInteract) {
@@ -517,9 +517,9 @@ export const BodyMap = ({
               onClick={() => {
                 if (interactive) toggleMuscle(muscleId);
               }}
-              className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B45D9] ${
+              className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
                 isActive
-                  ? 'bg-[#8B45D9] border-[#A565F2] text-white shadow-[0_0_8px_rgba(139,69,217,0.38)]'
+                  ? 'bg-white border-white text-black shadow-[0_0_8px_rgba(255,255,255,0.25)]'
                   : 'bg-transparent border-white/15 text-white/40'
               } ${interactive ? 'hover:border-white/30 cursor-pointer' : 'cursor-default'}`}
             >

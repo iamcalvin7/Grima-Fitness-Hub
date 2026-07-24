@@ -78,7 +78,7 @@ function MacroBadge({ label, value, unit, colour }: { label: string; value: numb
 function MacroRow({ meal }: { meal: Meal }) {
   return (
     <div className="flex gap-4 justify-around py-3 border-t border-white/6">
-      <MacroBadge label="Protein"  value={meal.protein}  unit="g"    colour="text-purple-400" />
+      <MacroBadge label="Protein"  value={meal.protein}  unit="g"    colour="text-sky-300" />
       <MacroBadge label="Calories" value={meal.calories} unit="kcal" colour="text-orange-400" />
       <MacroBadge label="Carbs"    value={meal.carbs}    unit="g"    colour="text-yellow-400" />
       <MacroBadge label="Fats"     value={meal.fats}     unit="g"    colour="text-blue-400"   />
@@ -177,7 +177,7 @@ function MealCard({
           {/* Macros compact */}
           <div className="grid grid-cols-4 gap-1">
             {[
-              { v: meal.protein,  u: 'g',    l: 'Protein',  c: 'text-purple-400' },
+              { v: meal.protein,  u: 'g',    l: 'Protein',  c: 'text-sky-300' },
               { v: meal.calories, u: 'kcal', l: 'Cals',     c: 'text-orange-400' },
               { v: meal.carbs,    u: 'g',    l: 'Carbs',    c: 'text-yellow-400' },
               { v: meal.fats,     u: 'g',    l: 'Fats',     c: 'text-blue-400'   },
@@ -449,7 +449,7 @@ function DailyPlanView({
             <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/40 uppercase mb-3">Daily Totals</p>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: 'Protein', value: totals.protein, unit: 'g', colour: 'text-purple-400' },
+                { label: 'Protein', value: totals.protein, unit: 'g', colour: 'text-sky-300' },
                 { label: 'Calories', value: totals.calories, unit: 'kcal', colour: 'text-orange-400' },
                 { label: 'Carbs', value: totals.carbs, unit: 'g', colour: 'text-yellow-400' },
                 { label: 'Fats', value: totals.fats, unit: 'g', colour: 'text-blue-400' },

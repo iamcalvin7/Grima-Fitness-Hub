@@ -44,7 +44,7 @@ export function Leaderboard() {
 
           {/* User's rank card */}
           <div className="mt-6 flex items-center gap-5 bg-primary/10 border border-primary/30 rounded-2xl px-5 py-4"
-            style={{ boxShadow: '0 0 32px rgba(139,69,217,0.18)' }}>
+            style={{ boxShadow: '0 0 32px rgba(229,229,229,0.14)' }}>
             <div className="flex flex-col items-center">
               <p className="text-[9px] font-bold tracking-widest text-primary/60 uppercase">Your Rank</p>
               <p className="text-5xl font-black text-primary leading-none mt-0.5">#{myRank}</p>
@@ -78,8 +78,8 @@ export function Leaderboard() {
         <p className="text-[10px] font-bold tracking-[0.25em] text-white/30 uppercase mb-3">How points are earned</p>
         <div className="grid grid-cols-3 gap-2.5">
           {[
-            { icon: <Footprints size={16} />, label: '1 pt per 100 steps',  colour: '#8B45D9' },
-            { icon: <Flame      size={16} />, label: '1 pt per 10 kcal',    colour: '#8B45D9' },
+            { icon: <Footprints size={16} />, label: '1 pt per 100 steps',  colour: '#E5E5E5' },
+            { icon: <Flame      size={16} />, label: '1 pt per 10 kcal',    colour: '#E5E5E5' },
             { icon: <Star       size={16} />, label: '+50 daily challenge',  colour: '#FFD700' },
           ].map((item, i) => (
             <motion.div
@@ -117,14 +117,14 @@ export function Leaderboard() {
                 ${isYou
                   ? 'bg-primary/10 border-primary/35'
                   : 'bg-[#111111] border-white/6'}`}
-              style={isYou ? { boxShadow: '0 0 20px rgba(139,69,217,0.15)' } : undefined}
+              style={isYou ? { boxShadow: '0 0 20px rgba(229,229,229,0.12)' } : undefined}
             >
               {/* Progress fill */}
               <div
                 className="absolute inset-0 opacity-[0.04]"
                 style={{
                   background: isYou
-                    ? `linear-gradient(90deg, #8B45D9 ${pct}%, transparent ${pct}%)`
+                    ? `linear-gradient(90deg, rgba(229,229,229,0.9) ${pct}%, transparent ${pct}%)`
                     : `linear-gradient(90deg, #ffffff ${pct}%, transparent ${pct}%)`,
                 }}
               />
@@ -143,13 +143,13 @@ export function Leaderboard() {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                 style={{
                   background: isYou
-                    ? 'rgba(139,69,217,0.25)'
+                    ? 'rgba(229,229,229,0.2)'
                     : isMarcus
                     ? 'rgba(255,215,0,0.12)'
                     : 'rgba(255,255,255,0.06)',
-                  color: isYou ? '#A565F2' : isMarcus ? '#FFD700' : '#ffffff80',
+                  color: isYou ? '#FFFFFF' : isMarcus ? '#FFD700' : '#ffffff80',
                   border: isYou
-                    ? '1.5px solid rgba(139,69,217,0.4)'
+                    ? '1.5px solid rgba(229,229,229,0.45)'
                     : isMarcus
                     ? '1.5px solid rgba(255,215,0,0.3)'
                     : '1.5px solid rgba(255,255,255,0.08)',
@@ -179,7 +179,7 @@ export function Leaderboard() {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${pct}%`,
-                        background: isYou ? '#8B45D9' : isMarcus ? '#FFD700' : '#ffffff30',
+                        background: isYou ? '#E5E5E5' : isMarcus ? '#FFD700' : '#ffffff30',
                       }}
                     />
                   </div>
