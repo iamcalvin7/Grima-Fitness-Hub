@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
-  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap, Camera,
+  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap,
 } from 'lucide-react';
 import {
   BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
@@ -576,20 +576,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'MG'
     : 'MG';
 
-  const [avatar, setAvatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      localStorage.setItem('mg_avatar', dataUrl);
-      setAvatar(dataUrl);
-    };
-    reader.readAsDataURL(file);
-  };
+  const [avatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
 
   return (
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
@@ -627,8 +614,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           {/* Right — profile photo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
-            className="relative shrink-0 cursor-pointer"
-            onClick={() => fileRef.current?.click()}
+            className="relative shrink-0"
           >
             <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-white/30 flex items-center justify-center"
               style={{ boxShadow: '0 0 0 4px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.3)' }}>
@@ -637,11 +623,6 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
                 : <span className="text-2xl font-black text-white/80">{initials}</span>
               }
             </div>
-            <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-white flex items-center justify-center"
-              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
-              <Camera size={11} className="text-primary" />
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </motion.div>
         </div>
 
