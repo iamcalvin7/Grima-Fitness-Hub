@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Marcus Grima PT"
+version = "1.0.0"
+id = "artifacts/marcus-grima"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18908
+
+[services.development]
+run = "pnpm --filter @workspace/marcus-grima run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/marcus-grima", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/marcus-grima/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18908"
+BASE_PATH = "/"
