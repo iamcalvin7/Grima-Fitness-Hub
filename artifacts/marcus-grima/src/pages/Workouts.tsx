@@ -300,7 +300,7 @@ function WorkoutOverview({
             >
               {/* Thumbnail */}
               <div className="w-16 h-16 rounded-sm overflow-hidden shrink-0 bg-[#0D0D0D] border border-white/5">
-                <ExercisePhoto id={ex.id} name={ex.name} />
+                <ExercisePhoto id={ex.id} name={ex.name} autoPlay muted />
               </div>
 
               {/* Info */}
@@ -443,7 +443,7 @@ function ActiveWorkout({
             transition={{ duration: 0.25 }}
             className="absolute inset-0"
           >
-            <ExercisePhoto id={exercise.id} name={exercise.name} className="object-cover" />
+            <ExercisePhoto id={exercise.id} name={exercise.name} className="object-cover" autoPlay muted />
             {/* dark gradient overlay so text above is readable */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/10 to-transparent" />
           </motion.div>
