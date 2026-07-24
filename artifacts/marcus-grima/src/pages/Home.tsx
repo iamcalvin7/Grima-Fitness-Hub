@@ -611,13 +611,13 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
           <div className="flex flex-col">
             <motion.p
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-              className="text-sm font-medium text-white/60 mb-1"
+              className="text-base font-medium text-white/60 mb-1"
             >
               {getGreeting()}
             </motion.p>
             <motion.h1
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-              className="text-4xl font-black text-white leading-none tracking-tight"
+              className="text-5xl font-black text-white leading-none tracking-tight"
             >
               {firstName}
             </motion.h1>
@@ -635,11 +635,11 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
             className="relative shrink-0 cursor-pointer"
             onClick={() => fileRef.current?.click()}
           >
-            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/30 flex items-center justify-center"
+            <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-white/30 flex items-center justify-center"
               style={{ boxShadow: '0 0 0 4px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.3)' }}>
               {avatar
                 ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-                : <span className="text-xl font-black text-white/80">{initials}</span>
+                : <span className="text-2xl font-black text-white/80">{initials}</span>
               }
             </div>
             <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-white flex items-center justify-center"
