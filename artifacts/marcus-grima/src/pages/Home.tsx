@@ -80,12 +80,6 @@ const G = {
   barDay: '#16a34a',
 };
 
-// Slow breathing pulse — no positional movement
-const breathe = {
-  opacity: [0.7, 1, 0.7],
-  transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const },
-};
-
 function MetricsSection() {
   const steps    = useCountUp(8432, 1600);
   const calories = useCountUp(647,  1200);
@@ -99,17 +93,54 @@ function MetricsSection() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <MetricCard delay={0}    colour={G.text} borderColour={G.border} glowColour={G.glow}
+
+        {/* Steps — stride walk */}
+        <MetricCard delay={0} colour={G.text} borderColour={G.border} glowColour={G.glow}
           value={steps.toLocaleString()} sub="+12% today"
-          icon={<motion.div animate={breathe}><Activity className="w-5 h-5" /></motion.div>} />
+          icon={
+            <motion.div
+              animate={{ x: [0, 3, 0, -1, 0], rotate: [0, 7, 0, -3, 0] }}
+              transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Activity className="w-5 h-5" />
+            </motion.div>
+          } />
 
-        <MetricCard delay={0.1}  colour={G.text} borderColour={G.border} glowColour={G.glow}
+        {/* Calories — flame flicker */}
+        <MetricCard delay={0.1} colour={G.text} borderColour={G.border} glowColour={G.glow}
           value={`${calories}`} sub="kcal active"
-          icon={<motion.div animate={{ ...breathe, transition: { ...breathe.transition, delay: 0.5 } }}><Flame className="w-5 h-5" /></motion.div>} />
+          icon={
+            <motion.div
+              animate={{
+                scaleX:  [1, 0.88, 1.08, 0.93, 1.05, 1],
+                scaleY:  [1, 1.12, 0.92, 1.08, 0.96, 1],
+                rotate:  [0, -4,    3,   -3,    2,   0],
+                opacity: [1, 0.85,  1,   0.9,   1,   1],
+              }}
+              transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ originX: '50%', originY: '100%' }}
+            >
+              <Flame className="w-5 h-5" />
+            </motion.div>
+          } />
 
-        <MetricCard delay={0.2}  colour={G.text} borderColour={G.border} glowColour={G.glow}
+        {/* Heart rate — lub-dub at 72 BPM (833 ms) */}
+        <MetricCard delay={0.2} colour={G.text} borderColour={G.border} glowColour={G.glow}
           value={`${bpm}`} sub="bpm resting"
-          icon={<motion.div animate={{ ...breathe, transition: { ...breathe.transition, delay: 1.0 } }}><Heart className="w-5 h-5" fill="currentColor" /></motion.div>} />
+          icon={
+            <motion.div
+              animate={{ scale: [1, 1.42, 0.88, 1.22, 1, 1, 1, 1] }}
+              transition={{
+                duration: 0.833,
+                repeat: Infinity,
+                times: [0, 0.1, 0.2, 0.32, 0.45, 0.6, 0.8, 1],
+                ease: 'easeInOut',
+              }}
+            >
+              <Heart className="w-5 h-5" fill="currentColor" />
+            </motion.div>
+          } />
+
       </div>
 
       {/* Step bar chart */}
