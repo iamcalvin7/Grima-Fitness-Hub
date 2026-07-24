@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
-  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap,
+  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap, Camera,
 } from 'lucide-react';
 import {
   BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
@@ -554,11 +554,55 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'MG'
     : 'MG';
 
+  const [avatar, setAvatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      localStorage.setItem('mg_avatar', dataUrl);
+      setAvatar(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
       <div className="px-5 md:px-8 pt-10 pb-8 flex flex-col items-center text-center">
+
+        {/* Profile photo */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="relative mb-5 cursor-pointer"
+          onClick={() => fileRef.current?.click()}
+        >
+          {/* Glow ring */}
+          <div className="absolute inset-0 rounded-full"
+            style={{ boxShadow: '0 0 0 3px rgba(139,69,217,0.5), 0 0 24px rgba(139,69,217,0.3)' }} />
+
+          {/* Photo or initials */}
+          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/60 flex items-center justify-center bg-primary/15">
+            {avatar
+              ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+              : <span className="text-2xl font-black text-primary">{initials}</span>
+            }
+          </div>
+
+          {/* Camera badge */}
+          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary border-2 border-[#07050e] flex items-center justify-center">
+            <Camera size={12} className="text-white" />
+          </div>
+
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        </motion.div>
+
         <motion.p
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
