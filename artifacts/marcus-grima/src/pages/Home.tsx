@@ -474,7 +474,7 @@ function SessionsBlock({ goToSession }: { goToSession: (id: number) => void }) {
           {/* Date badge */}
           <div className="w-12 h-12 bg-primary/10 border border-primary/25 rounded-lg flex flex-col items-center justify-center shrink-0">
             <span className="text-[8px] font-bold text-primary/50 uppercase leading-none tracking-wider">Jul</span>
-            <span className="text-xl font-black text-primary leading-none mt-0.5">24</span>
+            <span className="text-xl font-black text-white leading-none mt-0.5">24</span>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -609,7 +609,7 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     : 'MG';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-28 md:pb-8">
+    <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
       <div className="px-5 md:px-8 pt-10 pb-8 flex flex-col items-center text-center">

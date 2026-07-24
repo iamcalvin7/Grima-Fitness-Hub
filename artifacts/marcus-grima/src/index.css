@@ -74,18 +74,18 @@
   --elevate-1: rgba(192, 192, 192, 0.03);
   --elevate-2: rgba(192, 192, 192, 0.08);
 
-  /* Background #0A0A0A */
-  --background: 0 0% 4%;
+  /* Background — deep purple-black, like Revolut dark */
+  --background: 267 38% 4%;
   /* White/near-white text */
   --foreground: 0 0% 94%;
-  --border: 0 0% 15%;
+  --border: 267 20% 14%;
 
-  /* Card #111111 */
-  --card: 0 0% 7%;
+  /* Card — slightly purple-tinted dark surface */
+  --card: 267 28% 7%;
   --card-foreground: 0 0% 94%;
-  --card-border: 0 0% 12%;
+  --card-border: 267 18% 12%;
 
-  --sidebar: 0 0% 4%;
+  --sidebar: 267 38% 3%;
   --sidebar-foreground: 0 0% 94%;
   --sidebar-border: 0 0% 15%;
   --sidebar-primary: 270 60% 55%;
