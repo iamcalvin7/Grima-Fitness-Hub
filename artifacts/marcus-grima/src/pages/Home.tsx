@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
-  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap,
+  Clock, MapPin, CheckCircle2, Dumbbell, Quote, Star, Zap, Info,
 } from 'lucide-react';
 import {
   BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
@@ -114,6 +114,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
   const countdown  = useCountdown();
   const today      = new Date().toDateString();
   const [state, setState] = useState(() => ({ day: today, done: isChallengeDone(challenge.name) }));
+  const [showInfo, setShowInfo] = useState(false);
 
   // Re-sync when the day rolls over (countdown re-renders every second)
   if (state.day !== today) setState({ day: today, done: isChallengeDone(challenge.name) });
@@ -153,8 +154,8 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
 
-        {/* Challenge pill */}
-        <div className="absolute top-3 left-3">
+        {/* Challenge pill + about CTA */}
+        <div className="absolute top-3 inset-x-3 flex items-center justify-between">
           {done ? (
             <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-green-500/30">
               <CheckCircle2 size={11} /> Done · +{challenge.pts} pts
@@ -164,7 +165,34 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
               Challenge
             </span>
           )}
+          <motion.button
+            onClick={() => setShowInfo(v => !v)}
+            whileTap={{ scale: 0.9 }}
+            aria-label="About this challenge"
+            className="flex items-center gap-1 text-[10px] font-bold text-white/80 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15"
+          >
+            <Info size={11} /> About
+          </motion.button>
         </div>
+
+        {/* About overlay */}
+        <AnimatePresence>
+          {showInfo && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowInfo(false)}
+              className="absolute inset-0 z-10 flex flex-col justify-center px-5 cursor-pointer"
+              style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(4px)' }}
+            >
+              <p className="text-[9px] font-black tracking-[0.25em] text-white/40 uppercase mb-1.5">About this challenge</p>
+              <p className="text-lg font-black text-white leading-tight">{challenge.name}</p>
+              <p className="text-xs text-white/70 font-medium mt-1.5">{challenge.desc}</p>
+              <p className="text-[10px] font-bold text-orange-400 mt-2">Complete it to earn +{challenge.pts} pts</p>
+              <p className="text-[9px] text-white/30 mt-3">Tap to close</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Bottom content */}
         <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-2">
