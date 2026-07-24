@@ -128,7 +128,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white/70">Daily Challenge</h3>
+        <h3 className="text-sm font-bold text-white/70">Marcus' Daily Challenge</h3>
         {done && (
           <span className="text-[10px] font-bold text-white/30 tabular-nums">
             Next in <span className="text-white/50">{countdown}</span>
@@ -148,7 +148,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
       >
         {/* Full-bleed photo */}
         <img src={`${import.meta.env.BASE_URL}challenge.png`} alt="" className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center 18%', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
+          style={{ objectPosition: 'center 0%', transform: 'translateX(7%) scale(1.12)', ...(done ? { filter: 'grayscale(0.7) brightness(0.55)' } : {}) }} />
         {/* Dark gradient */}
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.25) 100%)' }} />
@@ -311,26 +311,27 @@ function MetricsSection() {
 
       </div>
 
-      {/* ── Weekly Activity chart ── */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white/70">Weekly Activity</h3>
-        <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider">
-          {([['#22c55e','Goal'],['#f97316','Close'],['#ef4444','Low']] as const).map(([col, label]) => (
-            <span key={label} className="flex items-center gap-1.5" style={{ color: `${col}99` }}>
-              <span className="w-2 h-2 rounded-full inline-block"
-                style={{ background: col, opacity: 0.7, boxShadow: `0 0 4px ${col}55` }} />
-              {label}
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* ── Weekly Activity chart — part of the metrics section ── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         style={{ background: '#111111', border: '1px solid rgba(200,200,200,0.08)' }}
-        className="rounded-2xl overflow-hidden"
+        className="rounded-2xl overflow-hidden !mt-3"
       >
+        {/* In-card label + legend */}
+        <div className="flex items-center justify-between px-4 pt-3">
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Weekly Activity</span>
+          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider">
+            {([['#22c55e','Goal'],['#f97316','Close'],['#ef4444','Low']] as const).map(([col, label]) => (
+              <span key={label} className="flex items-center gap-1.5" style={{ color: `${col}99` }}>
+                <span className="w-2 h-2 rounded-full inline-block"
+                  style={{ background: col, opacity: 0.7, boxShadow: `0 0 4px ${col}55` }} />
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
 
         <ResponsiveContainer width="100%" height={150}>
           <BarChart
