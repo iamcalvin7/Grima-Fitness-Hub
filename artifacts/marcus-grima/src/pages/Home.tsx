@@ -1,8 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Flame, Heart, Activity } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
 import { BodyMap } from '@/components/BodyMap';
 import type { Page } from '@/App';
+
+/* ── Animated counter ──────────────────────────────────────────────────── */
+function useCountUp(target: number, duration = 1400) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      setVal(Math.round(eased * target));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
+}
+
+/* ── Metric card ───────────────────────────────────────────────────────── */
+interface MetricCardProps {
+  icon: React.ReactNode;
+  value: string;
+  sub: string;
+  colour: string;          // tailwind text colour e.g. 'text-green-400'
+  borderColour: string;    // e.g. 'border-green-500/30'
+  glowColour: string;      // rgba string for box-shadow
+  delay?: number;
+}
+
+const MetricCard = ({ icon, value, sub, colour, borderColour, glowColour, delay = 0 }: MetricCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.4, ease: 'easeOut' }}
+    className={`relative bg-[#111111] border rounded-sm flex flex-col items-center justify-center text-center p-4 overflow-hidden ${borderColour}`}
+    style={{ boxShadow: `0 0 24px ${glowColour}` }}
+  >
+    {/* Subtle colour wash at top */}
+    <div className="absolute inset-x-0 top-0 h-px" style={{ background: glowColour.replace('0.18', '0.6') }} />
+    <div className="absolute inset-x-0 top-0 h-6 opacity-20"
+      style={{ background: `linear-gradient(to bottom, ${glowColour.replace('0.18','0.4')}, transparent)` }} />
+    <div className={`mb-2 ${colour}`}>{icon}</div>
+    <p className="text-lg font-bold leading-tight tabular-nums">{value}</p>
+    <p className={`text-[9px] font-bold tracking-widest uppercase mt-1 ${colour} opacity-70`}>{sub}</p>
+  </motion.div>
+);
 
 const stepData = [
   { day: 'M', steps: 6000 },
@@ -19,6 +67,104 @@ function getGreeting() {
   if (h < 12) return 'GOOD MORNING,';
   if (h < 18) return 'GOOD AFTERNOON,';
   return 'GOOD EVENING,';
+}
+
+/* ── Metrics section ───────────────────────────────────────────────────── */
+function MetricsSection() {
+  const steps    = useCountUp(8432, 1600);
+  const calories = useCountUp(647,  1200);
+  const bpm      = useCountUp(72,   900);
+
+  // Heart pulse: 72 bpm ≈ one beat every 833 ms
+  const heartVariants = {
+    beat: { scale: [1, 1.28, 1, 1.12, 1], transition: { duration: 0.5, repeat: Infinity, repeatDelay: 0.33, ease: 'easeInOut' as const } },
+  };
+  const flameVariants = {
+    flicker: { scale: [1, 1.08, 0.96, 1.04, 1], opacity: [1, 0.85, 1, 0.9, 1], transition: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' as const } },
+  };
+  const stepVariants = {
+    bounce: { y: [0, -3, 0], transition: { duration: 0.7, repeat: Infinity, ease: 'easeInOut' as const } },
+  };
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your Metrics</h3>
+        <p className="text-[10px] text-foreground/30 font-semibold tracking-wide uppercase mt-1">Connected via Apple Health</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {/* Steps — green */}
+        <MetricCard
+          delay={0}
+          colour="text-green-400"
+          borderColour="border-green-500/25"
+          glowColour="rgba(34,197,94,0.12)"
+          value={steps.toLocaleString()}
+          sub="+12% today"
+          icon={
+            <motion.div animate="bounce" variants={stepVariants}>
+              <Activity className="w-5 h-5" />
+            </motion.div>
+          }
+        />
+
+        {/* Calories — orange */}
+        <MetricCard
+          delay={0.08}
+          colour="text-orange-400"
+          borderColour="border-orange-500/25"
+          glowColour="rgba(249,115,22,0.12)"
+          value={`${calories}`}
+          sub="kcal active"
+          icon={
+            <motion.div animate="flicker" variants={flameVariants}>
+              <Flame className="w-5 h-5" />
+            </motion.div>
+          }
+        />
+
+        {/* Heart rate — red */}
+        <MetricCard
+          delay={0.16}
+          colour="text-red-400"
+          borderColour="border-red-500/25"
+          glowColour="rgba(239,68,68,0.12)"
+          value={`${bpm}`}
+          sub="bpm resting"
+          icon={
+            <motion.div animate="beat" variants={heartVariants}>
+              <Heart className="w-5 h-5" fill="currentColor" />
+            </motion.div>
+          }
+        />
+      </div>
+
+      {/* Step bar chart — green accent on today */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        className="bg-[#111111] border border-green-500/15 p-4 rounded-sm h-36"
+        style={{ boxShadow: '0 0 20px rgba(34,197,94,0.06)' }}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={stepData} barCategoryGap="30%">
+            <Bar dataKey="steps" radius={[2, 2, 0, 0]}>
+              {stepData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.steps === 8432 ? '#22c55e' : '#C0C0C0'}
+                  opacity={entry.steps === 8432 ? 1 : 0.18}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex justify-between text-[10px] font-bold text-foreground/25 px-1 -mt-1">
+          <span>M</span><span>T</span><span>W</span><span className="text-green-400">T</span><span>F</span><span>S</span><span>S</span>
+        </div>
+      </motion.div>
+    </section>
+  );
 }
 
 interface HomeProps {
@@ -141,43 +287,7 @@ export const Home = ({ setPage }: HomeProps) => {
           <div className="flex flex-col gap-8">
 
             {/* Metrics */}
-            <section className="space-y-4">
-              <div>
-                <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your Metrics</h3>
-                <p className="text-[10px] text-foreground/30 font-semibold tracking-wide uppercase mt-1">Connected via Apple Health</p>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { icon: <Activity className="text-foreground/40 w-5 h-5 mb-2" />, value: '8,432',    sub: '+12% vs yesterday', subClass: 'text-primary' },
-                  { icon: <Flame    className="text-foreground/40 w-5 h-5 mb-2" />, value: '647 kcal', sub: 'Active',             subClass: 'text-foreground/40' },
-                  { icon: <Heart    className="text-foreground/40 w-5 h-5 mb-2" />, value: '72 bpm',   sub: 'Resting',            subClass: 'text-foreground/40' },
-                ].map((m, i) => (
-                  <div key={i} className="bg-[#111111] border border-white/5 p-4 rounded-sm flex flex-col items-center justify-center text-center">
-                    {m.icon}
-                    <p className="text-lg font-bold leading-tight">{m.value}</p>
-                    <p className={`text-[9px] font-bold tracking-widest uppercase mt-1 ${m.subClass}`}>{m.sub}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="bg-[#111111] border border-white/5 p-4 rounded-sm h-36">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stepData}>
-                    <Bar dataKey="steps" radius={[2, 2, 0, 0]}>
-                      {stepData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.day === 'T' && entry.steps === 8432 ? 'hsl(270 60% 55%)' : '#C0C0C0'}
-                          opacity={entry.day === 'T' && entry.steps === 8432 ? 1 : 0.2}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="flex justify-between text-[10px] font-bold text-foreground/30 px-1">
-                  <span>M</span><span>T</span><span>W</span><span className="text-primary">T</span><span>F</span><span>S</span><span>S</span>
-                </div>
-              </div>
-            </section>
+            <MetricsSection />
 
             {/* Last Session Recap */}
             <section className="space-y-4">
