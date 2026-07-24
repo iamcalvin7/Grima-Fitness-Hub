@@ -212,63 +212,13 @@ const GOAL_STEPS = 7500;
 const SPARKLINES = {
   steps:    [5200, 6800, 7100, 6200, 8500, 7200, 8432].map((v, i) => ({ i, v })),
   calories: [510,  580,  620,  490,  700,  580,  647 ].map((v, i) => ({ i, v })),
-  bpm:      [68,   71,   69,   73,   70,   74,   72  ].map((v, i) => ({ i, v })),
 };
 
 /* ── Metrics section ──────────────────────────────────────────────────────── */
 function MetricsSection() {
   const stepsVal = useCountUp(8432, 1500);
   const calsVal  = useCountUp(647,  1100);
-  const bpmVal   = useCountUp(72,    800);
-  const [active, setActive]       = useState(0);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
-
-  const CARDS = [
-    {
-      key: 'steps',
-      icon: (
-        <motion.div animate={{ x:[0,3,0,-1,0], rotate:[0,7,0,-3,0] }}
-          transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}>
-          <Activity className="w-6 h-6" />
-        </motion.div>
-      ),
-      value: stepsVal.toLocaleString(),
-      sub:   'Steps',
-      delta: '+12% today',
-      up:    true,
-      spark: SPARKLINES.steps,
-    },
-    {
-      key: 'calories',
-      icon: (
-        <motion.div
-          animate={{ scaleX:[1,.88,1.08,.93,1.05,1], scaleY:[1,1.12,.92,1.08,.96,1], rotate:[0,-4,3,-3,2,0] }}
-          transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ originX:'50%', originY:'100%' }}>
-          <Flame className="w-6 h-6" />
-        </motion.div>
-      ),
-      value: String(calsVal),
-      sub:   'Kcal Active',
-      delta: '↑ 8% vs yesterday',
-      up:    true,
-      spark: SPARKLINES.calories,
-    },
-    {
-      key: 'bpm',
-      icon: (
-        <motion.div animate={{ scale:[1,1.42,.88,1.22,1,1,1,1] }}
-          transition={{ duration: 0.833, repeat: Infinity, times:[0,.1,.2,.32,.45,.6,.8,1], ease:'easeInOut' }}>
-          <Heart className="w-6 h-6" fill="currentColor" />
-        </motion.div>
-      ),
-      value: String(bpmVal),
-      sub:   'Bpm Resting',
-      delta: '↓ 3 vs yesterday',
-      up:    false,
-      spark: SPARKLINES.bpm,
-    },
-  ];
 
   return (
     <section className="space-y-4">
@@ -282,88 +232,75 @@ function MetricsSection() {
         </span>
       </div>
 
-      {/* ── Carousel ── */}
-      <div className="flex items-stretch gap-2.5">
-        {CARDS.map((card, i) => {
-          const isFeatured = i === active;
-          return (
-            <motion.button
-              key={card.key}
-              onClick={() => setActive(i)}
-              animate={{ flex: isFeatured ? 2.2 : 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className={`relative overflow-hidden rounded-2xl text-left border transition-colors
-                ${isFeatured
-                  ? 'bg-[#130d1f] border-primary/40'
-                  : 'bg-[#111111] border-white/6'}`}
-              style={isFeatured
-                ? { boxShadow: '0 0 32px rgba(139,69,217,0.22)' }
-                : undefined}
-            >
-              {/* Top accent */}
-              {isFeatured && (
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
-              )}
+      {/* ── Two always-visible cards ── */}
+      <div className="grid grid-cols-2 gap-3">
 
-              <div className={`flex flex-col ${isFeatured ? 'p-4' : 'p-3'}`}>
-                <span className={`text-primary mb-2 ${isFeatured ? '' : 'opacity-60'}`}>
-                  {card.icon}
-                </span>
-                <p className={`font-black tabular-nums leading-none
-                  ${isFeatured ? 'text-3xl text-white' : 'text-xl text-white/70'}`}>
-                  {card.value}
-                </p>
-                <p className={`font-bold uppercase tracking-wider mt-1
-                  ${isFeatured ? 'text-[10px] text-primary' : 'text-[9px] text-white/35'}`}>
-                  {card.sub}
-                </p>
+        {/* Steps */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          className="relative overflow-hidden rounded-2xl bg-[#130d1f] border border-primary/30 p-4"
+          style={{ boxShadow: '0 0 24px rgba(139,69,217,0.18)' }}
+        >
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
+          <span className="text-primary mb-2 block">
+            <motion.div animate={{ x:[0,3,0,-1,0], rotate:[0,7,0,-3,0] }}
+              transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}>
+              <Activity className="w-5 h-5" />
+            </motion.div>
+          </span>
+          <p className="text-3xl font-black text-white tabular-nums leading-none">{stepsVal.toLocaleString()}</p>
+          <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Steps</p>
+          <span className="mt-2 inline-block text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-lg">+12% today</span>
+          <div className="mt-3 -mx-1">
+            <ResponsiveContainer width="100%" height={36}>
+              <AreaChart data={SPARKLINES.steps} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="sg-steps" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}   />
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={1.5}
+                  fill="url(#sg-steps)" dot={false} isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
 
-                {/* Delta — featured only */}
-                {isFeatured && (
-                  <span className={`mt-2 self-start flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg
-                    ${card.up
-                      ? 'bg-primary/15 text-primary'
-                      : 'bg-white/8 text-white/50'}`}>
-                    {card.delta}
-                  </span>
-                )}
+        {/* Calories */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="relative overflow-hidden rounded-2xl bg-[#130d1f] border border-primary/30 p-4"
+          style={{ boxShadow: '0 0 24px rgba(139,69,217,0.18)' }}
+        >
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
+          <span className="text-primary mb-2 block">
+            <motion.div
+              animate={{ scaleX:[1,.88,1.08,.93,1.05,1], scaleY:[1,1.12,.92,1.08,.96,1], rotate:[0,-4,3,-3,2,0] }}
+              transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ originX:'50%', originY:'100%' }}>
+              <Flame className="w-5 h-5" />
+            </motion.div>
+          </span>
+          <p className="text-3xl font-black text-white tabular-nums leading-none">{calsVal}</p>
+          <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-1">Kcal Active</p>
+          <span className="mt-2 inline-block text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-lg">↑ 8% vs yesterday</span>
+          <div className="mt-3 -mx-1">
+            <ResponsiveContainer width="100%" height={36}>
+              <AreaChart data={SPARKLINES.calories} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="sg-cals" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}   />
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={1.5}
+                  fill="url(#sg-cals)" dot={false} isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
 
-                {/* Sparkline — featured only */}
-                {isFeatured && (
-                  <div className="mt-3 -mx-1">
-                    <ResponsiveContainer width="100%" height={40}>
-                      <AreaChart data={card.spark} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id={`sg-${card.key}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%"   stopColor="#8B45D9" stopOpacity={0.5} />
-                            <stop offset="100%" stopColor="#8B45D9" stopOpacity={0}   />
-                          </linearGradient>
-                        </defs>
-                        <Area
-                          type="monotone" dataKey="v"
-                          stroke="#8B45D9" strokeWidth={1.5}
-                          fill={`url(#sg-${card.key})`}
-                          dot={false} isAnimationActive={false}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </div>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Pagination dots */}
-      <div className="flex justify-center gap-1.5">
-        {CARDS.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={`rounded-full transition-all ${i === active ? 'w-4 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-white/20'}`}
-          />
-        ))}
       </div>
 
       {/* ── Weekly Activity chart ── */}
