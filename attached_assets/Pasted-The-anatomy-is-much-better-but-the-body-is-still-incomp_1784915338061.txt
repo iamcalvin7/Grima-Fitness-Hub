@@ -1,0 +1,125 @@
+The anatomy is much better, but the body is still incomplete. Several limbs and connecting body sections are missing, which makes the figure look fragmented.
+
+Do not redesign the entire component again. Keep the current anatomical style and improve the SVG so the full body is present and visually connected.
+
+## Required Fix
+
+Add the missing non-muscle body structure around the selectable muscle paths.
+
+The final figure must include:
+
+- Full upper arms
+- Full forearms
+- Wrists
+- Hands
+- Fingers or simplified hand silhouettes
+- Full thighs
+- Knees
+- Lower legs
+- Ankles
+- Feet
+- Toes or simplified foot silhouettes
+- Continuous torso edges
+- Natural shoulder-to-arm connections
+- Natural hip-to-leg connections
+
+The anatomy must read as one complete human body, not a collection of floating muscle shapes.
+
+## Important Structure
+
+Use two SVG layers:
+
+### 1. Base Body Layer
+
+Create a complete full-body silhouette underneath all muscle paths.
+
+This layer should include:
+
+- Head
+- Neck
+- Torso
+- Arms
+- Hands
+- Pelvis
+- Legs
+- Feet
+
+Style:
+
+- Fill: `#171717`
+- Stroke: `#555555`
+- Stroke width: thin and consistent
+- No glow
+- No interactivity
+
+This base silhouette must remain visible even when no muscles are selected.
+
+### 2. Selectable Muscle Layer
+
+Keep the existing individual muscle paths above the base body.
+
+Selected muscles:
+
+- Purple gradient
+- Soft purple glow
+- Visible outline
+
+Unselected muscles:
+
+- Dark fill
+- Subtle grey outline
+
+Do not remove or hide body areas simply because they are not selectable.
+
+## Visual Corrections
+
+Fix the current issues:
+
+- Arms currently stop or disappear in sections
+- Hands are missing
+- Legs are broken into disconnected floating shapes
+- Knees and lower legs are not connected
+- Feet are missing
+- There are large empty gaps between muscle groups
+- The body silhouette does not read clearly from a distance
+
+Close these gaps using the base silhouette, while keeping each muscle independently selectable.
+
+## Proportions
+
+Ensure the completed body has:
+
+- Natural shoulder width
+- Arms reaching approximately mid-thigh
+- Elbows aligned near the waist
+- Hands below the hips
+- Thighs connected to the pelvis
+- Knees positioned at the correct midpoint
+- Calves tapering naturally into ankles
+- Feet proportional to the body
+- Left and right sides aligned symmetrically
+
+## SVG Requirements
+
+- Use one continuous full-body base silhouette per view
+- Keep front and back silhouettes separate
+- Use the same `viewBox` and proportions for both
+- Do not create body parts from crude rectangles
+- Use smooth organic SVG paths
+- Ensure no visible gaps between connected body regions
+- Keep all existing muscle selection logic working
+
+## Acceptance Criteria
+
+The fix is complete only when:
+
+1. The full human figure is visible from head to feet.
+2. Arms and legs are continuous.
+3. Hands and feet are present.
+4. No muscle group appears to float.
+5. Unselected body areas remain visible.
+6. The current anatomical muscle detail is preserved.
+7. The figure looks like one complete athletic body.
+8. Front and back views have matching proportions.
+
+Inspect the current SVG paths first, then add a complete anatomical base silhouette underneath them rather than attempting to turn every body section into a selectable muscle.
