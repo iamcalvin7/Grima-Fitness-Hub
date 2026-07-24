@@ -144,7 +144,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         className="relative overflow-hidden rounded-2xl"
         style={{
           aspectRatio: '1712 / 919',
-          border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(200,200,200,0.2)',
+          border: '1px solid rgba(200,200,200,0.2)',
         }}
       >
         {/* Full-bleed photo */}
@@ -154,7 +154,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         {/* Challenge pill + about CTA */}
         <div className="absolute top-3 inset-x-3 flex items-center justify-between">
           {done ? (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-green-500/30">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
               <CheckCircle2 size={11} /> Done · +{challenge.pts} pts
             </span>
           ) : (
