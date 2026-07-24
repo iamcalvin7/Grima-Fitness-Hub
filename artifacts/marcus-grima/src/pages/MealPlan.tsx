@@ -653,37 +653,21 @@ export const MealPlan = () => {
           <AnimatePresence mode="wait">
             {goalType === 'protein' && (
               <motion.div key="protein" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="flex gap-4 items-start">
-                  <Stepper
-                    label="Protein Goal" value={goals.protein} unit="g" step={5} min={10} max={300}
-                    hint={`At least ${goals.protein}g of protein`}
-                    onChange={v => setGoal('protein', v)}
-                  />
-                  <div className="flex-1 bg-[#0D0D0D] border border-white/6 rounded-sm p-3 ml-2">
-                    <p className="text-[9px] font-bold tracking-widest text-primary/70 uppercase mb-1">ⓘ Why protein?</p>
-                    <p className="text-[10px] text-foreground/50 leading-relaxed">
-                      Supports muscle growth, recovery and keeps you full longer.
-                    </p>
-                  </div>
-                </div>
+                <Stepper
+                  label="Protein Goal" value={goals.protein} unit="g" step={5} min={10} max={300}
+                  hint={`At least ${goals.protein}g of protein`}
+                  onChange={v => setGoal('protein', v)}
+                />
               </motion.div>
             )}
 
             {goalType === 'calories' && (
               <motion.div key="calories" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="flex gap-4 items-start">
-                  <Stepper
-                    label="Calorie Target" value={goals.calories} unit="kcal" step={50} min={200} max={1200}
-                    hint={`Max ${goals.calories} kcal per meal`}
-                    onChange={v => setGoal('calories', v)}
-                  />
-                  <div className="flex-1 bg-[#0D0D0D] border border-white/6 rounded-sm p-3 ml-2">
-                    <p className="text-[9px] font-bold tracking-widest text-primary/70 uppercase mb-1">ⓘ Calorie target</p>
-                    <p className="text-[10px] text-foreground/50 leading-relaxed">
-                      Find meals that fit within your daily calorie budget.
-                    </p>
-                  </div>
-                </div>
+                <Stepper
+                  label="Calorie Target" value={goals.calories} unit="kcal" step={50} min={200} max={1200}
+                  hint={`Max ${goals.calories} kcal per meal`}
+                  onChange={v => setGoal('calories', v)}
+                />
               </motion.div>
             )}
 
@@ -708,6 +692,20 @@ export const MealPlan = () => {
             Find Meals
           </motion.button>
         </div>
+
+        {/* ── Nutrition fact (outside the box) ── */}
+        {goalType === 'protein' && (
+          <p className="text-[10px] text-foreground/45 leading-relaxed mb-6 px-1">
+            <span className="font-bold tracking-widest text-foreground/60 uppercase mr-2">ⓘ Why protein?</span>
+            Supports muscle growth, recovery and keeps you full longer.
+          </p>
+        )}
+        {goalType === 'calories' && (
+          <p className="text-[10px] text-foreground/45 leading-relaxed mb-6 px-1">
+            <span className="font-bold tracking-widest text-foreground/60 uppercase mr-2">ⓘ Calorie target</span>
+            Find meals that fit within your daily calorie budget.
+          </p>
+        )}
 
         {/* ── Step 2: Results ── */}
         {hasSearched && (
@@ -770,6 +768,48 @@ export const MealPlan = () => {
             </div>
           </div>
         )}
+
+        {/* ── Favourites / popular meals ── */}
+        {!hasSearched && (() => {
+          const favs = MEALS.filter(m => savedIds.has(m.id));
+          const list = (favs.length > 0 ? favs : [...MEALS].sort((a, b) => b.protein - a.protein)).slice(0, 4);
+          return (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-bold tracking-wider">
+                  {favs.length > 0 ? 'Your Favourites' : 'Popular Meals'}
+                </h2>
+                {favs.length > 0 && (
+                  <button
+                    onClick={() => setView({ kind: 'saved' })}
+                    className="text-[9px] font-bold tracking-widest uppercase text-foreground/40 hover:text-foreground transition-colors"
+                  >
+                    View all
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {list.map(meal => (
+                  <button
+                    key={meal.id}
+                    onClick={() => setView({ kind: 'detail', mealId: meal.id })}
+                    className="text-left bg-[#111111] border border-white/6 hover:border-white/15 rounded-sm overflow-hidden transition-colors"
+                  >
+                    <div className="h-24 w-full overflow-hidden">
+                      <img src={mealImg(meal)} alt={meal.name} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                    <div className="p-3">
+                      <p className="text-xs font-bold leading-snug line-clamp-1">{meal.name}</p>
+                      <p className="text-[10px] text-foreground/45 mt-1">
+                        {meal.protein}g protein · {meal.calories} kcal
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
