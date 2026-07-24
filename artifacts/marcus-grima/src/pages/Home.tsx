@@ -192,35 +192,32 @@ export const Home = ({ setPage }: HomeProps) => {
                   </div>
                 </div>
 
-                {/* Body Map + Exercise List */}
-                <div className="flex flex-col sm:flex-row">
-                  {/* Body Map */}
-                  <div className="sm:w-52 p-4 border-b sm:border-b-0 sm:border-r border-white/5 flex items-start justify-center pt-5">
-                    <BodyMap musclesWorked={['CHEST', 'SHOULDERS', 'TRICEPS']} compact />
-                  </div>
+                {/* Body Map — full width */}
+                <div className="px-5 pt-5 pb-2 border-b border-white/5">
+                  <BodyMap musclesWorked={['CHEST', 'SHOULDERS', 'TRICEPS']} />
+                </div>
 
-                  {/* Exercise list */}
-                  <div className="flex-1 divide-y divide-white/5">
-                    {[
-                      { name: 'Bench Press',           sets: '4 × 8 @ 80kg',  muscle: 'CHEST' },
-                      { name: 'Overhead Press',         sets: '3 × 10 @ 50kg', muscle: 'SHOULDERS' },
-                      { name: 'Incline Dumbbell Press', sets: '3 × 12 @ 28kg', muscle: 'CHEST' },
-                      { name: 'Lateral Raises',         sets: '4 × 15 @ 10kg', muscle: 'SHOULDERS' },
-                      { name: 'Skull Crushers',         sets: '3 × 12 @ 30kg', muscle: 'TRICEPS' },
-                      { name: 'Cable Flyes',            sets: '3 × 15 @ 15kg', muscle: 'CHEST' },
-                      { name: 'Tricep Dips',            sets: '3 × failure',   muscle: 'TRICEPS' },
-                    ].map((exercise, i) => (
-                      <div key={i} className="flex justify-between items-center px-4 py-3 hover:bg-white/[0.03] transition-colors">
-                        <div>
-                          <p className="text-sm font-bold">{exercise.name}</p>
-                          <p className="text-[10px] font-bold tracking-widest text-foreground/40 mt-0.5">{exercise.sets}</p>
-                        </div>
-                        <span className="text-[9px] font-bold tracking-widest text-primary/80 uppercase ml-3 shrink-0">
-                          {exercise.muscle}
-                        </span>
+                {/* Exercise list */}
+                <div className="divide-y divide-white/5">
+                  {[
+                    { name: 'Bench Press',           sets: '4 × 8 @ 80kg',  muscle: 'CHEST' },
+                    { name: 'Overhead Press',         sets: '3 × 10 @ 50kg', muscle: 'SHOULDERS' },
+                    { name: 'Incline Dumbbell Press', sets: '3 × 12 @ 28kg', muscle: 'CHEST' },
+                    { name: 'Lateral Raises',         sets: '4 × 15 @ 10kg', muscle: 'SHOULDERS' },
+                    { name: 'Skull Crushers',         sets: '3 × 12 @ 30kg', muscle: 'TRICEPS' },
+                    { name: 'Cable Flyes',            sets: '3 × 15 @ 15kg', muscle: 'CHEST' },
+                    { name: 'Tricep Dips',            sets: '3 × failure',   muscle: 'TRICEPS' },
+                  ].map((exercise, i) => (
+                    <div key={i} className="flex justify-between items-center px-4 py-3 hover:bg-white/[0.03] transition-colors">
+                      <div>
+                        <p className="text-sm font-bold">{exercise.name}</p>
+                        <p className="text-[10px] font-bold tracking-widest text-foreground/40 mt-0.5">{exercise.sets}</p>
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-[9px] font-bold tracking-widest text-primary/80 uppercase ml-3 shrink-0">
+                        {exercise.muscle}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>

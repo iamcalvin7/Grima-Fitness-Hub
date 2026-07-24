@@ -1,0 +1,154 @@
+Redesign the Body Map component from scratch. The current version is too simplistic and looks like a placeholder. I want it to match the quality and style of the reference image while keeping my brand colours.
+
+## Goal
+
+Create a premium, anatomically inspired body map that feels modern, realistic and polished. The body should look closer to a real human silhouette rather than a basic mannequin.
+
+The design should feel similar to Apple Health, Whoop, Levels or high-end fitness apps.
+
+## Visual Style
+
+- Dark premium interface
+- Clean vector illustration
+- Anatomically accurate muscle groups
+- Thin light-grey outlines
+- Soft rounded curves
+- Symmetrical proportions
+- Elegant, minimal aesthetic
+- High contrast
+- Premium mobile app quality
+
+Avoid cartoon or blocky body shapes.
+
+## Body
+
+Replace the current stick/mannequin figure with a realistic athletic silhouette.
+
+Requirements:
+- Better head proportions
+- Defined neck
+- Natural shoulders
+- Realistic torso width
+- Defined waist
+- Proper arm proportions
+- Proper leg proportions
+- Hands and feet visible
+- Smooth vector curves
+- Front and back views
+
+## Muscle Groups
+
+Each muscle group should be its own SVG path so it can be individually selected.
+
+Include:
+
+Front
+- Chest
+- Front deltoids
+- Biceps
+- Forearms
+- Abs
+- Obliques
+- Quadriceps
+- Tibialis
+
+Back
+- Rear deltoids
+- Traps
+- Lats
+- Rhomboids
+- Triceps
+- Lower back
+- Glutes
+- Hamstrings
+- Calves
+
+## States
+
+Inactive
+- Very dark fill (#1B1B1B)
+- Grey outline (#505050)
+
+Selected
+- Fill with brand purple (#7C3AED)
+- Soft purple glow
+- Slight inner gradient
+- Smooth 200ms transition
+
+Hover
+- Slight brightness increase
+
+## Interaction
+
+Users can:
+
+- Tap any muscle group
+- Select multiple muscles
+- Toggle on/off
+- Switch between Front and Back
+- Preserve selections when switching sides
+
+## UI Improvements
+
+Replace the existing Front / Back toggle with a modern segmented control.
+
+Selected state:
+- Purple background
+- White text
+
+Inactive:
+- Dark grey
+- Light grey text
+
+Animate the transition.
+
+## Muscle Chips
+
+Replace the current rectangular buttons with premium pills.
+
+Example:
+
+Chest
+Shoulders
+Biceps
+Triceps
+Back
+Abs
+Glutes
+Hamstrings
+
+Selected:
+- Purple fill
+- White text
+
+Unselected:
+- Dark background
+- Grey border
+
+## Animation
+
+Everything should feel premium.
+
+- Fade between front/back
+- Muscle glow animation
+- Scale selected muscles slightly (1.02x)
+- Smooth easing throughout
+
+## Technical
+
+Build this as a reusable React + TypeScript component.
+
+Requirements:
+- SVG based
+- Fully responsive
+- Easy to add new muscle groups
+- No hardcoded positioning
+- Clean component architecture
+- Optimised rendering
+- Maintainable code
+
+## Overall Direction
+
+The finished body map should look like something found in a premium fitness application, not a simple illustration. The anatomy should be elegant and realistic, with clearly separated muscle groups and subtle outlines. The selected muscles should stand out through colour and glow rather than heavy borders.
+
+Use the attached reference purely for inspiration on anatomical detail, line quality and proportions, while keeping my brand styling (black background and purple highlights).
