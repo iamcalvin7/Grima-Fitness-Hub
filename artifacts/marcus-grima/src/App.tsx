@@ -16,29 +16,24 @@ function isAuthed() {
     const raw = localStorage.getItem('mg_auth');
     if (!raw) return false;
     const { ts } = JSON.parse(raw);
-    // Sessions last 30 days
-    return Date.now() - ts < 30 * 24 * 60 * 60 * 1000;
-  } catch {
-    return false;
-  }
+    return Date.now() - ts < 30 * 24 * 60 * 60 * 1000; // 30 days
+  } catch { return false; }
 }
 
 function App() {
-  const [showSplash, setShowSplash]       = useState(true);
-  const [authed, setAuthed]               = useState(isAuthed);
-  const [activePage, setActivePage]       = useState<Page>('home');
+  const [showSplash, setShowSplash] = useState(true);
+  const [authed, setAuthed]         = useState(isAuthed);
+  const [activePage, setActivePage] = useState<Page>('home');
 
-  // 1. Always show splash first (brand moment)
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
+  const handleLogout = () => {
+    localStorage.removeItem('mg_auth');
+    setAuthed(false);
+    setActivePage('home');
+  };
 
-  // 2. If not authed, show onboarding + sign-in
-  if (!authed) {
-    return <Onboarding onComplete={() => setAuthed(true)} />;
-  }
+  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  if (!authed)    return <Onboarding onComplete={() => setAuthed(true)} />;
 
-  // 3. Main app
   return (
     <Layout activePage={activePage} setPage={setActivePage}>
       {activePage === 'home'     && <Home     setPage={setActivePage} />}
@@ -46,7 +41,7 @@ function App() {
       {activePage === 'workouts' && <Workouts />}
       {activePage === 'meals'    && <MealPlan />}
       {activePage === 'messages' && <Messages setPage={setActivePage} />}
-      {activePage === 'profile'  && <Profile  setPage={setActivePage} />}
+      {activePage === 'profile'  && <Profile  setPage={setActivePage} onLogout={handleLogout} />}
     </Layout>
   );
 }

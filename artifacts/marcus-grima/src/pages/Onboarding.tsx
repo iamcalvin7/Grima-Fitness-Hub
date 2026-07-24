@@ -1,151 +1,266 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import {
+  ChevronRight, ChevronLeft, Eye, EyeOff, AlertCircle,
+  Target, Flame, Heart, Zap, Activity, CheckCircle2,
+} from 'lucide-react';
+import { ScrollPicker } from '@/components/ScrollPicker';
 
-/* ── Credentials (app-level, no backend) ─────────────────────────────────── */
-const USERS: Record<string, string> = {
-  marcus: 'grima2024',
-  client: 'mgpt2024',
-};
+/* ─────────────────────────────────────────────────────────────────────────
+   Auth helpers
+───────────────────────────────────────────────────────────────────────── */
+const BUILTIN: Record<string, string> = { marcus: 'grima2024', client: 'mgpt2024' };
 
-/* ── Slide data ───────────────────────────────────────────────────────────── */
+function getRegisteredUsers(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem('mg_users') || '{}'); } catch { return {}; }
+}
+function registerUser(username: string, password: string) {
+  const users = getRegisteredUsers();
+  users[username.toLowerCase()] = password;
+  localStorage.setItem('mg_users', JSON.stringify(users));
+}
+function checkCredentials(username: string, password: string) {
+  const u = username.toLowerCase().trim();
+  return BUILTIN[u] === password || getRegisteredUsers()[u] === password;
+}
+function saveSession(username: string) {
+  localStorage.setItem('mg_auth', JSON.stringify({ user: username.toLowerCase(), ts: Date.now() }));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Profile helpers
+───────────────────────────────────────────────────────────────────────── */
+export interface MGProfile {
+  firstName:     string;
+  lastName:      string;
+  gender:        string;
+  age:           number;
+  weightKg:      number;
+  heightCm:      number;
+  goal:          string;
+  activityLevel: string;
+  username:      string;
+  memberSince:   string;
+}
+
+function saveProfile(p: MGProfile) {
+  localStorage.setItem('mg_profile', JSON.stringify(p));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Slide data
+───────────────────────────────────────────────────────────────────────── */
 const SLIDES = [
   {
-    id: 0,
-    eyebrow: 'MARCUS GRIMA PT',
+    id: 0, eyebrow: 'MARCUS GRIMA PT',
     headline: ['TRAIN', 'HARDER.'],
     body: 'Elite personal training designed around your goals, your schedule, and your potential.',
-    accent: '#8B45D9',
-    bg: 'from-[#0A0A0A] via-[#0D0A14] to-[#0A0A0A]',
-    dot: '#8B45D9',
+    accent: '#8B45D9', bg: 'from-[#0A0A0A] via-[#0D0A14] to-[#0A0A0A]',
   },
   {
-    id: 1,
-    eyebrow: 'TRACK EVERYTHING',
+    id: 1, eyebrow: 'TRACK EVERYTHING',
     headline: ['RESULTS', 'FOLLOW.'],
     body: 'Log every set, monitor your nutrition, and watch your metrics move in real time.',
-    accent: '#16a34a',
-    bg: 'from-[#0A0A0A] via-[#0A110D] to-[#0A0A0A]',
-    dot: '#16a34a',
+    accent: '#16a34a', bg: 'from-[#0A0A0A] via-[#0A110D] to-[#0A0A0A]',
   },
   {
-    id: 2,
-    eyebrow: 'BUILT FOR YOU',
+    id: 2, eyebrow: 'BUILT FOR YOU',
     headline: ['YOUR PT,', 'YOUR WAY.'],
     body: 'Book sessions, get coaching cues, and stay connected with Marcus wherever you are.',
-    accent: '#8B45D9',
-    bg: 'from-[#0A0A0A] via-[#0D0A14] to-[#0A0A0A]',
-    dot: '#8B45D9',
+    accent: '#8B45D9', bg: 'from-[#0A0A0A] via-[#0D0A14] to-[#0A0A0A]',
   },
 ];
 
-/* ── Animated headline word ───────────────────────────────────────────────── */
-function Word({ text, delay, colour }: { text: string; delay: number; colour: string }) {
+/* ─────────────────────────────────────────────────────────────────────────
+   Step type
+───────────────────────────────────────────────────────────────────────── */
+type Step =
+  | { kind: 'slide'; idx: number }
+  | { kind: 'choice' }
+  | { kind: 'name' }
+  | { kind: 'gender' }
+  | { kind: 'age' }
+  | { kind: 'weight' }
+  | { kind: 'height' }
+  | { kind: 'goal' }
+  | { kind: 'activity' }
+  | { kind: 'login' }
+  | { kind: 'welcome' }
+  | { kind: 'signin' };
+
+const SIGNUP_ORDER: Step['kind'][] = ['name','gender','age','weight','height','goal','activity','login'];
+const SIGNUP_STEP_NUM = (k: Step['kind']) => SIGNUP_ORDER.indexOf(k) + 1;
+const SIGNUP_TOTAL = SIGNUP_ORDER.length;
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Picker value arrays
+───────────────────────────────────────────────────────────────────────── */
+const AGES    = Array.from({ length: 55 }, (_, i) => String(i + 16));       // 16-70
+const WEIGHTS = Array.from({ length: 111 }, (_, i) => `${i + 40} kg`);     // 40-150
+const HEIGHTS = Array.from({ length: 81 }, (_, i) => `${i + 140} cm`);     // 140-220
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Reusable UI pieces
+───────────────────────────────────────────────────────────────────────── */
+
+const slide = {
+  initial: { opacity: 0, x: 32 },
+  animate: { opacity: 1, x: 0 },
+  exit:    { opacity: 0, x: -32 },
+  transition: { duration: 0.28, ease: 'easeOut' as const },
+};
+
+function MGLogo() {
   return (
-    <motion.span
-      initial={{ opacity: 0, y: 30, skewY: 4 }}
-      animate={{ opacity: 1, y: 0, skewY: 0 }}
-      transition={{ delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="block"
-      style={{ color: colour }}
-    >
-      {text}
-    </motion.span>
+    <svg viewBox="0 0 100 100" fill="none" className="w-7 h-7">
+      <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#C0C0C0"/>
+      <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#C0C0C0"/>
+    </svg>
   );
 }
 
-/* ── Single slide ─────────────────────────────────────────────────────────── */
-function Slide({ slide, onNext, isLast }: { slide: typeof SLIDES[0]; onNext: () => void; isLast: boolean }) {
+/* Progress bar + back for signup steps */
+function StepShell({
+  stepNum, total = SIGNUP_TOTAL, onBack, onContinue,
+  continueLabel = 'CONTINUE', continueDisabled = false, children,
+}: {
+  stepNum: number; total?: number; onBack: () => void; onContinue: () => void;
+  continueLabel?: string; continueDisabled?: boolean; children: React.ReactNode;
+}) {
+  const pct = (stepNum / total) * 100;
+  return (
+    <motion.div {...slide} className="fixed inset-0 bg-[#0A0A0A] flex flex-col">
+      {/* Top bar */}
+      <div className="shrink-0 px-5 pt-12 pb-3">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-white/40 hover:text-white transition-colors p-1 -ml-1">
+            <ChevronLeft size={22} />
+          </button>
+          <span className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">{stepNum} of {total}</span>
+        </div>
+        <div className="h-0.5 bg-white/8 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-primary rounded-full"
+            initial={{ width: `${((stepNum - 1) / total) * 100}%` }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4">{children}</div>
+
+      {/* Continue button */}
+      <div className="shrink-0 px-6 pb-10 pt-4">
+        <motion.button
+          onClick={onContinue}
+          disabled={continueDisabled}
+          whileTap={{ scale: 0.98 }}
+          className="w-full py-4 bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
+                     flex items-center justify-between px-6 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <span>{continueLabel}</span>
+          <ChevronRight size={18} />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
+function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mb-8">
+      <h2 className="text-4xl font-black tracking-tight text-white leading-tight mb-2">{title}</h2>
+      {subtitle && <p className="text-sm text-white/40 font-medium leading-relaxed">{subtitle}</p>}
+    </div>
+  );
+}
+
+function SelectCard({
+  label, sub, icon, selected, onClick,
+}: { label: string; sub?: string; icon?: React.ReactNode; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-4 px-5 py-4 border text-left transition-all ${
+        selected
+          ? 'border-primary bg-primary/10 text-white'
+          : 'border-white/8 bg-[#111111] text-white/60 hover:border-white/20'
+      }`}
+    >
+      {icon && <div className={`text-xl ${selected ? 'text-primary' : 'text-white/30'}`}>{icon}</div>}
+      <div className="flex-1">
+        <p className={`text-sm font-bold tracking-wider ${selected ? 'text-white' : 'text-white/60'}`}>{label}</p>
+        {sub && <p className={`text-[11px] font-medium mt-0.5 ${selected ? 'text-white/50' : 'text-white/25'}`}>{sub}</p>}
+      </div>
+      {selected && <CheckCircle2 size={18} className="text-primary shrink-0" />}
+    </button>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Welcome slide component
+───────────────────────────────────────────────────────────────────────── */
+function SlideScreen({ s, onNext, isLast, onSkip }: {
+  s: typeof SLIDES[0]; onNext: () => void; isLast: boolean; onSkip: () => void;
+}) {
   return (
     <motion.div
-      key={slide.id}
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
-      className={`fixed inset-0 bg-gradient-to-br ${slide.bg} flex flex-col`}
+      key={`slide-${s.id}`}
+      initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.32, ease: 'easeOut' }}
+      className={`fixed inset-0 bg-gradient-to-br ${s.bg} flex flex-col`}
     >
-      {/* Background texture lines */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.04]">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="absolute h-px w-full bg-white" style={{ top: `${(i + 1) * 8}%` }} />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96
+                      rounded-full blur-[130px] opacity-20 pointer-events-none"
+        style={{ background: s.accent }} />
+
+      {/* Background grid lines */}
+      <div className="absolute inset-0 overflow-hidden opacity-[0.035] pointer-events-none">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="absolute h-px w-full bg-white" style={{ top: `${(i + 1) * 9}%` }} />
         ))}
       </div>
 
-      {/* Accent glow blob */}
-      <div
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full blur-[120px] opacity-20 pointer-events-none"
-        style={{ background: slide.accent }}
-      />
-
-      {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-14">
-        <div className="flex items-center gap-2">
-          <svg viewBox="0 0 100 100" fill="none" className="w-7 h-7">
-            <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#C0C0C0" />
-            <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#C0C0C0" />
-          </svg>
-          <span className="text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase">Marcus Grima</span>
+        <div className="flex items-center gap-2"><MGLogo />
+          <span className="text-[10px] font-bold tracking-[0.25em] text-white/30 uppercase">Marcus Grima</span>
         </div>
-        <button
-          onClick={onNext}
-          className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase hover:text-white/60 transition-colors"
-        >
+        <button onClick={onSkip}
+          className="text-[10px] font-bold tracking-[0.2em] text-white/25 uppercase hover:text-white/50 transition-colors">
           Skip
         </button>
       </div>
 
-      {/* Main content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-16">
-        <motion.p
-          key={`eyebrow-${slide.id}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="text-[10px] font-bold tracking-[0.3em] mb-6 uppercase"
-          style={{ color: slide.accent }}
-        >
-          {slide.eyebrow}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-14">
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+          className="text-[10px] font-bold tracking-[0.3em] mb-5 uppercase" style={{ color: s.accent }}>
+          {s.eyebrow}
         </motion.p>
-
-        <h1 className="text-[58px] font-black leading-[0.9] tracking-[-0.02em] text-white mb-6">
-          {slide.headline.map((line, i) => (
-            <Word key={`${slide.id}-${i}`} text={line} delay={0.15 + i * 0.1} colour="#FFFFFF" />
+        <h1 className="text-[60px] font-black leading-[0.88] tracking-[-0.02em] text-white mb-6">
+          {s.headline.map((line, i) => (
+            <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.1, duration: 0.45, ease: [0.22,1,0.36,1] }}
+              className="block">{line}</motion.span>
           ))}
         </h1>
+        <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}
+          className="text-sm text-white/45 leading-relaxed font-medium mb-10 max-w-xs">{s.body}</motion.p>
 
-        <motion.p
-          key={`body-${slide.id}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="text-sm text-white/50 leading-relaxed font-medium mb-12 max-w-xs"
-        >
-          {slide.body}
-        </motion.p>
-
-        {/* Dot indicators */}
         <div className="flex items-center gap-2 mb-8">
-          {SLIDES.map((s) => (
-            <motion.div
-              key={s.id}
-              animate={{ width: s.id === slide.id ? 24 : 6, opacity: s.id === slide.id ? 1 : 0.3 }}
+          {SLIDES.map((sl) => (
+            <motion.div key={sl.id}
+              animate={{ width: sl.id === s.id ? 24 : 6, opacity: sl.id === s.id ? 1 : 0.3 }}
               transition={{ duration: 0.3 }}
-              className="h-1.5 rounded-full"
-              style={{ background: slide.dot }}
-            />
+              className="h-1.5 rounded-full" style={{ background: s.accent }} />
           ))}
         </div>
 
-        {/* CTA button */}
-        <motion.button
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}
           onClick={onNext}
           className="flex items-center justify-between w-full px-6 py-4 text-white font-bold tracking-[0.15em] uppercase text-sm"
-          style={{ background: slide.accent }}
-        >
+          style={{ background: s.accent }}>
           <span>{isLast ? 'GET STARTED' : 'NEXT'}</span>
           <ChevronRight size={18} />
         </motion.button>
@@ -154,129 +269,133 @@ function Slide({ slide, onNext, isLast }: { slide: typeof SLIDES[0]; onNext: () 
   );
 }
 
-/* ── Sign In screen ───────────────────────────────────────────────────────── */
-function SignIn({ onAuth }: { onAuth: () => void }) {
+/* ─────────────────────────────────────────────────────────────────────────
+   Choice screen
+───────────────────────────────────────────────────────────────────────── */
+function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: () => void }) {
+  return (
+    <motion.div {...slide} className="fixed inset-0 bg-[#0A0A0A] flex flex-col px-6">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full
+                      blur-[100px] opacity-10 pointer-events-none bg-primary" />
+      <div className="relative z-10 flex-1 flex flex-col justify-center">
+        <div className="w-14 h-14 bg-primary/10 border border-primary/30 flex items-center justify-center mb-10">
+          <MGLogo />
+        </div>
+        <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">Welcome</p>
+        <h1 className="text-4xl font-black tracking-tight text-white leading-tight mb-3">
+          GOOD TO<br />SEE YOU.
+        </h1>
+        <p className="text-sm text-white/40 font-medium mb-14">Are you a new client or have you trained with Marcus before?</p>
+
+        <div className="flex flex-col gap-3">
+          <button onClick={onNew}
+            className="w-full py-4 bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
+                       flex items-center justify-between px-6">
+            <span>I'M A NEW CLIENT</span>
+            <ChevronRight size={18} />
+          </button>
+          <button onClick={onReturning}
+            className="w-full py-4 border border-white/15 text-white/60 font-bold tracking-[0.15em] uppercase text-sm
+                       flex items-center justify-between px-6 hover:border-white/30 hover:text-white transition-colors">
+            <span>I HAVE AN ACCOUNT</span>
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+      <p className="relative z-10 text-center text-[10px] text-white/15 font-semibold tracking-wide pb-10">
+        Your account is provided or created with Marcus
+      </p>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Sign-in screen
+───────────────────────────────────────────────────────────────────────── */
+function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw]     = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault(); setError(''); setLoading(true);
     setTimeout(() => {
-      const expected = USERS[username.toLowerCase().trim()];
-      if (expected && expected === password) {
-        localStorage.setItem('mg_auth', JSON.stringify({ user: username.toLowerCase().trim(), ts: Date.now() }));
+      if (checkCredentials(username, password)) {
+        saveSession(username);
         onAuth();
       } else {
         setError('Incorrect username or password.');
         setLoading(false);
       }
-    }, 700);
+    }, 600);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="fixed inset-0 bg-[#0A0A0A] flex flex-col"
-    >
-      {/* Accent glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-15 pointer-events-none"
-        style={{ background: '#8B45D9' }} />
-
-      <div className="relative z-10 flex-1 flex flex-col px-6 pt-16 pb-10">
-        {/* Logo */}
-        <div className="mb-12">
-          <div className="w-14 h-14 bg-primary/10 border border-primary/30 flex items-center justify-center mb-6">
-            <svg viewBox="0 0 100 100" fill="none" className="w-8 h-8">
-              <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#8B45D9" />
-              <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#8B45D9" />
-            </svg>
-          </div>
-          <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-2">Welcome back</p>
-          <h1 className="text-4xl font-black tracking-tight text-white leading-tight">
-            SIGN IN TO<br />YOUR APP
-          </h1>
+    <motion.div {...slide} className="fixed inset-0 bg-[#0A0A0A] flex flex-col">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full
+                      blur-[100px] opacity-12 pointer-events-none bg-primary" />
+      <div className="relative z-10 flex-1 flex flex-col px-6 pt-12 pb-10">
+        <button onClick={onBack} className="text-white/40 hover:text-white transition-colors p-1 -ml-1 mb-10">
+          <ChevronLeft size={22} />
+        </button>
+        <div className="w-12 h-12 bg-primary/10 border border-primary/30 flex items-center justify-center mb-8">
+          <svg viewBox="0 0 100 100" fill="none" className="w-7 h-7">
+            <path d="M 20,80 L 20,20 L 40,50 L 60,20 L 60,50 L 50,65 L 60,80 L 40,80 L 40,65 L 30,80 Z" fill="#8B45D9"/>
+            <path d="M 85,35 L 75,20 L 55,50 L 75,80 L 85,65 L 70,65 L 65,50 Z" fill="#8B45D9"/>
+          </svg>
         </div>
+        <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-2">Welcome back</p>
+        <h1 className="text-4xl font-black tracking-tight text-white leading-tight mb-10">
+          SIGN IN TO<br />YOUR APP
+        </h1>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
+        <form onSubmit={submit} className="flex flex-col gap-4 flex-1">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase">Username</label>
-            <input
-              type="text"
-              value={username}
+            <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Username</label>
+            <input type="text" value={username} autoCapitalize="none" autoComplete="username"
               onChange={e => { setUsername(e.target.value); setError(''); }}
               placeholder="Enter your username"
-              autoCapitalize="none"
-              autoComplete="username"
-              className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5 outline-none focus:border-primary/60 transition-colors placeholder:text-white/20"
-            />
+              className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5
+                         outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
           </div>
-
           <div className="space-y-1">
-            <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase">Password</label>
+            <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Password</label>
             <div className="relative">
-              <input
-                type={showPw ? 'text' : 'password'}
-                value={password}
+              <input type={showPw ? 'text' : 'password'} value={password} autoComplete="current-password"
                 onChange={e => { setPassword(e.target.value); setError(''); }}
                 placeholder="Enter your password"
-                autoComplete="current-password"
-                className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5 pr-12 outline-none focus:border-primary/60 transition-colors placeholder:text-white/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-              >
+                className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5 pr-12
+                           outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          {/* Error */}
           <AnimatePresence>
             {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-2 text-red-400 text-xs font-semibold"
-              >
-                <AlertCircle size={13} />
-                {error}
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="flex items-center gap-2 text-red-400 text-xs font-semibold">
+                <AlertCircle size={13} />{error}
               </motion.div>
             )}
           </AnimatePresence>
 
           <div className="flex-1" />
 
-          {/* Submit */}
-          <motion.button
-            type="submit"
-            disabled={loading || !username || !password}
-            whileTap={{ scale: 0.98 }}
+          <motion.button type="submit" disabled={loading || !username || !password} whileTap={{ scale: 0.98 }}
             className="w-full py-4 bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
-                       disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-              />
-            ) : 'SIGN IN'}
+                       disabled:opacity-35 flex items-center justify-center gap-2">
+            {loading
+              ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+              : 'SIGN IN'}
           </motion.button>
-
-          <p className="text-center text-[10px] text-white/20 font-semibold tracking-wide">
-            Your login details are provided by Marcus
+          <p className="text-center text-[10px] text-white/18 font-semibold tracking-wide">
+            Login details are set up with Marcus or created during sign-up
           </p>
         </form>
       </div>
@@ -284,34 +403,356 @@ function SignIn({ onAuth }: { onAuth: () => void }) {
   );
 }
 
-/* ── Main Onboarding component ────────────────────────────────────────────── */
-type Step = { kind: 'slide'; idx: number } | { kind: 'signin' };
+/* ─────────────────────────────────────────────────────────────────────────
+   Sign-up steps
+───────────────────────────────────────────────────────────────────────── */
 
-export function Onboarding({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState<Step>({ kind: 'slide', idx: 0 });
+// Step: Name
+function NameStep({ draft, setDraft, onBack, onNext }: any) {
+  return (
+    <StepShell stepNum={1} onBack={onBack} onContinue={onNext}
+      continueDisabled={!draft.firstName.trim() || !draft.lastName.trim()}>
+      <StepTitle title="WHAT'S YOUR NAME?" subtitle="This is how Marcus will greet you in the app." />
+      <div className="flex flex-col gap-4">
+        {[
+          { label: 'First Name', key: 'firstName', placeholder: 'e.g. Alex' },
+          { label: 'Last Name',  key: 'lastName',  placeholder: 'e.g. Johnson' },
+        ].map(f => (
+          <div key={f.key} className="space-y-1">
+            <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">{f.label}</label>
+            <input
+              type="text"
+              value={draft[f.key]}
+              onChange={e => setDraft({ ...draft, [f.key]: e.target.value })}
+              placeholder={f.placeholder}
+              className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5
+                         outline-none focus:border-primary/60 transition-colors placeholder:text-white/18"
+            />
+          </div>
+        ))}
+      </div>
+    </StepShell>
+  );
+}
 
-  const next = () => {
-    if (step.kind === 'slide') {
-      if (step.idx < SLIDES.length - 1) {
-        setStep({ kind: 'slide', idx: step.idx + 1 });
-      } else {
-        setStep({ kind: 'signin' });
-      }
-    }
+// Step: Gender
+function GenderStep({ draft, setDraft, onBack, onNext }: any) {
+  const opts = ['Male', 'Female', 'Other'];
+  return (
+    <StepShell stepNum={2} onBack={onBack} onContinue={onNext} continueDisabled={!draft.gender}>
+      <StepTitle title="YOUR GENDER" subtitle="Helps Marcus tailor your programme and nutrition." />
+      <div className="flex flex-col gap-3">
+        {opts.map(g => (
+          <SelectCard key={g} label={g} selected={draft.gender === g}
+            onClick={() => setDraft({ ...draft, gender: g })} />
+        ))}
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Age
+function AgeStep({ draft, setDraft, onBack, onNext }: any) {
+  const idx = AGES.indexOf(String(draft.age));
+  return (
+    <StepShell stepNum={3} onBack={onBack} onContinue={onNext}>
+      <StepTitle title="HOW OLD ARE YOU?" />
+      <div className="mt-4">
+        <ScrollPicker
+          values={AGES}
+          selectedIndex={idx >= 0 ? idx : 12}
+          onChange={i => setDraft({ ...draft, age: parseInt(AGES[i]) })}
+        />
+        <p className="text-center text-[10px] font-bold tracking-[0.2em] text-white/25 uppercase mt-4">years old</p>
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Weight
+function WeightStep({ draft, setDraft, onBack, onNext }: any) {
+  const idx = WEIGHTS.findIndex(w => w === `${draft.weightKg} kg`);
+  return (
+    <StepShell stepNum={4} onBack={onBack} onContinue={onNext}>
+      <StepTitle title="CURRENT WEIGHT" subtitle="You can always update this in your profile." />
+      <div className="mt-4">
+        <ScrollPicker
+          values={WEIGHTS}
+          selectedIndex={idx >= 0 ? idx : 40}
+          onChange={i => setDraft({ ...draft, weightKg: i + 40 })}
+        />
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Height
+function HeightStep({ draft, setDraft, onBack, onNext }: any) {
+  const idx = HEIGHTS.findIndex(h => h === `${draft.heightCm} cm`);
+  return (
+    <StepShell stepNum={5} onBack={onBack} onContinue={onNext}>
+      <StepTitle title="YOUR HEIGHT" />
+      <div className="mt-4">
+        <ScrollPicker
+          values={HEIGHTS}
+          selectedIndex={idx >= 0 ? idx : 40}
+          onChange={i => setDraft({ ...draft, heightCm: i + 140 })}
+        />
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Goal
+const GOALS = [
+  { label: 'Build Muscle',       sub: 'Increase size and strength',           icon: <Zap size={20} /> },
+  { label: 'Lose Weight',        sub: 'Reduce body fat and get lean',         icon: <Flame size={20} /> },
+  { label: 'Get Fit',            sub: 'Improve overall health and fitness',   icon: <Heart size={20} /> },
+  { label: 'Increase Strength',  sub: 'Get stronger in compound movements',   icon: <Target size={20} /> },
+  { label: 'Improve Endurance',  sub: 'Build cardiovascular capacity',        icon: <Activity size={20} /> },
+];
+
+function GoalStep({ draft, setDraft, onBack, onNext }: any) {
+  return (
+    <StepShell stepNum={6} onBack={onBack} onContinue={onNext} continueDisabled={!draft.goal}>
+      <StepTitle title="WHAT'S YOUR GOAL?" subtitle="Marcus will build your programme around this." />
+      <div className="flex flex-col gap-3">
+        {GOALS.map(g => (
+          <SelectCard key={g.label} label={g.label} sub={g.sub} icon={g.icon}
+            selected={draft.goal === g.label}
+            onClick={() => setDraft({ ...draft, goal: g.label })} />
+        ))}
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Activity Level
+const ACTIVITY = [
+  { label: 'Beginner',     sub: 'New to training or returning after a break' },
+  { label: 'Intermediate', sub: 'Training regularly for 6+ months' },
+  { label: 'Advanced',     sub: 'Experienced athlete, 2+ years consistent training' },
+];
+
+function ActivityStep({ draft, setDraft, onBack, onNext }: any) {
+  return (
+    <StepShell stepNum={7} onBack={onBack} onContinue={onNext} continueDisabled={!draft.activityLevel}>
+      <StepTitle title="ACTIVITY LEVEL" subtitle="Be honest — Marcus will adjust as you progress." />
+      <div className="flex flex-col gap-3">
+        {ACTIVITY.map(a => (
+          <SelectCard key={a.label} label={a.label} sub={a.sub}
+            selected={draft.activityLevel === a.label}
+            onClick={() => setDraft({ ...draft, activityLevel: a.label })} />
+        ))}
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Create Login
+function LoginStep({ draft, setDraft, onBack, onNext }: any) {
+  const [showPw, setShowPw]   = useState(false);
+  const [confirm, setConfirm] = useState('');
+  const [error, setError]     = useState('');
+
+  const usernameOk = draft.username.trim().length >= 3;
+  const passwordOk = draft.newPassword?.length >= 6;
+  const matchOk    = draft.newPassword === confirm;
+  const taken      = !!(getRegisteredUsers()[draft.username?.toLowerCase()] || BUILTIN[draft.username?.toLowerCase()]);
+
+  const canContinue = usernameOk && passwordOk && matchOk && !taken;
+
+  const handleNext = () => {
+    if (!canContinue) { setError('Please fix the errors above.'); return; }
+    setError('');
+    onNext();
   };
 
   return (
+    <StepShell stepNum={8} onBack={onBack} onContinue={handleNext}
+      continueLabel="CREATE ACCOUNT" continueDisabled={!canContinue}>
+      <StepTitle title="CREATE YOUR LOGIN" subtitle="You'll use these to sign in next time." />
+      <div className="flex flex-col gap-4">
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Username</label>
+          <input type="text" value={draft.username} autoCapitalize="none"
+            onChange={e => { setDraft({ ...draft, username: e.target.value }); setError(''); }}
+            placeholder="Choose a username"
+            className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5
+                       outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
+          {draft.username.length >= 3 && taken && (
+            <p className="text-[11px] text-red-400 font-semibold">Username already taken.</p>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Password</label>
+          <div className="relative">
+            <input type={showPw ? 'text' : 'password'} value={draft.newPassword || ''}
+              onChange={e => setDraft({ ...draft, newPassword: e.target.value })}
+              placeholder="Min. 6 characters"
+              className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5 pr-12
+                         outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
+            <button type="button" onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Confirm Password</label>
+          <input type="password" value={confirm}
+            onChange={e => setConfirm(e.target.value)}
+            placeholder="Repeat your password"
+            className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5
+                       outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
+          {confirm.length > 0 && !matchOk && (
+            <p className="text-[11px] text-red-400 font-semibold">Passwords don't match.</p>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 text-red-400 text-xs font-semibold">
+            <AlertCircle size={13} />{error}
+          </div>
+        )}
+      </div>
+    </StepShell>
+  );
+}
+
+// Step: Welcome
+function WelcomeScreen({ firstName, onComplete }: { firstName: string; onComplete: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
+      className="fixed inset-0 bg-[#0A0A0A] flex flex-col items-center justify-center px-6 text-center"
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                        w-[500px] h-[500px] rounded-full blur-[140px] opacity-20 bg-primary" />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center">
+        <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
+          className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mb-8">
+          <CheckCircle2 size={36} className="text-primary" />
+        </motion.div>
+
+        <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">
+          You're all set
+        </motion.p>
+
+        <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="text-5xl font-black tracking-tight text-white leading-tight mb-4">
+          READY,<br />{firstName.toUpperCase()}.
+        </motion.h1>
+
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
+          className="text-sm text-white/40 font-medium mb-14 max-w-xs">
+          Your profile is set up. Marcus is ready when you are.
+        </motion.p>
+
+        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75 }}
+          onClick={onComplete} whileTap={{ scale: 0.98 }}
+          className="w-full max-w-xs py-4 bg-primary text-white font-bold tracking-[0.15em] uppercase text-sm
+                     flex items-center justify-between px-6">
+          <span>START TRAINING</span>
+          <ChevronRight size={18} />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Default draft values
+───────────────────────────────────────────────────────────────────────── */
+const DEFAULT_DRAFT = {
+  firstName: '', lastName: '', gender: '', age: 25,
+  weightKg: 80, heightCm: 175, goal: '', activityLevel: '',
+  username: '', newPassword: '',
+};
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Root Onboarding component
+───────────────────────────────────────────────────────────────────────── */
+export function Onboarding({ onComplete }: { onComplete: () => void }) {
+  const [step, setStep]   = useState<Step>({ kind: 'slide', idx: 0 });
+  const [draft, setDraft] = useState({ ...DEFAULT_DRAFT });
+
+  const go   = (s: Step) => setStep(s);
+  const next = (s: Step) => go(s);
+
+  // Slide advance
+  const slideNext = (idx: number) => {
+    if (idx < SLIDES.length - 1) go({ kind: 'slide', idx: idx + 1 });
+    else go({ kind: 'choice' });
+  };
+
+  // Sign-up step navigation
+  const signupSteps: Step['kind'][] = ['name','gender','age','weight','height','goal','activity','login'];
+  const signupBack = (current: Step['kind']) => {
+    const idx = signupSteps.indexOf(current);
+    if (idx <= 0) go({ kind: 'choice' });
+    else go({ kind: signupSteps[idx - 1] as Step['kind'] });
+  };
+  const signupNext = (current: Step['kind']) => {
+    const idx = signupSteps.indexOf(current);
+    if (idx < signupSteps.length - 1) go({ kind: signupSteps[idx + 1] as Step['kind'] });
+  };
+
+  // Finalise account
+  const createAccount = () => {
+    registerUser(draft.username, draft.newPassword);
+    saveSession(draft.username);
+    const now = new Date();
+    const memberSince = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+    saveProfile({
+      firstName: draft.firstName,
+      lastName:  draft.lastName,
+      gender:    draft.gender,
+      age:       draft.age,
+      weightKg:  draft.weightKg,
+      heightCm:  draft.heightCm,
+      goal:      draft.goal,
+      activityLevel: draft.activityLevel,
+      username:  draft.username,
+      memberSince,
+    });
+    go({ kind: 'welcome' });
+  };
+
+  const props = { draft, setDraft };
+
+  return (
     <AnimatePresence mode="wait">
-      {step.kind === 'slide' ? (
-        <Slide
-          key={`slide-${step.idx}`}
-          slide={SLIDES[step.idx]}
-          onNext={next}
+      {step.kind === 'slide' && (
+        <SlideScreen key={`slide-${step.idx}`} s={SLIDES[step.idx]}
+          onNext={() => slideNext(step.idx)}
           isLast={step.idx === SLIDES.length - 1}
-        />
-      ) : (
-        <SignIn key="signin" onAuth={onComplete} />
+          onSkip={() => go({ kind: 'choice' })} />
       )}
+      {step.kind === 'choice' && (
+        <ChoiceScreen key="choice"
+          onNew={() => go({ kind: 'name' })}
+          onReturning={() => go({ kind: 'signin' })} />
+      )}
+      {step.kind === 'signin' && (
+        <SignInScreen key="signin" onAuth={onComplete} onBack={() => go({ kind: 'choice' })} />
+      )}
+      {step.kind === 'name'     && <NameStep     key="name"     {...props} onBack={() => go({ kind: 'choice' })}     onNext={() => signupNext('name')} />}
+      {step.kind === 'gender'   && <GenderStep   key="gender"   {...props} onBack={() => signupBack('gender')}        onNext={() => signupNext('gender')} />}
+      {step.kind === 'age'      && <AgeStep      key="age"      {...props} onBack={() => signupBack('age')}           onNext={() => signupNext('age')} />}
+      {step.kind === 'weight'   && <WeightStep   key="weight"   {...props} onBack={() => signupBack('weight')}        onNext={() => signupNext('weight')} />}
+      {step.kind === 'height'   && <HeightStep   key="height"   {...props} onBack={() => signupBack('height')}        onNext={() => signupNext('height')} />}
+      {step.kind === 'goal'     && <GoalStep     key="goal"     {...props} onBack={() => signupBack('goal')}          onNext={() => signupNext('goal')} />}
+      {step.kind === 'activity' && <ActivityStep key="activity" {...props} onBack={() => signupBack('activity')}      onNext={() => signupNext('activity')} />}
+      {step.kind === 'login'    && <LoginStep    key="login"    {...props} onBack={() => signupBack('login')}         onNext={createAccount} />}
+      {step.kind === 'welcome'  && <WelcomeScreen key="welcome" firstName={draft.firstName} onComplete={onComplete} />}
     </AnimatePresence>
   );
 }
