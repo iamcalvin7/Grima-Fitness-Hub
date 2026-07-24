@@ -33,22 +33,55 @@ const DIFFICULTY_COLOUR: Record<string, string> = {
   Advanced: 'text-red-400',
 };
 
-/* ── Exercise illustration placeholder ─────────────────────────────────── */
+/* ── Exercise photo map ─────────────────────────────────────────────────── */
 
-function ExerciseFigure({ name }: { name: string }) {
-  // Simple silhouette icon using SVG for exercise visual
+const EXERCISE_IMAGES: Record<string, string> = {
+  'pull-ups':              'pull-ups.jpg',
+  'seated-rows':           'seated-rows.jpg',
+  'lat-pull-downs':        'lat-pull-downs.jpg',
+  'narrow-grip-pull-down': 'narrow-grip-pull-down.jpg',
+  'hyper-extension':       'hyper-extension.jpg',
+  'seated-hammer-curl':    'seated-hammer-curl.webp',
+  'concentration-curl':    'concentration-curl.jpg',
+  'twentyone-curl':        'twentyone-curl.webp',
+  'flat-bench-press':      'flat-bench-press.jpg',
+  'incline-dumbbell-press':'incline-dumbbell-press.jpg',
+  'cable-flies-mid':       'cable-flies-mid.jpg',
+  'weighted-push-ups':     'weighted-push-ups.jpg',
+  'tricep-rope-extensions':'tricep-rope-extensions.jpg',
+  'skull-crushers':        'skull-crushers.png',
+  'weighted-dips':         'weighted-dips.jpg',
+  'seated-shoulder-press': 'seated-shoulder-press.jpg',
+  'lateral-raises':        'lateral-raises.jpg',
+  'forward-raises':        'forward-raises.jpg',
+  'face-pulls':            'face-pulls.jpg',
+  'rear-delt-fly':         'rear-delt-fly.jpg',
+  'shrugs':                'shrugs.png',
+};
+
+function exerciseImg(id: string) {
+  const file = EXERCISE_IMAGES[id];
+  return file ? `${import.meta.env.BASE_URL}exercises/${file}` : null;
+}
+
+function ExercisePhoto({ id, name, className = '' }: { id: string; name: string; className?: string }) {
+  const src = exerciseImg(id);
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={`w-full h-full object-cover ${className}`}
+        loading="lazy"
+      />
+    );
+  }
+  // Fallback: dark placeholder with initials
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#111]">
-      <svg viewBox="0 0 80 100" width="70" fill="none" xmlns="http://www.w3.org/2000/svg" opacity="0.35">
-        <circle cx="40" cy="10" r="8" stroke="#888" strokeWidth="1.5" />
-        <path d="M40 18 L40 52" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M40 30 L24 42" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M40 30 L56 42" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M40 52 L30 78" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M40 52 L50 78" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M30 78 L26 94" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M50 78 L54 94" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
+    <div className={`w-full h-full flex items-center justify-center bg-[#161616] ${className}`}>
+      <span className="text-xs font-bold text-white/20 tracking-widest uppercase text-center px-2 leading-tight">
+        {name.split(' ').map(w => w[0]).join('').slice(0, 3)}
+      </span>
     </div>
   );
 }
@@ -247,7 +280,7 @@ function WorkoutOverview({
             >
               {/* Thumbnail */}
               <div className="w-16 h-16 rounded-sm overflow-hidden shrink-0 bg-[#0D0D0D] border border-white/5">
-                <ExerciseFigure name={ex.name} />
+                <ExercisePhoto id={ex.id} name={ex.name} />
               </div>
 
               {/* Info */}
@@ -379,17 +412,23 @@ function ActiveWorkout({
         </div>
       </div>
 
-      {/* ── Exercise video / animation ── */}
-      <div className="relative bg-[#0D0D0D] border-b border-white/5" style={{ height: 220 }}>
-        <video
-          key={exerciseIdx}
-          src={`${import.meta.env.BASE_URL}exercise-demo.mp4`}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-contain"
-        />
+      {/* ── Exercise photo ── */}
+      <div className="relative bg-[#0D0D0D] border-b border-white/5 overflow-hidden" style={{ height: 240 }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={exercise.id}
+            initial={{ opacity: 0, scale: 1.04 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="absolute inset-0"
+          >
+            <ExercisePhoto id={exercise.id} name={exercise.name} className="object-cover" />
+            {/* dark gradient overlay so text above is readable */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/10 to-transparent" />
+          </motion.div>
+        </AnimatePresence>
+
         {/* Progress bar */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
           <motion.div
