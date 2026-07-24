@@ -273,7 +273,7 @@ function MetricsSection() {
                 />
                 <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={2}
                   fill="url(#sg-steps)" isAnimationActive
-                  activeDot={{ r: 4, fill: '#A565F2', stroke: '#ffffff', strokeWidth: 2 }} />
+                  activeDot={{ r: 4, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -316,7 +316,7 @@ function MetricsSection() {
                 />
                 <Area type="monotone" dataKey="v" stroke="#8B45D9" strokeWidth={2}
                   fill="url(#sg-cals)" isAnimationActive
-                  activeDot={{ r: 4, fill: '#A565F2', stroke: '#ffffff', strokeWidth: 2 }} />
+                  activeDot={{ r: 4, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -594,71 +594,73 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
-      <div className="relative px-5 md:px-8 pt-12 pb-10 flex flex-col items-center text-center overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #5a1fa8 0%, #7c35c9 50%, #8B45D9 100%)' }}>
-        {/* Light shimmer top-right */}
-        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 65%)' }} />
-        {/* Bottom fade into dark */}
-        <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, transparent, rgba(7,5,14,0.25))' }} />
+      <div className="relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #4a18a0 0%, #7c35c9 60%, #9b4de8 100%)' }}>
 
-        {/* Profile photo */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="relative mb-5 cursor-pointer"
-          onClick={() => fileRef.current?.click()}
-        >
-          {/* Glow ring */}
-          <div className="absolute inset-0 rounded-full"
-            style={{ boxShadow: '0 0 0 3px rgba(139,69,217,0.5), 0 0 24px rgba(139,69,217,0.3)' }} />
+        {/* Shimmer blob top-right */}
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.13) 0%, transparent 60%)' }} />
+        {/* Shimmer blob bottom-left */}
+        <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 60%)' }} />
 
-          {/* Photo or initials */}
-          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/60 flex items-center justify-center bg-primary/15">
-            {avatar
-              ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-              : <span className="text-2xl font-black text-primary">{initials}</span>
-            }
+        {/* Content row */}
+        <div className="relative px-5 md:px-8 pt-12 pb-8 flex items-center justify-between gap-4">
+
+          {/* Left — greeting + name */}
+          <div className="flex flex-col">
+            <motion.p
+              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+              className="text-sm font-medium text-white/60 mb-1"
+            >
+              {getGreeting()}
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+              className="text-4xl font-black text-white leading-none tracking-tight"
+            >
+              {firstName}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.22 }}
+              className="text-xs text-white/40 font-medium mt-2"
+            >
+              Marcus Grima PT
+            </motion.p>
           </div>
 
-          {/* Camera badge */}
-          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border-2 border-white flex items-center justify-center">
-            <Camera size={12} className="text-primary" />
-          </div>
+          {/* Right — profile photo */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
+            className="relative shrink-0 cursor-pointer"
+            onClick={() => fileRef.current?.click()}
+          >
+            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/30 flex items-center justify-center"
+              style={{ boxShadow: '0 0 0 4px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.3)' }}>
+              {avatar
+                ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                : <span className="text-xl font-black text-white/80">{initials}</span>
+              }
+            </div>
+            <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-white flex items-center justify-center"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+              <Camera size={11} className="text-primary" />
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+          </motion.div>
+        </div>
 
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-sm font-medium text-white/60 mb-1"
-        >
-          {getGreeting()}
-        </motion.p>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="text-5xl font-black text-white leading-none tracking-tight"
-        >
-          {firstName}
-        </motion.h1>
-
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-          className="w-10 h-0.5 bg-white/40 mt-4 rounded-full"
-        />
+        {/* Bottom wave separator */}
+        <div className="h-6 relative">
+          <svg viewBox="0 0 390 24" preserveAspectRatio="none" className="absolute inset-0 w-full h-full"
+            style={{ fill: '#07050e' }}>
+            <path d="M0,24 L0,12 Q97.5,0 195,12 Q292.5,24 390,12 L390,24 Z" />
+          </svg>
+        </div>
       </div>
 
       {/* ── Daily challenge — full width banner ──────────────────────────── */}
-      <div className="px-5 md:px-8 mb-7">
+      <div className="px-5 md:px-8 mt-5 mb-7">
         <DailyChallengeCard />
       </div>
 
