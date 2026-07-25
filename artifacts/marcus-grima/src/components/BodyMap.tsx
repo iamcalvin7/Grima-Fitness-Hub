@@ -268,15 +268,7 @@ export const BodyMap = ({
 
       {/* ── Figure + highlight overlay ───────────────────────────────── */}
       <div className="w-full max-w-[300px] relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={view}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="relative"
-          >
+          <div className="relative">
             <svg
               viewBox="120 20 784 990"
               width="100%"
@@ -300,11 +292,20 @@ export const BodyMap = ({
                 </filter>
               </defs>
 
-              {/* Rendered anatomy image */}
+              {/* Rendered anatomy images — both stay mounted so switching views is instant */}
               <image
-                href={`${IMG_BASE}/${view}.png`}
+                href={`${IMG_BASE}/front.png`}
                 x="0" y="0" width="1024" height="1024"
                 preserveAspectRatio="xMidYMid meet"
+                opacity={view === 'front' ? 1 : 0}
+                style={{ transition: 'opacity 0.18s ease-out' }}
+              />
+              <image
+                href={`${IMG_BASE}/back.png`}
+                x="0" y="0" width="1024" height="1024"
+                preserveAspectRatio="xMidYMid meet"
+                opacity={view === 'back' ? 1 : 0}
+                style={{ transition: 'opacity 0.18s ease-out' }}
               />
 
               {/* Highlight glows */}
@@ -350,8 +351,7 @@ export const BodyMap = ({
                 />
               ))}
             </svg>
-          </motion.div>
-        </AnimatePresence>
+          </div>
       </div>
 
       {/* ── Chips ─────────────────────────────────────────────────────── */}
