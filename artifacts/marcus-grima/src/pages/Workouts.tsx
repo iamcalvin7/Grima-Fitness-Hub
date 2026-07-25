@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info, Lock, Crown, CheckCircle2, CreditCard } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info, Lock, Crown, CheckCircle2, CreditCard, CalendarDays, Target } from 'lucide-react';
 import { PROGRAMS, type Program, type Workout, type Exercise } from '@/data/programs';
 
 /* ── Unlock helpers ───────────────────────────────────────────────────────── */
@@ -322,53 +322,55 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             ? 'bg-[#0F0D08] border border-amber-500/25 hover:border-amber-500/50'
             : 'bg-[#111111] border border-white/6 hover:border-primary/30'}`}
       >
-        {/* Photo header */}
-        <div className="relative h-36 w-full overflow-hidden">
+        {/* Photo header — clean visual, floating stat chips */}
+        <div className="relative h-44 w-full overflow-hidden">
           <img
             src={`${import.meta.env.BASE_URL}programs/${program.id}.png`}
             alt={program.name}
             className="w-full h-full object-cover object-[center_20%] group-hover:scale-[1.03] transition-transform duration-500"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-[#111111]/30 to-transparent" />
-          <div className={`absolute bottom-0 left-0 h-[2px] w-full bg-gradient-to-r ${locked ? 'from-amber-600 via-yellow-400 to-amber-500' : 'from-white/60 to-white/10'}`} />
 
-          {/* Stats on the visual */}
-          <div className="absolute bottom-3 left-4 right-4 flex items-end gap-5">
+          {/* Premium / difficulty tag — top right of visual */}
+          <div className="absolute top-3 right-3">
+            {isPremium ? (
+              <span className="text-[9px] font-bold tracking-[0.2em] uppercase px-2 py-1 rounded-md text-amber-400 bg-black/60 border border-amber-500/30 backdrop-blur-sm">
+                {isOwned ? '✓ OWNED' : 'PREMIUM'}
+              </span>
+            ) : (
+              <span className={`text-[9px] font-bold tracking-[0.2em] uppercase px-2 py-1 rounded-md bg-black/60 border border-white/15 backdrop-blur-sm ${DIFFICULTY_COLOUR[program.difficulty]}`}>
+                {program.difficulty}
+              </span>
+            )}
+          </div>
+
+          {/* Floating stat chips */}
+          <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 px-3 py-2.5 flex items-center justify-between gap-2">
             {[
-              { label: 'Days/Week', value: `${program.daysPerWeek}` },
-              { label: 'Goal',      value: program.goal.split(' & ')[0] },
-              { label: 'Workouts',  value: `${program.workouts.length}` },
+              { icon: <CalendarDays size={13} />, label: 'Days/Week', value: `${program.daysPerWeek}` },
+              { icon: <Target size={13} />,       label: 'Goal',      value: program.goal.split(' & ')[0] },
+              { icon: <Dumbbell size={13} />,     label: 'Workouts',  value: `${program.workouts.length}` },
             ].map(stat => (
-              <div key={stat.label}>
-                <p className="text-base font-black text-white leading-none drop-shadow">{stat.value}</p>
-                <p className="text-[8px] font-bold tracking-widest text-white/60 uppercase mt-1">{stat.label}</p>
+              <div key={stat.label} className="flex items-center gap-2 min-w-0">
+                <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0
+                  ${locked ? 'bg-amber-400/15 text-amber-400' : 'bg-primary/15 text-primary'}`}>
+                  {stat.icon}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-bold tracking-widest text-white/50 uppercase leading-none">{stat.label}</p>
+                  <p className="text-xs font-black text-white leading-none mt-1 truncate">{stat.value}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Title + description under the image */}
         <div className="p-5">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="w-6 h-6 rounded-sm bg-white/5 border border-white/15 flex items-center justify-center">
-                  <Dumbbell size={12} className="text-white/70" />
-                </span>
-                <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${DIFFICULTY_COLOUR[program.difficulty]}`}>
-                  {program.difficulty}
-                </span>
-                {isPremium && (
-                  <span className={`text-[9px] font-bold tracking-[0.2em] uppercase px-1.5 py-0.5 border rounded-sm
-                    ${isOwned
-                      ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
-                      : 'text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>
-                    {isOwned ? '✓ OWNED' : 'PREMIUM'}
-                  </span>
-                )}
-              </div>
-              <h2 className="text-lg font-bold tracking-wider mt-0.5">{program.name}</h2>
-              <p className="text-xs text-foreground/50 mt-1 leading-relaxed line-clamp-2">{program.description}</p>
+              <h2 className="text-lg font-bold tracking-wider">{program.name}</h2>
+              <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed">{program.description}</p>
             </div>
 
             {locked ? (
