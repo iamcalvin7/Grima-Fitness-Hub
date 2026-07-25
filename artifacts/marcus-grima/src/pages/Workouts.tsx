@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info, Lock, Crown, CheckCircle2, CreditCard, CalendarDays, Target } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info, Lock, CheckCircle2, CreditCard, CalendarDays, Target } from 'lucide-react';
 import { PROGRAMS, type Program, type Workout, type Exercise } from '@/data/programs';
 
 /* ── Unlock helpers ───────────────────────────────────────────────────────── */
@@ -84,7 +84,7 @@ function PaywallSheet({
         className="fixed bottom-0 inset-x-0 z-50 bg-[#0F0F0F] rounded-t-2xl overflow-hidden max-w-lg mx-auto"
       >
         {/* Gold accent bar */}
-        <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
+        <div className="h-1 w-full bg-gradient-to-r from-slate-400 via-slate-200 to-slate-400" />
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
@@ -101,9 +101,9 @@ function PaywallSheet({
               <motion.div
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-                className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center"
+                className="w-16 h-16 rounded-full bg-slate-300/20 border-2 border-slate-300 flex items-center justify-center"
               >
-                <CheckCircle2 size={32} className="text-amber-400" />
+                <CheckCircle2 size={32} className="text-slate-200" />
               </motion.div>
               <h3 className="text-2xl font-black text-white">UNLOCKED!</h3>
               <p className="text-white/50 text-sm">{program.name} is ready to go.</p>
@@ -117,7 +117,7 @@ function PaywallSheet({
                     <span className="w-8 h-8 rounded-sm bg-white/5 border border-white/15 flex items-center justify-center">
                       <Dumbbell size={15} className="text-white/70" />
                     </span>
-                    <span className="text-[10px] font-bold tracking-[0.25em] text-amber-400 uppercase bg-amber-500/10 border border-amber-500/30 px-2 py-0.5">
+                    <span className="text-[10px] font-bold tracking-[0.25em] text-slate-200 uppercase bg-slate-300/10 border border-slate-300/30 px-2 py-0.5">
                       PREMIUM
                     </span>
                   </div>
@@ -130,12 +130,11 @@ function PaywallSheet({
               </div>
 
               {/* Price */}
-              <div className="bg-amber-500/8 border border-amber-500/20 rounded-sm p-4 mb-5 flex items-center justify-between">
+              <div className="bg-slate-300/8 border border-slate-300/20 rounded-sm p-4 mb-5 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold tracking-[0.2em] text-amber-400/70 uppercase">One-time unlock</p>
+                  <p className="text-[10px] font-bold tracking-[0.2em] text-slate-300/70 uppercase">One-time unlock</p>
                   <p className="text-3xl font-black text-white mt-0.5">{program.price}</p>
                 </div>
-                <Crown size={28} className="text-amber-400 opacity-60" />
               </div>
 
               {/* What's included */}
@@ -144,8 +143,8 @@ function PaywallSheet({
                 <div className="flex flex-col gap-2">
                   {program.highlights?.map((h, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
-                        <Check size={10} className="text-amber-400" />
+                      <div className="w-4 h-4 rounded-full bg-slate-300/20 border border-slate-300/40 flex items-center justify-center shrink-0">
+                        <Check size={10} className="text-slate-200" />
                       </div>
                       <span className="text-sm text-white/70 font-medium">{h}</span>
                     </div>
@@ -319,7 +318,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
         whileTap={{ scale: 0.98 }}
         className={`w-full text-left rounded-2xl overflow-hidden transition-colors group relative
           ${locked
-            ? 'bg-[#0F0D08] border border-amber-500/25 hover:border-amber-500/50'
+            ? 'bg-[#0F0D08] border border-slate-400/25 hover:border-slate-400/50'
             : 'bg-[#111111] border border-white/6 hover:border-primary/30'}`}
       >
         {/* Photo header — clean visual, floating stat chips */}
@@ -334,7 +333,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
           {/* Premium / difficulty tag — top right of visual */}
           <div className="absolute top-3 right-3">
             {isPremium ? (
-              <span className="text-[9px] font-bold tracking-[0.2em] uppercase px-2 py-1 rounded-md text-amber-400 bg-black/60 border border-amber-500/30 backdrop-blur-sm">
+              <span className="text-[9px] font-bold tracking-[0.2em] uppercase px-2 py-1 rounded-md text-slate-200 bg-black/60 border border-slate-300/30 backdrop-blur-sm">
                 {isOwned ? '✓ OWNED' : 'PREMIUM'}
               </span>
             ) : (
@@ -353,7 +352,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             ].map(stat => (
               <div key={stat.label} className="flex items-center gap-2 min-w-0">
                 <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0
-                  ${locked ? 'bg-amber-400/15 text-amber-400' : 'bg-primary/15 text-primary'}`}>
+                  ${locked ? 'bg-slate-300/15 text-slate-200' : 'bg-primary/15 text-primary'}`}>
                   {stat.icon}
                 </span>
                 <div className="min-w-0">
@@ -374,7 +373,7 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             </div>
 
             {locked ? (
-              <Lock size={18} className="text-amber-400/60 shrink-0 mt-1" />
+              <Lock size={18} className="text-slate-300/60 shrink-0 mt-1" />
             ) : (
               <ChevronRight size={18} className="text-primary/60 group-hover:text-primary transition-colors shrink-0 mt-1" />
             )}
@@ -382,9 +381,8 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
 
           {/* Lock CTA overlay strip */}
           {locked && (
-            <div className="mt-4 flex items-center justify-center gap-2 py-3 rounded-full border border-amber-500/30 bg-amber-500/5">
-              <Crown size={13} className="text-amber-400" />
-              <span className="text-[11px] font-bold tracking-[0.2em] text-amber-400 uppercase">Unlock for {program.price}</span>
+            <div className="mt-4 flex items-center justify-center gap-2 py-3 rounded-full border border-slate-300/30 bg-slate-300/5">
+              <span className="text-[11px] font-bold tracking-[0.2em] text-slate-200 uppercase">Unlock for {program.price}</span>
             </div>
           )}
         </div>
@@ -408,9 +406,8 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
 
         {/* Premium section */}
         <div className="mb-3 flex items-center gap-3">
-          <Crown size={14} className="text-amber-400" />
-          <p className="text-[10px] font-bold tracking-[0.22em] text-amber-400 uppercase">Premium Add-Ons</p>
-          <div className="flex-1 h-px bg-amber-500/20" />
+          <p className="text-[10px] font-bold tracking-[0.22em] text-slate-300 uppercase">Premium Add-Ons</p>
+          <div className="flex-1 h-px bg-slate-300/20" />
         </div>
         <div className="flex flex-col gap-4">
           {premium.map(renderCard)}
