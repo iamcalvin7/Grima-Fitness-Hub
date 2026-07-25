@@ -21,7 +21,7 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         animate={{ opacity: exit ? 0 : 1, scale: exit ? 1.05 : 1 }}
         transition={{ duration: 0.8, ease: "easeInOut" }}
       >
-        <Logo glow={true} className="w-64" />
+        <Logo className="w-64" />
       </motion.div>
     </div>
   );
