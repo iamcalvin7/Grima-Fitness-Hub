@@ -1,0 +1,2 @@
+- [API routing & monorepo build](api-server-conventions.md) — API is served at /api (not /api-server); rebuild lib/db with `tsc -b` after schema changes or api-server typecheck sees stale exports.
+- [Auth architecture decisions](auth-decisions.md) — DB-backed cookie sessions (no JWT), scrypt via node:crypto, tenant-aware single-tenant schema, CORS allowlist, no signup enumeration.

@@ -1,0 +1,183 @@
+Paste the following into Replit Agent. It is safer than manually creating each file because it tells Replit exactly what to replace, preserve and validate.
+
+Implement Sprint 1 authentication and database foundations for the Marcus Grima fitness app.
+IMPORTANT:
+- Do not redesign or modify the existing frontend.
+- Do not change the BodyMap component.
+- Do not change ThreadView rendering behaviour.
+- Keep TypeScript at zero errors.
+- Use the existing pnpm monorepo, Express, PostgreSQL and Drizzle architecture.
+- Do not use JWTs.
+- Use secure database-backed sessions stored in an HTTP-only cookie.
+- Use Node's built-in crypto module for password hashing. Do not install bcrypt or argon2.
+- Keep the project single-tenant for v1, but tenant-aware in the database.
+- Run typecheck and build after all changes.
+==================================================
+1. REPLACE: lib/db/src/schema/index.ts
+==================================================
+export * from "./tenants";
+export * from "./users";
+export * from "./sessions";
+==================================================
+2. CREATE: lib/db/src/schema/tenants.ts
+==================================================
+import {
+  boolean,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+export interface TenantBranding {
+  appName: string;
+  shortName: string;
+  primaryColour: string;
+  accentColour: string;
+  backgroundColour: string;
+  logoUrl: string | null;
+}
+export const tenantsTable = pgTable("tenants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  branding: jsonb("branding")
+    .$type<TenantBranding>()
+    .notNull()
+    .default({
+      appName: "Marcus Grima",
+      shortName: "MG",
+      primaryColour: "#E6E6E6",
+      accentColour: "#65D46E",
+      backgroundColour: "#080808",
+      logoUrl: null,
+    }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .notNull()
+    .defaultNow(),
+});
+export type Tenant = typeof tenantsTable.$inferSelect;
+export type NewTenant = typeof tenantsTable.$inferInsert;
+==================================================
+3. CREATE: lib/db/src/schema/users.ts
+==================================================
+import {
+  boolean,
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { tenantsTable } from "./tenants";
+export const userRoleEnum = pgEnum("user_role", [
+  "admin",
+  "trainer",
+  "client",
+]);
+export const usersTable = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, {
+        onDelete: "cascade",
+      }),
+    email: text("email").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    avatarUrl: text("avatar_url"),
+    role: userRoleEnum("role").notNull().default("client"),
+    isActive: boolean("is_active").notNull().default(true),
+    emailVerifiedAt: timestamp("email_verified_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    lastLoginAt: timestamp("last_login_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("users_tenant_email_unique").on(
+      table.tenantId,
+      table.email,
+    ),
+    index("users_tenant_id_idx").on(table.tenantId),
+  ],
+);
+export type User = typeof usersTable.$inferSelect;
+export type NewUser = typeof usersTable.$inferInsert;
+export type UserRole = User["role"];
+==================================================
+4. CREATE: lib/db/src/schema/sessions.ts
+==================================================
+import {
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { usersTable } from "./users";
+export const sessionsTable = pgTable(
+  "sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, {
+        onDelete: "cascade",
+      }),
+    tokenHash: text("token_hash").notNull().unique(),
+    userAgent: text("user_agent"),
+    ipAddress: text("ip_address"),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "date",
+    }).notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .notNull()
+      .defaultNow(),
+    lastUsedAt: timestamp("last_used_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("sessions_user_id_idx").on(table.userId),
+    index("sessions_expires_at_idx").on(table.expiresAt),
+  ],
+);
+export
