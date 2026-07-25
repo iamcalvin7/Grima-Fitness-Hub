@@ -639,12 +639,60 @@ function markStorySeen() {
   localStorage.setItem(STORY_SEEN_KEY, new Date().toDateString());
 }
 
-function StoryViewer({ onClose }: { onClose: () => void }) {
+/* Today's stories — Mindset Memo + What I'm Reading */
+type Story =
+  | { kind: 'quote'; title: string; tagline: string; img: string; text: string; author: string }
+  | { kind: 'book'; title: string; tagline: string; img: string; bookTitle: string; bookAuthor: string; summary: string };
+
+function getTodayStories(): Story[] {
   const q = getDailyQuote();
+  return [
+    {
+      kind: 'quote',
+      title: 'Mindset Memo',
+      tagline: 'Today only',
+      img: q.img,
+      text: q.text,
+      author: q.author,
+    },
+    {
+      kind: 'book',
+      title: "What I'm Reading",
+      tagline: "Marcus' bookshelf",
+      img: `${import.meta.env.BASE_URL}reading-today.jpg`,
+      bookTitle: 'Atomic Habits',
+      bookAuthor: 'James Clear',
+      summary:
+        'Small habits compound. Clear shows how 1% improvements each day stack into remarkable results — build systems instead of chasing goals, make good habits obvious and easy, and make bad ones invisible and hard. Identity first: every rep is a vote for the person you want to become.',
+    },
+  ];
+}
+
+function StoryViewer({ onClose }: { onClose: () => void }) {
+  const stories = getTodayStories();
+  const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const s = stories[index];
+
+  const goNext = () => {
+    if (indexRef.current >= stories.length - 1) {
+      closeRef.current();
+    } else {
+      setIndex((i) => i + 1);
+      setProgress(0);
+    }
+  };
+  const goPrev = () => {
+    if (indexRef.current > 0) {
+      setIndex((i) => i - 1);
+    }
+    setProgress(0);
+  };
 
   useEffect(() => {
     const TICK = 50;
@@ -654,8 +702,7 @@ function StoryViewer({ onClose }: { onClose: () => void }) {
           setProgress((prev) => {
             const next = prev + TICK / STORY_DURATION_MS;
             if (next >= 1) {
-              clearInterval(id);
-              setTimeout(() => closeRef.current(), 150);
+              setTimeout(goNext, 0);
               return 1;
             }
             return next;
@@ -665,7 +712,8 @@ function StoryViewer({ onClose }: { onClose: () => void }) {
       });
     }, TICK);
     return () => clearInterval(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
 
   // Safety net: if pointer-up lands outside the overlay, resume anyway.
   useEffect(() => {
@@ -691,57 +739,61 @@ function StoryViewer({ onClose }: { onClose: () => void }) {
       onPointerLeave={() => setPaused(false)}
     >
       {/* Background photo */}
-      <img src={q.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <img key={s.img} src={s.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div
         className="absolute inset-0"
         style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 30%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.9) 100%)' }}
       />
 
-      {/* Progress bar */}
-      <div className="relative z-10 px-3 pt-3">
-        <div className="h-[3px] rounded-full bg-white/25 overflow-hidden">
-          <div className="h-full bg-white rounded-full" style={{ width: `${progress * 100}%` }} />
-        </div>
+      {/* Tap zones — left = previous, right = next */}
+      <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={goPrev} />
+      <div className="absolute inset-y-0 right-0 w-2/3 z-10" onClick={goNext} />
+
+      {/* Progress bars — one per story */}
+      <div className="relative z-20 px-3 pt-3 flex gap-1.5 pointer-events-none">
+        {stories.map((_, i) => (
+          <div key={i} className="flex-1 h-[3px] rounded-full bg-white/25 overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full"
+              style={{ width: i < index ? '100%' : i === index ? `${progress * 100}%` : '0%' }}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Header */}
-      <div className="relative z-10 px-4 pt-3 flex items-center gap-3">
+      <div className="relative z-20 px-4 pt-3 flex items-center gap-3 pointer-events-none">
         <div className="w-9 h-9 rounded-full overflow-hidden border border-white/40 shrink-0">
           <img src={`${import.meta.env.BASE_URL}marcus.png`} alt="Marcus Grima" className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white leading-tight">Mindset Memo</p>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-green-400">Today only</p>
+          <p className="text-sm font-bold text-white leading-tight">{s.title}</p>
+          <p className="text-[10px] font-bold tracking-widest uppercase text-green-400">{s.tagline}</p>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
           onPointerDown={(e) => e.stopPropagation()}
-          className="text-white/70 hover:text-white p-2 -mr-2"
+          className="text-white/70 hover:text-white p-2 -mr-2 pointer-events-auto"
           aria-label="Close story"
         >
           <X size={24} />
         </button>
       </div>
 
-      {/* Quote */}
-      <div className="relative z-10 flex-1 flex flex-col justify-end items-start text-left px-6 pb-10">
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.5 }}
-          className="text-3xl font-black text-white leading-tight drop-shadow-lg"
-        >
-          {q.text}
-        </motion.p>
-        {q.author && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-sm text-white/60 font-medium mt-4"
-          >
-            — {q.author}
-          </motion.p>
+      {/* Content — bottom left */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end items-start text-left px-6 pb-10 pointer-events-none">
+        {s.kind === 'quote' ? (
+          <motion.div key={`quote-${index}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <p className="text-3xl font-black text-white leading-tight drop-shadow-lg">{s.text}</p>
+            {s.author && <p className="text-sm text-white/60 font-medium mt-4">— {s.author}</p>}
+          </motion.div>
+        ) : (
+          <motion.div key={`book-${index}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-green-400 mb-2">Currently reading</p>
+            <p className="text-3xl font-black text-white leading-tight drop-shadow-lg">{s.bookTitle}</p>
+            <p className="text-sm text-white/60 font-semibold mt-1">by {s.bookAuthor}</p>
+            <p className="text-sm text-white/85 font-medium leading-relaxed mt-4 drop-shadow">{s.summary}</p>
+          </motion.div>
         )}
       </div>
 
