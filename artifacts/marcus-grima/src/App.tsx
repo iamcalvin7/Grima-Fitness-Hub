@@ -17,7 +17,7 @@ import { useAuth } from '@/auth/AuthContext';
 export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team';
 
 function App() {
-  const { isLoading, isAuthenticated, signOut } = useAuth();
+  const { isLoading, isAuthenticated, isProfileLoading, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
   const [activePage,    setActivePage]    = useState<Page>('home');
   const [sessionFocus,  setSessionFocus]  = useState<number | undefined>(undefined);
@@ -63,8 +63,9 @@ function App() {
     setActivePage(page);
   };
 
-  // Keep the splash up until the session check has resolved.
-  if (showSplash || isLoading) {
+  // Keep the splash up until the session check — and, for signed-in users,
+  // the initial profile load — has resolved, so no stale/fallback data flashes.
+  if (showSplash || isLoading || (isAuthenticated && isProfileLoading)) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 

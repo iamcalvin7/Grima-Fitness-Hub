@@ -12,6 +12,7 @@ import {
   getTodayChallenges, isChallengeDone, completeChallengeByName,
 } from '@/data/challenges';
 import type { Page } from '@/App';
+import { useAuth } from '@/auth/AuthContext';
 import { BodyMap } from '@/components/BodyMap';
 import { upcoming, past } from '@/data/sessions';
 
@@ -821,20 +822,17 @@ interface HomeProps {
   goToSession: (id: number) => void;
 }
 
-function loadProfile() {
-  try { return JSON.parse(localStorage.getItem('mg_profile') || 'null'); } catch { return null; }
-}
-
 export const Home = ({ setPage, goToSession }: HomeProps) => {
-  const profile   = loadProfile();
-  const firstName = profile?.firstName
-    ? profile.firstName.charAt(0).toUpperCase() + profile.firstName.slice(1).toLowerCase()
+  const { user, profile } = useAuth();
+  const rawFirst  = profile?.firstName ?? user?.firstName;
+  const firstName = rawFirst
+    ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase()
     : 'Marcus';
-  const initials  = profile
-    ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'MG'
-    : 'MG';
+  const initials  =
+    `${(profile?.firstName ?? user?.firstName)?.[0] ?? ''}${(profile?.lastName ?? user?.lastName)?.[0] ?? ''}`
+      .toUpperCase() || 'MG';
 
-  const [avatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
+  const avatar = profile?.avatarUrl ?? null;
   const [storyOpen, setStoryOpen] = useState(false);
   const [storySeen, setStorySeen] = useState(() => isStorySeenToday());
 

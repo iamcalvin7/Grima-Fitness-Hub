@@ -5,7 +5,7 @@ import {
   Bell, ShieldCheck, Question, SignOut, PencilSimple, Medal,
 } from '@phosphor-icons/react';
 import type { Page } from '@/App';
-import type { MGProfile } from '@/pages/Onboarding';
+import { useAuth, type ClientProfile } from '@/auth/AuthContext';
 
 interface ProfileProps {
   setPage:  (page: Page) => void;
@@ -15,16 +15,25 @@ interface ProfileProps {
 const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
 const itemVariants = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 26 } } };
 
-function loadProfile(): MGProfile | null {
-  try { return JSON.parse(localStorage.getItem('mg_profile') || 'null'); } catch { return null; }
+function getInitials(first?: string | null, last?: string | null) {
+  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || 'MG';
 }
 
-function getInitials(p: MGProfile | null) {
-  if (!p) return 'MG';
-  return `${p.firstName[0] ?? ''}${p.lastName[0] ?? ''}`.toUpperCase() || 'MG';
+function ageFromDob(dob: string | null | undefined): string {
+  if (!dob) return '—';
+  const d = new Date(`${dob}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return '—';
+  const years = Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000));
+  return years > 0 && years < 120 ? `${years} yrs` : '—';
 }
 
-/** Downscale the chosen image to a small square JPEG so it fits comfortably in localStorage. */
+function memberSinceFrom(iso: string | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+/** Downscale the chosen image to a small square JPEG data URL. */
 function resizeAvatar(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -46,42 +55,49 @@ function resizeAvatar(file: File): Promise<string> {
   });
 }
 
-/**
- * Update the display username (local profile only — sign-in is by email now,
- * so this no longer touches any credentials).
- */
-function changeUsername(oldName: string, newName: string): string | null {
-  const next = newName.trim().toLowerCase().replace(/^@/, '');
-  if (!/^[a-z0-9_.]{3,20}$/.test(next)) return 'Use 3–20 letters, numbers, dots or underscores.';
-  const old = oldName.trim().toLowerCase();
-  if (next === old) return null;
-  const profile = loadProfile();
-  if (profile) {
-    localStorage.setItem('mg_profile', JSON.stringify({ ...profile, username: next }));
-  }
-  return null;
-}
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export const Profile = ({ setPage, onLogout }: ProfileProps) => {
+  const { user, profile, updateProfile, createProfile } = useAuth();
   const [notifications, setNotifications] = useState(true);
-  const [avatar, setAvatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [profile, setProfile] = useState<MGProfile | null>(() => loadProfile());
   const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [firstDraft, setFirstDraft] = useState('');
+  const [lastDraft, setLastDraft] = useState('');
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveError, setSaveError] = useState('');
+
+  /** PATCH when a profile exists, otherwise create one on the fly. */
+  const persist = async (input: Parameters<typeof updateProfile>[0]) => {
+    setSaveState('saving');
+    setSaveError('');
+    try {
+      if (profile) await updateProfile(input);
+      else await createProfile(input);
+      setSaveState('saved');
+      setTimeout(() => setSaveState(s => (s === 'saved' ? 'idle' : s)), 2000);
+      return true;
+    } catch {
+      setSaveState('error');
+      setSaveError('Could not save changes. Please try again.');
+      return false;
+    }
+  };
 
   const startEditName = () => {
-    setNameDraft(profile?.username ?? '');
-    setNameError('');
+    setFirstDraft(profile?.firstName ?? user?.firstName ?? '');
+    setLastDraft(profile?.lastName ?? user?.lastName ?? '');
+    setSaveError('');
     setEditingName(true);
   };
 
-  const saveUsername = () => {
-    const err = changeUsername(profile?.username ?? '', nameDraft);
-    if (err) { setNameError(err); return; }
-    setProfile(loadProfile());
-    setEditingName(false);
+  const saveName = async () => {
+    if (!firstDraft.trim() || !lastDraft.trim()) {
+      setSaveError('Both names are required.');
+      return;
+    }
+    const ok = await persist({ firstName: firstDraft.trim(), lastName: lastDraft.trim() });
+    if (ok) setEditingName(false);
   };
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,23 +106,28 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
     if (!file) return;
     try {
       const dataUrl = await resizeAvatar(file);
-      localStorage.setItem('mg_avatar', dataUrl);
-      setAvatar(dataUrl);
+      await persist({ avatarUrl: dataUrl });
     } catch {
-      // ignore unreadable files
+      setSaveState('error');
+      setSaveError('Could not read that image.');
     }
   };
 
-  // Derived display values
-  const displayName   = profile ? `${profile.firstName} ${profile.lastName}` : 'Marcus';
-  const initials      = getInitials(profile);
-  const goal          = profile?.goal          ?? 'Build Muscle & Strength';
-  const activityLevel = profile?.activityLevel ?? 'Intermediate';
-  const weight        = profile ? `${profile.weightKg} kg`  : '85 kg';
-  const height        = profile ? `${profile.heightCm} cm`  : '181 cm';
-  const age           = profile ? `${profile.age} yrs`      : '—';
-  const memberSince   = profile?.memberSince ?? 'January 2024';
-  const username      = profile?.username    ?? '@marcus';
+  // Derived display values (server profile → auth user → fallbacks)
+  const p: ClientProfile | null = profile;
+  const firstName = p?.firstName ?? user?.firstName ?? 'Marcus';
+  const lastName  = p?.lastName ?? user?.lastName ?? '';
+  const displayName   = `${firstName} ${lastName}`.trim();
+  const initials      = getInitials(firstName, lastName);
+  const avatar        = p?.avatarUrl ?? null;
+  const goal          = p?.goal ?? '—';
+  const experience    = p?.experienceLevel ?? '—';
+  const activity      = p?.activityLevel ?? '—';
+  const weight        = p?.weightKg != null ? `${p.weightKg} kg` : '—';
+  const height        = p?.heightCm != null ? `${p.heightCm} cm` : '—';
+  const age           = ageFromDob(p?.dateOfBirth);
+  const memberSince   = memberSinceFrom(user?.createdAt);
+  const emailHandle   = user?.email.split('@')[0] ?? 'member';
 
   const stats = [
     { label: 'Total Sessions', value: '47',  icon: <Barbell size={16} weight="fill" /> },
@@ -117,7 +138,8 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
   const goals = [
     { label: 'Primary Goal',   value: goal },
     { label: 'Weekly Target',  value: '3–4 sessions' },
-    { label: 'Activity Level', value: activityLevel },
+    { label: 'Experience',     value: experience },
+    { label: 'Activity Level', value: activity },
   ];
 
   const personal = [
@@ -138,7 +160,12 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
           <h1 className="text-xl font-bold tracking-[0.15em] uppercase">Profile</h1>
           <p className="text-xs text-foreground/40 font-semibold tracking-wider mt-0.5 hidden md:block">Your account & settings</p>
         </div>
-        <button onClick={() => fileInputRef.current?.click()} className="text-foreground/40 hover:text-foreground transition-colors"><PencilSimple size={18} weight="fill" /></button>
+        <div className="flex items-center gap-3">
+          {saveState === 'saving' && <span className="text-[10px] font-bold tracking-widest uppercase text-white/40">Saving…</span>}
+          {saveState === 'saved'  && <span className="text-[10px] font-bold tracking-widest uppercase text-primary">Saved</span>}
+          {saveState === 'error'  && <span className="text-[10px] font-bold tracking-widest uppercase text-red-400">Error</span>}
+          <button onClick={() => fileInputRef.current?.click()} className="text-foreground/40 hover:text-foreground transition-colors"><PencilSimple size={18} weight="fill" /></button>
+        </div>
       </header>
 
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
@@ -166,23 +193,31 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                   {editingName ? (
                     <div className="mb-2">
                       <div className="flex items-center gap-2 justify-center md:justify-start">
-                        <span className="text-xs font-bold text-white/35">@</span>
                         <input
                           autoFocus
-                          value={nameDraft}
-                          onChange={(e) => { setNameDraft(e.target.value); setNameError(''); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') saveUsername(); if (e.key === 'Escape') setEditingName(false); }}
-                          className="bg-[#1A1A1A] border border-white/15 focus:border-primary/50 outline-none px-2 py-1 text-xs font-bold tracking-widest text-white w-36 rounded-sm"
-                          placeholder="new username"
+                          value={firstDraft}
+                          onChange={(e) => { setFirstDraft(e.target.value); setSaveError(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') void saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                          className="bg-[#1A1A1A] border border-white/15 focus:border-primary/50 outline-none px-2 py-1 text-xs font-bold tracking-widest text-white w-24 rounded-sm"
+                          placeholder="First"
                         />
-                        <button onClick={saveUsername} className="text-[10px] font-bold tracking-widest uppercase text-primary hover:text-primary/70">Save</button>
+                        <input
+                          value={lastDraft}
+                          onChange={(e) => { setLastDraft(e.target.value); setSaveError(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') void saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                          className="bg-[#1A1A1A] border border-white/15 focus:border-primary/50 outline-none px-2 py-1 text-xs font-bold tracking-widest text-white w-24 rounded-sm"
+                          placeholder="Last"
+                        />
+                        <button onClick={() => void saveName()} disabled={saveState === 'saving'} className="text-[10px] font-bold tracking-widest uppercase text-primary hover:text-primary/70 disabled:opacity-40">
+                          {saveState === 'saving' ? 'Saving…' : 'Save'}
+                        </button>
                         <button onClick={() => setEditingName(false)} className="text-[10px] font-bold tracking-widest uppercase text-white/35 hover:text-white/60">Cancel</button>
                       </div>
-                      {nameError && <p className="text-[10px] text-red-400 font-semibold mt-1">{nameError}</p>}
+                      {saveError && <p className="text-[10px] text-red-400 font-semibold mt-1">{saveError}</p>}
                     </div>
                   ) : (
                     <button onClick={startEditName} className="flex items-center gap-1.5 mb-1 mx-auto md:mx-0 group">
-                      <p className="text-xs font-bold tracking-widest text-white/35 uppercase group-hover:text-white/60 transition-colors">@{username}</p>
+                      <p className="text-xs font-bold tracking-widest text-white/35 uppercase group-hover:text-white/60 transition-colors">@{emailHandle}</p>
                       <PencilSimple size={10} weight="fill" className="text-white/25 group-hover:text-white/60 transition-colors" />
                     </button>
                   )}

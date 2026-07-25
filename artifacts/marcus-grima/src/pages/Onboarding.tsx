@@ -17,26 +17,6 @@ function authErrorMessage(err: unknown): string {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Profile helpers
-───────────────────────────────────────────────────────────────────────── */
-export interface MGProfile {
-  firstName:     string;
-  lastName:      string;
-  gender:        string;
-  age:           number;
-  weightKg:      number;
-  heightCm:      number;
-  goal:          string;
-  activityLevel: string;
-  username:      string;
-  memberSince:   string;
-}
-
-function saveProfile(p: MGProfile) {
-  localStorage.setItem('mg_profile', JSON.stringify(p));
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
    Slide data
 ───────────────────────────────────────────────────────────────────────── */
 const SLIDES = [
@@ -689,7 +669,7 @@ const DEFAULT_DRAFT = {
    Root Onboarding component
 ───────────────────────────────────────────────────────────────────────── */
 export function Onboarding({ onComplete }: { onComplete: () => void }) {
-  const { signUp } = useAuth();
+  const { signUp, createProfile } = useAuth();
   const [step, setStep]   = useState<Step>({ kind: 'choice' });
   const [draft, setDraft] = useState({ ...DEFAULT_DRAFT });
 
@@ -724,21 +704,23 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     } catch (err) {
       return authErrorMessage(err);
     }
-    // Non-auth onboarding answers stay local until they get a DB destination.
-    const now = new Date();
-    const memberSince = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-    saveProfile({
-      firstName: draft.firstName,
-      lastName:  draft.lastName,
-      gender:    draft.gender,
-      age:       draft.age,
-      weightKg:  draft.weightKg,
-      heightCm:  draft.heightCm,
-      goal:      draft.goal,
-      activityLevel: draft.activityLevel,
-      username:  draft.email.trim().toLowerCase().split('@')[0],
-      memberSince,
-    });
+    // Persist onboarding answers straight to the backend profile.
+    try {
+      await createProfile({
+        firstName: draft.firstName.trim(),
+        lastName:  draft.lastName.trim(),
+        gender:    draft.gender || null,
+        dateOfBirth: `${new Date().getFullYear() - draft.age}-01-01`,
+        weightKg:  draft.weightKg,
+        heightCm:  draft.heightCm,
+        goal:      draft.goal || null,
+        experienceLevel: draft.activityLevel || null,
+        onboardingCompleted: true,
+      });
+    } catch {
+      // Account exists; profile save failed (e.g. offline blip). The app
+      // still works — the profile page allows filling these in later.
+    }
     go({ kind: 'welcome' });
     return null;
   };

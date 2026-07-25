@@ -25,22 +25,22 @@ App structure: `src/pages/*` (one file per screen, routed by a `Page` union in `
 
 ## 3. What's built (all client-side today)
 
-- **Onboarding/auth (fake):** multi-step signup + signin. Users stored in localStorage `mg_users` (plaintext passwords), session in `mg_auth` (30-day expiry), profile in `mg_profile`. Built-in demo logins: `marcus/grima2024`, `client/mgpt2024` (see `BUILTIN` in Onboarding.tsx).
+- **Onboarding/auth (REAL as of Sprint 1–2):** email+password accounts against the API (`/api/auth/*`), scrypt-hashed passwords, DB-backed cookie sessions (`mg_session`, 30-day). Old localStorage fake auth (`mg_users`/`mg_auth`) and demo logins are gone.
+- **Client profiles (REAL as of Sprint 3):** `profiles` table (one per user), onboarding answers saved via `POST /api/profile`, Profile page reads/edits via context + `PATCH /api/profile`. Legacy `mg_profile`/`mg_avatar` localStorage is migrated to the server once on sign-in, then removed. Avatars stored as small (256px JPEG) data URLs in `profiles.avatar_url` — interim until App Storage; swap point is the `avatarUrl` field + `resizeAvatar` in Profile.tsx. Old "activity level" wizard answers (Beginner/Intermediate/Advanced) live in `experience_level`; `activity_level` is reserved for real activity data later. Age is converted to an approximate `date_of_birth` (Jan 1 of birth year).
 - **Home:** hero with avatar + IG-style story ring (green unseen / orange seen, `mg_story_seen` by date). StoryViewer: multi-story (daily quote + "What I'm Reading" book), progress bars, 7s auto-advance, hold-to-pause, tap left/right nav. Story content is hard-coded in Home.tsx.
 - **Workouts:** free program (name personalized via getters in `programs.ts`) + premium programs with simulated unlock/paywall (ownership in localStorage). Card style: image, floating stat-chip bar on photo, title/description below.
 - **Muscle map (BodyMap.tsx):** SVG front/back figure with tap-to-highlight muscle regions; both view images stay mounted (instant switching — keep it that way).
 - **Sessions, Meal Plans, Leaderboard, Members Offers, Memberships:** fully designed screens on demo/static data.
 - **Messages:** demo conversations, nothing sent. NOTE: `ThreadView` is rendered as `{ThreadView()}` deliberately — rendering it as a component remounts the input per keystroke and closes the mobile keyboard. Don't "fix" that.
 - **Team page:** Jan Tanti & Amy Zahra, profile sheets, WhatsApp deep links (numbers are placeholders +356 79 000 001/002; photos are AI-generated placeholders — swap when real ones arrive).
-- **Profile:** avatar upload (canvas-resized to 256px JPEG in localStorage `mg_avatar`), inline username editing with validation.
+- **Profile:** real server data (goal, experience, weight, height, age from DOB, member-since from account creation); inline first/last name editing and avatar upload persist via `PATCH /api/profile` with saving/saved/error indicators. Session stats (47 sessions etc.) are still hard-coded pending real activity data.
 - **Navigation:** mobile bottom nav (Home, Sessions, Messages, More) + More sheet (Workouts, Meals, Leaderboard, Memberships, Offers, Team, Profile); desktop sidebar.
 
 TypeScript is clean: `npx tsc --noEmit` passes with zero errors in both marcus-grima and api-server. Keep it that way.
 
 ## 4. The build ahead (agreed with client, in dependency order)
 
-1. **Backend + real accounts (critical path — everything depends on it).**
-   Express API in `artifacts/api-server`, Replit PostgreSQL, hashed passwords, sessions (SESSION_SECRET exists), password reset, admin (Marcus) vs client roles. Migrate all localStorage state (users, profiles, avatars, progress, premium ownership, story-seen) to the API. Branding/content as data (white-label seam).
+1. **Backend + real accounts (critical path).** ✅ Auth done (Sprint 1–2): Express API, PostgreSQL (Drizzle), scrypt hashes, cookie sessions, tenant seam (`tenants` table, single default tenant). ✅ Profiles done (Sprint 3). Remaining from this line: password reset, admin role surfaces, migrating progress/premium-ownership/story-seen, avatar move to App Storage.
 2. **Story uploads:** admin screen for Marcus to post the daily photo/quote/book; files in Replit App Storage; all clients fetch today's story; per-user seen state.
 3. **Sessions & booking:** Marcus manages a real calendar; clients book/cancel with rules; package credits tracked per client.
 4. **Memberships/payments:** Stripe for session packages and premium program unlocks (real ownership server-side). DECIDED: full Stripe checkout in v1 — build it.

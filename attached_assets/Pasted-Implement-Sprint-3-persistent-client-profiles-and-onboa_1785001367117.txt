@@ -1,0 +1,342 @@
+Implement Sprint 3: persistent client profiles and onboarding migration.
+
+OBJECTIVE
+
+Create a permanent client profile linked to each authenticated user.
+
+Move onboarding data from browser storage into PostgreSQL while preserving the existing onboarding experience and UI.
+
+Do not redesign any screens.
+
+----------------------------------------
+BEFORE EDITING
+----------------------------------------
+
+Inspect:
+
+- current authentication flow
+- AuthProvider
+- onboarding flow
+- mg_profile
+- mg_avatar
+- profile page
+- existing database schema
+- current user model
+
+Determine whether extending the existing users table or creating a dedicated profiles table is the cleaner long-term architecture.
+
+If there is no compelling reason to merge profile data into users, create a dedicated profiles table.
+
+Document your reasoning.
+
+----------------------------------------
+DATABASE
+----------------------------------------
+
+Create a client profile model.
+
+Minimum fields:
+
+id
+userId (unique FK)
+firstName
+lastName
+gender
+dateOfBirth (preferred over age)
+heightCm
+weightKg
+goal
+activityLevel
+experienceLevel
+avatarUrl
+onboardingCompleted
+createdAt
+updatedAt
+
+If appropriate, allow nullable values for fields that have not yet been completed.
+
+----------------------------------------
+API
+----------------------------------------
+
+Create profile endpoints.
+
+GET /api/profile
+
+Returns:
+
+- authenticated user's profile
+
+POST /api/profile
+
+Creates initial profile.
+
+PATCH /api/profile
+
+Updates profile.
+
+The authenticated user must only ever access their own profile.
+
+Never accept a userId from the frontend.
+
+Always derive ownership from the authenticated session.
+
+----------------------------------------
+VALIDATION
+----------------------------------------
+
+Validate:
+
+height
+
+weight
+
+goal
+
+activity level
+
+experience level
+
+date of birth
+
+Reject invalid payloads.
+
+Ignore unknown fields.
+
+Return user-safe validation errors.
+
+----------------------------------------
+FRONTEND
+----------------------------------------
+
+Replace local onboarding persistence with backend persistence.
+
+Requirements:
+
+- preserve existing onboarding flow
+- preserve existing styling
+- preserve existing navigation
+- no redesign
+
+On first completion:
+
+save onboarding directly to the backend.
+
+For existing users:
+
+If mg_profile exists:
+
+1. upload profile
+2. verify success
+3. remove localStorage key
+
+Migration must happen only once.
+
+Never overwrite a newer server profile.
+
+----------------------------------------
+AVATAR
+----------------------------------------
+
+Replace mg_avatar.
+
+Persist avatar through the backend.
+
+If object storage already exists:
+
+use it.
+
+Otherwise:
+
+implement the interface cleanly so object storage can be plugged in later.
+
+After successful migration:
+
+remove mg_avatar from localStorage.
+
+----------------------------------------
+AUTH PROVIDER
+----------------------------------------
+
+Extend AuthProvider.
+
+It should expose:
+
+user
+
+profile
+
+refreshProfile()
+
+updateProfile()
+
+isProfileLoading
+
+Authentication remains separate from profile.
+
+----------------------------------------
+PROFILE PAGE
+----------------------------------------
+
+Convert profile page to real data.
+
+Display:
+
+avatar
+
+name
+
+goal
+
+height
+
+weight
+
+activity
+
+experience
+
+Allow editing.
+
+PATCH changes.
+
+Show:
+
+saving state
+
+success state
+
+error state
+
+----------------------------------------
+LOCAL STORAGE
+----------------------------------------
+
+After migration:
+
+Remove:
+
+mg_profile
+
+mg_avatar
+
+Keep:
+
+mg_story_seen
+
+No authentication data should be introduced.
+
+----------------------------------------
+LOADING
+----------------------------------------
+
+Prevent profile flashes.
+
+While profile is loading:
+
+show existing loading treatment.
+
+----------------------------------------
+SECURITY
+----------------------------------------
+
+Authenticated users:
+
+cannot access another user's profile.
+
+Ignore:
+
+userId
+
+tenantId
+
+role
+
+or any ownership fields sent from the frontend.
+
+Ownership comes only from the authenticated session.
+
+----------------------------------------
+TESTS
+----------------------------------------
+
+Run:
+
+New account:
+
+✓ onboarding creates database profile
+
+Existing account:
+
+✓ localStorage migrates once
+
+✓ localStorage removed afterwards
+
+Refresh
+
+✓ profile loads correctly
+
+Second device
+
+✓ profile loads correctly
+
+Edit profile
+
+✓ updates persist
+
+Unauthenticated
+
+✓ profile endpoints protected
+
+Attempt ownership manipulation
+
+✓ rejected
+
+Workspace typecheck
+
+Frontend production build
+
+API production build
+
+----------------------------------------
+COMPLETION REPORT
+----------------------------------------
+
+Provide:
+
+1. Plain-English summary
+
+2. Database changes
+
+3. API endpoints
+
+4. Files created
+
+5. Files modified
+
+6. Migration behaviour
+
+7. localStorage keys removed
+
+8. Remaining localStorage keys
+
+9. Test results
+
+10. Build results
+
+11. Security review
+
+12. Architecture decisions
+
+13. Technical handover
+
+The technical handover must include:
+
+- feature overview
+- data model
+- endpoint summary
+- frontend changes
+- migration notes
+- known limitations
+- future extension points
+- recommended Sprint 4

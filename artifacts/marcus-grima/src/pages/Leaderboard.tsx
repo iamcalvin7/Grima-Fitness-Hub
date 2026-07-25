@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Crown, Footprints, Fire, Star } from '@phosphor-icons/react';
 import { buildLeaderboard, getTodayPoints, countChallengesDone } from '@/data/challenges';
-
-function loadProfile() {
-  try { return JSON.parse(localStorage.getItem('mg_profile') || 'null'); } catch { return null; }
-}
+import { useAuth } from '@/auth/AuthContext';
 
 const RANK_STYLES: Record<number, { icon: React.ReactNode; colour: string; bg: string }> = {
   1: { icon: <Trophy size={14} weight="fill" />, colour: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
@@ -38,11 +35,12 @@ function Avatar({ entry, size, ring }: { entry: { id: string; avatar: string; ro
 }
 
 export function Leaderboard() {
-  const profile      = loadProfile();
-  const firstName    = profile?.firstName ? profile.firstName.charAt(0).toUpperCase() + profile.firstName.slice(1).toLowerCase() : 'You';
-  const initials     = profile
-    ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase() || 'ME'
-    : 'ME';
+  const { user, profile } = useAuth();
+  const rawFirst     = profile?.firstName ?? user?.firstName;
+  const firstName    = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase() : 'You';
+  const initials     =
+    `${(profile?.firstName ?? user?.firstName)?.[0] ?? ''}${(profile?.lastName ?? user?.lastName)?.[0] ?? ''}`
+      .toUpperCase() || 'ME';
 
   const [done]       = useState(countChallengesDone);
   const todayPts     = getTodayPoints(done);

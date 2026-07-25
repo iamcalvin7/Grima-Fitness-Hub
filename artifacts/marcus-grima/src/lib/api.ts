@@ -8,11 +8,14 @@ const API_BASE = `${import.meta.env.BASE_URL}api`;
 
 export class ApiError extends Error {
   readonly status: number;
+  /** Optional per-field validation details from the server. */
+  readonly fields?: Record<string, string>;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, fields?: Record<string, string>) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.fields = fields;
   }
 }
 
@@ -43,11 +46,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try { data = await res.json(); } catch { /* non-JSON response body */ }
 
   if (!res.ok) {
-    const message =
-      (data && typeof data === 'object' && typeof (data as { error?: unknown }).error === 'string')
-        ? (data as { error: string }).error
-        : 'Something went wrong. Please try again.';
-    throw new ApiError(res.status, message);
+    const obj = (data && typeof data === 'object') ? data as { error?: unknown; fields?: unknown } : null;
+    const message = typeof obj?.error === 'string' ? obj.error : 'Something went wrong. Please try again.';
+    const fields = (obj?.fields && typeof obj.fields === 'object')
+      ? obj.fields as Record<string, string>
+      : undefined;
+    throw new ApiError(res.status, message, fields);
   }
 
   return data as T;
