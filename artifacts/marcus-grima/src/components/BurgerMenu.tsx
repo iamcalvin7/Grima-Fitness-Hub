@@ -40,6 +40,13 @@ const MENU_ITEMS: {
     accent: '#E5E5E5',
   },
   {
+    id:     'memberships',
+    label:  'Memberships',
+    sub:    'Session packages & pricing',
+    icon:   <Crown size={26} />,
+    accent: '#4ade80',
+  },
+  {
     id:     'offers',
     label:  'Members Offers',
     sub:    'Exclusive partner discounts for members',
