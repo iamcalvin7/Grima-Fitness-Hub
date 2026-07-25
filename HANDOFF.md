@@ -43,11 +43,11 @@ TypeScript is clean: `npx tsc --noEmit` passes with zero errors in both marcus-g
    Express API in `artifacts/api-server`, Replit PostgreSQL, hashed passwords, sessions (SESSION_SECRET exists), password reset, admin (Marcus) vs client roles. Migrate all localStorage state (users, profiles, avatars, progress, premium ownership, story-seen) to the API. Branding/content as data (white-label seam).
 2. **Story uploads:** admin screen for Marcus to post the daily photo/quote/book; files in Replit App Storage; all clients fetch today's story; per-user seen state.
 3. **Sessions & booking:** Marcus manages a real calendar; clients book/cancel with rules; package credits tracked per client.
-4. **Memberships/payments:** Stripe for session packages and premium program unlocks (real ownership server-side). Client may opt for "contact to buy" in v1 — confirm before building checkout.
+4. **Memberships/payments:** Stripe for session packages and premium program unlocks (real ownership server-side). DECIDED: full Stripe checkout in v1 — build it.
 5. **Activity metrics via Strava** (decision made: Strava OAuth + webhooks; reframe Home metrics from daily steps to weekly training activity — sessions, active minutes, calories from recorded workouts). No Apple Health (web app; no native wrapper in v1).
 6. **Photo food logging (AI):** camera upload → vision model (use Replit AI integrations) → calories/macros estimate → editable → daily diary Marcus can see, tied to prescribed meal plans. Photos in App Storage. Barcode/Open Food Facts is a later add.
 7. **Leaderboard:** real weekly points computed server-side from actual activity.
-8. **Messaging:** likely defer to WhatsApp for v1 — confirm with owner before building.
+8. **Messaging:** DECIDED: real in-app messaging in v1 (client ↔ Marcus). The Messages UI already exists on demo data — build the backend (threads, messages, unread state) and wire it up. Do not defer to WhatsApp.
 9. **Content & polish:** real WhatsApp numbers/photos for team, real offers, real program/meal content from Marcus, remaining purple-styling cleanup (open task #2), challenge midnight reset verification (open task #3), publish + custom domain.
 
 ## 5. Environment facts & gotchas
