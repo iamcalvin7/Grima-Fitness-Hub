@@ -47,13 +47,26 @@ export interface Program {
   highlights?: string[];   // bullet points on paywall
 }
 
-/* ── Peter's 3-Day Split ─────────────────────────────────────────────────── */
+/* ── Free program — personalized "<Client>'s 3-Day Split" ────────────────── */
+
+/** First name of the logged-in client (from onboarding profile), fallback "Peter". */
+function clientFirstName(): string {
+  try {
+    const p = JSON.parse(localStorage.getItem('mg_profile') || 'null');
+    const n = p?.firstName;
+    if (typeof n === 'string' && n.trim()) {
+      return n.trim().charAt(0).toUpperCase() + n.trim().slice(1).toLowerCase();
+    }
+  } catch { /* ignore */ }
+  return 'Peter';
+}
 
 export const PROGRAMS: Program[] = [
   {
     id: 'peters-split',
-    name: "Peter's 3-Day Split",
-    clientName: 'Peter',
+    // Getters so the name always reflects the current client, even right after onboarding
+    get name() { return `${clientFirstName()}'s 3-Day Split`; },
+    get clientName() { return clientFirstName(); },
     description: 'A classic push/pull/shoulders hypertrophy split designed by Marcus. Three focused sessions per week targeting every major muscle group.',
     daysPerWeek: 3,
     difficulty: 'Intermediate',
