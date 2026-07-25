@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home as HomeIcon, Calendar, MessageSquare, User, Menu } from 'lucide-react';
+import { Home as HomeIcon, Calendar, MessageSquare, Menu } from 'lucide-react';
 import type { Page } from '@/App';
 
 interface BottomNavProps {
@@ -14,7 +14,6 @@ export const BottomNav = ({ activePage, onNavigate, onMenuOpen, menuOpen }: Bott
     { id: 'home',     label: 'Home',     icon: <HomeIcon      size={20} className="stroke-[2.5px]" /> },
     { id: 'sessions', label: 'Sessions', icon: <Calendar      size={20} className="stroke-[2px]" /> },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} className="stroke-[2px]" />, badge: true },
-    { id: 'profile',  label: 'Profile',  icon: <User          size={20} className="stroke-[2px]" /> },
   ];
 
   return (
