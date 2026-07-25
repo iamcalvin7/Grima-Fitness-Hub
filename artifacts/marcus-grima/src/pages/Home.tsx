@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Flame, Heart, Activity, ChevronRight,
-  Clock, CheckCircle2, Info, X,
-} from 'lucide-react';
+  Fire, Heart, Pulse, CaretRight,
+  Clock, CheckCircle, Info, X,
+} from '@phosphor-icons/react';
 import {
   BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
   AreaChart, Area, YAxis, ReferenceLine,
@@ -163,7 +163,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
         <div className="absolute top-3 inset-x-3 flex items-center justify-between">
           {done ? (
             <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
-              <CheckCircle2 size={11} /> Done · +{challenge.pts} pts
+              <CheckCircle size={11} weight="fill" /> Done · +{challenge.pts} pts
             </span>
           ) : (
             <span className="text-[10px] font-bold text-white bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
@@ -176,7 +176,7 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
             aria-label="About this challenge"
             className="flex items-center gap-1 text-[10px] font-bold text-white/80 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15"
           >
-            <Info size={11} /> About
+            <Info size={11} weight="fill" /> About
           </motion.button>
         </div>
 
@@ -204,8 +204,8 @@ function DailyChallengeCard({ onComplete }: { onComplete?: () => void }) {
           <div className="min-w-0">
             <p className="text-2xl font-black text-white leading-none tracking-tight truncate">{challenge.name}</p>
             <div className="flex items-center gap-3 mt-2 text-[10px] font-semibold text-white/60">
-              {challenge.kcal > 0 && <span className="flex items-center gap-1"><Flame size={11} className="text-orange-400" /> {challenge.kcal} Kcal</span>}
-              {challenge.mins > 0 && <span className="flex items-center gap-1"><Clock size={11} /> {challenge.mins} min</span>}
+              {challenge.kcal > 0 && <span className="flex items-center gap-1"><Fire size={11} weight="fill" className="text-orange-400" /> {challenge.kcal} Kcal</span>}
+              {challenge.mins > 0 && <span className="flex items-center gap-1"><Clock size={11} weight="fill" /> {challenge.mins} min</span>}
               {challenge.kcal === 0 && challenge.mins === 0 && <span>{challenge.desc}</span>}
             </div>
           </div>
@@ -257,7 +257,7 @@ function MetricsSection() {
         <h3 className="text-sm font-bold text-white">Your Metrics</h3>
         <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/25">
           via Apple Health
-          <Heart size={11} className="text-white/25" fill="currentColor" />
+          <Heart size={11} weight="fill" className="text-white/25" />
         </span>
       </div>
 
@@ -272,7 +272,7 @@ function MetricsSection() {
         >
           <div className="absolute inset-x-0 top-0 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent)' }} />
-          <span className="text-green-400 mb-2 block"><Activity className="w-5 h-5" /></span>
+          <span className="text-green-400 mb-2 block"><Pulse weight="fill" className="w-5 h-5" /></span>
           <p className="text-3xl font-black text-white tabular-nums leading-none">{stepsVal.toLocaleString()}</p>
           <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider mt-1">Steps</p>
           <span className="mt-2 inline-block text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-lg">+12% today</span>
@@ -311,7 +311,7 @@ function MetricsSection() {
         >
           <div className="absolute inset-x-0 top-0 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.6), transparent)' }} />
-          <span className="text-orange-400 mb-2 block"><Flame className="w-5 h-5" /></span>
+          <span className="text-orange-400 mb-2 block"><Fire weight="fill" className="w-5 h-5" /></span>
           <p className="text-3xl font-black text-white tabular-nums leading-none">{calsVal}</p>
           <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wider mt-1">Kcal Active</p>
           <span className="mt-2 inline-block text-[10px] font-bold text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-lg">↑ 8% vs yesterday</span>
@@ -505,12 +505,12 @@ function SessionsBlock({ goToSession, bookSession, buySessions }: { goToSession:
             <p className="text-sm font-bold text-white">{focusTitle}</p>
             <div className="flex items-center gap-3 mt-0.5">
               <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
-                <Clock size={10} /> {dayShort} {dayNum} {month} · {time24} · {next.duration.toLowerCase()}
+                <Clock size={10} weight="fill" /> {dayShort} {dayNum} {month} · {time24} · {next.duration.toLowerCase()}
               </span>
             </div>
           </div>
 
-          <ChevronRight size={16} className="text-white/15 group-hover:text-white/50 transition-colors shrink-0" />
+          <CaretRight size={16} weight="bold" className="text-white/15 group-hover:text-white/50 transition-colors shrink-0" />
         </motion.button>
 
         {/* Divider */}
@@ -591,7 +591,7 @@ function MusclesWorkedBlock() {
           className="mt-4 w-full flex items-center justify-center gap-1.5 text-[10px] font-extrabold tracking-[0.2em] uppercase text-white/40 hover:text-white/70 transition-colors py-1"
         >
           {expanded ? 'Hide session plan' : 'View session plan'}
-          <ChevronRight size={12} className={`transition-transform duration-200 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
+          <CaretRight size={12} weight="bold" className={`transition-transform duration-200 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
         </button>
 
         <AnimatePresence initial={false}>
@@ -776,7 +776,7 @@ function StoryViewer({ onClose }: { onClose: () => void }) {
           className="text-white/70 hover:text-white p-2 -mr-2 pointer-events-auto"
           aria-label="Close story"
         >
-          <X size={24} />
+          <X size={24} weight="bold" />
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Crown, Zap, Footprints, Flame, Star } from 'lucide-react';
+import { Trophy, Crown, Footprints, Fire, Star } from '@phosphor-icons/react';
 import { buildLeaderboard, getTodayPoints, countChallengesDone } from '@/data/challenges';
 
 function loadProfile() {
@@ -8,9 +8,9 @@ function loadProfile() {
 }
 
 const RANK_STYLES: Record<number, { icon: React.ReactNode; colour: string; bg: string }> = {
-  1: { icon: <Trophy size={14} />, colour: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
-  2: { icon: <Trophy size={14} />, colour: '#C0C0C0', bg: 'rgba(192,192,192,0.10)' },
-  3: { icon: <Trophy size={14} />, colour: '#CD7F32', bg: 'rgba(205,127,50,0.10)' },
+  1: { icon: <Trophy size={14} weight="fill" />, colour: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
+  2: { icon: <Trophy size={14} weight="fill" />, colour: '#C0C0C0', bg: 'rgba(192,192,192,0.10)' },
+  3: { icon: <Trophy size={14} weight="fill" />, colour: '#CD7F32', bg: 'rgba(205,127,50,0.10)' },
 };
 
 /* Profile photos per player */
@@ -78,14 +78,14 @@ export function Leaderboard() {
               <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-2">Today's points</p>
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="flex items-center gap-1 text-[10px] font-semibold text-white/60">
-                  <Footprints size={11} className="text-primary/60" /> {todayPts.steps} steps
+                  <Footprints size={11} weight="fill" className="text-primary/60" /> {todayPts.steps} steps
                 </span>
                 <span className="flex items-center gap-1 text-[10px] font-semibold text-white/60">
-                  <Flame size={11} className="text-primary/60" /> {todayPts.calories} kcal
+                  <Fire size={11} weight="fill" className="text-primary/60" /> {todayPts.calories} kcal
                 </span>
                 {done && (
                   <span className="flex items-center gap-1 text-[10px] font-semibold text-primary">
-                    <Star size={11} /> +50 challenge
+                    <Star size={11} weight="fill" /> +50 challenge
                   </span>
                 )}
               </div>
@@ -102,9 +102,9 @@ export function Leaderboard() {
         <p className="text-[10px] font-bold tracking-[0.25em] text-white/30 uppercase mb-3">How points are earned</p>
         <div className="grid grid-cols-3 gap-2.5">
           {[
-            { icon: <Footprints size={16} />, label: '1 pt per 100 steps',  colour: '#E5E5E5' },
-            { icon: <Flame      size={16} />, label: '1 pt per 10 kcal',    colour: '#E5E5E5' },
-            { icon: <Star       size={16} />, label: '+50 daily challenge',  colour: '#FFD700' },
+            { icon: <Footprints size={16} weight="fill" />, label: '1 pt per 100 steps',  colour: '#E5E5E5' },
+            { icon: <Fire      size={16} weight="fill" />, label: '1 pt per 10 kcal',    colour: '#E5E5E5' },
+            { icon: <Star       size={16} weight="fill" />, label: '+50 daily challenge',  colour: '#FFD700' },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -136,7 +136,7 @@ export function Leaderboard() {
                 transition={{ delay: rank * 0.08 }}
                 className="flex flex-col items-center text-center"
               >
-                {first && <Crown size={18} className="text-[#FFD700] mb-1.5" />}
+                {first && <Crown size={18} weight="fill" className="text-[#FFD700] mb-1.5" />}
                 <div className="relative">
                   <Avatar entry={entry} size={first ? 84 : 64} ring={`2.5px solid ${rs.colour}`} />
                   <span
@@ -217,7 +217,7 @@ export function Leaderboard() {
                   </span>
                   {isMarcus && (
                     <span className="flex items-center gap-0.5 text-[8px] font-black text-[#FFD700] bg-[#FFD700]/10 px-1.5 py-0.5 rounded">
-                      <Crown size={8} /> TRAINER
+                      <Crown size={8} weight="fill" /> TRAINER
                     </span>
                   )}
                   {isYou && (

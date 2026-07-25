@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home as HomeIcon, Calendar, MessageSquare, Menu } from 'lucide-react';
+import { House as HomeIcon, CalendarBlank as Calendar, ChatCircle as MessageSquare, List as Menu } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 
 interface BottomNavProps {
@@ -11,9 +11,9 @@ interface BottomNavProps {
 
 export const BottomNav = ({ activePage, onNavigate, onMenuOpen, menuOpen }: BottomNavProps) => {
   const items: { id: Page; label: string; icon: React.ReactNode; badge?: boolean }[] = [
-    { id: 'home',     label: 'Home',     icon: <HomeIcon      size={20} className="stroke-[2.5px]" /> },
-    { id: 'sessions', label: 'Sessions', icon: <Calendar      size={20} className="stroke-[2px]" /> },
-    { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} className="stroke-[2px]" />, badge: true },
+    { id: 'home',     label: 'Home',     icon: <HomeIcon      size={20} weight="fill" /> },
+    { id: 'sessions', label: 'Sessions', icon: <Calendar      size={20} weight="fill" /> },
+    { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} weight="fill" />, badge: true },
   ];
 
   return (
@@ -48,7 +48,7 @@ export const BottomNav = ({ activePage, onNavigate, onMenuOpen, menuOpen }: Bott
         style={{ color: menuOpen ? '#ffffff' : 'rgba(255,255,255,0.3)' }}
       >
         {menuOpen && <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-white" />}
-        <Menu size={20} className="stroke-[2px]" />
+        <Menu size={20} weight="fill" />
         <span className="text-[8px] font-bold tracking-wider uppercase">More</span>
       </button>
     </div>

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bookmark, BookmarkCheck, Plus, Minus, ChevronLeft,
-  Clock, RotateCcw, SlidersHorizontal, ChevronDown,
-  Zap, Flame, Wheat, Droplets, Check, X, UtensilsCrossed,
-} from 'lucide-react';
+  Bookmark, Plus, Minus, CaretLeft,
+  Clock, ArrowCounterClockwise, SlidersHorizontal, CaretDown,
+  Lightning, Fire, Check, X, ForkKnife,
+} from '@phosphor-icons/react';
 import { MEALS, type Meal } from '@/data/meals';
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
@@ -103,7 +103,7 @@ function Stepper({
           onClick={() => onChange(Math.max(min, value - step))}
           className="w-10 h-10 rounded-sm border border-white/15 hover:border-primary/50 hover:bg-primary/10 flex items-center justify-center text-foreground/60 hover:text-foreground transition-all"
         >
-          <Minus size={16} />
+          <Minus size={16} weight="bold" />
         </button>
         <div className="flex items-baseline gap-1.5 min-w-[80px] justify-center">
           <span className="text-3xl font-bold">{value}</span>
@@ -113,7 +113,7 @@ function Stepper({
           onClick={() => onChange(Math.min(max, value + step))}
           className="w-10 h-10 rounded-sm border border-white/15 hover:border-primary/50 hover:bg-primary/10 flex items-center justify-center text-foreground/60 hover:text-foreground transition-all"
         >
-          <Plus size={16} />
+          <Plus size={16} weight="bold" />
         </button>
       </div>
       {hint && <p className="text-xs text-foreground/40 mt-2">{hint}</p>}
@@ -144,7 +144,7 @@ function MealCard({
           <img src={mealImg(meal)} alt={meal.name} className="w-full h-full object-cover" loading="lazy" />
           {isBest && (
             <div className="absolute top-2 left-2 flex items-center gap-1 bg-primary/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
-              <Flame size={10} className="text-primary-foreground" />
+              <Fire size={10} weight="fill" className="text-primary-foreground" />
               <span className="text-[9px] font-bold text-white uppercase tracking-wider">Best Match</span>
             </div>
           )}
@@ -156,7 +156,7 @@ function MealCard({
             <h3 className="text-sm font-bold leading-tight">{meal.name}</h3>
             <div className="flex items-center gap-2 mt-1">
               <span className="flex items-center gap-1 text-[10px] text-foreground/45">
-                <Clock size={10} /> {meal.prepMinutes + meal.cookMinutes} min
+                <Clock size={10} weight="fill" /> {meal.prepMinutes + meal.cookMinutes} min
               </span>
               <span className={`text-[10px] font-semibold ${DIFFICULTY_COLOUR[meal.difficulty]}`}>
                 {meal.difficulty}
@@ -211,7 +211,7 @@ function MealCard({
             isSaved ? 'text-primary bg-primary/8' : 'text-foreground/50 hover:text-foreground hover:bg-white/3'
           }`}
         >
-          {isSaved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+          {isSaved ? <Bookmark size={14} weight="fill" /> : <Bookmark size={14} />}
           <span className="text-[10px] font-bold tracking-widest uppercase hidden sm:block">
             {isSaved ? 'Saved' : 'Save'}
           </span>
@@ -224,7 +224,7 @@ function MealCard({
               : 'bg-primary/90 hover:bg-primary text-primary-foreground'
           }`}
         >
-          {isInPlan ? <Check size={14} /> : <Plus size={14} />}
+          {isInPlan ? <Check size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
           <span className="text-[10px] font-bold tracking-widest uppercase hidden sm:block">
             {isInPlan ? 'Added' : 'Add to Plan'}
           </span>
@@ -253,7 +253,7 @@ function MealDetail({
           onClick={onBack}
           className="absolute top-5 left-5 w-9 h-9 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
         >
-          <ChevronLeft size={18} />
+          <CaretLeft size={18} weight="bold" />
         </button>
         <div className="absolute bottom-4 right-4 flex gap-2">
           <button
@@ -262,7 +262,7 @@ function MealDetail({
               isSaved ? 'bg-primary/80 text-primary-foreground' : 'bg-black/50 text-white/70 hover:text-white'
             }`}
           >
-            {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+            {isSaved ? <Bookmark size={16} weight="fill" /> : <Bookmark size={16} />}
           </button>
         </div>
       </div>
@@ -273,11 +273,11 @@ function MealDetail({
           <h1 className="text-xl font-bold tracking-wider leading-tight">{meal.name}</h1>
           <div className="flex items-center gap-3 mt-2">
             <span className="flex items-center gap-1.5 text-xs text-foreground/50">
-              <Clock size={12} /> {meal.prepMinutes + meal.cookMinutes} min total
+              <Clock size={12} weight="fill" /> {meal.prepMinutes + meal.cookMinutes} min total
             </span>
             <span className={`text-xs font-semibold ${DIFFICULTY_COLOUR[meal.difficulty]}`}>{meal.difficulty}</span>
             <span className="flex items-center gap-1.5 text-xs text-foreground/50">
-              <Clock size={12} /> Prep: {meal.prepMinutes}m · Cook: {meal.cookMinutes}m
+              <Clock size={12} weight="fill" /> Prep: {meal.prepMinutes}m · Cook: {meal.cookMinutes}m
             </span>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-3">
@@ -337,7 +337,7 @@ function MealDetail({
               : 'bg-primary hover:bg-primary/90 text-primary-foreground'
           }`}
         >
-          {isInPlan ? <><Check size={16} /> Added to Daily Plan</> : <><Plus size={16} /> Add to Daily Plan</>}
+          {isInPlan ? <><Check size={16} /> Added to Daily Plan</> : <><Plus size={16} weight="bold" /> Add to Daily Plan</>}
         </button>
       </div>
     </div>
@@ -360,7 +360,7 @@ function SavedView({
     <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-28 md:pb-12">
       <div className="px-5 md:px-8 pt-6">
         <button onClick={onBack} className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors mb-6 text-sm font-bold tracking-wider uppercase">
-          <ChevronLeft size={16} /> Back
+          <CaretLeft size={16} weight="bold" /> Back
         </button>
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-wider">SAVED MEALS</h1>
@@ -369,7 +369,7 @@ function SavedView({
 
         {saved.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Bookmark size={40} className="text-foreground/15 mb-4" />
+            <Bookmark size={40} weight="fill" className="text-foreground/15 mb-4" />
             <p className="text-foreground/40 text-sm">No saved meals yet.</p>
             <p className="text-foreground/30 text-xs mt-1">Tap the bookmark icon on any meal to save it.</p>
           </div>
@@ -401,7 +401,7 @@ function SavedView({
                     {dailyIds.has(meal.id) ? '✓' : '+'}
                   </button>
                   <button onClick={() => onRemove(meal.id)} className="p-2 text-foreground/30 hover:text-red-400 transition-colors">
-                    <X size={14} />
+                    <X size={14} weight="bold" />
                   </button>
                 </div>
               </div>
@@ -432,7 +432,7 @@ function DailyPlanView({
     <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-28 md:pb-12">
       <div className="px-5 md:px-8 pt-6">
         <button onClick={onBack} className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors mb-6 text-sm font-bold tracking-wider uppercase">
-          <ChevronLeft size={16} /> Back
+          <CaretLeft size={16} weight="bold" /> Back
         </button>
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-wider">DAILY PLAN</h1>
@@ -461,7 +461,7 @@ function DailyPlanView({
 
         {meals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <UtensilsCrossed size={40} className="text-foreground/15 mb-4" />
+            <ForkKnife size={40} weight="fill" className="text-foreground/15 mb-4" />
             <p className="text-foreground/40 text-sm">Your daily plan is empty.</p>
             <p className="text-foreground/30 text-xs mt-1">Add meals from the search results.</p>
           </div>
@@ -487,7 +487,7 @@ function DailyPlanView({
                       View
                     </button>
                     <button onClick={() => onRemove(meal.id)} className="p-1.5 text-foreground/25 hover:text-red-400 transition-colors">
-                      <X size={14} />
+                      <X size={14} weight="bold" />
                     </button>
                   </div>
                 </div>
@@ -598,7 +598,7 @@ export const MealPlan = () => {
                 onClick={() => setView({ kind: 'daily' })}
                 className="flex items-center gap-2 px-3 py-2 border border-white/10 hover:border-white/20 transition-colors text-[10px] font-bold tracking-widest uppercase text-foreground/60 hover:text-foreground"
               >
-                <UtensilsCrossed size={13} />
+                <ForkKnife size={13} weight="fill" />
                 Plan ({dailyIds.size})
               </button>
             )}
@@ -606,7 +606,7 @@ export const MealPlan = () => {
               onClick={() => setView({ kind: 'saved' })}
               className="flex items-center gap-2 px-3 py-2 border border-white/10 hover:border-white/20 transition-colors text-[10px] font-bold tracking-widest uppercase text-foreground/60 hover:text-foreground"
             >
-              <Bookmark size={13} />
+              <Bookmark size={13} weight="fill" />
               Saved{savedIds.size > 0 ? ` (${savedIds.size})` : ''}
             </button>
           </div>
@@ -622,16 +622,16 @@ export const MealPlan = () => {
               <h2 className="text-sm font-bold tracking-wider">Set Your Goal</h2>
             </div>
             <button onClick={reset} className="flex items-center gap-1.5 text-[9px] font-bold tracking-widest uppercase text-foreground/40 hover:text-primary transition-colors">
-              <RotateCcw size={11} /> Reset
+              <ArrowCounterClockwise size={11} weight="bold" /> Reset
             </button>
           </div>
 
           {/* Goal type selector */}
           <div className="grid grid-cols-3 gap-2 mb-5">
             {([
-              { type: 'protein' as GoalType,  label: 'Protein',  sub: 'Focus on protein intake', icon: <Zap size={16} /> },
-              { type: 'calories' as GoalType, label: 'Calories', sub: 'Set a calorie target',    icon: <Flame size={16} /> },
-              { type: 'custom' as GoalType,   label: 'Custom',   sub: 'Set macros manually',     icon: <SlidersHorizontal size={16} /> },
+              { type: 'protein' as GoalType,  label: 'Protein',  sub: 'Focus on protein intake', icon: <Lightning size={16} weight="fill" /> },
+              { type: 'calories' as GoalType, label: 'Calories', sub: 'Set a calorie target',    icon: <Fire size={16} weight="fill" /> },
+              { type: 'custom' as GoalType,   label: 'Custom',   sub: 'Set macros manually',     icon: <SlidersHorizontal size={16} weight="fill" /> },
             ]).map(({ type, label, sub, icon }) => (
               <button
                 key={type}
@@ -725,9 +725,9 @@ export const MealPlan = () => {
                   onClick={() => setShowSort(v => !v)}
                   className="flex items-center gap-2 px-3 py-2 border border-white/10 hover:border-white/20 transition-colors text-[10px] font-bold tracking-widest uppercase text-foreground/50"
                 >
-                  <SlidersHorizontal size={11} />
+                  <SlidersHorizontal size={11} weight="fill" />
                   {SORT_LABELS[sortMode]}
-                  <ChevronDown size={11} />
+                  <CaretDown size={11} weight="bold" />
                 </button>
                 <AnimatePresence>
                   {showSort && (

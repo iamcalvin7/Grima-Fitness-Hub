@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Dumbbell } from 'lucide-react';
+import { Check, Barbell } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 
 interface MembershipsProps {
@@ -71,14 +71,14 @@ export const Memberships = ({ setPage }: MembershipsProps) => {
               <div className="flex items-start justify-between">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,200,200,0.22)' }}>
-                  <Dumbbell size={18} className={active ? 'text-green-400' : 'text-white/50'} />
+                  <Barbell size={18} weight="fill" className={active ? 'text-green-400' : 'text-white/50'} />
                 </div>
                 <div
                   className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${
                     active ? 'bg-green-400 border-green-400' : 'border-white/20'
                   }`}
                 >
-                  {active && <Check size={12} className="text-black" strokeWidth={3} />}
+                  {active && <Check size={12} weight="bold" className="text-black" />}
                 </div>
               </div>
 

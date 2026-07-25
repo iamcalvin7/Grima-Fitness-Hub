@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, MessageCircle, Dumbbell, Award, Clock } from 'lucide-react';
+import { CaretLeft as ChevronLeft, WhatsappLogo, Barbell as Dumbbell, Medal as Award, Clock } from '@phosphor-icons/react';
 
 interface TeamMember {
   id: string;
@@ -104,7 +104,7 @@ export function Team() {
                   onClick={() => setSelected(null)}
                   className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white"
                 >
-                  <ChevronLeft size={18} />
+                  <ChevronLeft size={18} weight="bold" />
                 </button>
                 <div className="absolute bottom-4 left-5 right-5">
                   <h2 className="text-2xl font-black tracking-wide text-white">{selected.name}</h2>
@@ -118,7 +118,7 @@ export function Team() {
                 {/* Quick facts */}
                 <div className="flex items-center gap-2 mt-5">
                   <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase text-white/60 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-                    <Clock size={11} className="text-primary" /> {selected.experience}
+                    <Clock size={11} weight="fill" className="text-primary" /> {selected.experience}
                   </span>
                 </div>
 
@@ -127,7 +127,7 @@ export function Team() {
                 <div className="flex flex-wrap gap-2">
                   {selected.specialties.map(s => (
                     <span key={s} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/75 bg-primary/10 border border-primary/25 rounded-full px-3 py-1.5">
-                      <Dumbbell size={11} className="text-primary" /> {s}
+                      <Dumbbell size={11} weight="fill" className="text-primary" /> {s}
                     </span>
                   ))}
                 </div>
@@ -137,7 +137,7 @@ export function Team() {
                 <div className="flex flex-col gap-2">
                   {selected.certifications.map(c => (
                     <div key={c} className="flex items-center gap-2.5 text-xs text-white/60">
-                      <Award size={13} className="text-primary shrink-0" /> {c}
+                      <Award size={13} weight="fill" className="text-primary shrink-0" /> {c}
                     </div>
                   ))}
                 </div>
@@ -149,7 +149,7 @@ export function Team() {
                   rel="noopener noreferrer"
                   className="mt-7 mb-2 w-full flex items-center justify-center gap-2.5 py-4 rounded-full bg-primary text-black font-bold text-sm tracking-wide"
                 >
-                  <MessageCircle size={18} />
+                  <WhatsappLogo size={18} weight="fill" />
                   Contact on WhatsApp
                 </a>
               </div>

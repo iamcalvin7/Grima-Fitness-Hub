@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Send, Image as ImageIcon } from 'lucide-react';
+import { CaretLeft, PaperPlaneRight, Image as ImageIcon } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 
 interface MessagesProps {
@@ -60,7 +60,7 @@ export const Messages = ({ setPage }: MessagesProps) => {
       {/* Thread header */}
       <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3 bg-[#0A0A0A]">
         <button className="md:hidden text-foreground/60 hover:text-foreground transition-colors" onClick={() => setMobileOpenThread(false)}>
-          <ChevronLeft size={22} />
+          <CaretLeft size={22} weight="bold" />
         </button>
         <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 shrink-0">
           <img src={`${import.meta.env.BASE_URL}marcus.png`} alt="Marcus Grima" className="w-full h-full object-cover" />
@@ -100,7 +100,7 @@ export const Messages = ({ setPage }: MessagesProps) => {
 
       {/* Input */}
       <div className="px-4 py-4 border-t border-white/5 bg-[#0A0A0A] flex gap-3 items-center">
-        <button className="text-foreground/30 hover:text-foreground/60 transition-colors shrink-0"><ImageIcon size={20} /></button>
+        <button className="text-foreground/30 hover:text-foreground/60 transition-colors shrink-0"><ImageIcon size={20} weight="fill" /></button>
         <input
           type="text"
           value={input}
@@ -110,7 +110,7 @@ export const Messages = ({ setPage }: MessagesProps) => {
           className="flex-1 bg-[#1A1A1A] border border-white/10 px-4 py-3 text-sm font-medium text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/40 transition-colors rounded-sm"
         />
         <button onClick={sendMessage} className="w-10 h-10 bg-primary flex items-center justify-center hover:bg-primary/80 transition-colors shrink-0 rounded-sm">
-          <Send size={16} className="text-foreground" />
+          <PaperPlaneRight size={16} weight="fill" className="text-foreground" />
         </button>
       </div>
     </div>

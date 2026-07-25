@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Calendar, Timer, MapPin, ChevronRight, Plus,
-  CheckCircle2, XCircle, ChevronLeft, X, Check, Dumbbell,
-} from 'lucide-react';
+  CalendarBlank, Timer, MapPin, CaretRight, Plus,
+  CheckCircle, XCircle, CaretLeft, X, Check, Barbell,
+} from '@phosphor-icons/react';
 import { BodyMap } from '@/components/BodyMap';
 import type { Page } from '@/App';
 import { upcoming, past, type UpcomingSession, type PastSession } from '@/data/sessions';
@@ -62,8 +62,8 @@ const DAY_NAMES   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 const StatusBadge = ({ status }: { status: string }) => {
   if (status === 'CONFIRMED') return <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 font-bold tracking-wider whitespace-nowrap">CONFIRMED</span>;
   if (status === 'PENDING')   return <span className="text-[10px] bg-yellow-900/30 text-yellow-400 px-2 py-1 font-bold tracking-wider whitespace-nowrap">PENDING</span>;
-  if (status === 'COMPLETED') return <span className="flex items-center gap-1 text-[10px] text-foreground/40 font-bold tracking-wider"><CheckCircle2 size={10} /> DONE</span>;
-  if (status === 'CANCELLED') return <span className="flex items-center gap-1 text-[10px] text-red-500/60 font-bold tracking-wider"><XCircle size={10} /> CANCELLED</span>;
+  if (status === 'COMPLETED') return <span className="flex items-center gap-1 text-[10px] text-foreground/40 font-bold tracking-wider"><CheckCircle size={10} weight="fill" /> DONE</span>;
+  if (status === 'CANCELLED') return <span className="flex items-center gap-1 text-[10px] text-red-500/60 font-bold tracking-wider"><XCircle size={10} weight="fill" /> CANCELLED</span>;
   return null;
 };
 
@@ -82,7 +82,7 @@ function UpcomingDetail({ session, onBack }: { session: UpcomingSession; onBack:
           onClick={onBack}
           className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors text-sm font-bold tracking-wider uppercase mb-4"
         >
-          <ChevronLeft size={16} /> Sessions
+          <CaretLeft size={16} weight="bold" /> Sessions
         </button>
         <div className="flex items-start justify-between">
           <div>
@@ -92,8 +92,8 @@ function UpcomingDetail({ session, onBack }: { session: UpcomingSession; onBack:
           <StatusBadge status={session.status} />
         </div>
         <div className="flex items-center gap-4 mt-2 text-xs font-semibold text-foreground/45">
-          <span className="flex items-center gap-1.5"><Timer size={12} />{session.duration}</span>
-          <span className="flex items-center gap-1.5"><MapPin size={12} />Marcus Grima Studio</span>
+          <span className="flex items-center gap-1.5"><Timer size={12} weight="fill" />{session.duration}</span>
+          <span className="flex items-center gap-1.5"><MapPin size={12} weight="fill" />Marcus Grima Studio</span>
         </div>
       </div>
 
@@ -147,13 +147,13 @@ function PastDetail({ session, onBack }: { session: PastSession; onBack: () => v
           onClick={onBack}
           className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors text-sm font-bold tracking-wider uppercase mb-4"
         >
-          <ChevronLeft size={16} /> Sessions
+          <CaretLeft size={16} weight="bold" /> Sessions
         </button>
         <p className="text-[10px] font-bold tracking-[0.22em] text-foreground/35 uppercase">{session.date} · {session.time}</p>
         <h1 className="text-xl font-black tracking-wider mt-1">{session.name}</h1>
         <div className="flex items-center gap-4 mt-2 text-xs font-semibold text-foreground/45">
-          <span className="flex items-center gap-1.5"><Timer size={12} />{session.duration}</span>
-          <span className="flex items-center gap-1.5"><Dumbbell size={12} />{session.exercises} exercises</span>
+          <span className="flex items-center gap-1.5"><Timer size={12} weight="fill" />{session.duration}</span>
+          <span className="flex items-center gap-1.5"><Barbell size={12} weight="fill" />{session.exercises} exercises</span>
         </div>
       </div>
 
@@ -176,7 +176,7 @@ function PastDetail({ session, onBack }: { session: PastSession; onBack: () => v
               {session.exerciseList.map((ex, i) => (
                 <div key={i} className="flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.02]">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 size={14} className="text-green-500/50 shrink-0" />
+                    <CheckCircle size={14} weight="fill" className="text-green-500/50 shrink-0" />
                     <div>
                       <p className="text-sm font-bold">{ex.name}</p>
                       <p className="text-[10px] font-bold tracking-widest text-foreground/35 mt-0.5">{ex.sets}</p>
@@ -244,7 +244,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-3">
           {step !== 'date' && step !== 'done' && (
             <button onClick={() => { if (step === 'time') setStep('date'); if (step === 'confirm') setStep('time'); }} className="text-foreground/50 hover:text-foreground transition-colors">
-              <ChevronLeft size={18} />
+              <CaretLeft size={18} weight="bold" />
             </button>
           )}
           <div>
@@ -256,7 +256,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
             {step === 'time' && <p className="text-[10px] text-foreground/40 font-semibold tracking-wider mt-0.5">{selectedDateStr}</p>}
           </div>
         </div>
-        <button onClick={onClose} className="text-foreground/40 hover:text-foreground transition-colors"><X size={18} /></button>
+        <button onClick={onClose} className="text-foreground/40 hover:text-foreground transition-colors"><X size={18} weight="bold" /></button>
       </div>
 
       {step !== 'done' && (
@@ -279,9 +279,9 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
           {step === 'date' && (
             <motion.div key="date" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="px-6 py-5">
               <div className="flex items-center justify-between mb-4">
-                <button onClick={prevMonth} disabled={!canPrevMonth} className="w-8 h-8 flex items-center justify-center text-foreground/40 hover:text-foreground disabled:opacity-20 transition-colors"><ChevronLeft size={16} /></button>
+                <button onClick={prevMonth} disabled={!canPrevMonth} className="w-8 h-8 flex items-center justify-center text-foreground/40 hover:text-foreground disabled:opacity-20 transition-colors"><CaretLeft size={16} weight="bold" /></button>
                 <span className="text-sm font-bold tracking-[0.12em]">{MONTH_NAMES[calMonth.getMonth()]} {calMonth.getFullYear()}</span>
-                <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center text-foreground/40 hover:text-foreground transition-colors"><ChevronRight size={16} /></button>
+                <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center text-foreground/40 hover:text-foreground transition-colors"><CaretRight size={16} weight="bold" /></button>
               </div>
               <div className="grid grid-cols-7 mb-2">
                 {DAY_NAMES.map(d => <div key={d} className="text-center text-[9px] font-bold tracking-widest text-foreground/25 uppercase py-1">{d}</div>)}
@@ -342,7 +342,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
                     className="mt-4 flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-3"
                   >
-                    <MapPin size={16} className="text-primary shrink-0" />
+                    <MapPin size={16} weight="fill" className="text-primary shrink-0" />
                     <div>
                       <p className="text-[9px] font-black tracking-[0.2em] text-primary/60 uppercase mb-0.5">Location</p>
                       <p className="text-sm font-bold text-white">{selectedLocation}</p>
@@ -366,9 +366,9 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
                 <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-4">Booking Summary</p>
                 <div className="space-y-4">
                   {[
-                    { icon: <Calendar size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Date', value: selectedDateStr },
-                    { icon: <Timer    size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Time', value: `${fmt12(selectedTime)} · 60 min` },
-                    { icon: <MapPin   size={15} className="text-primary mt-0.5 shrink-0" />, label: 'Location', value: selectedLocation },
+                    { icon: <CalendarBlank size={15} weight="fill" className="text-primary mt-0.5 shrink-0" />, label: 'Date', value: selectedDateStr },
+                    { icon: <Timer    size={15} weight="fill" className="text-primary mt-0.5 shrink-0" />, label: 'Time', value: `${fmt12(selectedTime)} · 60 min` },
+                    { icon: <MapPin   size={15} weight="fill" className="text-primary mt-0.5 shrink-0" />, label: 'Location', value: selectedLocation },
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3">{icon}<div><p className="text-[9px] font-bold tracking-widest text-foreground/35 uppercase">{label}</p><p className="text-sm font-bold mt-0.5">{value}</p></div></div>
                   ))}
@@ -382,7 +382,7 @@ function BookingSheet({ onClose }: { onClose: () => void }) {
           {step === 'done' && selectedDate && selectedTime && (
             <motion.div key="done" initial={{ opacity:0,scale:0.96 }} animate={{ opacity:1,scale:1 }} className="px-6 py-10 flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center mb-5">
-                <Check size={28} className="text-primary" />
+                <Check size={28} weight="bold" className="text-primary" />
               </div>
               <h3 className="text-lg font-bold tracking-wider mb-2">Request Sent!</h3>
               <p className="text-sm text-foreground/50 leading-relaxed mb-1">{selectedDateStr}</p>
@@ -430,7 +430,7 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
           </div>
           <button onClick={() => setShowBooking(true)}
             className="flex items-center gap-2 bg-primary px-4 py-2.5 text-[11px] font-bold tracking-widest uppercase text-primary-foreground hover:bg-primary/80 transition-colors">
-            <Plus size={13} /> Book Session
+            <Plus size={13} weight="bold" /> Book Session
           </button>
         </div>
         <div className="flex gap-0 border border-white/10 w-fit">
@@ -457,14 +457,14 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
                     </div>
                     <h4 className="text-base font-bold tracking-wider mb-4">{s.date}<br />{s.time}</h4>
                     <div className="flex flex-col gap-1.5 text-xs text-foreground/60 font-semibold mb-5">
-                      <div className="flex items-center gap-2"><Timer size={12} /><span>{s.duration}</span></div>
-                      <div className="flex items-center gap-2"><MapPin size={12} /><span>{s.location}</span></div>
+                      <div className="flex items-center gap-2"><Timer size={12} weight="fill" /><span>{s.duration}</span></div>
+                      <div className="flex items-center gap-2"><MapPin size={12} weight="fill" /><span>{s.location}</span></div>
                     </div>
                     <div className="flex gap-2 mt-auto">
                       <button
                         onClick={() => setDetailUpcoming(s)}
                         className="flex-1 bg-primary/10 border border-primary/25 py-2 text-[10px] font-bold tracking-widest uppercase text-primary hover:bg-primary/20 transition-colors flex items-center justify-center gap-1">
-                        View Plan <ChevronRight size={11} />
+                        View Plan <CaretRight size={11} weight="bold" />
                       </button>
                       <button className="flex-1 border border-white/10 py-2 text-[10px] font-bold tracking-widest uppercase text-red-500/60 hover:text-red-400 hover:border-red-500/30 transition-colors">
                         Cancel
@@ -486,14 +486,14 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
                     </div>
                     <h4 className="text-sm font-bold tracking-wider mb-3 text-foreground/80">{s.date} · {s.time}</h4>
                     <div className="flex items-center gap-4 text-xs text-foreground/40 font-semibold">
-                      <span className="flex items-center gap-1"><Timer size={11} /> {s.duration}</span>
+                      <span className="flex items-center gap-1"><Timer size={11} weight="fill" /> {s.duration}</span>
                       {s.exercises > 0 && <span>{s.exercises} exercises</span>}
                     </div>
                     {s.status === 'COMPLETED' && (
                       <button
                         onClick={() => setDetailPast(s)}
                         className="mt-4 flex items-center gap-1 text-[10px] font-bold tracking-widest text-primary uppercase">
-                        View Recap <ChevronRight size={11} />
+                        View Recap <CaretRight size={11} weight="bold" />
                       </button>
                     )}
                   </div>

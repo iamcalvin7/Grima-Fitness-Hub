@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Check, Clock, Dumbbell, ChevronDown, ChevronUp, X, Info, Lock, CheckCircle2, CreditCard, CalendarDays, Target } from 'lucide-react';
+import { CaretLeft, CaretRight, Play, Check, Clock, Barbell, X, Info, Lock, CheckCircle, CreditCard, CalendarBlank, Target } from '@phosphor-icons/react';
 import { PROGRAMS, type Program, type Workout, type Exercise } from '@/data/programs';
 
 /* ── Unlock helpers ───────────────────────────────────────────────────────── */
@@ -42,7 +42,7 @@ const PAYMENT_METHODS = [
     label: 'Pay by Card',
     bg: '#1A1A2E',
     textColour: '#FFFFFF',
-    icon: <CreditCard size={18} />,
+    icon: <CreditCard size={18} weight="fill" />,
   },
 ];
 
@@ -103,7 +103,7 @@ function PaywallSheet({
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
                 className="w-16 h-16 rounded-full bg-slate-300/20 border-2 border-slate-300 flex items-center justify-center"
               >
-                <CheckCircle2 size={32} className="text-slate-200" />
+                <CheckCircle size={32} weight="fill" className="text-slate-200" />
               </motion.div>
               <h3 className="text-2xl font-black text-white">UNLOCKED!</h3>
               <p className="text-white/50 text-sm">{program.name} is ready to go.</p>
@@ -115,7 +115,7 @@ function PaywallSheet({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="w-8 h-8 rounded-sm bg-white/5 border border-white/15 flex items-center justify-center">
-                      <Dumbbell size={15} className="text-white/70" />
+                      <Barbell size={15} weight="fill" className="text-white/70" />
                     </span>
                     <span className="text-[10px] font-bold tracking-[0.25em] text-slate-200 uppercase bg-slate-300/10 border border-slate-300/30 px-2 py-0.5">
                       PREMIUM
@@ -125,7 +125,7 @@ function PaywallSheet({
                   <p className="text-sm text-white/45 mt-1 leading-relaxed">{program.description}</p>
                 </div>
                 <button onClick={onClose} className="text-white/30 hover:text-white transition-colors ml-4 mt-1">
-                  <X size={20} />
+                  <X size={20} weight="bold" />
                 </button>
               </div>
 
@@ -144,7 +144,7 @@ function PaywallSheet({
                   {program.highlights?.map((h, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full bg-slate-300/20 border border-slate-300/40 flex items-center justify-center shrink-0">
-                        <Check size={10} className="text-slate-200" />
+                        <Check size={10} weight="bold" className="text-slate-200" />
                       </div>
                       <span className="text-sm text-white/70 font-medium">{h}</span>
                     </div>
@@ -346,9 +346,9 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
           {/* Floating stat chips */}
           <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 px-3 py-2.5 flex items-center justify-between gap-2">
             {[
-              { icon: <CalendarDays size={13} />, label: 'Days/Week', value: `${program.daysPerWeek}` },
-              { icon: <Target size={13} />,       label: 'Goal',      value: program.goal.split(' & ')[0] },
-              { icon: <Dumbbell size={13} />,     label: 'Workouts',  value: `${program.workouts.length}` },
+              { icon: <CalendarBlank size={13} weight="fill" />, label: 'Days/Week', value: `${program.daysPerWeek}` },
+              { icon: <Target size={13} weight="fill" />,       label: 'Goal',      value: program.goal.split(' & ')[0] },
+              { icon: <Barbell size={13} weight="fill" />,     label: 'Workouts',  value: `${program.workouts.length}` },
             ].map(stat => (
               <div key={stat.label} className="flex items-center gap-2 min-w-0">
                 <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0
@@ -373,9 +373,9 @@ function ProgramsView({ onSelect, onPaywall }: { onSelect: (id: string) => void;
             </div>
 
             {locked ? (
-              <Lock size={18} className="text-slate-300/60 shrink-0 mt-1" />
+              <Lock size={18} weight="fill" className="text-slate-300/60 shrink-0 mt-1" />
             ) : (
-              <ChevronRight size={18} className="text-primary/60 group-hover:text-primary transition-colors shrink-0 mt-1" />
+              <CaretRight size={18} weight="bold" className="text-primary/60 group-hover:text-primary transition-colors shrink-0 mt-1" />
             )}
           </div>
 
@@ -437,7 +437,7 @@ function ProgramView({
       <div className="px-5 md:px-8 pt-6">
         {/* Back */}
         <button onClick={onBack} className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors mb-6 text-sm font-bold tracking-wider uppercase">
-          <ChevronLeft size={16} />
+          <CaretLeft size={16} weight="bold" />
           Programs
         </button>
 
@@ -469,17 +469,17 @@ function ProgramView({
                   <h3 className="text-base font-bold tracking-wider">{workout.name}</h3>
                   <div className="flex items-center gap-3 mt-1.5">
                     <span className="flex items-center gap-1 text-[10px] font-semibold text-foreground/45">
-                      <Dumbbell size={11} />
+                      <Barbell size={11} weight="fill" />
                       {workout.exercises.length} exercises
                     </span>
                     <span className="flex items-center gap-1 text-[10px] font-semibold text-foreground/45">
-                      <Clock size={11} />
+                      <Clock size={11} weight="fill" />
                       ~{workout.estimatedMinutes} min
                     </span>
                   </div>
                 </div>
 
-                <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-colors shrink-0" />
+                <CaretRight size={18} weight="bold" className="text-primary/50 group-hover:text-primary transition-colors shrink-0" />
               </div>
             </motion.button>
           ))}
@@ -512,7 +512,7 @@ function WorkoutOverview({
       <div className="px-5 md:px-8 pt-6 flex-1">
         {/* Back */}
         <button onClick={onBack} className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors mb-6 text-sm font-bold tracking-wider uppercase">
-          <ChevronLeft size={16} />
+          <CaretLeft size={16} weight="bold" />
           {program.name}
         </button>
 
@@ -522,11 +522,11 @@ function WorkoutOverview({
           <h1 className="text-2xl font-bold tracking-wider mt-0.5">{workout.name.toUpperCase()}</h1>
           <div className="flex items-center gap-4 mt-2">
             <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground/50">
-              <Dumbbell size={13} />
+              <Barbell size={13} weight="fill" />
               {workout.exercises.length} exercises
             </span>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground/50">
-              <Clock size={13} />
+              <Clock size={13} weight="fill" />
               ~{workout.estimatedMinutes} min
             </span>
           </div>
@@ -576,7 +576,7 @@ function WorkoutOverview({
           onClick={onStart}
           className="w-full bg-primary hover:bg-primary/90 transition-colors py-4 rounded-full flex items-center justify-center gap-3 text-white font-bold tracking-[0.15em] uppercase text-sm"
         >
-          <Play size={16} fill="white" />
+          <Play size={16} weight="fill" className="text-white" />
           Start Workout
         </motion.button>
       </div>
@@ -655,7 +655,7 @@ function ActiveWorkout({
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/6">
         <button onClick={() => exerciseIdx > 0 ? onNavigate(exerciseIdx - 1) : onClose()}
           className="text-foreground/50 hover:text-foreground transition-colors">
-          <ChevronLeft size={22} />
+          <CaretLeft size={22} weight="bold" />
         </button>
 
         <div className="text-center">
@@ -669,10 +669,10 @@ function ActiveWorkout({
           <button
             onClick={() => exerciseIdx < total - 1 ? onNavigate(exerciseIdx + 1) : onClose()}
             className="text-foreground/50 hover:text-foreground transition-colors">
-            <ChevronRight size={22} />
+            <CaretRight size={22} weight="bold" />
           </button>
           <button onClick={onClose} className="text-foreground/40 hover:text-foreground transition-colors">
-            <X size={18} />
+            <X size={18} weight="bold" />
           </button>
         </div>
       </div>
@@ -716,7 +716,7 @@ function ActiveWorkout({
           onClick={() => setShowCues(v => !v)}
           className={`mt-1 p-2 rounded-full border transition-colors ${showCues ? 'border-primary/50 text-primary' : 'border-white/10 text-foreground/40 hover:text-foreground/60'}`}
         >
-          <Info size={16} />
+          <Info size={16} weight="fill" />
         </button>
       </div>
 
@@ -805,14 +805,14 @@ function ActiveWorkout({
               <div className="flex justify-center">
                 {s.done ? (
                   <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-                    <Check size={14} className="text-primary" />
+                    <Check size={14} weight="bold" className="text-primary" />
                   </div>
                 ) : (
                   <button
                     onClick={() => markSetDone(i)}
                     className="w-8 h-8 rounded-full border border-white/15 hover:border-primary/50 hover:bg-primary/10 transition-all flex items-center justify-center text-foreground/40 hover:text-primary"
                   >
-                    <Check size={14} />
+                    <Check size={14} weight="bold" />
                   </button>
                 )}
               </div>
@@ -825,7 +825,7 @@ function ActiveWorkout({
       <div className="px-5 py-5 border-t border-white/6 mt-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Clock size={15} className="text-foreground/40" />
+            <Clock size={15} weight="fill" className="text-foreground/40" />
             <span className="text-[10px] font-bold tracking-widest text-foreground/40 uppercase">Rest</span>
             <span className={`text-lg font-bold tabular-nums ${restActive ? 'text-primary' : 'text-foreground/50'}`}>
               {fmtTime(restRemaining)}
@@ -853,9 +853,9 @@ function ActiveWorkout({
           }`}
         >
           {exerciseIdx < total - 1 ? (
-            <>Next Exercise <ChevronRight size={16} /></>
+            <>Next Exercise <CaretRight size={16} weight="bold" /></>
           ) : (
-            <>Finish Workout <Check size={16} /></>
+            <>Finish Workout <Check size={16} weight="bold" /></>
           )}
         </motion.button>
       </div>

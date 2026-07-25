@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BadgePercent, Copy, Check } from 'lucide-react';
+import { SealPercent, Copy, Check } from '@phosphor-icons/react';
 
 const OFFERS = [
   {
@@ -94,13 +94,13 @@ export function Offers() {
                   onClick={() => copyCode(offer.code)}
                   className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-full border border-white/12 bg-white/4 hover:border-white/25 transition-colors"
                 >
-                  <BadgePercent size={13} className="text-white/50" />
+                  <SealPercent size={13} weight="fill" className="text-white/50" />
                   <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-white/80">
                     {copied === offer.code ? 'Copied!' : `Use code ${offer.code}`}
                   </span>
                   {copied === offer.code
-                    ? <Check size={13} className="text-green-400" />
-                    : <Copy size={13} className="text-white/40" />}
+                    ? <Check size={13} weight="bold" className="text-green-400" />
+                    : <Copy size={13} weight="fill" className="text-white/40" />}
                 </button>
               </div>
             </motion.div>

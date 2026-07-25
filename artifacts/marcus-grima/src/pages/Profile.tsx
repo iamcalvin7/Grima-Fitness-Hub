@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Target, Dumbbell, TrendingUp, ChevronRight,
-  Bell, Shield, HelpCircle, LogOut, Edit2, Award,
-} from 'lucide-react';
+  Target, Barbell, TrendUp, CaretRight,
+  Bell, ShieldCheck, Question, SignOut, PencilSimple, Medal,
+} from '@phosphor-icons/react';
 import type { Page } from '@/App';
 import type { MGProfile } from '@/pages/Onboarding';
 
@@ -120,9 +120,9 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
   const username      = profile?.username    ?? '@marcus';
 
   const stats = [
-    { label: 'Total Sessions', value: '47',  icon: <Dumbbell size={16} /> },
-    { label: 'This Month',     value: '8',   icon: <TrendingUp size={16} /> },
-    { label: 'Day Streak',     value: '12',  icon: <Award size={16} /> },
+    { label: 'Total Sessions', value: '47',  icon: <Barbell size={16} weight="fill" /> },
+    { label: 'This Month',     value: '8',   icon: <TrendUp size={16} weight="fill" /> },
+    { label: 'Day Streak',     value: '12',  icon: <Medal size={16} weight="fill" /> },
   ];
 
   const goals = [
@@ -150,7 +150,7 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
           <h1 className="text-xl font-bold tracking-[0.15em] uppercase">Profile</h1>
           <p className="text-xs text-foreground/40 font-semibold tracking-wider mt-0.5 hidden md:block">Your account & settings</p>
         </div>
-        <button onClick={() => fileInputRef.current?.click()} className="text-foreground/40 hover:text-foreground transition-colors"><Edit2 size={18} /></button>
+        <button onClick={() => fileInputRef.current?.click()} className="text-foreground/40 hover:text-foreground transition-colors"><PencilSimple size={18} weight="fill" /></button>
       </header>
 
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
@@ -170,7 +170,7 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                       : initials}
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary border-2 border-[#0A0A0A] flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Edit2 size={11} className="text-primary-foreground" />
+                    <PencilSimple size={11} weight="fill" className="text-primary-foreground" />
                   </div>
                 </button>
                 <div>
@@ -195,12 +195,12 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                   ) : (
                     <button onClick={startEditName} className="flex items-center gap-1.5 mb-1 mx-auto md:mx-0 group">
                       <p className="text-xs font-bold tracking-widest text-white/35 uppercase group-hover:text-white/60 transition-colors">@{username}</p>
-                      <Edit2 size={10} className="text-white/25 group-hover:text-white/60 transition-colors" />
+                      <PencilSimple size={10} weight="fill" className="text-white/25 group-hover:text-white/60 transition-colors" />
                     </button>
                   )}
                   <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">Premium Member</p>
                   <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2">
-                    <Target size={12} className="text-primary" />
+                    <Target size={12} weight="fill" className="text-primary" />
                     <span className="text-[11px] font-bold tracking-wider text-primary uppercase">{goal}</span>
                   </div>
                 </div>
@@ -244,7 +244,7 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center gap-3 py-4 rounded-full border border-white/10 text-sm font-bold tracking-[0.15em] uppercase text-foreground/50 hover:text-red-400 hover:border-red-500/20 transition-colors"
               >
-                <LogOut size={16} />
+                <SignOut size={16} weight="fill" />
                 Log Out
               </button>
             </motion.section>
@@ -283,9 +283,9 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Settings</h3>
               <div className="bg-[#111111] border border-white/5 rounded-sm overflow-hidden">
                 {[
-                  { label: 'Notifications', icon: <Bell size={16} />,      action: 'toggle' },
-                  { label: 'Privacy & Data', icon: <Shield size={16} />,   action: 'nav' },
-                  { label: 'Help & Support', icon: <HelpCircle size={16} />, action: 'nav' },
+                  { label: 'Notifications', icon: <Bell size={16} weight="fill" />,      action: 'toggle' },
+                  { label: 'Privacy & Data', icon: <ShieldCheck size={16} weight="fill" />,   action: 'nav' },
+                  { label: 'Help & Support', icon: <Question size={16} weight="fill" />, action: 'nav' },
                 ].map((item, i) => (
                   <div key={item.label} className={`flex justify-between items-center px-5 py-4 ${i < 2 ? 'border-b border-white/5' : ''}`}>
                     <div className="flex items-center gap-3 text-foreground/70">
@@ -300,7 +300,7 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                         <span className={`absolute top-1 w-4 h-4 rounded-full bg-foreground transition-transform ${notifications ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     ) : (
-                      <ChevronRight size={16} className="text-foreground/30" />
+                      <CaretRight size={16} weight="bold" className="text-foreground/30" />
                     )}
                   </div>
                 ))}

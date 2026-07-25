@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, UtensilsCrossed, ChevronRight, Crown, Trophy, BadgePercent, User, Users } from 'lucide-react';
+import { X, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, CaretRight as ChevronRight, Crown, Trophy, SealPercent as BadgePercent, User, UsersThree as Users } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 
 interface BurgerMenuProps {
@@ -22,49 +22,49 @@ const MENU_ITEMS: {
     id:     'workouts',
     label:  'Workouts',
     sub:    'Programs, circuits & active sessions',
-    icon:   <Dumbbell size={26} />,
+    icon:   <Dumbbell size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
   {
     id:     'meals',
     label:  'Meal Plans',
     sub:    'Recipes, macros & daily planning',
-    icon:   <UtensilsCrossed size={26} />,
+    icon:   <UtensilsCrossed size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
   {
     id:     'leaderboard',
     label:  'Leaderboard',
     sub:    'Compete for weekly points vs everyone',
-    icon:   <Trophy size={26} />,
+    icon:   <Trophy size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
   {
     id:     'memberships',
     label:  'Memberships',
     sub:    'Session packages & pricing',
-    icon:   <Crown size={26} />,
+    icon:   <Crown size={26} weight="fill" />,
     accent: '#4ade80',
   },
   {
     id:     'offers',
     label:  'Members Offers',
     sub:    'Exclusive partner discounts for members',
-    icon:   <BadgePercent size={26} />,
+    icon:   <BadgePercent size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
   {
     id:     'team',
     label:  'The Team',
     sub:    'Meet the coaches & get in touch',
-    icon:   <Users size={26} />,
+    icon:   <Users size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
   {
     id:     'profile',
     label:  'Profile',
     sub:    'Your account, stats & settings',
-    icon:   <User size={26} />,
+    icon:   <User size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
 ];
@@ -114,7 +114,7 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
                 onClick={onClose}
                 className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/15 transition-colors"
               >
-                <X size={16} />
+                <X size={16} weight="bold" />
               </button>
             </div>
 
@@ -151,14 +151,14 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
                       <p className="text-xs text-white/40 font-medium mt-0.5">{item.sub}</p>
                     </div>
 
-                    <ChevronRight size={16} className="text-white/25 shrink-0" />
+                    <ChevronRight size={16} weight="bold" className="text-white/25 shrink-0" />
                   </button>
                 );
               })}
 
               {/* Premium hint */}
               <div className="flex items-center gap-2 px-1 mt-2">
-                <Crown size={11} className="text-amber-400/50" />
+                <Crown size={11} weight="fill" className="text-amber-400/50" />
                 <p className="text-[10px] text-white/20 font-semibold tracking-wide">
                   Premium workouts available inside
                 </p>

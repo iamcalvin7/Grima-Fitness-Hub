@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home as HomeIcon, Calendar, Dumbbell, UtensilsCrossed, MessageSquare, User, Zap, Trophy, BadgePercent, Users } from 'lucide-react';
+import { House as HomeIcon, CalendarBlank as Calendar, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, ChatCircle as MessageSquare, User, Lightning as Zap, Trophy, SealPercent as BadgePercent, UsersThree as Users } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 
 interface SidebarProps {
@@ -8,15 +8,15 @@ interface SidebarProps {
 }
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; badge?: boolean }[] = [
-  { id: 'home',     label: 'Home',     icon: <HomeIcon        size={18} /> },
-  { id: 'sessions', label: 'Sessions', icon: <Calendar        size={18} /> },
-  { id: 'workouts', label: 'Workouts', icon: <Dumbbell        size={18} /> },
-  { id: 'meals',    label: 'Meals',    icon: <UtensilsCrossed size={18} /> },
-  { id: 'messages',    label: 'Messages',    icon: <MessageSquare size={18} />, badge: true },
-  { id: 'leaderboard',label: 'Leaderboard', icon: <Trophy        size={18} /> },
-  { id: 'offers',     label: 'Members Offers', icon: <BadgePercent size={18} /> },
-  { id: 'team',       label: 'The Team',    icon: <Users         size={18} /> },
-  { id: 'profile',    label: 'Profile',     icon: <User          size={18} /> },
+  { id: 'home',     label: 'Home',     icon: <HomeIcon        size={18} weight="fill" /> },
+  { id: 'sessions', label: 'Sessions', icon: <Calendar        size={18} weight="fill" /> },
+  { id: 'workouts', label: 'Workouts', icon: <Dumbbell        size={18} weight="fill" /> },
+  { id: 'meals',    label: 'Meals',    icon: <UtensilsCrossed size={18} weight="fill" /> },
+  { id: 'messages',    label: 'Messages',    icon: <MessageSquare size={18} weight="fill" />, badge: true },
+  { id: 'leaderboard',label: 'Leaderboard', icon: <Trophy        size={18} weight="fill" /> },
+  { id: 'offers',     label: 'Members Offers', icon: <BadgePercent size={18} weight="fill" /> },
+  { id: 'team',       label: 'The Team',    icon: <Users         size={18} weight="fill" /> },
+  { id: 'profile',    label: 'Profile',     icon: <User          size={18} weight="fill" /> },
 ];
 
 export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
@@ -64,7 +64,7 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
           onClick={() => onNavigate('sessions')}
           className="w-full bg-primary hover:bg-primary/80 transition-colors px-4 py-3 flex items-center gap-3 text-primary-foreground group"
         >
-          <Zap size={15} className="text-foreground/70 group-hover:text-foreground transition-colors" />
+          <Zap size={15} weight="fill" className="text-foreground/70 group-hover:text-foreground transition-colors" />
           <span className="text-xs font-bold tracking-[0.15em] uppercase">Book a Session</span>
         </button>
       </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronRight, ChevronLeft, Eye, EyeOff, AlertCircle,
-  Target, Flame, Heart, Zap, Activity, CheckCircle2,
-} from 'lucide-react';
+  CaretRight, CaretLeft, Eye, EyeSlash, WarningCircle,
+  Target, Fire, Heart, Lightning, Pulse, CheckCircle,
+} from '@phosphor-icons/react';
 import { ScrollPicker } from '@/components/ScrollPicker';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ function StepShell({
       <div className="shrink-0 px-5 pt-12 pb-3">
         <div className="flex items-center justify-between mb-4">
           <button onClick={onBack} className="text-white/40 hover:text-white transition-colors p-1 -ml-1">
-            <ChevronLeft size={22} />
+            <CaretLeft size={22} weight="bold" />
           </button>
           <span className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">{stepNum} of {total}</span>
         </div>
@@ -159,7 +159,7 @@ function StepShell({
                      flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <span>{continueLabel}</span>
-          <ChevronRight size={18} />
+          <CaretRight size={18} weight="bold" />
         </motion.button>
       </div>
     </motion.div>
@@ -192,7 +192,7 @@ function SelectCard({
         <p className={`text-sm font-bold tracking-wider ${selected ? 'text-white' : 'text-white/60'}`}>{label}</p>
         {sub && <p className={`text-[11px] font-medium mt-0.5 ${selected ? 'text-white/50' : 'text-white/25'}`}>{sub}</p>}
       </div>
-      {selected && <CheckCircle2 size={18} className="text-primary shrink-0" />}
+      {selected && <CheckCircle size={18} weight="fill" className="text-primary shrink-0" />}
     </button>
   );
 }
@@ -260,7 +260,7 @@ function SlideScreen({ s, onNext, isLast, onSkip }: {
           className="flex items-center justify-between w-full px-6 py-4 text-white font-bold tracking-[0.15em] uppercase text-sm"
           style={{ background: s.accent }}>
           <span>{isLast ? 'GET STARTED' : 'NEXT'}</span>
-          <ChevronRight size={18} />
+          <CaretRight size={18} weight="bold" />
         </motion.button>
       </div>
     </motion.div>
@@ -307,13 +307,13 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
             className="flex-1 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
                        flex items-center justify-center gap-1.5">
             <span>SIGN UP</span>
-            <ChevronRight size={15} />
+            <CaretRight size={15} weight="bold" />
           </button>
           <button onClick={onReturning}
             className="flex-1 py-3 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-xs
                        flex items-center justify-center gap-1.5 hover:border-white/50 transition-colors">
             <span>SIGN IN</span>
-            <ChevronRight size={15} />
+            <CaretRight size={15} weight="bold" />
           </button>
         </motion.div>
         <p className="text-center text-[10px] text-white/25 font-semibold tracking-wide mt-6">
@@ -353,7 +353,7 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
                       blur-[100px] opacity-12 pointer-events-none bg-primary" />
       <div className="relative z-10 flex-1 flex flex-col px-6 pt-12 pb-10">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors p-1 -ml-1 mb-10">
-          <ChevronLeft size={22} />
+          <CaretLeft size={22} weight="bold" />
         </button>
         <div className="w-12 h-12 bg-primary/10 border border-primary/30 flex items-center justify-center mb-8">
           <svg viewBox="0 0 100 100" fill="none" className="w-7 h-7">
@@ -385,7 +385,7 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
                            outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
               <button type="button" onClick={() => setShowPw(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPw ? <EyeSlash size={16} weight="fill" /> : <Eye size={16} weight="fill" />}
               </button>
             </div>
           </div>
@@ -394,7 +394,7 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
             {error && (
               <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="flex items-center gap-2 text-red-400 text-xs font-semibold">
-                <AlertCircle size={13} />{error}
+                <WarningCircle size={13} weight="fill" />{error}
               </motion.div>
             )}
           </AnimatePresence>
@@ -520,11 +520,11 @@ function HeightStep({ draft, setDraft, onBack, onNext }: any) {
 
 // Step: Goal
 const GOALS = [
-  { label: 'Build Muscle',       sub: 'Increase size and strength',           icon: <Zap size={20} /> },
-  { label: 'Lose Weight',        sub: 'Reduce body fat and get lean',         icon: <Flame size={20} /> },
-  { label: 'Get Fit',            sub: 'Improve overall health and fitness',   icon: <Heart size={20} /> },
-  { label: 'Increase Strength',  sub: 'Get stronger in compound movements',   icon: <Target size={20} /> },
-  { label: 'Improve Endurance',  sub: 'Build cardiovascular capacity',        icon: <Activity size={20} /> },
+  { label: 'Build Muscle',       sub: 'Increase size and strength',           icon: <Lightning size={20} weight="fill" /> },
+  { label: 'Lose Weight',        sub: 'Reduce body fat and get lean',         icon: <Fire size={20} weight="fill" /> },
+  { label: 'Get Fit',            sub: 'Improve overall health and fitness',   icon: <Heart size={20} weight="fill" /> },
+  { label: 'Increase Strength',  sub: 'Get stronger in compound movements',   icon: <Target size={20} weight="fill" /> },
+  { label: 'Improve Endurance',  sub: 'Build cardiovascular capacity',        icon: <Pulse size={20} weight="fill" /> },
 ];
 
 function GoalStep({ draft, setDraft, onBack, onNext }: any) {
@@ -610,7 +610,7 @@ function LoginStep({ draft, setDraft, onBack, onNext }: any) {
                          outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
             <button type="button" onClick={() => setShowPw(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showPw ? <EyeSlash size={16} weight="fill" /> : <Eye size={16} weight="fill" />}
             </button>
           </div>
         </div>
@@ -629,7 +629,7 @@ function LoginStep({ draft, setDraft, onBack, onNext }: any) {
 
         {error && (
           <div className="flex items-center gap-2 text-red-400 text-xs font-semibold">
-            <AlertCircle size={13} />{error}
+            <WarningCircle size={13} weight="fill" />{error}
           </div>
         )}
       </div>
@@ -656,7 +656,7 @@ function WelcomeScreen({ firstName, onComplete }: { firstName: string; onComplet
         <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
           className="w-14 h-14 rounded-full border-2 border-white flex items-center justify-center mb-6">
-          <CheckCircle2 size={26} className="text-white" />
+          <CheckCircle size={26} weight="fill" className="text-white" />
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
@@ -674,7 +674,7 @@ function WelcomeScreen({ firstName, onComplete }: { firstName: string; onComplet
           className="mx-auto w-64 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
                      flex items-center justify-center gap-2">
           <span>START YOUR JOURNEY</span>
-          <ChevronRight size={15} />
+          <CaretRight size={15} weight="bold" />
         </motion.button>
       </div>
     </motion.div>
@@ -705,11 +705,11 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
   const signupBack = (current: Step['kind']) => {
     const idx = signupSteps.indexOf(current);
     if (idx <= 0) go({ kind: 'choice' });
-    else go({ kind: signupSteps[idx - 1] as Step['kind'] });
+    else go({ kind: signupSteps[idx - 1] } as Step);
   };
   const signupNext = (current: Step['kind']) => {
     const idx = signupSteps.indexOf(current);
-    if (idx < signupSteps.length - 1) go({ kind: signupSteps[idx + 1] as Step['kind'] });
+    if (idx < signupSteps.length - 1) go({ kind: signupSteps[idx + 1] } as Step);
   };
 
   // Finalise account

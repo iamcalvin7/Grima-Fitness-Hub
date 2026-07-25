@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "body-highlighter": "^3.0.2"
   }
 }
