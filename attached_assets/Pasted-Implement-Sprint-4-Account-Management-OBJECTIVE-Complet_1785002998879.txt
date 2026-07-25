@@ -1,0 +1,296 @@
+Implement Sprint 4: Account Management.
+
+OBJECTIVE
+
+Complete the user account lifecycle while preserving the existing authentication architecture.
+
+Do not redesign any screens.
+
+Continue using:
+- HTTP-only cookie sessions
+- database-backed sessions
+- Node crypto password hashing
+- existing AuthProvider
+- existing profile model
+
+--------------------------------------------------
+FEATURES
+--------------------------------------------------
+
+1. Forgot Password
+
+Add a "Forgot Password?" flow.
+
+Create:
+
+POST /api/auth/forgot-password
+
+Behaviour:
+
+- Accept an email address.
+- Always return the same generic success response.
+- Never reveal whether an account exists.
+- Generate a cryptographically secure random reset token.
+- Store only the token hash.
+- Token expires after 30 minutes.
+- Token is single-use.
+
+Create table:
+
+password_reset_tokens
+
+Fields:
+
+id
+userId
+tokenHash
+expiresAt
+usedAt
+createdAt
+
+--------------------------------------------------
+
+2. Reset Password
+
+Create:
+
+POST /api/auth/reset-password
+
+Requirements:
+
+- Validate reset token.
+- Reject expired tokens.
+- Reject previously-used tokens.
+- Hash the new password using the existing password implementation.
+- Mark token as used.
+- Invalidate every active session belonging to the user.
+- Return success.
+
+--------------------------------------------------
+
+3. Email Verification
+
+Create:
+
+verification_tokens
+
+Implement:
+
+POST /api/auth/send-verification
+
+POST /api/auth/verify-email
+
+Requirements:
+
+- Secure random token
+- Store only token hash
+- 24-hour expiry
+- Single use
+- Mark emailVerifiedAt after success
+
+--------------------------------------------------
+
+4. Change Password
+
+Authenticated endpoint:
+
+PATCH /api/account/password
+
+Requirements:
+
+- Require current password.
+- Verify before changing.
+- Hash new password.
+- Invalidate all other sessions.
+- Keep current session active.
+
+--------------------------------------------------
+
+5. Change Email
+
+Authenticated endpoint.
+
+Requirements:
+
+- Verify password.
+- Send verification email.
+- Email only changes after verification.
+- Prevent duplicates.
+
+--------------------------------------------------
+
+6. Session Management
+
+Create endpoint:
+
+GET /api/account/sessions
+
+Return:
+
+- current session
+- device
+- browser/user agent
+- IP (if stored)
+- last used
+- created
+
+Create:
+
+DELETE /api/account/sessions/:id
+
+Create:
+
+DELETE /api/account/sessions
+
+(Log out everywhere)
+
+Current session should remain active unless explicitly included.
+
+--------------------------------------------------
+
+7. Delete Account
+
+Authenticated endpoint.
+
+Requirements:
+
+- Require password confirmation.
+- Soft delete if supported by the current architecture; otherwise perform a well-documented hard delete.
+- Remove active sessions.
+- Remove profile.
+- Respect foreign key relationships.
+- Return generic success.
+
+--------------------------------------------------
+
+8. Frontend
+
+Create screens for:
+
+Forgot Password
+
+Reset Password
+
+Account Settings
+
+Security
+
+Sessions
+
+Delete Account
+
+Preserve current design language.
+
+--------------------------------------------------
+
+9. Emails
+
+Create email service abstraction.
+
+Do not tightly couple to a provider.
+
+Implement using a provider suitable for production (for example Resend).
+
+Use templates for:
+
+Password reset
+
+Email verification
+
+Email change confirmation
+
+--------------------------------------------------
+
+10. Security
+
+Review all authentication endpoints.
+
+Ensure:
+
+rate limiting hooks exist
+
+generic responses
+
+secure cookies unchanged
+
+no timing leaks
+
+no account enumeration
+
+all tokens hashed
+
+--------------------------------------------------
+
+11. Tests
+
+Verify:
+
+forgot password
+
+expired token
+
+invalid token
+
+used token
+
+successful reset
+
+email verification
+
+change password
+
+change email
+
+session listing
+
+logout everywhere
+
+delete account
+
+workspace typecheck
+
+frontend production build
+
+API production build
+
+--------------------------------------------------
+
+12. Documentation
+
+Update:
+
+HANDOFF.md
+
+and create/update:
+
+docs/API.md
+
+docs/AUTH.md
+
+docs/DATABASE.md
+
+docs/CHANGELOG.md
+
+docs/ROADMAP.md
+
+Document every new endpoint, table, token lifecycle, email flow and security decision.
+
+--------------------------------------------------
+
+13. Completion Report
+
+Provide:
+
+1. Plain-English summary
+2. Database changes
+3. New API endpoints
+4. Frontend pages added
+5. Files created
+6. Files modified
+7. Email flows
+8. Session lifecycle
+9. Test results
+10. Build results
+11. Security review
+12. Technical handover
+13. Recommended Sprint 5
