@@ -109,11 +109,8 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
               {MENU_ITEMS.map((item, i) => {
                 const isActive = activePage === item.id;
                 return (
-                  <motion.button
+                  <button
                     key={item.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06, duration: 0.25 }}
                     onClick={() => handleNav(item.id)}
                     className={`w-full text-left flex items-center gap-4 p-5 rounded-2xl border transition-all
                       ${isActive
@@ -141,7 +138,7 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
                     </div>
 
                     <ChevronRight size={16} className="text-white/25 shrink-0" />
-                  </motion.button>
+                  </button>
                 );
               })}
 
