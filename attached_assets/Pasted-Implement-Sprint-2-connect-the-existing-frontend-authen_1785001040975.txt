@@ -1,0 +1,259 @@
+Implement Sprint 2: connect the existing frontend authentication and onboarding experience to the real Sprint 1 API.
+
+Before editing:
+- Inspect the complete frontend routing, login, signup, onboarding and user-state implementation.
+- Identify every instance of fake authentication, hardcoded users, localStorage login state or temporary route access.
+- Inspect the existing Sprint 1 API request and response structures before wiring the frontend.
+- Reuse the current frontend framework, routing system and component conventions.
+- Preserve the existing design, copy, page layouts and navigation structure.
+- Do not redesign screens.
+- Do not modify BodyMap.
+- Do not modify ThreadView.
+
+Build:
+
+1. Shared API client
+
+Create one reusable frontend API client for backend requests.
+
+Requirements:
+- Use the existing relative /api path.
+- Include credentials: "include" with every request.
+- Correctly parse JSON responses.
+- Support responses without JSON bodies.
+- Create a typed API error containing:
+  - HTTP status
+  - generic user-safe message
+  - optional validation details
+- Never expose raw server errors to users.
+- Do not store cookies, passwords, session tokens or authentication state manually.
+
+2. Authentication types
+
+Create shared frontend types matching the real Sprint 1 responses.
+
+The authenticated user type should include only safe public fields returned by the API, such as:
+- id
+- tenantId
+- email
+- firstName
+- lastName
+- avatarUrl
+- role
+
+Never include:
+- passwordHash
+- session hash
+- internal authentication secrets
+
+3. AuthProvider and AuthContext
+
+Create an application-level authentication provider.
+
+It must expose:
+- user
+- isLoading
+- isAuthenticated
+- signIn
+- signUp
+- signOut
+- refreshUser
+
+Behaviour:
+- On app startup, call GET /api/auth/me.
+- If the session is valid, populate user.
+- If the request returns 401, treat the user as logged out.
+- Do not show protected content while the initial session check is running.
+- Avoid duplicate /me calls caused by rerenders.
+- Clear local user state after signout even if the signout request fails.
+- Use the HTTP-only cookie as the sole source of authentication persistence.
+
+4. Signup integration
+
+Connect the existing signup form to POST /api/auth/signup.
+
+Requirements:
+- Preserve the existing form design.
+- Use the fields expected by the current backend.
+- Trim names and email.
+- Normalise email consistently.
+- Validate required fields before submission.
+- Validate password requirements using the same rules as the backend.
+- Disable repeated submission while processing.
+- Show a generic user-safe error.
+- Do not reveal whether an email already exists.
+- Never log or store the password.
+- After successful signup, follow the actual Sprint 1 response:
+  - if signup establishes a session, refresh the authenticated user and continue onboarding
+  - if signup requires a separate signin, route to signin with a neutral success message
+- Do not assume which flow applies without inspecting the API.
+
+5. Signin integration
+
+Connect the existing login form to POST /api/auth/signin.
+
+Requirements:
+- Preserve the current design.
+- Disable repeated submission while processing.
+- Use a generic invalid-credentials message.
+- Do not reveal whether the email or password was incorrect.
+- After success, refresh authenticated user state.
+- Redirect to the intended protected route when available.
+- Otherwise redirect to the appropriate app home or onboarding continuation page.
+- Prevent unsafe external redirect URLs.
+
+6. Signout integration
+
+Connect every existing logout action to POST /api/auth/signout.
+
+After logout:
+- clear AuthContext user state
+- return the user to the appropriate public or signin route
+- ensure protected content is no longer visible
+- remove any obsolete localStorage auth flags
+
+7. Protected route handling
+
+Add reusable authenticated route protection using the project’s existing routing system.
+
+Requirements:
+- While authentication is loading, show the existing loading treatment or a minimal neutral loading state.
+- Logged-out users trying to access protected routes must be redirected to signin.
+- Preserve the intended internal destination so they can return after successful signin.
+- Do not place full external URLs into redirect state.
+- Role support should be architecturally possible, but do not build the Marcus admin portal yet.
+- Do not hide sensitive protected content with CSS; prevent it from rendering.
+
+8. Public-only authentication routes
+
+Login and signup routes should redirect authenticated users away from those pages.
+
+Requirements:
+- Do not redirect until the initial /me request has completed.
+- Redirect authenticated users to onboarding if incomplete, otherwise the main app.
+- Determine onboarding completion from existing app logic for now.
+- Do not invent new onboarding database fields in this sprint.
+
+9. Remove fake authentication
+
+Find and remove:
+- localStorage login flags
+- hardcoded current users
+- fake login delays
+- mock authentication success
+- authentication booleans disconnected from the backend
+- any client-readable session token handling
+
+Do not remove non-authentication onboarding answers stored locally.
+
+10. Temporary onboarding storage
+
+Keep non-auth onboarding answers in localStorage only when no database destination currently exists.
+
+Document every remaining localStorage key and what it stores.
+
+Authentication state must not be stored there.
+
+11. Loading, validation and errors
+
+Add:
+- submitting states
+- disabled submit buttons
+- clear field validation
+- generic authentication errors
+- safe handling for network failures
+- safe handling for malformed responses
+- no raw backend stack traces or database errors
+
+Maintain the existing visual style.
+
+12. Session persistence
+
+Verify that:
+- the browser receives the HTTP-only session cookie
+- frontend requests include credentials
+- refreshing the page restores the user through GET /api/auth/me
+- no JavaScript code tries to read the session cookie
+- logout invalidates both the browser cookie and database session
+
+13. CORS and deployment verification
+
+Do not weaken the Sprint 1 CORS configuration.
+
+Confirm:
+- requests work from the Replit development domain
+- requests work from the deployed app domain
+- credentials are included
+- unsupported origins remain blocked
+- no wildcard origin is introduced with credentialed requests
+
+14. Required tests
+
+Test and report the result of each:
+
+A. New signup
+- valid user can register
+- account exists in the database
+- correct post-signup navigation occurs
+
+B. Duplicate signup
+- no account-existence information is revealed
+- frontend shows a generic response
+
+C. Valid signin
+- correct credentials start a real session
+- authenticated user state is populated
+
+D. Invalid signin
+- generic error is shown
+- no session is created
+
+E. Refresh persistence
+- signed-in user refreshes the browser
+- GET /api/auth/me restores their session
+
+F. Protected route without login
+- logged-out user cannot view protected content
+- user is redirected to signin
+
+G. Return navigation
+- after signin, user returns only to a safe intended internal route
+
+H. Signout
+- database-backed session is invalidated
+- cookie is cleared
+- frontend user state is cleared
+- protected route becomes inaccessible
+
+I. Auth-page redirect
+- authenticated user cannot remain on signin or signup
+
+J. No client-side auth storage
+- no password, token, cookie value or auth boolean is stored in localStorage or sessionStorage
+
+15. Verification
+
+Run:
+- full workspace TypeScript typecheck
+- frontend production build
+- API production build
+- any existing lint command
+- any existing automated tests
+
+Resolve all errors introduced by this sprint.
+
+Do not claim a test passed unless it was actually executed.
+
+After implementation, provide a structured completion report with:
+
+1. Plain-English summary of what was built
+2. Every file created
+3. Every file changed
+4. Fake authentication removed
+5. Every remaining localStorage onboarding key
+6. API endpoints connected
+7. Route protection behaviour
+8. Test results, individually marked pass/fail/not run
+9. Typecheck and build results
+10. Security or architecture concerns discovered
+11. Recommended next build job

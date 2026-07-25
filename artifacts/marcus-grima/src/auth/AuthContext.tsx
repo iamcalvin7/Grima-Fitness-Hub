@@ -44,6 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // One-time cleanup of obsolete fake-auth keys from the pre-API prototype.
+    localStorage.removeItem('mg_auth');
+    localStorage.removeItem('mg_users');
+
     let cancelled = false;
     (async () => {
       try {
