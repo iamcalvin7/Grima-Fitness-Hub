@@ -789,10 +789,20 @@ function StoryViewer({ onClose }: { onClose: () => void }) {
           </motion.div>
         ) : (
           <motion.div key={`book-${index}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-green-400 mb-2">Currently reading</p>
-            <p className="text-3xl font-black text-white leading-tight drop-shadow-lg">{s.bookTitle}</p>
-            <p className="text-sm text-white/60 font-semibold mt-1">by {s.bookAuthor}</p>
-            <p className="text-sm text-white/85 font-medium leading-relaxed mt-4 drop-shadow">{s.summary}</p>
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-green-400 mb-3">Currently reading</p>
+            <div className="flex items-end gap-4 mb-4">
+              <img
+                src={`${import.meta.env.BASE_URL}book-cover.jpg`}
+                alt={`${s.bookTitle} cover`}
+                className="w-24 rounded-md shadow-2xl border border-white/15"
+                style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}
+              />
+              <div className="pb-1">
+                <p className="text-3xl font-black text-white leading-tight drop-shadow-lg">{s.bookTitle}</p>
+                <p className="text-sm text-white/60 font-semibold mt-1">by {s.bookAuthor}</p>
+              </div>
+            </div>
+            <p className="text-sm text-white/85 font-medium leading-relaxed drop-shadow">{s.summary}</p>
           </motion.div>
         )}
       </div>
