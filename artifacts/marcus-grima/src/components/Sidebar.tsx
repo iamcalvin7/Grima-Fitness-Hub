@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home as HomeIcon, Calendar, Dumbbell, UtensilsCrossed, MessageSquare, User, Zap, Trophy, BadgePercent } from 'lucide-react';
+import { Home as HomeIcon, Calendar, Dumbbell, UtensilsCrossed, MessageSquare, User, Zap, Trophy, BadgePercent, Users } from 'lucide-react';
 import type { Page } from '@/App';
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; badge?: boolea
   { id: 'messages',    label: 'Messages',    icon: <MessageSquare size={18} />, badge: true },
   { id: 'leaderboard',label: 'Leaderboard', icon: <Trophy        size={18} /> },
   { id: 'offers',     label: 'Members Offers', icon: <BadgePercent size={18} /> },
+  { id: 'team',       label: 'The Team',    icon: <Users         size={18} /> },
   { id: 'profile',    label: 'Profile',     icon: <User          size={18} /> },
 ];
 

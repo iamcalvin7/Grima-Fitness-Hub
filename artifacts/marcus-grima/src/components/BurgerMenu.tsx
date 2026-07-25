@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, UtensilsCrossed, ChevronRight, Crown, Trophy, BadgePercent, User } from 'lucide-react';
+import { X, Dumbbell, UtensilsCrossed, ChevronRight, Crown, Trophy, BadgePercent, User, Users } from 'lucide-react';
 import type { Page } from '@/App';
 
 interface BurgerMenuProps {
@@ -51,6 +51,13 @@ const MENU_ITEMS: {
     label:  'Members Offers',
     sub:    'Exclusive partner discounts for members',
     icon:   <BadgePercent size={26} />,
+    accent: '#E5E5E5',
+  },
+  {
+    id:     'team',
+    label:  'The Team',
+    sub:    'Meet the coaches & get in touch',
+    icon:   <Users size={26} />,
     accent: '#E5E5E5',
   },
   {
