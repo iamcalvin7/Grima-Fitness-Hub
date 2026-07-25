@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Heart, Activity, ChevronRight,
-  Clock, CheckCircle2, Info,
+  Clock, CheckCircle2, Info, X,
 } from 'lucide-react';
 import {
   BarChart, Bar, ResponsiveContainer, Cell, Tooltip,
@@ -622,49 +622,128 @@ function MusclesWorkedBlock() {
   );
 }
 
-/* ── Quote of the day ─────────────────────────────────────────────────────── */
-function QuoteCard() {
+/* ── Mindset Memo story (IG-style, expires at midnight) ───────────────────── */
+const STORY_SEEN_KEY = 'mg_story_seen';
+const STORY_DURATION_MS = 7000;
+
+function isStorySeenToday() {
+  return localStorage.getItem(STORY_SEEN_KEY) === new Date().toDateString();
+}
+function markStorySeen() {
+  localStorage.setItem(STORY_SEEN_KEY, new Date().toDateString());
+}
+
+function StoryViewer({ onClose }: { onClose: () => void }) {
   const q = getDailyQuote();
+  const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    const TICK = 50;
+    const id = setInterval(() => {
+      setPaused((p) => {
+        if (!p) {
+          setProgress((prev) => {
+            const next = prev + TICK / STORY_DURATION_MS;
+            if (next >= 1) {
+              clearInterval(id);
+              setTimeout(() => closeRef.current(), 150);
+              return 1;
+            }
+            return next;
+          });
+        }
+        return p;
+      });
+    }, TICK);
+    return () => clearInterval(id);
+  }, []);
+
+  // Safety net: if pointer-up lands outside the overlay, resume anyway.
+  useEffect(() => {
+    const resume = () => setPaused(false);
+    window.addEventListener('pointerup', resume);
+    window.addEventListener('blur', resume);
+    return () => {
+      window.removeEventListener('pointerup', resume);
+      window.removeEventListener('blur', resume);
+    };
+  }, []);
+
   return (
-    <section className="space-y-3">
-      <h3 className="text-sm font-bold text-white">Mindset Memo</h3>
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl"
-        style={{ height: 170, border: '1px solid rgba(200,200,200,0.18)' }}
-      >
-        {/* Full-bleed background photo */}
-        <img
-          src={q.img}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center top' }}
-        />
+    <motion.div
+      className="fixed inset-0 z-[100] bg-black flex flex-col select-none"
+      initial={{ opacity: 0, scale: 1.04 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.2 }}
+      onPointerDown={() => setPaused(true)}
+      onPointerUp={() => setPaused(false)}
+      onPointerCancel={() => setPaused(false)}
+      onPointerLeave={() => setPaused(false)}
+    >
+      {/* Background photo */}
+      <img src={q.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 30%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.9) 100%)' }}
+      />
 
-        {/* Dark gradient — heavy at bottom */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.65) 55%, rgba(0,0,0,0.3) 100%)',
-          }}
-        />
-
-        {/* Content */}
-        <div className="absolute inset-0 flex flex-col justify-end p-5">
-          <p className="text-base font-bold text-white leading-snug drop-shadow-lg">
-            {q.text}
-          </p>
-          {q.author && (
-            <p className="text-[10px] text-white/45 font-medium mt-1.5">
-              — {q.author}
-            </p>
-          )}
+      {/* Progress bar */}
+      <div className="relative z-10 px-3 pt-3">
+        <div className="h-[3px] rounded-full bg-white/25 overflow-hidden">
+          <div className="h-full bg-white rounded-full" style={{ width: `${progress * 100}%` }} />
         </div>
-      </motion.div>
-    </section>
+      </div>
+
+      {/* Header */}
+      <div className="relative z-10 px-4 pt-3 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full overflow-hidden border border-white/40 shrink-0">
+          <img src={`${import.meta.env.BASE_URL}marcus.png`} alt="Marcus Grima" className="w-full h-full object-cover" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white leading-tight">Mindset Memo</p>
+          <p className="text-[10px] font-bold tracking-widest uppercase text-green-400">Today only</p>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="text-white/70 hover:text-white p-2 -mr-2"
+          aria-label="Close story"
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      {/* Quote */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 pb-16">
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+          className="text-3xl font-black text-white leading-tight drop-shadow-lg"
+        >
+          {q.text}
+        </motion.p>
+        {q.author && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-sm text-white/60 font-medium mt-4"
+          >
+            — {q.author}
+          </motion.p>
+        )}
+      </div>
+
+      {/* Footer hint */}
+      <p className="relative z-10 text-center text-[10px] font-bold tracking-widest uppercase text-white/35 pb-6">
+        Hold to pause · Expires at midnight
+      </p>
+    </motion.div>
   );
 }
 
@@ -688,6 +767,25 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
     : 'MG';
 
   const [avatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storySeen, setStorySeen] = useState(() => isStorySeenToday());
+
+  const openStory = () => {
+    setStoryOpen(true);
+    markStorySeen();
+    setStorySeen(true);
+  };
+
+  // Re-arm the story ring when the day rolls over while the app stays open.
+  useEffect(() => {
+    const check = () => setStorySeen(isStorySeenToday());
+    const id = setInterval(check, 60_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-transparent text-foreground pb-28 md:pb-8">
@@ -714,18 +812,32 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
             </motion.h1>
           </div>
 
-          {/* Right — profile photo */}
+          {/* Right — profile photo with story ring (tap for Mindset Memo) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
             className="relative shrink-0"
           >
-            <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-white/30 flex items-center justify-center"
-              style={{ boxShadow: '0 0 0 4px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.3)' }}>
-              {avatar
-                ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-                : <span className="text-2xl font-black text-white/80">{initials}</span>
-              }
-            </div>
+            <button
+              type="button"
+              onClick={openStory}
+              aria-label="View today's Mindset Memo"
+              className="block rounded-full p-[3px] active:scale-95 transition-transform"
+              style={{
+                background: storySeen
+                  ? 'rgba(255,255,255,0.2)'
+                  : 'conic-gradient(from 210deg, #4ade80, #22c55e, #a3e635, #4ade80)',
+                boxShadow: storySeen
+                  ? '0 8px 24px rgba(0,0,0,0.3)'
+                  : '0 0 18px rgba(74,222,128,0.35), 0 8px 24px rgba(0,0,0,0.3)',
+              }}
+            >
+              <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#0A0A0A] bg-[#111111] flex items-center justify-center">
+                {avatar
+                  ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                  : <span className="text-2xl font-black text-white/80">{initials}</span>
+                }
+              </div>
+            </button>
           </motion.div>
         </div>
 
@@ -756,10 +868,10 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
 
       </div>
 
-      {/* ── Mindset Memo — bottom, full width ────────────────────────────── */}
-      <div className="px-5 md:px-8 mt-7">
-        <QuoteCard />
-      </div>
+      {/* ── Mindset Memo story overlay ───────────────────────────────────── */}
+      <AnimatePresence>
+        {storyOpen && <StoryViewer onClose={() => setStoryOpen(false)} />}
+      </AnimatePresence>
     </div>
   );
 };
