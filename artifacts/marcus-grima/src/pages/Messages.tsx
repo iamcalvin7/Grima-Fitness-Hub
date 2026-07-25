@@ -152,7 +152,7 @@ export const Messages = ({ setPage }: MessagesProps) => {
 
         {/* Thread */}
         <div className="flex-1 flex flex-col">
-          <ThreadView />
+          {ThreadView()}
         </div>
       </div>
 
@@ -191,7 +191,7 @@ export const Messages = ({ setPage }: MessagesProps) => {
             </motion.div>
           ) : (
             <motion.div key="thread" className="flex flex-col h-[calc(100vh-4rem)]" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}>
-              <ThreadView />
+              {ThreadView()}
             </motion.div>
           )}
         </AnimatePresence>

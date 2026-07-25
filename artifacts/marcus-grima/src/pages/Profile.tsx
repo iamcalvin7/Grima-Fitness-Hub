@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Target, Dumbbell, TrendingUp, ChevronRight,
@@ -24,9 +24,46 @@ function getInitials(p: MGProfile | null) {
   return `${p.firstName[0] ?? ''}${p.lastName[0] ?? ''}`.toUpperCase() || 'MG';
 }
 
+/** Downscale the chosen image to a small square JPEG so it fits comfortably in localStorage. */
+function resizeAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const SIZE = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(url); reject(new Error('canvas')); return; }
+      // cover-crop to square
+      const s = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, SIZE, SIZE);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load')); };
+    img.src = url;
+  });
+}
+
 export const Profile = ({ setPage, onLogout }: ProfileProps) => {
   const [notifications, setNotifications] = useState(true);
+  const [avatar, setAvatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const profile = loadProfile();
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const dataUrl = await resizeAvatar(file);
+      localStorage.setItem('mg_avatar', dataUrl);
+      setAvatar(dataUrl);
+    } catch {
+      // ignore unreadable files
+    }
+  };
 
   // Derived display values
   const displayName   = profile ? `${profile.firstName} ${profile.lastName}` : 'Marcus';
@@ -70,8 +107,10 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
           <h1 className="text-xl font-bold tracking-[0.15em] uppercase">Profile</h1>
           <p className="text-xs text-foreground/40 font-semibold tracking-wider mt-0.5 hidden md:block">Your account & settings</p>
         </div>
-        <button className="text-foreground/40 hover:text-foreground transition-colors"><Edit2 size={18} /></button>
+        <button onClick={() => fileInputRef.current?.click()} className="text-foreground/40 hover:text-foreground transition-colors"><Edit2 size={18} /></button>
       </header>
+
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
 
       <motion.div className="px-5 md:px-8 pt-6 pb-8" variants={containerVariants} initial="hidden" animate="show">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
@@ -81,14 +120,16 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
             {/* Avatar & Name */}
             <motion.div variants={itemVariants} className="flex flex-col items-center md:items-start text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-5">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-2xl font-bold text-foreground tracking-wider">
-                    {initials}
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="relative cursor-pointer group">
+                  <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-2xl font-bold text-foreground tracking-wider overflow-hidden">
+                    {avatar
+                      ? <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
+                      : initials}
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary border-2 border-[#0A0A0A] flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary border-2 border-[#0A0A0A] flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Edit2 size={11} className="text-primary-foreground" />
                   </div>
-                </div>
+                </button>
                 <div>
                   <h2 className="text-2xl font-bold tracking-[0.15em] uppercase mb-1">{displayName}</h2>
                   <p className="text-xs font-bold tracking-widest text-white/35 uppercase mb-1">@{username}</p>
