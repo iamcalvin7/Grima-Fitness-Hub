@@ -46,30 +46,19 @@ function resizeAvatar(file: File): Promise<string> {
   });
 }
 
-const BUILTIN_USERNAMES = ['marcus', 'client'];
-
-/** Rename the account: moves the password entry, updates profile + session. */
+/**
+ * Update the display username (local profile only — sign-in is by email now,
+ * so this no longer touches any credentials).
+ */
 function changeUsername(oldName: string, newName: string): string | null {
   const next = newName.trim().toLowerCase().replace(/^@/, '');
   if (!/^[a-z0-9_.]{3,20}$/.test(next)) return 'Use 3–20 letters, numbers, dots or underscores.';
   const old = oldName.trim().toLowerCase();
   if (next === old) return null;
-  let users: Record<string, string> = {};
-  try { users = JSON.parse(localStorage.getItem('mg_users') || '{}'); } catch { /* ignore */ }
-  if (BUILTIN_USERNAMES.includes(next) || users[next] !== undefined) return 'That username is already taken.';
-  if (users[old] !== undefined) {
-    users[next] = users[old];
-    delete users[old];
-    localStorage.setItem('mg_users', JSON.stringify(users));
-  }
   const profile = loadProfile();
   if (profile) {
     localStorage.setItem('mg_profile', JSON.stringify({ ...profile, username: next }));
   }
-  try {
-    const auth = JSON.parse(localStorage.getItem('mg_auth') || 'null');
-    if (auth?.user === old) localStorage.setItem('mg_auth', JSON.stringify({ ...auth, user: next }));
-  } catch { /* ignore */ }
   return null;
 }
 
@@ -139,7 +128,6 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('mg_auth');
     onLogout();
   };
 

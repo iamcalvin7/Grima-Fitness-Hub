@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Onboarding }  from '@/pages/Onboarding';
 import { SplashScreen } from '@/pages/SplashScreen';
 import { Home }        from '@/pages/Home';
@@ -12,33 +12,43 @@ import { Offers } from '@/pages/Offers';
 import { Memberships } from '@/pages/Memberships';
 import { Team }        from '@/pages/Team';
 import { Layout }       from '@/components/Layout';
+import { useAuth } from '@/auth/AuthContext';
 
 export type Page = 'home' | 'sessions' | 'workouts' | 'meals' | 'messages' | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team';
 
-function forceOnboarding() {
-  return new URLSearchParams(window.location.search).has('onboarding');
-}
-
-function isAuthed() {
-  if (forceOnboarding()) return false;
-  try {
-    const raw = localStorage.getItem('mg_auth');
-    if (!raw) return false;
-    const { ts } = JSON.parse(raw);
-    return Date.now() - ts < 30 * 24 * 60 * 60 * 1000;
-  } catch { return false; }
-}
-
 function App() {
+  const { isLoading, isAuthenticated, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
-  const [authed,        setAuthed]        = useState(isAuthed);
   const [activePage,    setActivePage]    = useState<Page>('home');
   const [sessionFocus,  setSessionFocus]  = useState<number | undefined>(undefined);
 
+  /**
+   * `enteredApp` gates the onboarding flow: an already-authenticated user
+   * (session cookie) enters the app directly, while a fresh signup stays in
+   * onboarding until the welcome screen's onComplete — even though the
+   * session already exists by then.
+   */
+  const [enteredApp, setEnteredApp] = useState(false);
+  const [authResolved, setAuthResolved] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && !authResolved) {
+      setAuthResolved(true);
+      // Redirect authenticated users away from login/signup on load.
+      if (isAuthenticated) setEnteredApp(true);
+    }
+  }, [isLoading, isAuthenticated, authResolved]);
+
+  // If the session ends (logout or expiry detected), fall back to onboarding.
+  useEffect(() => {
+    if (authResolved && !isAuthenticated && enteredApp) {
+      setEnteredApp(false);
+      setActivePage('home');
+    }
+  }, [authResolved, isAuthenticated, enteredApp]);
+
   const handleLogout = () => {
-    localStorage.removeItem('mg_auth');
-    setAuthed(false);
-    setActivePage('home');
+    void signOut();
   };
 
   /** Navigate to Sessions and optionally deep-link into a specific session. */
@@ -53,8 +63,14 @@ function App() {
     setActivePage(page);
   };
 
-  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  if (!authed)    return <Onboarding onComplete={() => setAuthed(true)} />;
+  // Keep the splash up until the session check has resolved.
+  if (showSplash || isLoading) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
+  if (!isAuthenticated || !enteredApp) {
+    return <Onboarding onComplete={() => setEnteredApp(true)} />;
+  }
 
   return (
     <Layout activePage={activePage} setPage={handleSetPage}>

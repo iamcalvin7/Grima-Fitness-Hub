@@ -5,26 +5,15 @@ import {
   Target, Fire, Heart, Lightning, Pulse, CheckCircle,
 } from '@phosphor-icons/react';
 import { ScrollPicker } from '@/components/ScrollPicker';
+import { useAuth } from '@/auth/AuthContext';
+import { ApiError } from '@/lib/api';
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Auth helpers
+   Auth error helper
 ───────────────────────────────────────────────────────────────────────── */
-const BUILTIN: Record<string, string> = { marcus: 'grima2024', client: 'mgpt2024' };
-
-function getRegisteredUsers(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem('mg_users') || '{}'); } catch { return {}; }
-}
-function registerUser(username: string, password: string) {
-  const users = getRegisteredUsers();
-  users[username.toLowerCase()] = password;
-  localStorage.setItem('mg_users', JSON.stringify(users));
-}
-function checkCredentials(username: string, password: string) {
-  const u = username.toLowerCase().trim();
-  return BUILTIN[u] === password || getRegisteredUsers()[u] === password;
-}
-function saveSession(username: string) {
-  localStorage.setItem('mg_auth', JSON.stringify({ user: username.toLowerCase(), ts: Date.now() }));
+function authErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  return 'Something went wrong. Please try again.';
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -328,23 +317,22 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
    Sign-in screen
 ───────────────────────────────────────────────────────────────────────── */
 function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => void }) {
-  const [username, setUsername] = useState('');
+  const { signIn } = useAuth();
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(''); setLoading(true);
-    setTimeout(() => {
-      if (checkCredentials(username, password)) {
-        saveSession(username);
-        onAuth();
-      } else {
-        setError('Incorrect username or password.');
-        setLoading(false);
-      }
-    }, 600);
+    try {
+      await signIn(email.trim(), password);
+      onAuth();
+    } catch (err) {
+      setError(authErrorMessage(err));
+      setLoading(false);
+    }
   };
 
   return (
@@ -368,10 +356,10 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
 
         <form onSubmit={submit} className="flex flex-col gap-4 flex-1">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Username</label>
-            <input type="text" value={username} autoCapitalize="none" autoComplete="username"
-              onChange={e => { setUsername(e.target.value); setError(''); }}
-              placeholder="Enter your username"
+            <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Email</label>
+            <input type="email" value={email} autoCapitalize="none" autoComplete="email" inputMode="email"
+              onChange={e => { setEmail(e.target.value); setError(''); }}
+              placeholder="Enter your email"
               className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5
                          outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
           </div>
@@ -401,7 +389,7 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
 
           <div className="flex-1" />
 
-          <motion.button type="submit" disabled={loading || !username || !password} whileTap={{ scale: 0.98 }}
+          <motion.button type="submit" disabled={loading || !email || !password} whileTap={{ scale: 0.98 }}
             className="mx-auto w-56 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
                        disabled:opacity-35 flex items-center justify-center gap-2">
             {loading
@@ -565,47 +553,54 @@ function ActivityStep({ draft, setDraft, onBack, onNext }: any) {
 }
 
 // Step: Create Login
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function LoginStep({ draft, setDraft, onBack, onNext }: any) {
   const [showPw, setShowPw]   = useState(false);
   const [confirm, setConfirm] = useState('');
   const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const usernameOk = draft.username.trim().length >= 3;
-  const passwordOk = draft.newPassword?.length >= 6;
+  const emailOk    = EMAIL_RE.test(draft.email?.trim() ?? '');
+  const passwordOk = draft.newPassword?.length >= 8;
   const matchOk    = draft.newPassword === confirm;
-  const taken      = !!(getRegisteredUsers()[draft.username?.toLowerCase()] || BUILTIN[draft.username?.toLowerCase()]);
 
-  const canContinue = usernameOk && passwordOk && matchOk && !taken;
+  const canContinue = emailOk && passwordOk && matchOk && !loading;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!canContinue) { setError('Please fix the errors above.'); return; }
     setError('');
-    onNext();
+    setLoading(true);
+    const err: string | null = await onNext();
+    if (err) {
+      setError(err);
+      setLoading(false);
+    }
   };
 
   return (
     <StepShell stepNum={8} onBack={onBack} onContinue={handleNext}
-      continueLabel="CREATE ACCOUNT" continueDisabled={!canContinue}>
+      continueLabel={loading ? 'CREATING…' : 'CREATE ACCOUNT'} continueDisabled={!canContinue}>
       <StepTitle title="CREATE YOUR LOGIN" subtitle="You'll use these to sign in next time." />
       <div className="flex flex-col gap-4">
         <div className="space-y-1">
-          <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Username</label>
-          <input type="text" value={draft.username} autoCapitalize="none"
-            onChange={e => { setDraft({ ...draft, username: e.target.value }); setError(''); }}
-            placeholder="Choose a username"
+          <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Email</label>
+          <input type="email" value={draft.email ?? ''} autoCapitalize="none" autoComplete="email" inputMode="email"
+            onChange={e => { setDraft({ ...draft, email: e.target.value }); setError(''); }}
+            placeholder="Enter your email"
             className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5
                        outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
-          {draft.username.length >= 3 && taken && (
-            <p className="text-[11px] text-red-400 font-semibold">Username already taken.</p>
+          {(draft.email?.length ?? 0) > 3 && !emailOk && (
+            <p className="text-[11px] text-red-400 font-semibold">Enter a valid email address.</p>
           )}
         </div>
 
         <div className="space-y-1">
           <label className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase">Password</label>
           <div className="relative">
-            <input type={showPw ? 'text' : 'password'} value={draft.newPassword || ''}
+            <input type={showPw ? 'text' : 'password'} value={draft.newPassword || ''} autoComplete="new-password"
               onChange={e => setDraft({ ...draft, newPassword: e.target.value })}
-              placeholder="Min. 6 characters"
+              placeholder="Min. 8 characters"
               className="w-full bg-[#111111] border border-white/10 text-white text-sm font-medium px-4 py-3.5 pr-12
                          outline-none focus:border-primary/60 transition-colors placeholder:text-white/18" />
             <button type="button" onClick={() => setShowPw(v => !v)}
@@ -687,13 +682,14 @@ function WelcomeScreen({ firstName, onComplete }: { firstName: string; onComplet
 const DEFAULT_DRAFT = {
   firstName: '', lastName: '', gender: '', age: 25,
   weightKg: 80, heightCm: 175, goal: '', activityLevel: '',
-  username: '', newPassword: '',
+  email: '', newPassword: '',
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
    Root Onboarding component
 ───────────────────────────────────────────────────────────────────────── */
 export function Onboarding({ onComplete }: { onComplete: () => void }) {
+  const { signUp } = useAuth();
   const [step, setStep]   = useState<Step>({ kind: 'choice' });
   const [draft, setDraft] = useState({ ...DEFAULT_DRAFT });
 
@@ -712,10 +708,23 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     if (idx < signupSteps.length - 1) go({ kind: signupSteps[idx + 1] } as Step);
   };
 
-  // Finalise account
-  const createAccount = () => {
-    registerUser(draft.username, draft.newPassword);
-    saveSession(draft.username);
+  /**
+   * Finalise account against the real API.
+   * Returns null on success (moves to welcome), or an error message
+   * for the login step to display.
+   */
+  const createAccount = async (): Promise<string | null> => {
+    try {
+      await signUp({
+        email: draft.email.trim(),
+        password: draft.newPassword,
+        firstName: draft.firstName.trim(),
+        lastName: draft.lastName.trim(),
+      });
+    } catch (err) {
+      return authErrorMessage(err);
+    }
+    // Non-auth onboarding answers stay local until they get a DB destination.
     const now = new Date();
     const memberSince = now.toLocaleString('default', { month: 'long', year: 'numeric' });
     saveProfile({
@@ -727,10 +736,11 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
       heightCm:  draft.heightCm,
       goal:      draft.goal,
       activityLevel: draft.activityLevel,
-      username:  draft.username,
+      username:  draft.email.trim().toLowerCase().split('@')[0],
       memberSince,
     });
     go({ kind: 'welcome' });
+    return null;
   };
 
   const props = { draft, setDraft };
