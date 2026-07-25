@@ -85,8 +85,14 @@ const QUOTES = [
     img:    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=85',
   },
 ];
+/* Today's featured memo — custom visual + quote */
+const FEATURED_MEMO = {
+  text:   'When you arise in the morning think of what a privilege it is to be alive, to think, to enjoy, to love.',
+  author: 'Marcus Aurelius',
+  img:    `${import.meta.env.BASE_URL}mindset-today.png`,
+};
 function getDailyQuote() {
-  return QUOTES[new Date().getDay() % QUOTES.length];
+  return FEATURED_MEMO;
 }
 
 /* ── Countdown to midnight ────────────────────────────────────────────────── */
