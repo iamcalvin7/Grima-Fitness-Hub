@@ -724,7 +724,7 @@ function StoryViewer({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Quote */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 pb-16">
+      <div className="relative z-10 flex-1 flex flex-col justify-end items-start text-left px-6 pb-10">
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
