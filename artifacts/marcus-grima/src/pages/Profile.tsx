@@ -46,11 +46,54 @@ function resizeAvatar(file: File): Promise<string> {
   });
 }
 
+const BUILTIN_USERNAMES = ['marcus', 'client'];
+
+/** Rename the account: moves the password entry, updates profile + session. */
+function changeUsername(oldName: string, newName: string): string | null {
+  const next = newName.trim().toLowerCase().replace(/^@/, '');
+  if (!/^[a-z0-9_.]{3,20}$/.test(next)) return 'Use 3–20 letters, numbers, dots or underscores.';
+  const old = oldName.trim().toLowerCase();
+  if (next === old) return null;
+  let users: Record<string, string> = {};
+  try { users = JSON.parse(localStorage.getItem('mg_users') || '{}'); } catch { /* ignore */ }
+  if (BUILTIN_USERNAMES.includes(next) || users[next] !== undefined) return 'That username is already taken.';
+  if (users[old] !== undefined) {
+    users[next] = users[old];
+    delete users[old];
+    localStorage.setItem('mg_users', JSON.stringify(users));
+  }
+  const profile = loadProfile();
+  if (profile) {
+    localStorage.setItem('mg_profile', JSON.stringify({ ...profile, username: next }));
+  }
+  try {
+    const auth = JSON.parse(localStorage.getItem('mg_auth') || 'null');
+    if (auth?.user === old) localStorage.setItem('mg_auth', JSON.stringify({ ...auth, user: next }));
+  } catch { /* ignore */ }
+  return null;
+}
+
 export const Profile = ({ setPage, onLogout }: ProfileProps) => {
   const [notifications, setNotifications] = useState(true);
   const [avatar, setAvatar] = useState<string | null>(() => localStorage.getItem('mg_avatar'));
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const profile = loadProfile();
+  const [profile, setProfile] = useState<MGProfile | null>(() => loadProfile());
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [nameError, setNameError] = useState('');
+
+  const startEditName = () => {
+    setNameDraft(profile?.username ?? '');
+    setNameError('');
+    setEditingName(true);
+  };
+
+  const saveUsername = () => {
+    const err = changeUsername(profile?.username ?? '', nameDraft);
+    if (err) { setNameError(err); return; }
+    setProfile(loadProfile());
+    setEditingName(false);
+  };
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,7 +175,29 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
                 </button>
                 <div>
                   <h2 className="text-2xl font-bold tracking-[0.15em] uppercase mb-1">{displayName}</h2>
-                  <p className="text-xs font-bold tracking-widest text-white/35 uppercase mb-1">@{username}</p>
+                  {editingName ? (
+                    <div className="mb-2">
+                      <div className="flex items-center gap-2 justify-center md:justify-start">
+                        <span className="text-xs font-bold text-white/35">@</span>
+                        <input
+                          autoFocus
+                          value={nameDraft}
+                          onChange={(e) => { setNameDraft(e.target.value); setNameError(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveUsername(); if (e.key === 'Escape') setEditingName(false); }}
+                          className="bg-[#1A1A1A] border border-white/15 focus:border-primary/50 outline-none px-2 py-1 text-xs font-bold tracking-widest text-white w-36 rounded-sm"
+                          placeholder="new username"
+                        />
+                        <button onClick={saveUsername} className="text-[10px] font-bold tracking-widest uppercase text-primary hover:text-primary/70">Save</button>
+                        <button onClick={() => setEditingName(false)} className="text-[10px] font-bold tracking-widest uppercase text-white/35 hover:text-white/60">Cancel</button>
+                      </div>
+                      {nameError && <p className="text-[10px] text-red-400 font-semibold mt-1">{nameError}</p>}
+                    </div>
+                  ) : (
+                    <button onClick={startEditName} className="flex items-center gap-1.5 mb-1 mx-auto md:mx-0 group">
+                      <p className="text-xs font-bold tracking-widest text-white/35 uppercase group-hover:text-white/60 transition-colors">@{username}</p>
+                      <Edit2 size={10} className="text-white/25 group-hover:text-white/60 transition-colors" />
+                    </button>
+                  )}
                   <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">Premium Member</p>
                   <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2">
                     <Target size={12} className="text-primary" />

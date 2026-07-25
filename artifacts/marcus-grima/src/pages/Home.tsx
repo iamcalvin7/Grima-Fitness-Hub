@@ -824,10 +824,10 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
               className="block rounded-full p-[3px] active:scale-95 transition-transform"
               style={{
                 background: storySeen
-                  ? 'rgba(255,255,255,0.2)'
+                  ? 'conic-gradient(from 210deg, #fb923c, #f97316, #fbbf24, #fb923c)'
                   : 'conic-gradient(from 210deg, #4ade80, #22c55e, #a3e635, #4ade80)',
                 boxShadow: storySeen
-                  ? '0 8px 24px rgba(0,0,0,0.3)'
+                  ? '0 0 18px rgba(251,146,60,0.3), 0 8px 24px rgba(0,0,0,0.3)'
                   : '0 0 18px rgba(74,222,128,0.35), 0 8px 24px rgba(0,0,0,0.3)',
               }}
             >
