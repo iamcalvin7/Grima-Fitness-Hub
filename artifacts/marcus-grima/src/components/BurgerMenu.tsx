@@ -97,15 +97,15 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-            className="fixed bottom-0 inset-x-0 z-50 bg-[#0D0D0D] rounded-t-2xl md:hidden overflow-hidden"
+            className="fixed bottom-0 inset-x-0 z-50 bg-[#0D0D0D] rounded-t-2xl md:hidden overflow-hidden flex flex-col max-h-[88dvh]"
           >
             {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-3 pb-5">
+            <div className="flex items-center justify-between px-6 pt-3 pb-5 shrink-0">
               <div>
                 <p className="text-[10px] font-bold tracking-[0.25em] text-white/35 uppercase">Marcus Grima PT</p>
                 <h2 className="text-lg font-black tracking-tight text-white mt-0.5">More</h2>
@@ -119,7 +119,7 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
             </div>
 
             {/* Cards */}
-            <div className="px-5 pb-10 flex flex-col gap-3">
+            <div className="px-5 pb-10 flex flex-col gap-3 overflow-y-auto">
               {MENU_ITEMS.map((item, i) => {
                 const isActive = activePage === item.id;
                 return (
