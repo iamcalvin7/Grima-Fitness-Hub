@@ -1,3 +1,3 @@
 - [API routing & monorepo build](api-server-conventions.md) — API is served at /api (not /api-server); rebuild lib/db with `tsc -b` after schema changes or api-server typecheck sees stale exports.
-- [Auth architecture decisions](auth-decisions.md) — DB-backed cookie sessions (no JWT), scrypt via node:crypto, tenant-aware single-tenant schema, CORS allowlist, no signup enumeration.
+- [Auth architecture decisions](auth-decisions.md) — DB-backed cookie sessions (no JWT), scrypt via node:crypto, tenant-aware single-tenant schema, CORS allowlist, no signup enumeration, OAuth PKCE+state-cookie, identity-linking rules, email service abstraction, profileOnly onboarding for OAuth users.
 - [Profile data model](profile-data-model.md) — separate profiles table; experience vs activity level semantics; age→DOB conversion; avatar data-URL interim; migration/race rules.

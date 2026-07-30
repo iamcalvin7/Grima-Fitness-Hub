@@ -1,7 +1,7 @@
 # Marcus Grima PT — Engineering Handoff Brief
 
-**Audience:** incoming lead engineer.
-**Status:** polished client-side prototype, client has signed off. Next phase: build the real product (backend, accounts, integrations) for launch.
+**Audience:** incoming lead engineer.  
+**Status:** Sprint 4 complete. Full authentication and account lifecycle is live. The app is production-ready on auth; two external-credential blockers remain before real users can be onboarded (see Launch Readiness below).
 
 ---
 
@@ -11,54 +11,128 @@ A personal-training client app for Marcus Grima (PT, Malta). Clients get workout
 
 **Strategic note:** the owner intends to white-label this and sell to other trainers later. Architect the backend so branding/content is data, not code (single-tenant now, but keep a clean seam — config-driven branding, no hard-coded "Marcus Grima" in new code). Full multi-tenancy is a later milestone, not v1.
 
+---
+
 ## 2. Repo layout
 
 pnpm monorepo. Relevant packages:
 
 - `artifacts/marcus-grima` — **the app.** React + Vite + TypeScript + Tailwind + framer-motion, phosphor icons (`weight="fill"` style everywhere; carets/X use `weight="bold"`). Workflow: `artifacts/marcus-grima: web`.
-- `artifacts/api-server` — Express skeleton, currently unused by the app. This is where the real backend goes.
+- `artifacts/api-server` — Express 5 API. All routes under `/api`. Workflow: `artifacts/api-server: API Server`.
 - `artifacts/mockup-sandbox` — canvas preview tooling, ignore for product work.
+- `lib/db` — Drizzle ORM schema + client (`@workspace/db`). After schema changes: `pnpm --filter @workspace/db run push` then `npx tsc -b` in `lib/db`.
 
-App structure: `src/pages/*` (one file per screen, routed by a `Page` union in `App.tsx` — no router), `src/components/*` (BottomNav, Sidebar, BurgerMenu, BodyMap, Layout, Logo), `src/data/*` (static content: programs, sessions), `public/` (all images: program art, team photos, story images, logo).
+**Design language:** near-black (#0A0A0A) + metallic silver, green `primary` accent, uppercase tracked labels, rounded-full buttons. Do not reintroduce amber/gold. Keep this language; the client is happy with it.
 
-**Design language:** near-black (#0A0A0A) + metallic silver, green `primary` accent, uppercase tracked labels, rounded-2xl cards. Premium styling is silver (was gold — do not reintroduce amber). Keep this language; the client is happy with it.
+---
 
-## 3. What's built (all client-side today)
+## 3. What's built (current state)
 
-- **Onboarding/auth (REAL as of Sprint 1–2):** email+password accounts against the API (`/api/auth/*`), scrypt-hashed passwords, DB-backed cookie sessions (`mg_session`, 30-day). Old localStorage fake auth (`mg_users`/`mg_auth`) and demo logins are gone.
-- **Client profiles (REAL as of Sprint 3):** `profiles` table (one per user), onboarding answers saved via `POST /api/profile`, Profile page reads/edits via context + `PATCH /api/profile`. Legacy `mg_profile`/`mg_avatar` localStorage is migrated to the server once on sign-in, then removed. Avatars stored as small (256px JPEG) data URLs in `profiles.avatar_url` — interim until App Storage; swap point is the `avatarUrl` field + `resizeAvatar` in Profile.tsx. Old "activity level" wizard answers (Beginner/Intermediate/Advanced) live in `experience_level`; `activity_level` is reserved for real activity data later. Age is converted to an approximate `date_of_birth` (Jan 1 of birth year).
-- **Home:** hero with avatar + IG-style story ring (green unseen / orange seen, `mg_story_seen` by date). StoryViewer: multi-story (daily quote + "What I'm Reading" book), progress bars, 7s auto-advance, hold-to-pause, tap left/right nav. Story content is hard-coded in Home.tsx.
-- **Workouts:** free program (name personalized via getters in `programs.ts`) + premium programs with simulated unlock/paywall (ownership in localStorage). Card style: image, floating stat-chip bar on photo, title/description below.
-- **Muscle map (BodyMap.tsx):** SVG front/back figure with tap-to-highlight muscle regions; both view images stay mounted (instant switching — keep it that way).
-- **Sessions, Meal Plans, Leaderboard, Members Offers, Memberships:** fully designed screens on demo/static data.
-- **Messages:** demo conversations, nothing sent. NOTE: `ThreadView` is rendered as `{ThreadView()}` deliberately — rendering it as a component remounts the input per keystroke and closes the mobile keyboard. Don't "fix" that.
-- **Team page:** Jan Tanti & Amy Zahra, profile sheets, WhatsApp deep links (numbers are placeholders +356 79 000 001/002; photos are AI-generated placeholders — swap when real ones arrive).
-- **Profile:** real server data (goal, experience, weight, height, age from DOB, member-since from account creation); inline first/last name editing and avatar upload persist via `PATCH /api/profile` with saving/saved/error indicators. Session stats (47 sessions etc.) are still hard-coded pending real activity data.
-- **Navigation:** mobile bottom nav (Home, Sessions, Messages, More) + More sheet (Workouts, Meals, Leaderboard, Memberships, Offers, Team, Profile); desktop sidebar.
+### Authentication & Accounts (Sprint 4, complete)
+- Email + password signup, signin, signout
+- Google OAuth (PKCE, state cookie CSRF protection, identity linking rules) — awaits credentials
+- Apple Sign-in placeholder — visible, disabled ("coming soon")
+- Forgot password (hashed 30-min single-use token, anti-enumeration)
+- Reset password via `?reset=<token>` query param
+- Email verification + resend via `?verify=<token>`
+- Change email (password-gated + confirmation-gated via verification email)
+- Change password (current password required; other sessions revoked, current kept)
+- Set password for OAuth-only accounts
+- Account Security page (email status, password, linked identities, change email, delete account link)
+- Active Sessions page (list by device/IP/time, revoke one, sign out all others)
+- Delete account (hard delete, password or "DELETE" confirm, FK cascades)
+- OAuth onboarding: authenticated Google users without a profile run the profile-only wizard (skips name/login steps)
+- Rate limiting on all sensitive endpoints
+- Provider discovery: `GET /api/auth/providers`
 
-TypeScript is clean: `npx tsc --noEmit` passes with zero errors in both marcus-grima and api-server. Keep it that way.
+### Profiles (Sprint 3, complete)
+- `profiles` table: create, read, update
+- Onboarding wizard (8 steps): name → gender → age → weight → height → goal → activity level → create login
+- Profile page: display + edit name, avatar (256px JPEG data URL), goals, personal info
+- Legacy localStorage migration (one-time, server wins)
 
-## 4. The build ahead (agreed with client, in dependency order)
+### Home & Core UI (Sprints 1–2, complete)
+- Home: story ring + story viewer, sessions grid
+- Sessions, Messages, Profile, Workouts, Meal Plan, Leaderboard, Offers, Memberships, Team pages
+- Navigation: BottomNav (mobile) + Sidebar (desktop)
 
-1. **Backend + real accounts (critical path).** ✅ Auth done (Sprint 1–2): Express API, PostgreSQL (Drizzle), scrypt hashes, cookie sessions, tenant seam (`tenants` table, single default tenant). ✅ Profiles done (Sprint 3). Remaining from this line: password reset, admin role surfaces, migrating progress/premium-ownership/story-seen, avatar move to App Storage.
-2. **Story uploads:** admin screen for Marcus to post the daily photo/quote/book; files in Replit App Storage; all clients fetch today's story; per-user seen state.
-3. **Sessions & booking:** Marcus manages a real calendar; clients book/cancel with rules; package credits tracked per client.
-4. **Memberships/payments:** Stripe for session packages and premium program unlocks (real ownership server-side). DECIDED: full Stripe checkout in v1 — build it.
-5. **Activity metrics via Strava** (decision made: Strava OAuth + webhooks; reframe Home metrics from daily steps to weekly training activity — sessions, active minutes, calories from recorded workouts). No Apple Health (web app; no native wrapper in v1).
-6. **Photo food logging (AI):** camera upload → vision model (use Replit AI integrations) → calories/macros estimate → editable → daily diary Marcus can see, tied to prescribed meal plans. Photos in App Storage. Barcode/Open Food Facts is a later add.
-7. **Leaderboard:** real weekly points computed server-side from actual activity.
-8. **Messaging:** DECIDED: real in-app messaging in v1 (client ↔ Marcus). The Messages UI already exists on demo data — build the backend (threads, messages, unread state) and wire it up. Do not defer to WhatsApp.
-9. **Content & polish:** real WhatsApp numbers/photos for team, real offers, real program/meal content from Marcus, remaining purple-styling cleanup (open task #2), challenge midnight reset verification (open task #3), publish + custom domain.
+---
 
-## 5. Environment facts & gotchas
+## 4. State routing
 
-- Vite app reads `PORT`; preview is proxied — use `import.meta.env.BASE_URL` for asset/API URLs, never root-relative `/api/...`.
-- Workflow occasionally dies with "Port already in use" — restart fixes it.
-- The app is gated behind onboarding; `/?onboarding` query param forces the onboarding flow (useful for testing).
-- Screenshot tooling can't get past the auth gate to inner pages; test inner pages with e2e tooling or demo login.
-- Pre-existing Onboarding type errors were fixed; don't regress.
-- Icons: @phosphor-icons/react everywhere except `src/components/ui/` (shadcn internals stay lucide).
+There is no URL router. `App.tsx` maintains a `Page` union type; all navigation is `setPage(page)`. Query params are the only external entry points:
 
-## 6. Cost/scale context (already communicated to client)
+| Param | Effect |
+|---|---|
+| `?reset=<token>` | Shows ResetPassword screen |
+| `?verify=<token>` | Shows VerifyEmailHandler screen |
+| `?oauth=success` | Shows OAuthCallback (refreshes session) |
+| `?oauth_error=...` | Shows OAuthCallback error |
 
-Steady-state target ~€25–50/month (hosting + DB + App Storage); Stripe per-transaction; Strava/AI usage negligible at PT scale. Keep infra simple — this serves tens of clients, not thousands.
+---
+
+## 5. Key files
+
+| File | Purpose |
+|---|---|
+| `artifacts/marcus-grima/src/App.tsx` | Root: page routing + query-param modals + auth gates |
+| `artifacts/marcus-grima/src/auth/AuthContext.tsx` | Auth state, profile, all API ops |
+| `artifacts/marcus-grima/src/lib/api.ts` | `apiRequest` — all fetch calls |
+| `artifacts/marcus-grima/src/pages/Onboarding.tsx` | Welcome + signup + signin + forgot + profile-only (OAuth) |
+| `artifacts/api-server/src/routes/auth.ts` | Auth routes + new token routes |
+| `artifacts/api-server/src/routes/oauth.ts` | Google OAuth + `/auth/providers` |
+| `artifacts/api-server/src/routes/account.ts` | Account management routes |
+| `artifacts/api-server/src/lib/sessions.ts` | Session create/revoke/revokeAll |
+| `artifacts/api-server/src/lib/tokens.ts` | Reset + verification token helpers |
+| `artifacts/api-server/src/lib/email.ts` | Email service abstraction |
+| `artifacts/api-server/src/lib/rateLimit.ts` | In-memory rate limiter |
+| `lib/db/src/schema/` | All DB tables |
+| `docs/` | Full engineering documentation |
+
+---
+
+## 6. Launch blockers
+
+### 🔴 Resend (email delivery)
+Without `RESEND_API_KEY` + `EMAIL_FROM` + a verified sending domain, password reset, verification, and email-change emails are only logged to the server console — not delivered.  
+**See:** `docs/SETUP.md`, `docs/LAUNCH-READINESS.md`
+
+### 🔴 Google OAuth credentials
+Without `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, the Google button does not appear. Email auth works fine without it, so this can be deferred if email-only launch is acceptable.  
+**See:** `docs/SETUP.md`
+
+### 🟡 Google OAuth app verification
+Required before >100 Google users. Needs Privacy Policy + Terms of Service URLs.
+
+### 🟡 Content / CMS
+Sessions, workouts, meals, leaderboard, offers, memberships show placeholder data. Not an auth issue — a product roadmap item.
+
+---
+
+## 7. Documentation
+
+All in `docs/`:
+
+| File | Contents |
+|---|---|
+| `AUTH.md` | Password hashing, session model, token lifecycle, OAuth flow, linking rules, rate limits, anti-enumeration |
+| `API.md` | Every endpoint: method, path, auth, body, response, errors |
+| `DATABASE.md` | Full schema with column types and cascade rules |
+| `ARCHITECTURE.md` | Package map, design decisions, scalability notes |
+| `SETUP.md` | Dev setup, env vars, secrets, Google OAuth config, Resend setup |
+| `COSTS.md` | Infrastructure costs, Resend pricing, Google OAuth (free), Apple ($99/yr) |
+| `LIMITATIONS.md` | Known limits: Apple, MFA, rate-limiter scaling, avatars, GDPR |
+| `LAUNCH-READINESS.md` | Hard vs soft blockers, pre-launch checklist |
+| `CHANGELOG.md` | Sprint-by-sprint history |
+| `ROADMAP.md` | Post-launch phases: unblocking → core product → engagement → white-labelling |
+
+---
+
+## 8. Development notes
+
+- Never hard-code `marcus-grima` into new backend logic — use `getDefaultTenant()`
+- Do not modify `BodyMap` or `ThreadView` (`{ThreadView()}` is called as a function deliberately)
+- Avatar regex rejects SVG (security) — only raster data URLs accepted
+- The splash screen is intentional loading UX, not a flash bug
+- `isProfileLoading` gates the splash so no stale-state flash occurs
+- E2e test accounts use `e2e-%@example.com` pattern — clean up after tests

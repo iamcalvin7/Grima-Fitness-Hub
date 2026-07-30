@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Target, Barbell, TrendUp, CaretRight,
   Bell, ShieldCheck, Question, SignOut, PencilSimple, Medal,
+  DeviceMobile,
 } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 import { useAuth, type ClientProfile } from '@/auth/AuthContext';
@@ -305,28 +306,48 @@ export const Profile = ({ setPage, onLogout }: ProfileProps) => {
             <motion.section variants={itemVariants} className="space-y-4">
               <h3 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Settings</h3>
               <div className="bg-[#111111] border border-white/5 rounded-sm overflow-hidden">
-                {[
-                  { label: 'Notifications', icon: <Bell size={16} weight="fill" />,      action: 'toggle' },
-                  { label: 'Privacy & Data', icon: <ShieldCheck size={16} weight="fill" />,   action: 'nav' },
-                  { label: 'Help & Support', icon: <Question size={16} weight="fill" />, action: 'nav' },
-                ].map((item, i) => (
-                  <div key={item.label} className={`flex justify-between items-center px-5 py-4 ${i < 2 ? 'border-b border-white/5' : ''}`}>
-                    <div className="flex items-center gap-3 text-foreground/70">
-                      {item.icon}
-                      <span className="text-sm font-bold tracking-wider">{item.label}</span>
-                    </div>
-                    {item.action === 'toggle' ? (
-                      <button
-                        onClick={() => setNotifications(v => !v)}
-                        className={`w-11 h-6 rounded-full transition-colors relative ${notifications ? 'bg-primary' : 'bg-white/10'}`}
-                      >
-                        <span className={`absolute top-1 w-4 h-4 rounded-full bg-foreground transition-transform ${notifications ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                    ) : (
-                      <CaretRight size={16} weight="bold" className="text-foreground/30" />
-                    )}
+                {/* Notifications toggle */}
+                <div className="flex justify-between items-center px-5 py-4 border-b border-white/5">
+                  <div className="flex items-center gap-3 text-foreground/70">
+                    <Bell size={16} weight="fill" />
+                    <span className="text-sm font-bold tracking-wider">Notifications</span>
                   </div>
-                ))}
+                  <button
+                    onClick={() => setNotifications(v => !v)}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${notifications ? 'bg-primary' : 'bg-white/10'}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-foreground transition-transform ${notifications ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                {/* Security */}
+                <button onClick={() => setPage('security')}
+                  className="w-full flex justify-between items-center px-5 py-4 border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-3 text-foreground/70">
+                    <ShieldCheck size={16} weight="fill" />
+                    <span className="text-sm font-bold tracking-wider">Security</span>
+                  </div>
+                  <CaretRight size={16} weight="bold" className="text-foreground/30" />
+                </button>
+
+                {/* Active Sessions */}
+                <button onClick={() => setPage('active-sessions')}
+                  className="w-full flex justify-between items-center px-5 py-4 border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-3 text-foreground/70">
+                    <DeviceMobile size={16} weight="fill" />
+                    <span className="text-sm font-bold tracking-wider">Active Sessions</span>
+                  </div>
+                  <CaretRight size={16} weight="bold" className="text-foreground/30" />
+                </button>
+
+                {/* Help */}
+                <div className="flex justify-between items-center px-5 py-4">
+                  <div className="flex items-center gap-3 text-foreground/70">
+                    <Question size={16} weight="fill" />
+                    <span className="text-sm font-bold tracking-wider">Help & Support</span>
+                  </div>
+                  <CaretRight size={16} weight="bold" className="text-foreground/30" />
+                </div>
               </div>
             </motion.section>
           </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ForgotPassword } from '@/pages/ForgotPassword';
 import {
   CaretRight, CaretLeft, Eye, EyeSlash, WarningCircle,
   Target, Fire, Heart, Lightning, Pulse, CheckCircle,
@@ -722,30 +723,57 @@ const DEFAULT_DRAFT = {
 /* ─────────────────────────────────────────────────────────────────────────
    Root Onboarding component
 ───────────────────────────────────────────────────────────────────────── */
-export function Onboarding({ onComplete }: { onComplete: () => void }) {
-  const { signUp, createProfile } = useAuth();
-  const [step, setStep]   = useState<Step>({ kind: 'choice' });
-  const [draft, setDraft] = useState({ ...DEFAULT_DRAFT });
 
-  const go   = (s: Step) => setStep(s);
-  const next = (s: Step) => go(s);
+interface OnboardingProps {
+  onComplete: () => void;
+  /**
+   * profileOnly=true: the user is already authenticated (Google OAuth)
+   * but has no profile yet. Skip slides, choice, name, and login steps.
+   * Only collect gender → age → weight → height → goal → activity, then
+   * createProfile directly and show the welcome screen.
+   */
+  profileOnly?: boolean;
+}
 
-  // Sign-up step navigation
+export function Onboarding({ onComplete, profileOnly = false }: OnboardingProps) {
+  const { signUp, createProfile, user } = useAuth();
+  const providers = useAuthProviders();
+
+  // Profile-only flow starts at 'gender' (name comes from the OAuth provider).
+  const initialStep: Step = profileOnly
+    ? { kind: 'gender' }
+    : { kind: 'choice' };
+
+  const [step, setStep]   = useState<Step>(initialStep);
+  const [draft, setDraft] = useState({
+    ...DEFAULT_DRAFT,
+    // Pre-fill name from Google user object when available.
+    firstName: user?.firstName ?? '',
+    lastName:  user?.lastName  ?? '',
+  });
+
+  const go = (s: Step) => setStep(s);
+
+  // Full sign-up flow steps.
   const signupSteps: Step['kind'][] = ['name','gender','age','weight','height','goal','activity','login'];
+  // Profile-only steps skip name and login (already authed via OAuth).
+  const profileSteps: Step['kind'][] = ['gender','age','weight','height','goal','activity'];
+
+  const steps = profileOnly ? profileSteps : signupSteps;
+
   const signupBack = (current: Step['kind']) => {
-    const idx = signupSteps.indexOf(current);
-    if (idx <= 0) go({ kind: 'choice' });
-    else go({ kind: signupSteps[idx - 1] } as Step);
+    const idx = steps.indexOf(current);
+    if (idx <= 0) go(profileOnly ? { kind: 'gender' } : { kind: 'choice' });
+    else go({ kind: steps[idx - 1] } as Step);
   };
   const signupNext = (current: Step['kind']) => {
-    const idx = signupSteps.indexOf(current);
-    if (idx < signupSteps.length - 1) go({ kind: signupSteps[idx + 1] } as Step);
+    const idx = steps.indexOf(current);
+    if (idx < steps.length - 1) go({ kind: steps[idx + 1] } as Step);
   };
 
   /**
-   * Finalise account against the real API.
-   * Returns null on success (moves to welcome), or an error message
-   * for the login step to display.
+   * Called at the end of the sign-up (login) step.
+   * Returns null on success, or an error string for the step to display.
    */
   const createAccount = async (): Promise<string | null> => {
     try {
@@ -758,11 +786,24 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     } catch (err) {
       return authErrorMessage(err);
     }
-    // Persist onboarding answers straight to the backend profile.
+    await saveProfile();
+    go({ kind: 'welcome' });
+    return null;
+  };
+
+  /**
+   * Called at the end of the profile-only flow (OAuth users).
+   */
+  const finishProfileOnly = async () => {
+    await saveProfile();
+    go({ kind: 'welcome' });
+  };
+
+  const saveProfile = async () => {
     try {
       await createProfile({
-        firstName: draft.firstName.trim(),
-        lastName:  draft.lastName.trim(),
+        firstName: draft.firstName.trim() || user?.firstName || undefined,
+        lastName:  draft.lastName.trim()  || user?.lastName  || undefined,
         gender:    draft.gender || null,
         dateOfBirth: `${new Date().getFullYear() - draft.age}-01-01`,
         weightKg:  draft.weightKg,
@@ -772,34 +813,58 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         onboardingCompleted: true,
       });
     } catch {
-      // Account exists; profile save failed (e.g. offline blip). The app
-      // still works — the profile page allows filling these in later.
+      // Profile save blip — the app still works, profile page lets them retry.
     }
-    go({ kind: 'welcome' });
-    return null;
   };
 
   const props = { draft, setDraft };
 
+  const displayFirstName = draft.firstName || user?.firstName || 'Member';
+
   return (
     <AnimatePresence mode="wait">
-      {step.kind === 'choice' && (
-        <ChoiceScreen key="choice"
+      {/* ── Full flow (email signup) ────────────────────────────────── */}
+      {!profileOnly && step.kind === 'choice' && (
+        <ChoiceScreen key="choice" providers={providers}
           onNew={() => go({ kind: 'name' })}
           onReturning={() => go({ kind: 'signin' })} />
       )}
-      {step.kind === 'signin' && (
-        <SignInScreen key="signin" onAuth={onComplete} onBack={() => go({ kind: 'choice' })} />
+      {!profileOnly && step.kind === 'signin' && (
+        <SignInScreen key="signin" providers={providers}
+          onAuth={onComplete}
+          onBack={() => go({ kind: 'choice' })}
+          onForgot={() => go({ kind: 'forgot' })} />
       )}
-      {step.kind === 'name'     && <NameStep     key="name"     {...props} onBack={() => go({ kind: 'choice' })}     onNext={() => signupNext('name')} />}
-      {step.kind === 'gender'   && <GenderStep   key="gender"   {...props} onBack={() => signupBack('gender')}        onNext={() => signupNext('gender')} />}
-      {step.kind === 'age'      && <AgeStep      key="age"      {...props} onBack={() => signupBack('age')}           onNext={() => signupNext('age')} />}
-      {step.kind === 'weight'   && <WeightStep   key="weight"   {...props} onBack={() => signupBack('weight')}        onNext={() => signupNext('weight')} />}
-      {step.kind === 'height'   && <HeightStep   key="height"   {...props} onBack={() => signupBack('height')}        onNext={() => signupNext('height')} />}
-      {step.kind === 'goal'     && <GoalStep     key="goal"     {...props} onBack={() => signupBack('goal')}          onNext={() => signupNext('goal')} />}
-      {step.kind === 'activity' && <ActivityStep key="activity" {...props} onBack={() => signupBack('activity')}      onNext={() => signupNext('activity')} />}
-      {step.kind === 'login'    && <LoginStep    key="login"    {...props} onBack={() => signupBack('login')}         onNext={createAccount} />}
-      {step.kind === 'welcome'  && <WelcomeScreen key="welcome" firstName={draft.firstName} onComplete={onComplete} />}
+      {!profileOnly && step.kind === 'forgot' && (
+        <ForgotPassword key="forgot" onBack={() => go({ kind: 'signin' })} />
+      )}
+      {!profileOnly && step.kind === 'name' && (
+        <NameStep key="name" {...props}
+          onBack={() => go({ kind: 'choice' })} onNext={() => signupNext('name')} />
+      )}
+
+      {/* ── Shared steps (both flows) ──────────────────────────────── */}
+      {step.kind === 'gender'   && <GenderStep   key="gender"   {...props} onBack={() => signupBack('gender')}   onNext={() => signupNext('gender')} />}
+      {step.kind === 'age'      && <AgeStep      key="age"      {...props} onBack={() => signupBack('age')}      onNext={() => signupNext('age')} />}
+      {step.kind === 'weight'   && <WeightStep   key="weight"   {...props} onBack={() => signupBack('weight')}   onNext={() => signupNext('weight')} />}
+      {step.kind === 'height'   && <HeightStep   key="height"   {...props} onBack={() => signupBack('height')}   onNext={() => signupNext('height')} />}
+      {step.kind === 'goal'     && <GoalStep     key="goal"     {...props} onBack={() => signupBack('goal')}     onNext={() => signupNext('goal')} />}
+      {step.kind === 'activity' && <ActivityStep key="activity" {...props}
+        onBack={() => signupBack('activity')}
+        onNext={profileOnly
+          ? () => { void finishProfileOnly(); }
+          : () => signupNext('activity')} />}
+
+      {/* ── Email signup only ──────────────────────────────────────── */}
+      {!profileOnly && step.kind === 'login' && (
+        <LoginStep key="login" {...props}
+          onBack={() => signupBack('login')} onNext={createAccount} />
+      )}
+
+      {/* ── Welcome ───────────────────────────────────────────────── */}
+      {step.kind === 'welcome' && (
+        <WelcomeScreen key="welcome" firstName={displayFirstName} onComplete={onComplete} />
+      )}
     </AnimatePresence>
   );
 }
