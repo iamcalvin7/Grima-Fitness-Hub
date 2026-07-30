@@ -11,6 +11,7 @@ import { Leaderboard }        from '@/pages/Leaderboard';
 import { Offers }             from '@/pages/Offers';
 import { Memberships }        from '@/pages/Memberships';
 import { Team }               from '@/pages/Team';
+import { Proposal }           from '@/pages/Proposal';
 import { AccountSecurity }    from '@/pages/AccountSecurity';
 import { ActiveSessions }     from '@/pages/ActiveSessions';
 import { DeleteAccount }      from '@/pages/DeleteAccount';
@@ -24,7 +25,8 @@ import { useAuth } from '@/auth/AuthContext';
 export type Page =
   | 'home' | 'sessions' | 'workouts' | 'meals' | 'messages'
   | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team'
-  | 'security' | 'active-sessions' | 'delete-account';
+  | 'security' | 'active-sessions' | 'delete-account'
+  | 'proposal';
 
 /* ── Query-parameter entry points ─────────────────────────────────────── */
 type Modal =
@@ -194,6 +196,7 @@ function App() {
       {activePage === 'offers'      && <Offers />}
       {activePage === 'memberships' && <Memberships setPage={handleSetPage} />}
       {activePage === 'team'        && <Team />}
+      {activePage === 'proposal'    && <Proposal />}
     </Layout>
   );
 }

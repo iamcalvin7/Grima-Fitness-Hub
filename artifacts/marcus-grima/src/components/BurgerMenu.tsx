@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, CaretRight as ChevronRight, Crown, Trophy, SealPercent as BadgePercent, User, UsersThree as Users } from '@phosphor-icons/react';
+import { X, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, CaretRight as ChevronRight, Crown, Trophy, SealPercent as BadgePercent, User, UsersThree as Users, Presentation } from '@phosphor-icons/react';
 import type { Page } from '@/App';
+import { useAuth } from '@/auth/AuthContext';
 
 interface BurgerMenuProps {
   open:       boolean;
@@ -70,6 +71,23 @@ const MENU_ITEMS: {
 ];
 
 export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenuProps) {
+  const { user } = useAuth();
+  const isStaff = user?.role === 'trainer' || user?.role === 'admin';
+
+  const allItems = isStaff
+    ? [
+        ...MENU_ITEMS,
+        {
+          id: 'proposal' as Page,
+          label: 'Project Proposal',
+          sub: 'Full product roadmap and pitch deck',
+          icon: <Presentation size={26} weight="fill" />,
+          accent: '#4ade80',
+          badge: undefined as string | undefined,
+        },
+      ]
+    : MENU_ITEMS;
+
   const handleNav = (page: Page) => {
     onNavigate(page);
     onClose();
@@ -120,7 +138,7 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
 
             {/* Cards */}
             <div className="px-5 pb-10 flex flex-col gap-3 overflow-y-auto">
-              {MENU_ITEMS.map((item, i) => {
+              {allItems.map((item, i) => {
                 const isActive = activePage === item.id;
                 return (
                   <button

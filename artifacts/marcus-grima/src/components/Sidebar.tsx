@@ -1,25 +1,36 @@
 import React from 'react';
-import { House as HomeIcon, CalendarBlank as Calendar, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, ChatCircle as MessageSquare, User, Lightning as Zap, Trophy, SealPercent as BadgePercent, UsersThree as Users } from '@phosphor-icons/react';
+import { House as HomeIcon, CalendarBlank as Calendar, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, ChatCircle as MessageSquare, User, Lightning as Zap, Trophy, SealPercent as BadgePercent, UsersThree as Users, Presentation } from '@phosphor-icons/react';
 import type { Page } from '@/App';
+import { useAuth } from '@/auth/AuthContext';
 
 interface SidebarProps {
   activePage: Page;
   onNavigate: (page: Page) => void;
 }
 
-const navItems: { id: Page; label: string; icon: React.ReactNode; badge?: boolean }[] = [
-  { id: 'home',     label: 'Home',     icon: <HomeIcon        size={18} weight="fill" /> },
-  { id: 'sessions', label: 'Sessions', icon: <Calendar        size={18} weight="fill" /> },
-  { id: 'workouts', label: 'Workouts', icon: <Dumbbell        size={18} weight="fill" /> },
-  { id: 'meals',    label: 'Meals',    icon: <UtensilsCrossed size={18} weight="fill" /> },
-  { id: 'messages',    label: 'Messages',    icon: <MessageSquare size={18} weight="fill" />, badge: true },
-  { id: 'leaderboard',label: 'Leaderboard', icon: <Trophy        size={18} weight="fill" /> },
-  { id: 'offers',     label: 'Members Offers', icon: <BadgePercent size={18} weight="fill" /> },
-  { id: 'team',       label: 'The Team',    icon: <Users         size={18} weight="fill" /> },
-  { id: 'profile',    label: 'Profile',     icon: <User          size={18} weight="fill" /> },
+const memberNavItems: { id: Page; label: string; icon: React.ReactNode; badge?: boolean }[] = [
+  { id: 'home',        label: 'Home',          icon: <HomeIcon        size={18} weight="fill" /> },
+  { id: 'sessions',    label: 'Sessions',       icon: <Calendar        size={18} weight="fill" /> },
+  { id: 'workouts',    label: 'Workouts',       icon: <Dumbbell        size={18} weight="fill" /> },
+  { id: 'meals',       label: 'Meals',          icon: <UtensilsCrossed size={18} weight="fill" /> },
+  { id: 'messages',    label: 'Messages',       icon: <MessageSquare   size={18} weight="fill" />, badge: true },
+  { id: 'leaderboard', label: 'Leaderboard',    icon: <Trophy          size={18} weight="fill" /> },
+  { id: 'offers',      label: 'Members Offers', icon: <BadgePercent    size={18} weight="fill" /> },
+  { id: 'team',        label: 'The Team',       icon: <Users           size={18} weight="fill" /> },
+  { id: 'profile',     label: 'Profile',        icon: <User            size={18} weight="fill" /> },
 ];
 
 export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
+  const { user } = useAuth();
+  const isStaff = user?.role === 'trainer' || user?.role === 'admin';
+
+  const navItems = isStaff
+    ? [
+        ...memberNavItems,
+        { id: 'proposal' as Page, label: 'Project Proposal', icon: <Presentation size={18} weight="fill" />, badge: undefined as boolean | undefined },
+      ]
+    : memberNavItems;
+
   return (
     <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#080808] border-r border-white/5 z-40">
       {/* Logo */}
