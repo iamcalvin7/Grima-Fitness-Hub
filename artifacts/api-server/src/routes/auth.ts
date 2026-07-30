@@ -7,9 +7,25 @@ import {
   SESSION_TTL_MS,
   createSession,
   revokeSession,
+  revokeAllSessions,
 } from "../lib/sessions";
 import { getDefaultTenant } from "../lib/tenant";
 import { attachUser, requireAuth } from "../middlewares/auth";
+import { rateLimit } from "../lib/rateLimit";
+import {
+  createPasswordResetToken,
+  createVerificationToken,
+  findValidResetToken,
+  findValidVerificationToken,
+  consumeResetToken,
+  consumeVerificationToken,
+} from "../lib/tokens";
+import { sendEmailSafely } from "../lib/email";
+import {
+  emailChangeEmail,
+  emailVerificationEmail,
+  passwordResetEmail,
+} from "../lib/emailTemplates";
 
 const router: IRouter = Router();
 
@@ -45,7 +61,7 @@ function requestMeta(req: Request) {
   };
 }
 
-router.post("/auth/signup", async (req, res) => {
+router.post("/auth/signup", rateLimit({ name: "signup-ip", max: 10, windowMs: 15 * 60_000 }), async (req, res) => {
   const { email, password, firstName, lastName } = (req.body ?? {}) as Record<
     string,
     unknown
@@ -120,7 +136,7 @@ router.post("/auth/signup", async (req, res) => {
   res.status(201).json({ user: publicUser(user) });
 });
 
-router.post("/auth/signin", async (req, res) => {
+router.post("/auth/signin", rateLimit({ name: "signin-ip", max: 20, windowMs: 15 * 60_000 }), async (req, res) => {
   const { email, password } = (req.body ?? {}) as Record<string, unknown>;
 
   if (typeof email !== "string" || typeof password !== "string") {
@@ -141,8 +157,9 @@ router.post("/auth/signin", async (req, res) => {
     .limit(1);
 
   const user = rows[0];
-  // Verify against a dummy hash when the user is missing to keep timing uniform.
-  const valid = user
+  // Verify against a dummy hash when the user is missing or has no password
+  // (OAuth-only account) to keep timing uniform and answers generic.
+  const valid = user?.passwordHash
     ? await verifyPassword(password, user.passwordHash)
     : (await hashPassword(password), false);
 
@@ -171,4 +188,147 @@ router.get("/auth/me", attachUser, requireAuth, (req, res) => {
   res.json({ user: publicUser(req.user!) });
 });
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Password recovery & email verification.
+   All request endpoints return the SAME generic response whether or not the
+   account exists (anti-enumeration), and all tokens are stored hashed,
+   single-use, and expiring.
+──────────────────────────────────────────────────────────────────────── */
+
+const GENERIC_FORGOT =
+  "If an account exists for that email, a reset link has been sent.";
+
+router.post(
+  "/auth/forgot-password",
+  rateLimit({ name: "forgot-ip", max: 5, windowMs: 15 * 60_000 }),
+  async (req, res) => {
+    const { email } = (req.body ?? {}) as Record<string, unknown>;
+    if (typeof email !== "string" || !EMAIL_RE.test(email.trim())) {
+      // Still generic — invalid input gets the same shape of answer.
+      res.json({ message: GENERIC_FORGOT });
+      return;
+    }
+    const tenant = await getDefaultTenant();
+    const rows = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.tenantId, tenant.id),
+          eq(usersTable.email, email.trim().toLowerCase()),
+        ),
+      )
+      .limit(1);
+    const user = rows[0];
+    if (user && user.isActive) {
+      const token = await createPasswordResetToken(user.id);
+      sendEmailSafely(passwordResetEmail(user.email, token));
+    }
+    res.json({ message: GENERIC_FORGOT });
+  },
+);
+
+router.post(
+  "/auth/reset-password",
+  rateLimit({ name: "reset-ip", max: 10, windowMs: 15 * 60_000 }),
+  async (req, res) => {
+    const { token, password } = (req.body ?? {}) as Record<string, unknown>;
+    if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
+      res.status(400).json({
+        error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
+      return;
+    }
+    const row =
+      typeof token === "string" && token.length > 0
+        ? await findValidResetToken(token)
+        : null;
+    if (!row || !(await consumeResetToken(row.id))) {
+      // Expired, unknown, and already-used tokens all get the same answer.
+      res.status(400).json({ error: "This reset link is invalid or has expired" });
+      return;
+    }
+    const passwordHash = await hashPassword(password);
+    await db
+      .update(usersTable)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(usersTable.id, row.userId));
+    // Sensitive change: every session for this user is invalidated.
+    await revokeAllSessions(row.userId);
+    res.json({ message: "Password updated. Please sign in with your new password." });
+  },
+);
+
+router.post(
+  "/auth/send-verification",
+  attachUser,
+  requireAuth,
+  rateLimit({ name: "send-verify", max: 3, windowMs: 15 * 60_000, keyFn: (req) => req.user?.id ?? req.ip ?? "?" }),
+  async (req, res) => {
+    const user = req.user!;
+    if (user.emailVerifiedAt) {
+      res.json({ message: "Email is already verified" });
+      return;
+    }
+    const token = await createVerificationToken(user.id, "email_verify");
+    sendEmailSafely(emailVerificationEmail(user.email, token));
+    res.json({ message: "Verification email sent" });
+  },
+);
+
+router.post(
+  "/auth/verify-email",
+  rateLimit({ name: "verify-ip", max: 10, windowMs: 15 * 60_000 }),
+  async (req, res) => {
+    const { token } = (req.body ?? {}) as Record<string, unknown>;
+    const row =
+      typeof token === "string" && token.length > 0
+        ? await findValidVerificationToken(token)
+        : null;
+    if (!row || !(await consumeVerificationToken(row.id))) {
+      res.status(400).json({ error: "This verification link is invalid or has expired" });
+      return;
+    }
+
+    if (row.purpose === "email_change" && row.newEmail) {
+      // Email switches only now, after verified ownership of the new address.
+      const tenant = await getDefaultTenant();
+      const clash = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(
+          and(
+            eq(usersTable.tenantId, tenant.id),
+            eq(usersTable.email, row.newEmail),
+          ),
+        )
+        .limit(1);
+      if (clash[0] && clash[0].id !== row.userId) {
+        // Address was taken between request and confirmation.
+        res.status(400).json({ error: "This verification link is invalid or has expired" });
+        return;
+      }
+      await db
+        .update(usersTable)
+        .set({
+          email: row.newEmail,
+          emailVerifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(usersTable.id, row.userId));
+      // Sensitive change: sign out every session; user signs back in with the new email.
+      await revokeAllSessions(row.userId);
+      res.json({ message: "Email updated. Please sign in again.", emailChanged: true });
+      return;
+    }
+
+    await db
+      .update(usersTable)
+      .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(usersTable.id, row.userId));
+    res.json({ message: "Email verified", emailChanged: false });
+  },
+);
+
+export { EMAIL_RE, MIN_PASSWORD_LENGTH, publicUser, setSessionCookie, requestMeta };
 export default router;

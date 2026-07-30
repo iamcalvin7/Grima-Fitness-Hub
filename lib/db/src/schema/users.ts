@@ -26,7 +26,9 @@ export const usersTable = pgTable(
         onDelete: "cascade",
       }),
     email: text("email").notNull(),
-    passwordHash: text("password_hash").notNull(),
+    // Nullable: OAuth-only accounts (e.g. Google sign-in) have no password
+    // until the user explicitly sets one from the Security screen.
+    passwordHash: text("password_hash"),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     avatarUrl: text("avatar_url"),

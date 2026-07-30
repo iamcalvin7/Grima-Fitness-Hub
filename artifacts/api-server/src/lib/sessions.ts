@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { db, sessionsTable, usersTable, type User } from "@workspace/db";
 
 export const SESSION_COOKIE = "mg_session";
@@ -56,6 +56,18 @@ export async function getSessionUser(token: string): Promise<User | null> {
     .catch(() => {});
 
   return row.user;
+}
+
+/** Revoke every session for a user, optionally keeping one token active. */
+export async function revokeAllSessions(
+  userId: string,
+  exceptToken?: string,
+): Promise<void> {
+  const conditions = [eq(sessionsTable.userId, userId)];
+  if (exceptToken) {
+    conditions.push(ne(sessionsTable.tokenHash, hashSessionToken(exceptToken)));
+  }
+  await db.delete(sessionsTable).where(and(...conditions));
 }
 
 export async function revokeSession(token: string): Promise<void> {

@@ -1,12 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CaretRight, CaretLeft, Eye, EyeSlash, WarningCircle,
   Target, Fire, Heart, Lightning, Pulse, CheckCircle,
+  GoogleLogo, AppleLogo, EnvelopeSimple,
 } from '@phosphor-icons/react';
 import { ScrollPicker } from '@/components/ScrollPicker';
 import { useAuth } from '@/auth/AuthContext';
-import { ApiError } from '@/lib/api';
+import { ApiError, apiRequest } from '@/lib/api';
+
+/** Sign-in providers reported by the API (config-driven). */
+export interface AuthProviders {
+  email: boolean;
+  google: boolean;
+  apple: { enabled: boolean; reason?: string };
+  emailDelivery: 'resend' | 'console';
+}
+
+export function useAuthProviders(): AuthProviders | null {
+  const [providers, setProviders] = useState<AuthProviders | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<AuthProviders>('/auth/providers')
+      .then(p => { if (!cancelled) setProviders(p); })
+      .catch(() => { if (!cancelled) setProviders({ email: true, google: false, apple: { enabled: false }, emailDelivery: 'console' }); });
+    return () => { cancelled = true; };
+  }, []);
+  return providers;
+}
+
+/** Start the Google OAuth flow (full-page redirect through the API). */
+export function startGoogleSignIn() {
+  window.location.href = `${import.meta.env.BASE_URL}api/auth/google`;
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    Auth error helper
@@ -55,7 +81,8 @@ type Step =
   | { kind: 'activity' }
   | { kind: 'login' }
   | { kind: 'welcome' }
-  | { kind: 'signin' };
+  | { kind: 'signin' }
+  | { kind: 'forgot' };
 
 const SIGNUP_ORDER: Step['kind'][] = ['name','gender','age','weight','height','goal','activity','login'];
 const SIGNUP_STEP_NUM = (k: Step['kind']) => SIGNUP_ORDER.indexOf(k) + 1;
@@ -239,7 +266,9 @@ function SlideScreen({ s, onNext, isLast, onSkip }: {
 /* ─────────────────────────────────────────────────────────────────────────
    Choice screen
 ───────────────────────────────────────────────────────────────────────── */
-function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: () => void }) {
+function ChoiceScreen({ onNew, onReturning, providers }: {
+  onNew: () => void; onReturning: () => void; providers: AuthProviders | null;
+}) {
   return (
     <motion.div {...slide} className="fixed inset-0 bg-[#060606] flex flex-col">
       {/* Full-bleed hero photo */}
@@ -271,23 +300,32 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
         </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-          className="flex gap-3">
+          className="flex flex-col gap-3">
+          {providers?.google && (
+            <button onClick={startGoogleSignIn}
+              className="w-full py-3 rounded-full bg-white text-black font-bold tracking-[0.15em] uppercase text-xs
+                         flex items-center justify-center gap-2">
+              <GoogleLogo size={16} weight="bold" />
+              <span>Continue with Google</span>
+            </button>
+          )}
           <button onClick={onNew}
-            className="flex-1 py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
-                       flex items-center justify-center gap-1.5">
-            <span>SIGN UP</span>
-            <CaretRight size={15} weight="bold" />
+            className="w-full py-3 rounded-full bg-primary text-primary-foreground font-bold tracking-[0.15em] uppercase text-xs
+                       flex items-center justify-center gap-2">
+            <EnvelopeSimple size={16} weight="bold" />
+            <span>Continue with Email</span>
           </button>
-          <button onClick={onReturning}
-            className="flex-1 py-3 rounded-full border border-white/25 bg-black/40 backdrop-blur-sm text-white font-bold tracking-[0.15em] uppercase text-xs
-                       flex items-center justify-center gap-1.5 hover:border-white/50 transition-colors">
-            <span>SIGN IN</span>
-            <CaretRight size={15} weight="bold" />
+          <button disabled title={providers?.apple?.reason ?? 'Coming soon'}
+            className="w-full py-3 rounded-full border border-white/15 bg-black/40 backdrop-blur-sm text-white/30 font-bold tracking-[0.15em] uppercase text-xs
+                       flex items-center justify-center gap-2 cursor-not-allowed">
+            <AppleLogo size={16} weight="fill" />
+            <span>Apple — Coming Soon</span>
           </button>
         </motion.div>
-        <p className="text-center text-[10px] text-white/25 font-semibold tracking-wide mt-6">
-          Your account is provided or created with Marcus
-        </p>
+        <button onClick={onReturning}
+          className="text-center text-[11px] text-white/50 font-bold tracking-[0.15em] uppercase mt-6 hover:text-white transition-colors">
+          Already a member? Sign in
+        </button>
       </div>
     </motion.div>
   );
@@ -296,7 +334,9 @@ function ChoiceScreen({ onNew, onReturning }: { onNew: () => void; onReturning: 
 /* ─────────────────────────────────────────────────────────────────────────
    Sign-in screen
 ───────────────────────────────────────────────────────────────────────── */
-function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => void }) {
+function SignInScreen({ onAuth, onBack, onForgot, providers }: {
+  onAuth: () => void; onBack: () => void; onForgot: () => void; providers: AuthProviders | null;
+}) {
   const { signIn } = useAuth();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -358,6 +398,11 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
             </div>
           </div>
 
+          <button type="button" onClick={onForgot}
+            className="self-end text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase hover:text-primary transition-colors">
+            Forgot password?
+          </button>
+
           <AnimatePresence>
             {error && (
               <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -366,6 +411,15 @@ function SignInScreen({ onAuth, onBack }: { onAuth: () => void; onBack: () => vo
               </motion.div>
             )}
           </AnimatePresence>
+
+          {providers?.google && (
+            <button type="button" onClick={startGoogleSignIn}
+              className="w-full py-3 rounded-full border border-white/15 bg-white/5 text-white font-bold tracking-[0.15em] uppercase text-xs
+                         flex items-center justify-center gap-2 hover:border-white/40 transition-colors">
+              <GoogleLogo size={15} weight="bold" />
+              <span>Continue with Google</span>
+            </button>
+          )}
 
           <div className="flex-1" />
 
