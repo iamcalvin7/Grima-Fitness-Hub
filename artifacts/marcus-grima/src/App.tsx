@@ -11,6 +11,8 @@ import { Leaderboard }        from '@/pages/Leaderboard';
 import { Offers }             from '@/pages/Offers';
 import { Memberships }        from '@/pages/Memberships';
 import { Team }               from '@/pages/Team';
+import { Feed }               from '@/pages/Feed';
+import { ContentAdmin }       from '@/pages/ContentAdmin';
 import { Proposal }           from '@/pages/Proposal';
 import { AccountSecurity }    from '@/pages/AccountSecurity';
 import { ActiveSessions }     from '@/pages/ActiveSessions';
@@ -26,7 +28,7 @@ export type Page =
   | 'home' | 'sessions' | 'workouts' | 'meals' | 'messages'
   | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team'
   | 'security' | 'active-sessions' | 'delete-account'
-  | 'proposal';
+  | 'proposal' | 'feed' | 'content-admin';
 
 /* ── Query-parameter entry points ─────────────────────────────────────── */
 type Modal =
@@ -195,8 +197,10 @@ function App() {
       {activePage === 'leaderboard' && <Leaderboard />}
       {activePage === 'offers'      && <Offers />}
       {activePage === 'memberships' && <Memberships setPage={handleSetPage} />}
-      {activePage === 'team'        && <Team />}
-      {activePage === 'proposal'    && <Proposal />}
+      {activePage === 'team'          && <Team />}
+      {activePage === 'feed'          && <Feed />}
+      {activePage === 'content-admin' && <ContentAdmin />}
+      {activePage === 'proposal'      && <Proposal />}
     </Layout>
   );
 }

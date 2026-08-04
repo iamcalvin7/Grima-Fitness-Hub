@@ -1,5 +1,5 @@
 import React from 'react';
-import { House as HomeIcon, CalendarBlank as Calendar, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, ChatCircle as MessageSquare, User, Lightning as Zap, Trophy, SealPercent as BadgePercent, UsersThree as Users, Presentation } from '@phosphor-icons/react';
+import { House as HomeIcon, CalendarBlank as Calendar, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, ChatCircle as MessageSquare, User, Lightning as Zap, Trophy, SealPercent as BadgePercent, UsersThree as Users, Presentation, Newspaper, Folders } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 import { useAuth } from '@/auth/AuthContext';
 
@@ -14,6 +14,7 @@ const memberNavItems: { id: Page; label: string; icon: React.ReactNode; badge?: 
   { id: 'workouts',    label: 'Workouts',       icon: <Dumbbell        size={18} weight="fill" /> },
   { id: 'meals',       label: 'Meals',          icon: <UtensilsCrossed size={18} weight="fill" /> },
   { id: 'messages',    label: 'Messages',       icon: <MessageSquare   size={18} weight="fill" />, badge: true },
+  { id: 'feed',        label: 'Feed',           icon: <Newspaper       size={18} weight="fill" /> },
   { id: 'leaderboard', label: 'Leaderboard',    icon: <Trophy          size={18} weight="fill" /> },
   { id: 'offers',      label: 'Members Offers', icon: <BadgePercent    size={18} weight="fill" /> },
   { id: 'team',        label: 'The Team',       icon: <Users           size={18} weight="fill" /> },
@@ -27,6 +28,7 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
   const navItems = isStaff
     ? [
         ...memberNavItems,
+        { id: 'content-admin' as Page, label: 'Content Admin', icon: <Folders size={18} weight="fill" />, badge: undefined as boolean | undefined },
         { id: 'proposal' as Page, label: 'Project Proposal', icon: <Presentation size={18} weight="fill" />, badge: undefined as boolean | undefined },
       ]
     : memberNavItems;

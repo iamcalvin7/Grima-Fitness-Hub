@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, CaretRight as ChevronRight, Crown, Trophy, SealPercent as BadgePercent, User, UsersThree as Users, Presentation } from '@phosphor-icons/react';
+import { X, Barbell as Dumbbell, ForkKnife as UtensilsCrossed, CaretRight as ChevronRight, Crown, Trophy, SealPercent as BadgePercent, User, UsersThree as Users, Presentation, Newspaper, Folders } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 import { useAuth } from '@/auth/AuthContext';
 
@@ -31,6 +31,13 @@ const MENU_ITEMS: {
     label:  'Meal Plans',
     sub:    'Recipes, macros & daily planning',
     icon:   <UtensilsCrossed size={26} weight="fill" />,
+    accent: '#E5E5E5',
+  },
+  {
+    id:     'feed',
+    label:  'Feed',
+    sub:    'Videos, photos & articles from Marcus',
+    icon:   <Newspaper size={26} weight="fill" />,
     accent: '#E5E5E5',
   },
   {
@@ -77,6 +84,14 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
   const allItems = isStaff
     ? [
         ...MENU_ITEMS,
+        {
+          id: 'content-admin' as Page,
+          label: 'Content Admin',
+          sub: 'Create and manage feed posts',
+          icon: <Folders size={26} weight="fill" />,
+          accent: '#4ade80',
+          badge: undefined as string | undefined,
+        },
         {
           id: 'proposal' as Page,
           label: 'Project Proposal',

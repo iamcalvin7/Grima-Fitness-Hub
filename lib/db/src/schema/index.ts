@@ -4,3 +4,4 @@ export * from "./sessions";
 export * from "./profiles";
 export * from "./authIdentities";
 export * from "./accountTokens";
+export * from "./contentPosts";
