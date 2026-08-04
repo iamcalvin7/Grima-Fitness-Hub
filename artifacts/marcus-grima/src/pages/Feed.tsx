@@ -229,44 +229,46 @@ function FeaturedCard({
   return (
     <motion.button
       onClick={onClick}
-      className="relative w-full rounded-2xl overflow-hidden text-left group"
-      style={{ aspectRatio: "16/9" }}
+      className="w-full rounded-2xl overflow-hidden text-left group bg-[#111]"
       whileTap={{ scale: 0.99 }}
     >
-      {thumb ? (
-        <img
-          src={thumb}
-          alt={post.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]" />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+      {/* Image / thumbnail */}
+      <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={post.title}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-      {/* Featured badge */}
-      <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-primary/90 backdrop-blur-sm text-black text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full">
-        <Star size={10} weight="fill" />
-        Featured
-      </div>
-
-      {/* Type badge */}
-      <div className="absolute top-4 right-4 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white/80 text-[10px] font-bold px-2 py-1 rounded-full">
-        {TYPE_ICONS[post.type]}
-        {TYPE_LABELS[post.type]}
-      </div>
-
-      {/* Play overlay for video */}
-      {post.type === "video" && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 group-hover:bg-white/30 transition-colors">
-            <Play size={28} weight="fill" className="text-white ml-1" />
-          </div>
+        {/* Featured badge */}
+        <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-primary/90 backdrop-blur-sm text-black text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full">
+          <Star size={10} weight="fill" />
+          Featured
         </div>
-      )}
 
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-5">
+        {/* Type badge */}
+        <div className="absolute top-4 right-4 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white/80 text-[10px] font-bold px-2 py-1 rounded-full">
+          {TYPE_ICONS[post.type]}
+          {TYPE_LABELS[post.type]}
+        </div>
+
+        {/* Play overlay for video */}
+        {post.type === "video" && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 group-hover:bg-white/30 transition-colors">
+              <Play size={28} weight="fill" className="text-white ml-1" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Content below image */}
+      <div className="p-4">
         {post.category && (
           <p className="text-primary text-[10px] font-black tracking-widest uppercase mb-1">
             {post.category}
@@ -276,7 +278,7 @@ function FeaturedCard({
           {post.title}
         </h2>
         {post.description && (
-          <p className="text-white/60 text-xs line-clamp-1">
+          <p className="text-white/60 text-sm line-clamp-2 mt-1">
             {post.description}
           </p>
         )}
