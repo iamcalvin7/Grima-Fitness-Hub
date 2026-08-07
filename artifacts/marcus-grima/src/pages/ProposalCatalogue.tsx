@@ -1,0 +1,981 @@
+import React, { useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  CheckCircle, ArrowRight, X, Star, Sparkle, Lightning,
+  UserCircle, Barbell, TrendUp, ForkKnife, CalendarBlank,
+  ChatCircle, Money, Briefcase, BookOpen, Brain, Lock,
+  Rocket, Play, ShieldCheck, Checks, CaretDown, Funnel,
+} from '@phosphor-icons/react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type Priority = 'Critical' | 'High' | 'Medium' | 'Low';
+export type Phase = 1 | 2 | 3;
+export type FeatureStatus = 'Delivered' | 'In Progress' | 'Planned' | 'Future';
+export type Category =
+  | 'Account & Onboarding'
+  | 'Coaching & Training'
+  | 'Progress & Accountability'
+  | 'Nutrition & Daily Habits'
+  | 'Bookings & Service Delivery'
+  | 'Communication & Community'
+  | 'Payments & Revenue'
+  | 'Business Operations'
+  | 'Growth & Acquisition'
+  | 'Content & Education'
+  | 'Data & Intelligence'
+  | 'Safety & Compliance';
+
+export interface Feature {
+  id: string;
+  title: string;
+  category: Category;
+  priority: Priority;
+  phase: Phase;
+  status: FeatureStatus;
+  tagline: string;
+  what: string;
+  memberBenefit: string;
+  businessBenefit: string;
+  scope?: string;
+  dependencies?: string[];
+  costNotes?: string;
+  future?: string;
+}
+
+// ─── Feature Dataset ──────────────────────────────────────────────────────────
+export const FEATURES: Feature[] = [
+  // ── Account & Onboarding ──
+  {
+    id: 'auth-email', title: 'Email Registration & Verification', category: 'Account & Onboarding',
+    priority: 'Critical', phase: 1, status: 'Delivered',
+    tagline: 'Secure, verified accounts from day one.',
+    what: 'Full email-based sign-up flow with account verification, duplicate detection, and secure credential storage using scrypt hashing.',
+    memberBenefit: 'A trustworthy, familiar sign-up experience that protects their credentials from the start.',
+    businessBenefit: 'Every account is verified and uniquely identified — clean member database, no fake signups.',
+    scope: 'Registration form, email verification flow, duplicate detection, secure password hashing.',
+    costNotes: 'Delivered within Phase 1 auth sprint.',
+  },
+  {
+    id: 'auth-signin', title: 'Secure Sign-In & Session Management', category: 'Account & Onboarding',
+    priority: 'Critical', phase: 1, status: 'Delivered',
+    tagline: 'Members stay signed in safely across devices.',
+    what: 'Cookie-based server sessions with configurable expiry, CSRF protection, and secure cookie flags. Sessions persist across browser restarts.',
+    memberBenefit: 'They sign in once and stay in — no constant re-authentication hassle.',
+    businessBenefit: 'Industry-standard session security; audit trail for all authenticated actions.',
+    scope: 'Sign-in form, session creation, secure cookie handling, session expiry and renewal.',
+  },
+  {
+    id: 'auth-reset', title: 'Forgot Password & Reset Flow', category: 'Account & Onboarding',
+    priority: 'High', phase: 1, status: 'Delivered',
+    tagline: 'No member gets locked out permanently.',
+    what: 'Time-limited, single-use reset tokens sent by email. Token invalidated immediately on use. Clear UI for requesting and completing reset.',
+    memberBenefit: 'Quick, self-serve recovery without needing to contact anyone.',
+    businessBenefit: 'Reduces support burden; no manual password resets required from Marcus.',
+    costNotes: 'Included in Phase 1.',
+  },
+  {
+    id: 'auth-oauth', title: 'Google & Apple Sign-In (OAuth)', category: 'Account & Onboarding',
+    priority: 'High', phase: 1, status: 'Delivered',
+    tagline: 'One tap to join — no password required.',
+    what: 'OAuth 2.0 PKCE flow for Google. Accounts are linked intelligently — if an email already exists, the OAuth identity is attached rather than duplicating the account.',
+    memberBenefit: 'Fastest possible sign-up and sign-in experience, especially on mobile.',
+    businessBenefit: 'Higher conversion rate at sign-up; fewer password-related support requests.',
+    future: 'Apple Sign-In to be added when App Store submission is pursued.',
+  },
+  {
+    id: 'profile-builder', title: 'Member Profile Builder', category: 'Account & Onboarding',
+    priority: 'Critical', phase: 1, status: 'Delivered',
+    tagline: 'Every member has a complete coaching identity.',
+    what: 'Structured profile capturing name, age/DOB, height, weight, fitness goals, experience level, and activity level. Data feeds into programme personalisation.',
+    memberBenefit: 'Their profile shapes everything Marcus prepares for them — relevant, personalised coaching from day one.',
+    businessBenefit: 'Rich member data without manual intake forms. Every client profile is standardised and searchable.',
+    scope: 'Profile form, DOB/age logic, goal selection, experience level mapping, avatar upload.',
+  },
+  {
+    id: 'onboarding', title: 'Guided Onboarding Experience', category: 'Account & Onboarding',
+    priority: 'High', phase: 1, status: 'Delivered',
+    tagline: 'New members arrive, not get abandoned.',
+    what: 'Multi-step wizard that guides new members through profile completion, goal setting, and getting their bearings in the app. Steps are tracked; incomplete onboarding is resumed automatically.',
+    memberBenefit: 'Confidence and clarity on what to do next — critical in the first 48 hours after joining.',
+    businessBenefit: 'Higher profile completion rates mean Marcus has the data he needs to start coaching immediately.',
+    future: 'Personalised welcome video from Marcus played at the end of onboarding.',
+  },
+  {
+    id: 'role-access', title: 'Role-Based Access Control', category: 'Account & Onboarding',
+    priority: 'Critical', phase: 1, status: 'Delivered',
+    tagline: 'Marcus sees everything; members see theirs.',
+    what: 'Three-tier role system: member, trainer, and admin. Every page, API endpoint, and action is gated by role. Marcus and admins have separate views, tools, and permissions.',
+    memberBenefit: 'Members only see what\'s relevant to them — clean, uncluttered experience.',
+    businessBenefit: 'Secure by design: business data, client information, and admin tools are never exposed to regular members.',
+    scope: 'Role middleware on all API routes, role-gated UI components, role-aware navigation.',
+  },
+  {
+    id: 'account-lifecycle', title: 'Full Account Lifecycle Management', category: 'Account & Onboarding',
+    priority: 'Medium', phase: 1, status: 'Delivered',
+    tagline: 'Accounts can be paused, reactivated, or removed cleanly.',
+    what: 'Members can deactivate their account (data preserved, access suspended) or request full deletion (GDPR-compliant data erasure). Marcus can reactivate accounts manually.',
+    memberBenefit: 'Control over their own data and account — builds trust.',
+    businessBenefit: 'GDPR compliance built in from day one. Deactivated members can be reactivated if they return.',
+    costNotes: 'Delivered within Phase 1.',
+  },
+
+  // ── Coaching & Training ──
+  {
+    id: 'exercise-library', title: 'Exercise Library', category: 'Coaching & Training',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Every movement, documented and searchable.',
+    what: 'A curated library of exercises with descriptions, muscle groups, equipment requirements, difficulty ratings, and linked demonstration videos (via Mux).',
+    memberBenefit: 'Clear understanding of every movement in their programme — never confused about how to perform an exercise.',
+    businessBenefit: 'Marcus builds programmes by selecting from a shared library — faster programme creation, consistent quality.',
+    scope: 'Exercise CRUD (admin), search and filter, Mux video links, muscle group taxonomy.',
+    dependencies: ['Video hosting via Mux', 'Content & Education — CMS'],
+    future: 'AI-assisted exercise substitution suggestions based on equipment and injury flags.',
+  },
+  {
+    id: 'programme-builder', title: 'Programme Builder (Marcus)', category: 'Coaching & Training',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Marcus designs programmes in minutes, not hours.',
+    what: 'A drag-and-drop programme builder for Marcus: add weeks, days, and exercises; set sets/reps/rest; add coaching notes per exercise. Programmes can be templates or bespoke per client.',
+    memberBenefit: 'A professionally structured programme delivered directly to their phone.',
+    businessBenefit: 'Huge time saving versus building programmes in spreadsheets or PDFs. Templates mean scaling to more clients without proportionally more work.',
+    scope: 'Programme structure (weeks/days/exercises), exercise picker from library, sets/reps/rest/tempo fields, coach notes, template system.',
+    dependencies: ['Exercise Library'],
+  },
+  {
+    id: 'programme-delivery', title: 'Programme Delivery (Member)', category: 'Coaching & Training',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Members follow their programme in real time, in the app.',
+    what: 'Members see their assigned programme, tap into today\'s session, and follow along set-by-set. Exercise videos play inline. Rest timers built in.',
+    memberBenefit: 'No more downloading PDFs or WhatsApp screenshots — a guided, interactive workout experience.',
+    businessBenefit: 'Removes the friction of programme delivery entirely. Members are more likely to stick to structured programmes.',
+    scope: 'Programme viewer, today\'s session card, exercise detail with video, set/rep tracker, rest timer.',
+    dependencies: ['Programme Builder', 'Exercise Library'],
+    future: 'Audio coaching cues, adaptive difficulty based on performance data.',
+  },
+  {
+    id: 'workout-tracking', title: 'Workout Logging & Tracking', category: 'Coaching & Training',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Every session is recorded, every rep counted.',
+    what: 'Members log actual weights and reps as they complete each set. Data is stored per session and surfaced in progress charts over time. Marcus can view all client logs.',
+    memberBenefit: 'They see their progress concretely — heavier weights, more reps, shorter rest times.',
+    businessBenefit: 'Marcus has objective performance data for every client — no more relying on self-reported updates.',
+    scope: 'Set logging UI, weight/reps input, session completion state, historical log view.',
+    dependencies: ['Programme Delivery'],
+    future: 'Personal bests auto-detected and celebrated. Volume load charts per muscle group.',
+  },
+  {
+    id: 'checkin', title: 'Coach Check-In & Review System', category: 'Coaching & Training',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Weekly accountability, delivered to Marcus automatically.',
+    what: 'Members complete a weekly check-in: how they felt, adherence score, sleep, energy, notes. Marcus receives them in a review queue and responds with adjustments or encouragement.',
+    memberBenefit: 'Regular structured communication with their coach — not just when something goes wrong.',
+    businessBenefit: 'Scalable check-in workflow. Marcus reviews check-ins on his schedule, not reactively via WhatsApp.',
+    scope: 'Check-in form (weekly trigger), submission queue for Marcus, response tools, notification on response.',
+    future: 'AI pre-analysis of check-ins to flag members who may need urgent attention.',
+  },
+
+  // ── Progress & Accountability ──
+  {
+    id: 'measurements', title: 'Body Measurements Logging', category: 'Progress & Accountability',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'The numbers tell the real story.',
+    what: 'Members log body measurements (weight, body fat %, waist, chest, arms, etc.) at regular intervals. Charts show trends over time.',
+    memberBenefit: 'Objective evidence of progress — motivation during plateaus, satisfaction at milestones.',
+    businessBenefit: 'Marcus can verify programme effectiveness with data, not just client feedback.',
+    scope: 'Measurement logging form, historical data store, trend charts, milestone detection.',
+    future: 'Smart body composition estimates using multi-point measurement formulas.',
+  },
+  {
+    id: 'progress-photos', title: 'Progress Photo Library', category: 'Progress & Accountability',
+    priority: 'Medium', phase: 2, status: 'Planned',
+    tagline: 'Side-by-side transformation, always motivating.',
+    what: 'Members upload progress photos at regular intervals. Photos are stored privately and can be compared side-by-side at any time.',
+    memberBenefit: 'Visual evidence of their transformation — one of the most powerful motivators in fitness.',
+    businessBenefit: 'Before/after documentation for coaching portfolio (with consent). Retention tool.',
+    scope: 'Photo upload (GCS-backed), private storage, comparison view, date-stamped entries.',
+    dependencies: ['Object storage (GCS)'],
+    costNotes: 'Storage cost: ~$0.02/GB/month on GCS. Negligible for member photo volumes.',
+  },
+  {
+    id: 'stats-history', title: 'Weight & Stats History Charts', category: 'Progress & Accountability',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Progress visualised over weeks, months, and years.',
+    what: 'Interactive charts showing weight, measurements, and performance trends over time. Filter by date range. Key milestones highlighted.',
+    memberBenefit: 'Seeing the trend line go in the right direction is the most powerful motivational tool in the app.',
+    businessBenefit: 'Data-backed coaching conversations. Easy to demonstrate ROI to a member considering cancelling.',
+    dependencies: ['Measurements Logging', 'Workout Tracking'],
+    future: 'Predictive trend lines. Goal completion date estimation.',
+  },
+  {
+    id: 'streaks', title: 'Streak & Habit Tracking', category: 'Progress & Accountability',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'Small daily wins that build lasting habits.',
+    what: 'Daily habit completion tracking (workout done, water target hit, check-in submitted). Streak counters with visual celebration on milestones.',
+    memberBenefit: 'Gamification that makes daily consistency feel rewarding, not clinical.',
+    businessBenefit: 'Higher daily active usage. Streaks reduce churn — members don\'t want to break their streak.',
+    future: 'Social streak sharing. Group habit challenges between members.',
+  },
+
+  // ── Nutrition & Daily Habits ──
+  {
+    id: 'meal-plans', title: 'Personalised Meal Plans', category: 'Nutrition & Daily Habits',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Marcus\'s nutrition expertise, delivered digitally.',
+    what: 'Marcus creates structured meal plans per client (based on goals, dietary preferences, and calorie targets). Members view their plan day-by-day in the app.',
+    memberBenefit: 'No guesswork at mealtimes — a clear, coach-approved nutrition plan tailored to their goals.',
+    businessBenefit: 'Extends Marcus\'s services beyond training into nutrition coaching — additional value and potential upsell.',
+    scope: 'Meal plan builder (admin), day/meal/food structure, member plan view, macro display.',
+  },
+  {
+    id: 'recipe-library', title: 'Recipe Library', category: 'Nutrition & Daily Habits',
+    priority: 'Medium', phase: 2, status: 'Planned',
+    tagline: 'Healthy eating made practical and accessible.',
+    what: 'A curated library of recipes with ingredients, macros, prep time, and photos. Marcus populates and maintains it. Recipes can be tagged to meal plans.',
+    memberBenefit: 'Real meal ideas that fit their nutritional targets — not generic internet recipes.',
+    businessBenefit: 'Positions Marcus as a complete nutrition coach, not just a trainer. High perceived value.',
+    future: 'Member-saved favourites. Shopping list generation from weekly meal plan.',
+  },
+  {
+    id: 'nutrition-tracking', title: 'Macro & Nutrition Tracking', category: 'Nutrition & Daily Habits',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'Log meals and hit targets every day.',
+    what: 'Daily macro logging against personalised targets (protein, carbs, fats, calories). Food search with a database. Running daily totals.',
+    memberBenefit: 'Clarity on whether their nutrition is aligned with their goals — no guessing.',
+    businessBenefit: 'Adds a daily touchpoint with the app. Nutrition data feeds check-in insights.',
+    scope: 'Food database integration, daily log, macro targets from profile/plan, running totals UI.',
+    future: 'Barcode scanning for packaged foods. AI meal suggestions within targets.',
+  },
+  {
+    id: 'habits', title: 'Daily Habit Reinforcement', category: 'Nutrition & Daily Habits',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'The small things that make the big difference.',
+    what: 'Configurable daily habits (sleep hours, water intake, steps, protein hit). Morning prompt card. Evening completion check.',
+    memberBenefit: 'A gentle daily structure that reinforces the behaviours that drive results.',
+    businessBenefit: 'Daily active usage. Differentiates the platform from generic fitness apps.',
+    future: 'Marcus can assign custom habits per client based on their specific focus area.',
+  },
+
+  // ── Bookings & Service Delivery ──
+  {
+    id: 'calendar', title: 'Session Calendar & Availability', category: 'Bookings & Service Delivery',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Marcus\'s availability, always up to date and bookable.',
+    what: 'Marcus sets his availability in a calendar interface. Members see open slots and request bookings. All session types configurable (1-on-1, group, online).',
+    memberBenefit: 'Self-serve booking without needing to message Marcus and wait for a reply.',
+    businessBenefit: 'Eliminates back-and-forth scheduling. Marcus controls his calendar — no double bookings.',
+    scope: 'Availability editor (trainer), booking request (member), confirmation flow, Google Calendar sync option.',
+    future: 'Automated buffer time between sessions. Block booking for recurring weekly sessions.',
+  },
+  {
+    id: 'booking-reminders', title: 'Booking Confirmations & Reminders', category: 'Bookings & Service Delivery',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'No member shows up uninformed, no session is missed.',
+    what: 'Automated email and in-app confirmations at booking. Reminders at 24h and 2h before each session. Trainer also notified of new bookings.',
+    memberBenefit: 'Never forget a session. All session details delivered proactively.',
+    businessBenefit: 'Dramatically reduces no-shows. Marcus doesn\'t need to chase clients before sessions.',
+    dependencies: ['Session Calendar', 'Email service'],
+  },
+  {
+    id: 'cancellation', title: 'Cancellation & Rescheduling Rules', category: 'Bookings & Service Delivery',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Clear rules that protect Marcus\'s time and income.',
+    what: 'Configurable cancellation window (e.g., 24h notice required). Late cancellations flagged. Rescheduling allowed within policy. Marcus can override any case manually.',
+    memberBenefit: 'Clear expectations upfront — no awkward conversations about missed sessions.',
+    businessBenefit: 'Protects income from late cancellations. Policy enforced automatically, not personally.',
+    dependencies: ['Session Calendar'],
+  },
+  {
+    id: 'session-notes', title: 'Session Notes & History', category: 'Bookings & Service Delivery',
+    priority: 'Medium', phase: 2, status: 'Planned',
+    tagline: 'Every session documented, every client remembered.',
+    what: 'Marcus can add notes to any completed session: what was covered, injuries flagged, next session plan. Visible to the client after the session.',
+    memberBenefit: 'Transparency and accountability — they know Marcus is tracking their progress session by session.',
+    businessBenefit: 'Institutional memory: never forget a client\'s history between sessions.',
+  },
+
+  // ── Communication & Community ──
+  {
+    id: 'direct-messaging', title: 'Direct Messaging (Marcus ↔ Members)', category: 'Communication & Community',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Coaching conversations in the app, not WhatsApp.',
+    what: 'Real-time direct messaging between Marcus and individual members. Message threads per client. Media sharing (images, files). Read receipts.',
+    memberBenefit: 'Direct access to Marcus in a structured, professional environment — not buried in WhatsApp groups.',
+    businessBenefit: 'All client communication is centralised and recorded. No more managing WhatsApp at all hours.',
+    scope: 'Message threads, real-time updates (websocket or polling), media sharing, read receipts, notification on new message.',
+    future: 'Group messaging for cohort-based programmes. Quick-reply templates for Marcus.',
+  },
+  {
+    id: 'announcements', title: 'Coach Announcements & Broadcasts', category: 'Communication & Community',
+    priority: 'Medium', phase: 2, status: 'Planned',
+    tagline: 'One message to every member, instantly.',
+    what: 'Marcus can send an announcement to all members or a filtered group (e.g., all active subscribers). Delivered in-app and optionally by email.',
+    memberBenefit: 'Stay informed about programme updates, Marcus\'s news, and upcoming events.',
+    businessBenefit: 'One message reaches everyone — no broadcasting via WhatsApp or Instagram stories.',
+    dependencies: ['Content Feed', 'Email service'],
+  },
+  {
+    id: 'leaderboard', title: 'Group Challenges & Leaderboard', category: 'Communication & Community',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'Friendly competition drives consistency.',
+    what: 'Opt-in weekly challenges (most workouts, most steps, most check-ins). Public leaderboard among participating members. Badges for winners.',
+    memberBenefit: 'Motivation through community — knowing others are working hard keeps them going.',
+    businessBenefit: 'Community features increase retention and social proof. Members talk about the leaderboard.',
+    future: 'Team-based challenges. Challenge creation by members.',
+  },
+
+  // ── Payments & Revenue ──
+  {
+    id: 'memberships', title: 'Membership Packages & Pricing', category: 'Payments & Revenue',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Marcus\'s service packages, purchased in the app.',
+    what: 'Configurable membership tiers (e.g., Online Coaching, In-Person Monthly, Premium). Each tier unlocks specific features and session quotas. Marcus manages pricing in the admin panel.',
+    memberBenefit: 'Clear, professional packages — they know exactly what they\'re getting.',
+    businessBenefit: 'Recurring revenue that flows through the platform. No manual invoicing.',
+    scope: 'Membership tier configuration, subscription creation, feature gating by tier.',
+    costNotes: 'Stripe or similar payment processor: 1.4%–2.9% + fixed fee per transaction.',
+    future: 'Annual billing with discount. Pause subscriptions during injury or holiday.',
+  },
+  {
+    id: 'payments', title: 'Session Purchases & Payment Flow', category: 'Payments & Revenue',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Professional checkout, first-class experience.',
+    what: 'One-off session and package purchases via Stripe. Secure card handling, receipt emails, and payment history. Apple Pay and Google Pay supported.',
+    memberBenefit: 'Pay securely in seconds — familiar, trusted checkout experience.',
+    businessBenefit: 'Revenue flows directly. Stripe handles compliance, fraud detection, and payouts.',
+    scope: 'Stripe integration, checkout flow, webhook handling for payment events, receipt emails.',
+    costNotes: 'Stripe fee: ~1.5% + €0.25 per transaction (EU cards). Negligible at typical PT session prices.',
+    dependencies: ['Membership Packages'],
+  },
+  {
+    id: 'payment-history', title: 'Payment History & Receipts', category: 'Payments & Revenue',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Every transaction on record, for everyone.',
+    what: 'Members can view their full payment history and download receipts. Marcus has a financial summary view with revenue by period, membership type, and client.',
+    memberBenefit: 'Full visibility over what they\'ve paid — professional, trustworthy.',
+    businessBenefit: 'Financial clarity without needing separate accounting software for the basics.',
+    dependencies: ['Payments'],
+  },
+  {
+    id: 'digital-products', title: 'Digital Products & Upsells', category: 'Payments & Revenue',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'Revenue beyond sessions — programmes, guides, and more.',
+    what: 'Marcus can sell standalone digital products: downloadable training plans, nutrition guides, video courses. One-time purchase, delivered in-app.',
+    memberBenefit: 'Access to Marcus\'s knowledge without committing to a full coaching package.',
+    businessBenefit: 'Passive revenue stream. Entry-level product for acquiring members before they upgrade.',
+    future: 'Bundle deals. Affiliate products from partner brands.',
+  },
+
+  // ── Business Operations ──
+  {
+    id: 'client-management', title: 'Client Management Dashboard', category: 'Business Operations',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Marcus\'s full client list, at a glance.',
+    what: 'Marcus sees all active clients with their membership status, last check-in, assigned programme, upcoming bookings, and any flags. Filter, search, and sort by any field.',
+    memberBenefit: 'The quality of personalised coaching Marcus can deliver improves when he has instant access to context.',
+    businessBenefit: 'Operational clarity. Marcus knows who needs attention, who is thriving, and who is at churn risk.',
+    scope: 'Client list view, per-client record, status flags, quick actions (message, reschedule, adjust programme).',
+    future: 'Automated churn prediction. "Members you haven\'t heard from" alerts.',
+  },
+  {
+    id: 'reporting', title: 'Business Summary & Revenue Reporting', category: 'Business Operations',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Marcus sees his business health instantly.',
+    what: 'Dashboard showing: active member count, new signups, revenue this month vs last, upcoming session load, and member engagement trends.',
+    memberBenefit: 'Indirectly — a well-run business delivers better coaching.',
+    businessBenefit: 'Marcus can make informed decisions about pricing, capacity, and marketing without external tools.',
+    future: 'Exportable reports. Integration with accounting software (e.g., Xero).',
+  },
+  {
+    id: 'ops-alerts', title: 'Operational Alerts & Flags', category: 'Business Operations',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'The platform flags what needs attention before it becomes a problem.',
+    what: 'Automated alerts for: member missed two check-ins, payment failed, session not booked before scheduled week, programme expiring. Marcus sees these in a notifications centre.',
+    memberBenefit: 'Proactive coaching — Marcus reaches out before they have to.',
+    businessBenefit: 'Prevents churn and missed revenue through early intervention.',
+  },
+
+  // ── Content & Education ──
+  {
+    id: 'feed', title: 'Member Content Feed', category: 'Content & Education',
+    priority: 'High', phase: 1, status: 'Delivered',
+    tagline: 'Marcus\'s voice in every member\'s pocket, every day.',
+    what: 'A card-based feed of posts from Marcus — videos, articles, and images. Featured posts pinned at top. Category filters. Click to read, watch, or view full post.',
+    memberBenefit: 'Ongoing inspiration, education, and connection with Marcus between coaching sessions.',
+    businessBenefit: 'Daily engagement with the platform. Marcus builds authority and deepens member relationships beyond just sessions.',
+    scope: 'Feed view, featured hero card, category filters, post detail (video modal, article sheet, image lightbox).',
+  },
+  {
+    id: 'content-admin', title: 'Content Admin CMS', category: 'Content & Education',
+    priority: 'High', phase: 1, status: 'Delivered',
+    tagline: 'Marcus publishes content in minutes with no technical knowledge required.',
+    what: 'A full CMS for Marcus: create, edit, and delete posts. Set type (video, article, image), category, featured status, and draft/published state. Drag-and-drop media upload.',
+    memberBenefit: 'More and better content from Marcus, because producing it is effortless for him.',
+    businessBenefit: 'Marcus controls his content calendar entirely from within the platform.',
+    scope: 'Post CRUD, type selector, category chips, featured toggle, draft/publish toggle, file upload.',
+  },
+  {
+    id: 'mux-video', title: 'Video Hosting & Streaming (Mux)', category: 'Content & Education',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Professional video delivery at any scale — no technical overhead.',
+    what: 'Videos upload directly to Mux, which handles compression, thumbnail generation, and global CDN delivery. The app stores only a playback ID — no video files on the server.',
+    memberBenefit: 'Fast, smooth video playback on any device and any connection speed.',
+    businessBenefit: 'Marcus gets broadcast-quality video infrastructure without managing servers. Cost scales with actual usage.',
+    costNotes: 'Free tier: up to 10 videos. Paid: ~$0.015/min encoded, ~$0.007/GB/month stored, ~$0.00025/viewer-minute streamed.',
+    dependencies: ['Content Admin CMS'],
+    future: 'Live streaming directly into the app. Member-submitted form videos for technique review.',
+  },
+  {
+    id: 'educational-series', title: 'Educational Content Series', category: 'Content & Education',
+    priority: 'Medium', phase: 2, status: 'Planned',
+    tagline: 'Structured knowledge, delivered progressively.',
+    what: 'Multi-part educational series: e.g., "Foundations of Strength", "Nutrition 101". Members progress through episodes in order. Progress tracked.',
+    memberBenefit: 'Structured learning that builds their knowledge alongside their fitness.',
+    businessBenefit: 'Premium positioning — this is coaching, not just workouts. High perceived value.',
+    dependencies: ['Content Admin CMS', 'Mux Video'],
+  },
+  {
+    id: 'daily-challenges', title: 'Daily Challenges', category: 'Content & Education',
+    priority: 'Medium', phase: 2, status: 'Planned',
+    tagline: 'A daily reason to open the app.',
+    what: 'Marcus sets a short daily challenge: a movement, mindset prompt, or nutrition task. Members log completion and see who else completed it.',
+    memberBenefit: 'Daily engagement and variety — the app feels alive, not static.',
+    businessBenefit: 'Daily active usage metric. Low-effort community building for Marcus.',
+    future: 'AI-generated challenge suggestions based on member programmes and recent activity.',
+  },
+
+  // ── Growth & Acquisition ──
+  {
+    id: 'referrals', title: 'Member Referral Programme', category: 'Growth & Acquisition',
+    priority: 'Medium', phase: 3, status: 'Planned',
+    tagline: 'Members bring members — the best possible marketing.',
+    what: 'Members get a unique referral link. When a referred person signs up and joins, both get a reward (free session, discount, or credit). Tracked automatically.',
+    memberBenefit: 'A tangible reward for bringing friends — and the social experience of training in the same community.',
+    businessBenefit: 'Word-of-mouth acquisition with a measurable cost per referral. Highest trust channel.',
+    future: 'Tiered referral rewards. Leaderboard for top referrers.',
+  },
+  {
+    id: 'partner-offers', title: 'Member Offers & Partner Discounts', category: 'Growth & Acquisition',
+    priority: 'Low', phase: 3, status: 'Planned',
+    tagline: 'Membership perks beyond coaching.',
+    what: 'Exclusive discounts from partner brands (supplements, sportswear, equipment) available only to active members. Marcus curates the offers.',
+    memberBenefit: 'Real financial value from their membership, beyond the coaching itself.',
+    businessBenefit: 'Potential affiliate revenue. Increases perceived value of membership. Retention tool.',
+  },
+
+  // ── Data & Intelligence ──
+  {
+    id: 'ai-nudges', title: 'Progress Insights & Automated Nudges', category: 'Data & Intelligence',
+    priority: 'Medium', phase: 3, status: 'Future',
+    tagline: 'The platform coaches in the background so Marcus doesn\'t have to.',
+    what: 'AI-driven insights based on member data: "Your strength has improved 14% this month", "You\'re on track for your December target". Automated nudges for members who are falling behind.',
+    memberBenefit: 'Personalised feedback that feels like having a coach with them 24/7.',
+    businessBenefit: 'Scale Marcus\'s coaching impact without scaling his time proportionally.',
+    future: 'Full AI coaching assistant. Natural language check-in analysis.',
+  },
+  {
+    id: 'analytics', title: 'Business Analytics Dashboard', category: 'Data & Intelligence',
+    priority: 'Medium', phase: 3, status: 'Future',
+    tagline: 'Data to make smarter business decisions.',
+    what: 'Advanced analytics: member lifetime value, churn prediction, programme completion rates, content engagement heatmaps, revenue forecasting.',
+    memberBenefit: 'Better coaching decisions made using data, not gut feel.',
+    businessBenefit: 'Marcus can identify what\'s working and double down — pricing, content, programme design.',
+    future: 'Benchmarking against industry standards. Integration with external analytics tools.',
+  },
+
+  // ── Safety & Compliance ──
+  {
+    id: 'gdpr', title: 'GDPR-Compliant Data Management', category: 'Safety & Compliance',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Member data handled lawfully — no exceptions.',
+    what: 'Cookie consent banner, data processing agreement framework, member data export (right of access), right to erasure (account deletion). All data handling documented.',
+    memberBenefit: 'Confidence that their personal and health data is handled responsibly and legally.',
+    businessBenefit: 'Legal compliance. Operating in Malta and the EU requires GDPR compliance for any digital service handling personal data.',
+    scope: 'Cookie consent, privacy policy, data export endpoint, account deletion flow.',
+    costNotes: 'Legal review of privacy policy and terms recommended: €500–€2,000 one-time.',
+  },
+  {
+    id: 'health-data', title: 'Health Data Protections & Terms', category: 'Safety & Compliance',
+    priority: 'High', phase: 2, status: 'Planned',
+    tagline: 'Fitness and health data treated with the appropriate care.',
+    what: 'Health and fitness data (measurements, progress photos, check-ins) is stored with encryption at rest, access-controlled by role, and never shared with third parties without explicit consent.',
+    memberBenefit: 'Trust that their most personal data — body measurements, photos — is genuinely private.',
+    businessBenefit: 'Reduced liability. Health data mishandling is a significant legal risk. Correct handling is a competitive differentiator.',
+    dependencies: ['GDPR Compliance'],
+    future: 'Health data export in standardised format (Apple Health, Google Fit integration).',
+  },
+];
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+const CATEGORIES: Category[] = [
+  'Account & Onboarding', 'Coaching & Training', 'Progress & Accountability',
+  'Nutrition & Daily Habits', 'Bookings & Service Delivery', 'Communication & Community',
+  'Payments & Revenue', 'Business Operations', 'Growth & Acquisition',
+  'Content & Education', 'Data & Intelligence', 'Safety & Compliance',
+];
+const PRIORITIES: Priority[] = ['Critical', 'High', 'Medium', 'Low'];
+const STATUSES: FeatureStatus[] = ['Delivered', 'In Progress', 'Planned', 'Future'];
+const PHASES: Phase[] = [1, 2, 3];
+
+const CATEGORY_ICONS: Record<Category, React.ReactNode> = {
+  'Account & Onboarding':       <UserCircle size={14} weight="fill" />,
+  'Coaching & Training':        <Barbell size={14} weight="fill" />,
+  'Progress & Accountability':  <TrendUp size={14} weight="fill" />,
+  'Nutrition & Daily Habits':   <ForkKnife size={14} weight="fill" />,
+  'Bookings & Service Delivery':<CalendarBlank size={14} weight="fill" />,
+  'Communication & Community':  <ChatCircle size={14} weight="fill" />,
+  'Payments & Revenue':         <Money size={14} weight="fill" />,
+  'Business Operations':        <Briefcase size={14} weight="fill" />,
+  'Growth & Acquisition':       <Rocket size={14} weight="fill" />,
+  'Content & Education':        <BookOpen size={14} weight="fill" />,
+  'Data & Intelligence':        <Brain size={14} weight="fill" />,
+  'Safety & Compliance':        <Lock size={14} weight="fill" />,
+};
+
+const STATUS_CONFIG: Record<FeatureStatus, { label: string; color: string; bg: string; border: string; dot: string; icon: React.ReactNode }> = {
+  'Delivered':   { label: 'Delivered',   color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', dot: 'bg-emerald-400', icon: <CheckCircle size={11} weight="fill" /> },
+  'In Progress': { label: 'In Progress', color: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/25',  dot: 'bg-orange-400',  icon: <Lightning size={11} weight="fill" /> },
+  'Planned':     { label: 'Planned',     color: 'text-white/50',    bg: 'bg-white/5',         border: 'border-white/10',       dot: 'bg-white/30',    icon: <Star size={11} weight="regular" /> },
+  'Future':      { label: 'Future',      color: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/25',  dot: 'bg-violet-400',  icon: <Sparkle size={11} weight="fill" /> },
+};
+
+const PRIORITY_BORDER: Record<Priority, string> = {
+  Critical: 'border-l-red-500/70',
+  High:     'border-l-orange-400/70',
+  Medium:   'border-l-yellow-500/50',
+  Low:      'border-l-white/10',
+};
+
+const PRIORITY_DOT: Record<Priority, string> = {
+  Critical: 'bg-red-500',
+  High:     'bg-orange-400',
+  Medium:   'bg-yellow-500',
+  Low:      'bg-white/20',
+};
+
+// ─── Status Chip ──────────────────────────────────────────────────────────────
+function StatusChip({ status, size = 'sm' }: { status: FeatureStatus; size?: 'xs' | 'sm' }) {
+  const c = STATUS_CONFIG[status];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border font-bold tracking-wider uppercase ${c.color} ${c.bg} ${c.border} ${size === 'xs' ? 'text-[9px]' : 'text-[9px]'}`}>
+      {c.icon}
+      {c.label}
+    </span>
+  );
+}
+
+// ─── Feature Detail Panel ─────────────────────────────────────────────────────
+function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => void }) {
+  const sc = STATUS_CONFIG[feature.status];
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="flex-1 bg-black/60 backdrop-blur-sm cursor-pointer"
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <motion.div
+        className="w-full max-w-lg bg-[#0C0C0C] border-l border-white/8 flex flex-col h-full overflow-y-auto"
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-[#0C0C0C] border-b border-white/6 px-6 py-4 flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center flex-wrap gap-2 mb-2">
+              <span className="flex items-center gap-1 text-primary text-[9px] font-black tracking-[0.25em] uppercase">
+                {CATEGORY_ICONS[feature.category]}
+                {feature.category}
+              </span>
+              <span className="text-white/20 text-[9px]">·</span>
+              <span className="text-[9px] font-bold tracking-widest text-white/30 uppercase">Phase {feature.phase}</span>
+            </div>
+            <h3 className="text-xl font-black text-white tracking-tight leading-tight">{feature.title}</h3>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <StatusChip status={feature.status} />
+              <span className="flex items-center gap-1.5 text-[9px] font-black tracking-widest uppercase">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[feature.priority]}`} />
+                <span className="text-white/40">{feature.priority} Priority</span>
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/6 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/12 transition-colors shrink-0 mt-1"
+          >
+            <X size={14} weight="bold" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 px-6 py-6 space-y-6">
+          {/* Tagline */}
+          <p className="text-base font-semibold text-white/70 leading-relaxed italic border-l-2 border-primary/50 pl-4">
+            {feature.tagline}
+          </p>
+
+          {/* What it does */}
+          <div>
+            <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">What It Does</p>
+            <p className="text-sm text-white/65 leading-relaxed">{feature.what}</p>
+          </div>
+
+          {/* Dual benefit */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="border border-white/6 bg-white/[0.02] p-4">
+              <p className="text-[9px] font-black tracking-[0.25em] text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                <UserCircle size={11} weight="fill" /> For Members
+              </p>
+              <p className="text-sm text-white/65 leading-relaxed">{feature.memberBenefit}</p>
+            </div>
+            <div className="border border-primary/12 bg-primary/[0.025] p-4">
+              <p className="text-[9px] font-black tracking-[0.25em] text-primary/60 uppercase mb-2 flex items-center gap-1.5">
+                <Briefcase size={11} weight="fill" /> For Marcus / Business
+              </p>
+              <p className="text-sm text-white/65 leading-relaxed">{feature.businessBenefit}</p>
+            </div>
+          </div>
+
+          {/* Scope */}
+          {feature.scope && (
+            <div>
+              <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">Scope</p>
+              <p className="text-sm text-white/50 leading-relaxed">{feature.scope}</p>
+            </div>
+          )}
+
+          {/* Dependencies */}
+          {feature.dependencies && feature.dependencies.length > 0 && (
+            <div>
+              <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">Dependencies</p>
+              <div className="flex flex-wrap gap-2">
+                {feature.dependencies.map((d) => (
+                  <span key={d} className="text-[10px] font-semibold text-white/40 border border-white/8 bg-white/[0.02] px-2 py-1 rounded">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cost notes */}
+          {feature.costNotes && (
+            <div className="border border-white/6 bg-white/[0.015] p-4">
+              <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">Cost / Effort Notes</p>
+              <p className="text-sm text-white/50 leading-relaxed">{feature.costNotes}</p>
+            </div>
+          )}
+
+          {/* Future */}
+          {feature.future && (
+            <div className="border border-violet-500/15 bg-violet-500/[0.03] p-4">
+              <p className="text-[9px] font-black tracking-[0.3em] text-violet-400/70 uppercase mb-2 flex items-center gap-1.5">
+                <Sparkle size={11} weight="fill" /> Future Enhancements
+              </p>
+              <p className="text-sm text-white/50 leading-relaxed">{feature.future}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer status */}
+        <div className={`mx-6 mb-6 p-3 rounded flex items-center gap-3 ${sc.bg} border ${sc.border}`}>
+          <span className={`w-2 h-2 rounded-full shrink-0 ${sc.dot} ${feature.status === 'In Progress' ? 'animate-pulse' : ''}`} />
+          <p className={`text-xs font-semibold ${sc.color}`}>
+            {feature.status === 'Delivered' && 'This feature is live on the platform.'}
+            {feature.status === 'In Progress' && 'This feature is currently being built.'}
+            {feature.status === 'Planned' && 'Scheduled for a future sprint in the roadmap.'}
+            {feature.status === 'Future' && 'Identified as a future enhancement beyond the initial launch.'}
+          </p>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Feature Card ─────────────────────────────────────────────────────────────
+function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => void }) {
+  const isDelivered = feature.status === 'Delivered';
+  return (
+    <motion.button
+      layout
+      onClick={onClick}
+      className={`
+        relative w-full text-left border border-l-4 ${PRIORITY_BORDER[feature.priority]}
+        bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/12
+        transition-all duration-200 group flex flex-col
+        ${isDelivered ? 'border-emerald-500/20' : 'border-white/6'}
+      `}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Delivered overlay check */}
+      {isDelivered && (
+        <div className="absolute top-3 right-3">
+          <div className="w-5 h-5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+            <Checks size={10} weight="bold" className="text-emerald-400" />
+          </div>
+        </div>
+      )}
+
+      <div className="p-4 flex flex-col gap-2.5 flex-1">
+        {/* Category + Phase */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="flex items-center gap-1 text-primary/70 text-[9px] font-bold tracking-widest uppercase">
+            {CATEGORY_ICONS[feature.category]}
+            <span className="truncate max-w-[120px]">{feature.category}</span>
+          </span>
+          <span className="text-white/15 text-[9px]">·</span>
+          <span className="text-[9px] font-bold tracking-widest text-white/25 uppercase shrink-0">P{feature.phase}</span>
+        </div>
+
+        {/* Title */}
+        <p className="text-sm font-black text-white tracking-tight leading-snug pr-5 group-hover:text-white transition-colors">
+          {feature.title}
+        </p>
+
+        {/* Tagline */}
+        <p className="text-xs text-white/40 leading-relaxed line-clamp-2 flex-1">
+          {feature.tagline}
+        </p>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-1">
+          <StatusChip status={feature.status} size="xs" />
+          <ArrowRight
+            size={12}
+            weight="bold"
+            className="text-white/20 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200"
+          />
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+// ─── Catalogue Stats ──────────────────────────────────────────────────────────
+function CatalogueStats({ features }: { features: Feature[] }) {
+  const counts = {
+    total: features.length,
+    delivered: features.filter(f => f.status === 'Delivered').length,
+    inProgress: features.filter(f => f.status === 'In Progress').length,
+    planned: features.filter(f => f.status === 'Planned').length,
+    future: features.filter(f => f.status === 'Future').length,
+  };
+
+  const stats = [
+    { label: 'Total Features', value: counts.total, color: 'text-white', sub: 'in catalogue' },
+    { label: 'Delivered', value: counts.delivered, color: 'text-emerald-400', sub: 'live on platform' },
+    { label: 'In Progress', value: counts.inProgress, color: 'text-orange-400', sub: 'being built now' },
+    { label: 'Planned', value: counts.planned + counts.future, color: 'text-white/50', sub: 'in roadmap' },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      {stats.map((s) => (
+        <div key={s.label} className="border border-white/6 bg-white/[0.02] p-4">
+          <p className={`text-3xl font-black tracking-tight ${s.color}`}>{s.value}</p>
+          <p className="text-[9px] font-bold tracking-[0.25em] text-white/30 uppercase mt-1">{s.label}</p>
+          <p className="text-[10px] text-white/20 mt-0.5">{s.sub}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Dropdown ─────────────────────────────────────────────────────────────────
+function Dropdown({ label, options, value, onChange }: {
+  label: string; options: string[]; value: string; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-2 px-3 py-2 border text-xs font-semibold transition-colors ${
+          value !== 'All'
+            ? 'border-primary/40 bg-primary/10 text-primary'
+            : 'border-white/8 bg-white/[0.02] text-white/50 hover:text-white/70 hover:border-white/15'
+        }`}
+      >
+        <span>{value === 'All' ? label : value}</span>
+        <CaretDown size={10} weight="bold" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="absolute top-full left-0 mt-1 z-30 bg-[#111] border border-white/10 min-w-[180px] shadow-2xl"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+          >
+            {['All', ...options].map((opt) => (
+              <button
+                key={opt}
+                onClick={() => { onChange(opt); setOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
+                  value === opt
+                    ? 'text-primary bg-primary/8'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Main Catalogue Component ─────────────────────────────────────────────────
+export function FeatureCatalogue() {
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [priorityFilter, setPriorityFilter] = useState<string>('All');
+  const [phaseFilter, setPhaseFilter] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<string>('Priority');
+  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+
+  const SORT_OPTIONS = ['Priority', 'Phase', 'Status', 'Category', 'Title'];
+  const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+  const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
+
+  const filtered = useMemo(() => {
+    let f = [...FEATURES];
+    if (statusFilter !== 'All') f = f.filter(x => x.status === statusFilter);
+    if (categoryFilter !== 'All') f = f.filter(x => x.category === categoryFilter);
+    if (priorityFilter !== 'All') f = f.filter(x => x.priority === priorityFilter);
+    if (phaseFilter !== 'All') f = f.filter(x => String(x.phase) === phaseFilter);
+
+    f.sort((a, b) => {
+      if (sortBy === 'Priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+      if (sortBy === 'Phase') return a.phase - b.phase;
+      if (sortBy === 'Status') return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      if (sortBy === 'Category') return a.category.localeCompare(b.category);
+      if (sortBy === 'Title') return a.title.localeCompare(b.title);
+      return 0;
+    });
+    return f;
+  }, [statusFilter, categoryFilter, priorityFilter, phaseFilter, sortBy]);
+
+  const clearFilters = useCallback(() => {
+    setStatusFilter('All'); setCategoryFilter('All');
+    setPriorityFilter('All'); setPhaseFilter('All');
+  }, []);
+
+  const hasFilters = statusFilter !== 'All' || categoryFilter !== 'All' || priorityFilter !== 'All' || phaseFilter !== 'All';
+
+  return (
+    <>
+      {/* Stats */}
+      <CatalogueStats features={FEATURES} />
+
+      {/* Filter bar */}
+      <div className="mb-6 space-y-3">
+        {/* Status tabs */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {(['All', ...STATUSES] as string[]).map((s) => {
+            const active = statusFilter === s;
+            const sc = s !== 'All' ? STATUS_CONFIG[s as FeatureStatus] : null;
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
+                  ${active
+                    ? sc
+                      ? `${sc.bg} ${sc.border} ${sc.color}`
+                      : 'bg-white/10 border-white/20 text-white'
+                    : 'bg-transparent border-white/6 text-white/35 hover:text-white/60 hover:border-white/12'
+                  }
+                `}
+              >
+                {s !== 'All' && sc && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sc.dot}`} />}
+                {s}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dropdowns + sort */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="flex items-center gap-1.5 text-white/25 text-[10px] font-bold tracking-widest uppercase mr-1">
+            <Funnel size={11} weight="fill" /> Filter
+          </span>
+          <Dropdown label="Category" options={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
+          <Dropdown label="Priority" options={PRIORITIES} value={priorityFilter} onChange={setPriorityFilter} />
+          <Dropdown label="Phase" options={PHASES.map(String)} value={phaseFilter} onChange={setPhaseFilter} />
+
+          <div className="ml-auto flex items-center gap-2">
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-[10px] font-bold text-white/30 hover:text-white/60 tracking-widest uppercase transition-colors"
+              >
+                Clear
+              </button>
+            )}
+            <Dropdown label="Sort" options={SORT_OPTIONS} value={sortBy} onChange={setSortBy} />
+          </div>
+        </div>
+
+        {/* Result count */}
+        <p className="text-[10px] font-bold tracking-widest text-white/25 uppercase">
+          Showing {filtered.length} of {FEATURES.length} features
+          {hasFilters && <span className="text-primary/60"> · Filtered</span>}
+        </p>
+      </div>
+
+      {/* Feature grid */}
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+        layout
+      >
+        <AnimatePresence mode="popLayout">
+          {filtered.map((feature) => (
+            <FeatureCard
+              key={feature.id}
+              feature={feature}
+              onClick={() => setSelectedFeature(feature)}
+            />
+          ))}
+        </AnimatePresence>
+      </motion.div>
+
+      {filtered.length === 0 && (
+        <div className="py-20 text-center">
+          <p className="text-white/20 text-sm font-semibold">No features match these filters.</p>
+          <button onClick={clearFilters} className="mt-3 text-primary text-xs font-bold tracking-widest uppercase hover:text-primary/70 transition-colors">
+            Clear filters
+          </button>
+        </div>
+      )}
+
+      {/* Detail panel */}
+      <AnimatePresence>
+        {selectedFeature && (
+          <DetailPanel
+            feature={selectedFeature}
+            onClose={() => setSelectedFeature(null)}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}

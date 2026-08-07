@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { FeatureCatalogue } from './ProposalCatalogue';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
   CheckCircle, ArrowRight, X, Confetti,
@@ -125,47 +126,21 @@ function Opportunity() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   3. 12 PILLARS
+   3. FEATURE CATALOGUE
 ══════════════════════════════════════════════════════════════════════════════ */
-const PILLARS = [
-  { icon: <UserCircle size={20} weight="fill" />, title: 'Account & Onboarding', desc: 'Secure sign-up, sign-in, profile building, and a personalised first experience for every new member.' },
-  { icon: <Barbell size={20} weight="fill" />, title: 'Coaching & Training', desc: 'Personalised programmes, workout delivery, active session tracking, and exercise libraries.' },
-  { icon: <TrendUp size={20} weight="fill" />, title: 'Progress & Accountability', desc: 'Body measurements, weight history, photos, check-ins, and streak tracking over time.' },
-  { icon: <ForkKnife size={20} weight="fill" />, title: 'Nutrition & Daily Habits', desc: 'Personalised meal plans, recipe library, hydration tracking, and daily habit reinforcement.' },
-  { icon: <CalendarBlank size={20} weight="fill" />, title: 'Bookings & Service Delivery', desc: 'Session calendar, real-time availability, booking confirmation, cancellation rules, and reminders.' },
-  { icon: <ChatCircle size={20} weight="fill" />, title: 'Communication & Community', desc: 'Direct messaging, coach announcements, group challenges, and community engagement.' },
-  { icon: <Money size={20} weight="fill" />, title: 'Payments, Memberships & Revenue', desc: 'Membership packages, one-off session purchases, digital product sales, and payment history.' },
-  { icon: <Briefcase size={20} weight="fill" />, title: 'Business Operations', desc: "Marcus's admin panel: client management, scheduling, programme assignment, and operational oversight." },
-  { icon: <Rocket size={20} weight="fill" />, title: 'Growth & Revenue', desc: 'Referral mechanics, partner offers, social sharing, lead capture, and acquisition tools.' },
-  { icon: <BookOpen size={20} weight="fill" />, title: 'Content & Education', desc: 'Mindset content, educational posts, daily challenges, and a CMS for Marcus to publish to members.' },
-  { icon: <Brain size={20} weight="fill" />, title: 'Data, Automation & Intelligence', desc: 'Progress insights, automated nudges, reporting dashboards, and AI-assisted coaching recommendations.' },
-  { icon: <Lock size={20} weight="fill" />, title: 'Safety, Privacy & Compliance', desc: 'GDPR-compliant data handling, health data protections, terms, privacy policy, and cookie management.' },
-];
-
 function Pillars() {
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>What We're Building</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-2">12 product pillars.</h2>
-      <p className="text-sm text-white/40 mb-10 max-w-xl">Each pillar represents a distinct area of the platform — built in phases, launched together.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {PILLARS.map((p, i) => (
-          <motion.div
-            key={p.title}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ delay: i * 0.04, duration: 0.45, ease: [0.22,1,0.36,1] }}
-            className="border border-white/6 bg-white/[0.02] p-5 flex gap-4 hover:border-white/12 transition-colors"
-          >
-            <div className="text-primary shrink-0 mt-0.5">{p.icon}</div>
-            <div>
-              <p className="text-sm font-bold text-white tracking-wide mb-1.5">{p.title}</p>
-              <p className="text-xs text-white/40 leading-relaxed">{p.desc}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      <SectionLabel>Feature Catalogue</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+        Every feature. Every status.
+      </h2>
+      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+        46 features across 12 product pillars — filterable by status, priority, phase, and category.
+        Each card expands into a full brief. This catalogue doubles as both the sales pitch and a live
+        delivery tracker as the build progresses.
+      </p>
+      <FeatureCatalogue />
     </FadeSection>
   );
 }
