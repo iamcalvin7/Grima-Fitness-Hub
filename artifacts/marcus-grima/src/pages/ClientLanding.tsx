@@ -60,29 +60,16 @@ function Hero() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
       </div>
 
-      {/* Top bar: brand mark + decorative menu */}
-      <div className="relative z-10 flex items-start justify-between px-5 pt-5 md:px-10 md:pt-7">
+      {/* Top bar: brand mark only */}
+      <div className="relative z-10 px-5 pt-5 md:px-10 md:pt-7">
         <p className="text-white font-black text-[11px] tracking-[0.18em] leading-[1.3] uppercase">
           MARCUS<br />GRIMA
         </p>
-        {/* Decorative hamburger — no navigation */}
-        <div className="flex flex-col gap-[5px] pt-1 opacity-80">
-          <span className="block w-5 h-[2px] bg-white rounded-sm" />
-          <span className="block w-5 h-[2px] bg-white rounded-sm" />
-          <span className="block w-5 h-[2px] bg-white rounded-sm" />
-        </div>
       </div>
 
       {/* Hero copy — bottom-left */}
       <div className="relative z-10 flex-1 flex flex-col justify-end px-5 pb-10 md:pb-16 md:px-12">
         <div className="max-w-md">
-          <p
-            className="text-[11px] font-bold tracking-[0.28em] uppercase mb-3"
-            style={{ color: BLUE }}
-          >
-            Malta · Online &amp; In-Person
-          </p>
-
           <h1 className="text-white font-black tracking-tight leading-[0.92] mb-3"
             style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)' }}>
             YOUR GOALS.<br />
