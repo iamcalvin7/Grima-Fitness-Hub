@@ -54,7 +54,8 @@ function readModal(): Modal {
 function isJoinEntry(): boolean {
   return (
     new URLSearchParams(window.location.search).has('join') ||
-    window.location.pathname === '/join'
+    window.location.pathname === '/join' ||
+    window.location.pathname === '/ownyourjourney'
   );
 }
 
