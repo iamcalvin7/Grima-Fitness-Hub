@@ -236,6 +236,15 @@ const RESULTS = [
     ],
     highlight: 'He did.',
   },
+  {
+    key:    'jeff',
+    name:   'JEFF GAMBIN',
+    tag:    'Entrepreneur & Restaurateur — Surfside',
+    before: '/jeff-before.jpg',
+    after:  '/jeff-after.jpg',
+    story:  [] as string[],
+    highlight: '',
+  },
 ];
 
 function BeforeAfterSlider({ before, after }: { before: string; after: string }) {
@@ -352,6 +361,7 @@ function WallOfSuccess() {
                     {tag}
                   </p>
                 </div>
+                {story.length > 0 && (
                 <button
                   onClick={() => setOpenStory(isOpen ? null : key)}
                   className="shrink-0 flex items-center gap-2 border rounded-full px-4 py-2 text-[10px] font-black tracking-[0.14em] uppercase transition-opacity duration-200 hover:opacity-70"
@@ -360,6 +370,7 @@ function WallOfSuccess() {
                   {isOpen ? 'CLOSE' : "READ STORY"}
                   {isOpen ? <Minus size={10} weight="bold" /> : <Plus size={10} weight="bold" />}
                 </button>
+                )}
               </div>
 
               {/* Expandable story */}
