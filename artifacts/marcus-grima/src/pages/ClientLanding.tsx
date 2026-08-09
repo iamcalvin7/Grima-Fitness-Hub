@@ -59,7 +59,7 @@ function Hero() {
         <img
           src="/hero.jpg"
           alt="Marcus Grima — Performance Coach"
-          className="w-full h-full object-cover object-top"
+          className="w-full h-full object-cover object-[center_25%]"
           draggable={false}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
