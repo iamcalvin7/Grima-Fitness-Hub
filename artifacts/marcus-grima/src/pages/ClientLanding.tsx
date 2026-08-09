@@ -236,9 +236,12 @@ function FreeCTA() {
           style={{ backgroundColor: BLACK, color: LIME }}
         >
           <WhatsappLogo size={16} weight="fill" />
-          LET'S TALK ON WHATSAPP
+          OWN YOUR JOURNEY.
           <ArrowRight size={13} weight="bold" />
         </a>
+        <p className="text-[11px] mt-3" style={{ color: 'rgba(0,0,0,0.45)' }}>
+          Click to speak on WhatsApp
+        </p>
       </div>
     </section>
   );
