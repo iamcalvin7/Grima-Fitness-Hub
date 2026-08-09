@@ -242,9 +242,9 @@ function CoachingCards() {
       <div className="hidden md:block">
         <div className="rounded-2xl overflow-hidden">
           <img
-            src="/hero.jpg"
-            alt="Marcus Grima coaching"
-            className="w-full h-full object-cover object-[center_20%] aspect-[4/5]"
+            src="/mission.jpg"
+            alt="Marcus Grima running along the Maltese coast"
+            className="w-full h-full object-cover aspect-[4/5]"
             draggable={false}
           />
         </div>
