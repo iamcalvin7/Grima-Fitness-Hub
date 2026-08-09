@@ -293,7 +293,7 @@ const RESULTS = [
   {
     key:    'keith',
     name:   'KEITH ABELA',
-    tag:    '3-Month Transformation',
+    tag:    'New Business Development, Marketing & Customer Relationship Management — Carmelo Abela',
     before: '/keith-before.jpg',
     after:  '/keith-after.jpg',
     story: [
