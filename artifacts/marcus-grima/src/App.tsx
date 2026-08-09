@@ -162,7 +162,7 @@ function App() {
 
   /* ── Lead-gen landing (public, ?join URL param) ───────────────────── */
 
-  if (showLeadPage && !isAuthenticated) {
+  if (showLeadPage) {
     return (
       <ClientLanding
         onSignIn={() => setShowLeadPage(false)}
