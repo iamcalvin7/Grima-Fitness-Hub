@@ -159,11 +159,14 @@ function CoachingCards() {
   return (
     <section style={{ backgroundColor: BLACK }} className="pt-12 md:pt-16 pb-4 md:pb-6 px-4 md:px-10">
 
-      {/* Header */}
-      <div className="text-center mb-9 md:mb-12">
+      {/* Header — mirrors Wall of Success: lime label + off-white headline */}
+      <div className="max-w-xl mx-auto mb-8">
+        <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
+          Own Your Journey.
+        </p>
         <h2
           className="font-black tracking-tight leading-tight uppercase"
-          style={{ fontSize: 'clamp(1.6rem,5vw,2.8rem)', color: LIME }}
+          style={{ fontSize: 'clamp(1.6rem,5vw,2.8rem)', color: OFF_WHITE }}
         >
           On a mission to help you become stronger, healthier &amp; happier.
         </h2>
@@ -171,9 +174,6 @@ function CoachingCards() {
 
       {/* Accordion cards */}
       <div className="max-w-xl mx-auto">
-        <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: OFF_WHITE }}>
-          Personalised:
-        </p>
         <div className="flex flex-col gap-2">
         {SERVICES.map(({ key, img, title, desc }) => {
           const isOpen = openKey === key;
