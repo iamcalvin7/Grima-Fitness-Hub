@@ -253,30 +253,6 @@ function FreeCTA() {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   FOOTER
-══════════════════════════════════════════════════════════════════════════ */
-function Footer() {
-  return (
-    <footer style={{ backgroundColor: BLACK, borderTop: '1px solid rgba(255,255,255,0.12)' }} className="px-5 pt-4 pb-4 overflow-hidden">
-      <p
-        className="font-black leading-tight tracking-tight uppercase select-none mb-3"
-        style={{ fontSize: 'clamp(1.4rem, 5.5vw, 2.8rem)', color: LIME, opacity: 0.6 }}
-      >
-        FITNESS BEYOND<br />THE PHYSICAL.
-      </p>
-
-      <div className="border-t pt-3 flex items-center justify-between"
-        style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <p className="text-[10px] font-black tracking-[0.2em] uppercase"
-          style={{ color: 'rgba(255,255,255,0.45)' }}>
-          MARCUS GRIMA
-        </p>
-        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>© 2025</p>
-      </div>
-    </footer>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    ROOT
@@ -287,7 +263,6 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
       <Hero />
       <CoachingCards />
       <FreeCTA />
-      <Footer />
     </div>
   );
 }
