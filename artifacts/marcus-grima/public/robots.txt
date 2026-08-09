@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://marcusgrima.replit.app/sitemap.xml

@@ -210,7 +210,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Public lead-gen landing (/join or ?join): skip the auth probe entirely —
     // visitors never need a session there and the 401 pollutes the console.
     const isPublicLanding =
-      window.location.pathname === '/join' ||
       window.location.pathname === '/ownyourjourney' ||
       new URLSearchParams(window.location.search).has('join');
     if (isPublicLanding) {
