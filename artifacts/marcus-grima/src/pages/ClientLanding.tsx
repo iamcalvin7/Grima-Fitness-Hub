@@ -226,7 +226,7 @@ const RESULTS = [
   {
     key:    'peter',
     name:   'PETER BORG',
-    tag:    'Music Producer & Guitarist — Red Electric',
+    tag:    'Music Producer & Guitarist — Red\u00A0Electric',
     before: '/peter-before.jpg',
     after:  '/peter-after.jpg',
     story: [
