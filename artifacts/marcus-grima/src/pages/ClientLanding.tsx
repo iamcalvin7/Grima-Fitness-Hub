@@ -125,7 +125,7 @@ function Hero() {
             ))}
           </div>
 
-          <div className="flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center md:items-start md:text-left">
             <WAButton label="OWN YOUR JOURNEY." />
             <p className="text-white/60 text-[12px] mt-3">
               Click to speak on WhatsApp
