@@ -337,7 +337,7 @@ function WallOfSuccess() {
         {RESULTS.map(({ key, name, tag, before, after, story, highlight }) => {
           const isOpen = openStory === key;
           return (
-            <div key={key} className="rounded-2xl overflow-hidden mb-4" style={{ backgroundColor: '#1A1A1A' }}>
+            <div key={key} className="rounded-2xl overflow-hidden mb-4 max-w-[280px] md:max-w-[320px] mx-auto" style={{ backgroundColor: '#1A1A1A' }}>
 
               {/* Before / After slider */}
               <BeforeAfterSlider before={before} after={after} />
