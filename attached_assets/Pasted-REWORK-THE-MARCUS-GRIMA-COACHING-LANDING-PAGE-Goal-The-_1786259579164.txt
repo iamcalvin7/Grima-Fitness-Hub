@@ -1,0 +1,255 @@
+REWORK THE MARCUS GRIMA COACHING LANDING PAGE
+
+Goal:
+The current landing page is overbuilt, repetitive, too sales-led, and no longer aligned with the Marcus Grima brand direction.
+
+Rebuild it as a much shorter, more personal landing page designed primarily for people arriving from Marcus's Instagram.
+
+The entire page should be comfortably consumable within approximately 2 mobile scrolls.
+
+IMPORTANT:
+Do not redesign the Marcus Grima visual identity.
+Keep the existing black / near-black background, white typography, metallic grey secondary text, green accent, typography system, button style, spacing language, rounded styling where already established, and overall premium performance aesthetic.
+
+This is primarily a STRUCTURE + COPY + SPACING simplification.
+
+CORE BRAND IDEA
+
+Marcus is not the hero of the client's story.
+
+The client has their own goals and owns their own life journey.
+Marcus provides personalised guidance to help them get where they want to go.
+
+Brand line:
+
+"Your goals, my guidance. Own your journey."
+
+The coaching proposition now extends beyond traditional personal training:
+
+💪 Physical training
+🧠 Mental wellbeing
+📚 Life coaching
+
+The desired feeling is:
+Personal.
+Human.
+Confident.
+Supportive.
+Premium.
+Minimal.
+
+NOT:
+Aggressive fitness marketing.
+Transformation-sales language.
+A long conversion funnel.
+"Results or excuses" gym culture.
+Generic motivational copy.
+
+--------------------------------------------------
+REMOVE
+--------------------------------------------------
+
+Remove the existing:
+
+- "RESULTS. NOT EXCUSES." hero
+- "Everything you need. Nothing you don't."
+- four large feature cards
+- Programme Built for You card
+- Direct Access to Marcus card
+- Accountability That Works card
+- Nutrition Guidance card
+- "Three steps to starting" section
+- long Marcus quote section
+- feature/checkmark list
+- five-star section
+- "Ready to start?" sales block
+- multiple repeated WhatsApp CTA bars
+- excessive explanatory copy
+- repeated claims about programmes, accountability, nutrition, etc.
+
+There should NOT be multiple sections explaining effectively the same coaching offer.
+
+--------------------------------------------------
+NEW PAGE STRUCTURE
+--------------------------------------------------
+
+SECTION 1 — HERO
+
+Eyebrow:
+MALTA · ONLINE & IN-PERSON
+
+Headline:
+YOUR GOALS.
+MY GUIDANCE.
+
+Supporting text:
+Personalised coaching to help you become stronger, healthier & happier.
+
+Then show the three coaching pillars clearly and compactly:
+
+💪 Physical training
+🧠 Mental wellbeing
+📚 Life coaching
+
+Primary CTA:
+LET'S TALK ON WHATSAPP →
+
+Microcopy underneath:
+Free introduction. No commitment.
+
+The hero should occupy roughly one mobile viewport.
+
+Do not make the three pillars look like three large product cards.
+Keep them simple, clean and integrated into the hero.
+
+--------------------------------------------------
+SECTION 2 — BUILT AROUND YOU
+--------------------------------------------------
+
+Eyebrow:
+PERSONALISED COACHING
+
+Headline:
+BUILT AROUND YOU.
+
+Intro:
+No templates. No one-size-fits-all plans.
+
+Then present THREE compact benefits.
+
+These should not become tall cards.
+Prefer a clean stacked layout, compact rows, or a restrained 3-item grid depending on responsive width.
+
+1.
+A PLAN FOR YOU
+
+Training built around your goals, lifestyle and ability.
+
+2.
+MARCUS IN YOUR CORNER
+
+Personal guidance, honest feedback and accountability.
+
+3.
+MORE THAN TRAINING
+
+Support for your physical health, mindset and the life around it.
+
+Keep these concise.
+
+--------------------------------------------------
+FINAL BRAND / CTA AREA
+--------------------------------------------------
+
+Introduce Marcus visually here using his existing profile photography.
+
+Include:
+
+Marcus Grima
+Performance Coach
+
+Short quote:
+
+"My job is to understand where you want to go and help you get there."
+
+Then final statement:
+
+OWN YOUR JOURNEY.
+
+Supporting line:
+Your goals are personal. Your coaching should be too.
+
+CTA:
+MESSAGE MARCUS →
+
+This CTA should go to the same WhatsApp destination currently used.
+
+Do NOT add another sticky WhatsApp bar if the page already has clear hero and final CTAs.
+
+--------------------------------------------------
+MOBILE EXPERIENCE
+--------------------------------------------------
+
+This page is Instagram-first and therefore mobile-first.
+
+Target:
+Approximately 2 natural mobile scrolls from top to bottom.
+
+Reduce:
+- oversized vertical gaps
+- unnecessary card heights
+- duplicate CTA areas
+- large empty sections
+- long paragraphs
+
+The hierarchy should feel editorial and confident rather than like a long sales funnel.
+
+Use strong typography and whitespace instead of adding more UI.
+
+The user should understand within seconds:
+
+1. What Marcus helps with
+2. What makes the coaching personal
+3. What Marcus's role is
+4. How to contact him
+
+--------------------------------------------------
+DESIGN PRINCIPLES
+--------------------------------------------------
+
+Preserve the approved Marcus Grima design system:
+
+- near-black background
+- white primary typography
+- muted silver / grey secondary copy
+- green only as the principal action/accent colour
+- uppercase tracked eyebrow labels
+- bold display typography
+- premium performance aesthetic
+- existing responsive behaviour
+
+Do not introduce:
+- gradients
+- amber
+- extra colours
+- testimonials
+- pricing
+- fake social proof
+- new animations
+- stock photography
+- new navigation
+- unnecessary icons
+- new dependencies
+
+Reuse existing components and styles wherever practical.
+
+Do not duplicate components simply to achieve this page.
+
+--------------------------------------------------
+TECHNICAL REQUIREMENTS
+--------------------------------------------------
+
+Before changing anything:
+
+1. Locate the existing coaching landing page route and all components it uses.
+2. Read those files in full.
+3. Identify which components can be safely removed from THIS PAGE without affecting other routes.
+4. Confirm the existing WhatsApp destination and preserve it exactly.
+5. Preserve the existing site header/footer behaviour if applicable.
+6. Do not change auth, database, API, routing architecture, environment variables, or backend behaviour.
+7. Do not install dependencies.
+
+After implementation:
+
+- run TypeScript/typecheck across the relevant workspace
+- confirm zero TypeScript errors
+- confirm mobile layout at common widths including ~375px and ~430px
+- confirm desktop still looks intentional
+- confirm both WhatsApp CTAs use the existing destination
+- check there is no hidden or duplicated old landing-page content remaining
+- check there are no accidental horizontal scrollbars
+- provide a concise summary of files changed
+
+Do not publish.
+
+Return the completed page for review first.
