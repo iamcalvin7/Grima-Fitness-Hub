@@ -107,9 +107,6 @@ function Hero() {
           </div>
 
           <WAButton label="LET'S TALK ON WHATSAPP" />
-          <p className="text-white/30 text-[11px] mt-3">
-            Free introduction. No commitment.
-          </p>
 
         </div>
       </div>
