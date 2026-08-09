@@ -290,6 +290,21 @@ const RESULTS = [
     ],
     highlight: 'Jeff did.',
   },
+  {
+    key:    'keith',
+    name:   'KEITH ABELA',
+    tag:    '3-Month Transformation',
+    before: '/keith-before.jpg',
+    after:  '/keith-after.jpg',
+    story: [
+      'This is what dedication and consistency look like! \u{1F4A5}',
+      'Massive shoutout to Keith for transforming not just his body, but his entire mindset in just 3 months.',
+      'He\u2019s swapped old habits for better ones, prioritized his health, and shifted his identity toward a lifestyle that\u2019s here to stay.',
+      'As I always tell my clients: The real goal is to live a long, healthy life \u2014 the results are just the by-product.',
+      'Here\u2019s to setting big goals, smashing them, and building a strong community along the way!',
+    ],
+    highlight: 'Keith did.',
+  },
 ];
 
 function BeforeAfterSlider({ before, after }: { before: string; after: string }) {
