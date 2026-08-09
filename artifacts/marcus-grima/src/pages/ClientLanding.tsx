@@ -7,7 +7,6 @@ import React from 'react';
 import {
   WhatsappLogo, ArrowRight,
   Barbell, Brain, BookOpen,
-  ShieldStar, UserCircle, Globe,
 } from '@phosphor-icons/react';
 
 /* ─── WhatsApp ───────────────────────────────────────────────────────────── */
@@ -93,7 +92,7 @@ function Hero() {
           </p>
 
           {/* Pillar card ── frosted white */}
-          <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-4 mb-8 shadow-sm max-w-xs">
+          <div className="bg-white/80 backdrop-blur-sm border border-white/60 p-4 mb-8 shadow-sm max-w-xs">
             {PILLARS.map(({ Icon, label }) => (
               <div key={label} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b border-slate-100">
                 <div className="w-7 h-7 rounded-full bg-[#EBF3FB] flex items-center justify-center shrink-0">
@@ -173,7 +172,7 @@ function CoachingCards() {
           <div
             key={key}
             className="relative flex-none w-[78vw] sm:w-[55vw] md:w-auto
-                       rounded-2xl overflow-hidden snap-start
+                       overflow-hidden snap-start
                        shadow-sm"
             style={{ aspectRatio: '3/4' }}
           >
@@ -205,30 +204,68 @@ function CoachingCards() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SECTION 3 — CREDIBILITY STRIP
+   SECTION 3 — SUCCESS STORIES
 ══════════════════════════════════════════════════════════════════════════ */
-const CREDS = [
-  { Icon: ShieldStar,  label: 'Personalised Coaching' },
-  { Icon: UserCircle,  label: 'Direct Access to Marcus' },
-  { Icon: Globe,       label: 'Online & In-Person' },
+const STORIES = [
+  {
+    key:    'result-client',
+    photo:  '/result-client.jpg',
+    crop:   'object-top',
+    name:   'Daniel',
+    result: 'Body recomposition',
+    quote:  'Training with Marcus completely changed how I approach my health. The results speak for themselves.',
+  },
+  {
+    key:    'result-transformation',
+    photo:  '/result-transformation.jpg',
+    crop:   'object-center',
+    name:   'Chris',
+    result: 'Full transformation',
+    quote:  'I went from the worst shape of my life to the best — with a plan that actually worked for me.',
+  },
 ];
 
-function CredibilityStrip() {
+function SuccessStories() {
   return (
-    <section className="bg-[#F0F6FB] py-10 px-5 md:px-10">
-      <div className="max-w-2xl mx-auto grid grid-cols-3 gap-4 md:gap-8">
-        {CREDS.map(({ Icon, label }, i) => (
-          <React.Fragment key={label}>
-            <div className="flex flex-col items-center text-center gap-2">
-              <Icon size={20} weight="regular" className="text-slate-500" />
-              <p className="text-[10px] md:text-xs font-bold tracking-[0.12em] text-slate-600 uppercase leading-snug">
-                {label}
+    <section className="bg-[#F0F6FB] py-12 md:py-16">
+      <div className="px-5 md:px-10 mb-8 md:text-center">
+        <p className="text-[10px] font-black tracking-[0.32em] text-slate-400 uppercase mb-3">
+          Real Results
+        </p>
+        <h2 className="text-2xl md:text-3xl font-black text-[#0F1D2E] tracking-tight leading-tight">
+          CLIENT SUCCESS STORIES.
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-5 md:px-10 max-w-3xl md:mx-auto">
+        {STORIES.map(({ key, photo, crop, name, result, quote }) => (
+          <div key={key} className="bg-white shadow-sm overflow-hidden">
+            {/* Photo */}
+            <div className="w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
+              <img
+                src={photo}
+                alt={`${name} — ${result}`}
+                className={`w-full h-full object-cover ${crop}`}
+                draggable={false}
+              />
+            </div>
+            {/* Copy */}
+            <div className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div>
+                  <p className="text-[11px] font-black tracking-[0.18em] text-[#0F1D2E] uppercase">
+                    {name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 tracking-wide uppercase">
+                    {result}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-500 leading-relaxed italic">
+                "{quote}"
               </p>
             </div>
-            {i < CREDS.length - 1 && (
-              <div className="hidden" aria-hidden />
-            )}
-          </React.Fragment>
+          </div>
         ))}
       </div>
     </section>
@@ -308,7 +345,7 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
     <div className="bg-white min-h-screen overflow-x-hidden">
       <Hero />
       <CoachingCards />
-      <CredibilityStrip />
+      <SuccessStories />
       <Philosophy />
       <Footer />
     </div>
