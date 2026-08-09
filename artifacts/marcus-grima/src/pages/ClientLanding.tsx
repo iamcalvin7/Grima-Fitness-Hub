@@ -326,12 +326,11 @@ function WallOfSuccess() {
           Wall of Success
         </p>
         <h2
-          className="font-black tracking-tight leading-[0.9] mb-2 uppercase"
+          className="font-black tracking-tight leading-[0.9] mb-8 uppercase"
           style={{ fontSize: 'clamp(2rem,7vw,3.6rem)', color: OFF_WHITE }}
         >
           Real people.<br />Unreal progress.
         </h2>
-        <p className="text-white/35 text-[13px] mb-8">Every result has a story.</p>
 
         {/* Result cards */}
         {RESULTS.map(({ key, name, tag, before, after, story, highlight }) => {
