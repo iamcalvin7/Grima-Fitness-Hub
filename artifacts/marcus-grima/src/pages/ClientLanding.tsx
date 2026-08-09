@@ -218,6 +218,130 @@ function CoachingCards() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   WALL OF SUCCESS
+══════════════════════════════════════════════════════════════════════════ */
+const RESULTS = [
+  {
+    key:    'peter',
+    name:   'PETER BORG',
+    tag:    "Real progress isn't about quick fixes.\nIt's about becoming someone new.",
+    before: '/peter-before.jpg',
+    after:  '/peter-after.jpg',
+    story: [
+      'Most people want to change their body without changing anything about how they actually live. That doesn\'t work.',
+      'Peter didn\'t just start training harder. He changed the habits, mindset and choices that had been keeping him where he was.',
+      'There\'s a version of you that got you to where you are right now. That same version cannot always get you to where you want to be. Real progress isn\'t just about motivation or a new programme. Sometimes it means being honest about what needs to change.',
+      'That\'s uncomfortable. Most people make changes for a few weeks and eventually drift back because the habits underneath never changed.',
+    ],
+    highlight: 'Peter did.',
+  },
+];
+
+function WallOfSuccess() {
+  const [openStory, setOpenStory] = useState<string | null>(null);
+
+  return (
+    <section style={{ backgroundColor: '#111111' }} className="px-5 py-12 md:py-16 md:px-10">
+      <div className="max-w-2xl mx-auto">
+
+        {/* Header */}
+        <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
+          Wall of Success
+        </p>
+        <h2
+          className="font-black tracking-tight leading-[0.9] mb-2 uppercase"
+          style={{ fontSize: 'clamp(2rem,7vw,3.6rem)', color: OFF_WHITE }}
+        >
+          Real people.<br />Unreal progress.
+        </h2>
+        <p className="text-white/35 text-[13px] mb-8">Every result has a story.</p>
+
+        {/* Result cards */}
+        {RESULTS.map(({ key, name, tag, before, after, story, highlight }) => {
+          const isOpen = openStory === key;
+          return (
+            <div key={key} className="rounded-2xl overflow-hidden mb-4" style={{ backgroundColor: '#1A1A1A' }}>
+
+              {/* Before / After photos */}
+              <div className="relative flex h-64 md:h-80 overflow-hidden">
+                {/* Before */}
+                <div className="relative flex-1 overflow-hidden">
+                  <img
+                    src={before}
+                    alt="Before"
+                    className="w-full h-full object-cover object-top grayscale"
+                    draggable={false}
+                  />
+                  <span
+                    className="absolute top-3 left-3 text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded"
+                    style={{ backgroundColor: LIME, color: BLACK }}
+                  >
+                    BEFORE
+                  </span>
+                </div>
+                {/* Divider */}
+                <div className="w-[2px]" style={{ backgroundColor: BLACK }} />
+                {/* After */}
+                <div className="relative flex-1 overflow-hidden">
+                  <img
+                    src={after}
+                    alt="After"
+                    className="w-full h-full object-cover object-top"
+                    draggable={false}
+                  />
+                  <span
+                    className="absolute top-3 right-3 text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded"
+                    style={{ backgroundColor: LIME, color: BLACK }}
+                  >
+                    AFTER
+                  </span>
+                </div>
+              </div>
+
+              {/* Name + tag + toggle */}
+              <div className="px-5 py-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[13px] font-black tracking-[0.1em] uppercase mb-1" style={{ color: OFF_WHITE }}>
+                    {name}
+                  </p>
+                  <p className="text-[12px] leading-snug" style={{ color: 'rgba(255,255,255,0.4)', whiteSpace: 'pre-line' }}>
+                    {tag}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setOpenStory(isOpen ? null : key)}
+                  className="shrink-0 flex items-center gap-2 border rounded-full px-4 py-2 text-[10px] font-black tracking-[0.14em] uppercase transition-opacity duration-200 hover:opacity-70"
+                  style={{ borderColor: LIME, color: LIME }}
+                >
+                  {isOpen ? 'CLOSE' : "READ STORY"}
+                  {isOpen ? <Minus size={10} weight="bold" /> : <Plus size={10} weight="bold" />}
+                </button>
+              </div>
+
+              {/* Expandable story */}
+              {isOpen && (
+                <div className="px-5 pb-6">
+                  <div className="w-5 h-[2px] rounded-full mb-4" style={{ backgroundColor: LIME }} />
+                  <p className="text-[28px] font-black leading-none mb-4" style={{ color: LIME }}>"</p>
+                  {story.map((para, i) => (
+                    <p key={i} className="text-[13px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      {para}
+                    </p>
+                  ))}
+                  <p className="text-[13px] font-black" style={{ color: LIME }}>{highlight}</p>
+                </div>
+              )}
+
+            </div>
+          );
+        })}
+
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    FREE CONVERSATION CTA
 ══════════════════════════════════════════════════════════════════════════ */
 function FreeCTA() {
@@ -261,6 +385,7 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
     <div style={{ backgroundColor: BLACK }} className="min-h-screen overflow-x-hidden">
       <Hero />
       <CoachingCards />
+      <WallOfSuccess />
       <FreeCTA />
     </div>
   );
