@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import {
   WhatsappLogo, ArrowRight,
-  Barbell, Brain, BookOpen, Plus, Minus,
+  Barbell, Brain, BookOpen, Plus, Minus, ArrowDown,
 } from '@phosphor-icons/react';
 
 /* ─── Palette ────────────────────────────────────────────────────────────── */
@@ -70,6 +70,11 @@ function Hero() {
         <p className="text-white font-black text-[11px] tracking-[0.18em] leading-[1.3] uppercase">
           MARCUS<br />GRIMA
         </p>
+      </div>
+
+      {/* Scroll arrow — pinned bottom centre */}
+      <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center animate-bounce">
+        <ArrowDown size={20} weight="bold" style={{ color: LIME }} />
       </div>
 
       {/* Hero copy — bottom-left */}
@@ -215,6 +220,40 @@ function CoachingCards() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   FREE CONVERSATION CTA
+══════════════════════════════════════════════════════════════════════════ */
+function FreeCTA() {
+  return (
+    <section style={{ backgroundColor: LIME }} className="px-5 py-12 md:py-16 md:px-12">
+      <div className="max-w-xl">
+        <p
+          className="font-black tracking-tight leading-[0.92] mb-6"
+          style={{ fontSize: 'clamp(1.8rem, 6vw, 3.2rem)', color: BLACK }}
+        >
+          LET'S START WITH A FREE CONVERSATION ABOUT YOUR GOALS.
+        </p>
+        <p className="text-[14px] mb-8 font-medium" style={{ color: 'rgba(0,0,0,0.55)' }}>
+          No commitment required.
+        </p>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-full
+                     font-black text-[13px] tracking-widest uppercase
+                     px-6 py-3.5 transition-opacity duration-200 hover:opacity-80"
+          style={{ backgroundColor: BLACK, color: LIME }}
+        >
+          <WhatsappLogo size={16} weight="fill" />
+          LET'S TALK ON WHATSAPP
+          <ArrowRight size={13} weight="bold" />
+        </a>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    FOOTER
 ══════════════════════════════════════════════════════════════════════════ */
 function Footer() {
@@ -247,6 +286,7 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
     <div style={{ backgroundColor: BLACK }} className="min-h-screen overflow-x-hidden">
       <Hero />
       <CoachingCards />
+      <FreeCTA />
       <Footer />
     </div>
   );
