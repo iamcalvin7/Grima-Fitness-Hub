@@ -104,21 +104,21 @@ function Hero() {
           </p>
 
           {/* Pillars — lime icons */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2 mb-7">
+          <div className="flex flex-nowrap gap-x-2.5 md:gap-x-4 mb-7">
             {PILLARS.map(({ img, label }) => (
-              <div key={label} className="flex items-center gap-2">
+              <div key={label} className="flex items-center gap-1.5 md:gap-2 shrink-0">
                 <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                  className="w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: OFF_WHITE }}
                 >
                   <img
                     src={img}
                     alt=""
-                    className="w-4 h-4 object-contain"
+                    className="w-3.5 h-3.5 md:w-4 md:h-4 object-contain"
                     draggable={false}
                   />
                 </span>
-                <span className="text-[12px] font-semibold" style={{ color: LIME }}>
+                <span className="text-[10.5px] md:text-[12px] font-semibold whitespace-nowrap" style={{ color: LIME }}>
                   {label}
                 </span>
               </div>
