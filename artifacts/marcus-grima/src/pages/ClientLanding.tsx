@@ -73,12 +73,12 @@ function Hero() {
       </div>
 
       {/* Scroll arrow — pinned bottom centre */}
-      <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center animate-bounce">
+      <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center animate-bounce">
         <ArrowDown size={20} weight="bold" style={{ color: LIME }} />
       </div>
 
       {/* Hero copy — bottom-left */}
-      <div className="relative z-10 flex-1 flex flex-col justify-end px-5 pb-10 md:pb-16 md:px-12">
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-5 pb-16 md:pb-20 md:px-12">
         <div className="max-w-md">
 
           <h1
