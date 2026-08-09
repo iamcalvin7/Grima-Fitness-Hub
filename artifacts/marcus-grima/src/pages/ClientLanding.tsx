@@ -152,7 +152,7 @@ function CoachingCards() {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   return (
-    <section style={{ backgroundColor: BLACK }} className="py-12 md:py-16 px-4 md:px-10">
+    <section style={{ backgroundColor: BLACK }} className="pt-12 md:pt-16 pb-4 md:pb-6 px-4 md:px-10">
 
       {/* Header */}
       <div className="text-center mb-9 md:mb-12">
@@ -165,7 +165,7 @@ function CoachingCards() {
       </div>
 
       {/* Accordion cards */}
-      <div className="max-w-xl mx-auto mb-10">
+      <div className="max-w-xl mx-auto">
         <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: OFF_WHITE }}>
           Personalised:
         </p>
@@ -340,7 +340,7 @@ function WallOfSuccess() {
   const next = () => { setIndex((i) => (i + 1) % RESULTS.length); setOpenStory(null); };
 
   return (
-    <section style={{ backgroundColor: '#111111' }} className="px-5 py-12 md:py-16 md:px-10">
+    <section style={{ backgroundColor: '#111111' }} className="px-5 pt-6 md:pt-8 pb-12 md:pb-16 md:px-10">
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
