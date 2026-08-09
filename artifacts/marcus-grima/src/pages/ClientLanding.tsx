@@ -503,14 +503,15 @@ function WallOfSuccess() {
 function FreeCTA() {
   return (
     <section style={{ backgroundColor: LIME }} className="px-5 py-12 md:py-16 md:px-12">
-      <div className="max-w-xl">
+      <div className="max-w-xl md:max-w-5xl md:mx-auto md:grid md:grid-cols-[1fr_auto] md:gap-12 md:items-center">
         <p
-          className="font-black tracking-tight leading-[0.92] mb-6"
+          className="font-black tracking-tight leading-[0.92] mb-6 md:mb-0 md:max-w-xl"
           style={{ fontSize: 'clamp(1.8rem, 6vw, 3.2rem)', color: BLACK }}
         >
           LET'S START WITH A FREE CONVERSATION ABOUT YOUR GOALS.{' '}
           <span style={{ color: 'rgba(0,0,0,0.38)' }}>NO COMMITMENT REQUIRED.</span>
         </p>
+        <div className="md:text-center">
         <a
           href={WHATSAPP_URL}
           target="_blank"
@@ -527,6 +528,7 @@ function FreeCTA() {
         <p className="text-[12px] mt-3" style={{ color: 'rgba(0,0,0,0.6)' }}>
           Click to speak on WhatsApp
         </p>
+        </div>
       </div>
     </section>
   );
