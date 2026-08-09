@@ -107,18 +107,18 @@ function Hero() {
 const CARDS = [
   {
     key: 'train', photo: '/hero.png',          crop: 'object-center',
-    Icon: Barbell,  tag: 'TRAIN',
-    desc: 'A physical plan built around you.',
+    Icon: Barbell,  tag: 'PHYSICAL TRAINING',
+    desc: 'Personalised training built around your goals, fitness level and lifestyle.',
   },
   {
     key: 'think', photo: '/mindset-today.png', crop: 'object-center',
-    Icon: Brain,    tag: 'THINK',
-    desc: 'Guidance for confidence, mindset and mental wellbeing.',
+    Icon: Brain,    tag: 'MENTAL WELLBEING',
+    desc: 'Support to help you build confidence, resilience and a stronger mindset.',
   },
   {
     key: 'live',  photo: '/team-amy.jpg',      crop: 'object-top',
-    Icon: BookOpen, tag: 'LIVE',
-    desc: 'Support beyond the gym, for the life you want to build.',
+    Icon: BookOpen, tag: 'LIFE COACHING',
+    desc: 'Guidance to help you move forward with more clarity, purpose and direction.',
   },
 ];
 
@@ -184,13 +184,19 @@ function CoachingCards() {
 ══════════════════════════════════════════════════════════════════════════ */
 function Footer() {
   return (
-    <footer className="bg-[#1A2535] px-5 py-5">
-      <div className="flex items-center justify-between max-w-4xl mx-auto md:px-5">
-        <p className="text-[11px] font-black tracking-[0.18em] text-white uppercase">
+    <footer className="bg-[#0F1923] px-5 pt-4 pb-4 overflow-hidden">
+      {/* Tagline — compact single line */}
+      <p className="font-black text-white/8 leading-none tracking-tight uppercase select-none mb-3"
+        style={{ fontSize: 'clamp(1.8rem, 6vw, 3rem)' }}>
+        FITNESS BEYOND THE PHYSICAL.
+      </p>
+
+      {/* Bottom rule */}
+      <div className="border-t border-white/8 pt-3 flex items-center justify-between">
+        <p className="text-[10px] font-black tracking-[0.2em] text-white/50 uppercase">
           MARCUS GRIMA
         </p>
-        <p className="text-[10px] text-white/30">© 2025 Marcus Grima</p>
-        <p className="text-[10px] text-white/30">Privacy Policy</p>
+        <p className="text-[10px] text-white/20">© 2025</p>
       </div>
     </footer>
   );
