@@ -7,3 +7,24 @@ uri = "file://artifacts/marcus-grima/public/og-image.jpg"
 type = "image"
 title = "Share image — with photo background"
 description = "Your real training photo behind the text, darkened so the lime and white stay readable."
+
+[[outputs]]
+id = "62I7fI9abpjKkEYJTyr9A"
+uri = "file://attached_assets/og-options/option-1-plain-dark.jpg"
+type = "image"
+title = "Option 1 — Plain dark, text only"
+description = "Personalised coaching tagline in lime on the dark background."
+
+[[outputs]]
+id = "UFFLmwF1vJV2nGUY4ybM_"
+uri = "file://attached_assets/og-options/option-2-photo-background.jpg"
+type = "image"
+title = "Option 2 — Your training photo as background"
+description = "Same text with your real dumbbell-press photo behind, darkened."
+
+[[outputs]]
+id = "DuD66NFdvsSrcOO8gdfoK"
+uri = "file://attached_assets/og-options/option-3-current-athlete.jpg"
+type = "image"
+title = "Option 3 — Uploaded athlete design (currently active)"
+description = "The design you uploaded — this is the one set right now."
