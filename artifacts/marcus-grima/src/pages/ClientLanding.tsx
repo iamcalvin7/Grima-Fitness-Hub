@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import {
   WhatsappLogo, ArrowRight,
-  Barbell, Brain, BookOpen, Plus, Minus, ArrowDown,
+  Plus, Minus, ArrowDown,
 } from '@phosphor-icons/react';
 
 /* ─── Palette ────────────────────────────────────────────────────────────── */
@@ -45,9 +45,9 @@ function WAButton({ label }: { label: string }) {
    HERO — full-bleed photo, text bottom-left
 ══════════════════════════════════════════════════════════════════════════ */
 const PILLARS = [
-  { Icon: Barbell,  label: 'Physical Training' },
-  { Icon: Brain,    label: 'Mental Wellbeing'  },
-  { Icon: BookOpen, label: 'Life Coaching'     },
+  { img: '/icon-barbell.png', label: 'Physical Training' },
+  { img: '/icon-brain.png',   label: 'Mental Wellbeing'  },
+  { img: '/icon-book.png',    label: 'Life Coaching'     },
 ];
 
 function Hero() {
@@ -96,9 +96,14 @@ function Hero() {
 
           {/* Pillars — lime icons */}
           <div className="flex flex-wrap gap-x-4 gap-y-2 mb-7">
-            {PILLARS.map(({ Icon, label }) => (
+            {PILLARS.map(({ img, label }) => (
               <div key={label} className="flex items-center gap-1.5">
-                <Icon size={13} weight="regular" style={{ color: LIME }} />
+                <img
+                  src={img}
+                  alt={label}
+                  className="w-5 h-5 object-contain shrink-0"
+                  draggable={false}
+                />
                 <span className="text-[11px] font-semibold" style={{ color: LIME }}>
                   {label}
                 </span>
