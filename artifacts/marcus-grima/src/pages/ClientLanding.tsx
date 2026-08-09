@@ -123,27 +123,21 @@ function Hero() {
 const SERVICES = [
   {
     key:   'train',
-    Icon:  Barbell,
+    img:   '/icon-barbell.png',
     title: 'PHYSICAL TRAINING',
     desc:  'Personalised training built around your goals, fitness level and lifestyle.',
-    iconBg: LIME,
-    iconColor: BLACK,
   },
   {
     key:   'think',
-    Icon:  Brain,
+    img:   '/icon-brain.png',
     title: 'MENTAL WELLBEING',
     desc:  'Support to help you build confidence, resilience and a stronger mindset.',
-    iconBg: BLUE,
-    iconColor: '#fff',
   },
   {
     key:   'live',
-    Icon:  BookOpen,
+    img:   '/icon-book.png',
     title: 'LIFE COACHING',
     desc:  'Guidance to help you move forward with more clarity, purpose and direction.',
-    iconBg: LIME,
-    iconColor: BLACK,
   },
 ];
 
@@ -171,7 +165,7 @@ function CoachingCards() {
 
       {/* Accordion cards */}
       <div className="flex flex-col gap-2 max-w-xl mx-auto mb-10">
-        {SERVICES.map(({ key, Icon, title, desc, iconBg, iconColor }) => {
+        {SERVICES.map(({ key, img, title, desc }) => {
           const isOpen = openKey === key;
           return (
             <div
@@ -185,12 +179,12 @@ function CoachingCards() {
                 className="w-full flex items-center justify-between px-5 py-4 text-left"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: iconBg }}
-                  >
-                    <Icon size={16} weight="regular" style={{ color: iconColor }} />
-                  </div>
+                  <img
+                    src={img}
+                    alt={title}
+                    className="w-9 h-9 object-contain shrink-0"
+                    draggable={false}
+                  />
                   <p className="text-[12px] font-black tracking-[0.12em] uppercase" style={{ color: BLACK }}>
                     {title}
                   </p>
