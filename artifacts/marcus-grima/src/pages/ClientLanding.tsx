@@ -1,52 +1,44 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    ClientLanding — Marcus Grima coaching lead-gen page
-   Premium wellbeing / performance direction · Mobile-first
+   Matches approved reference design exactly · Mobile-first
 ═══════════════════════════════════════════════════════════════════════════ */
 
 import React from 'react';
 import {
   WhatsappLogo, ArrowRight,
   Barbell, Brain, BookOpen,
+  ShieldStar, Users, MapPin,
 } from '@phosphor-icons/react';
 
-/* ─── WhatsApp ───────────────────────────────────────────────────────────── */
+/* ─── Constants ──────────────────────────────────────────────────────────── */
 const WHATSAPP_NUMBER  = '35699767698';
 const WHATSAPP_MESSAGE = encodeURIComponent(
   "Hi Marcus, I'm interested in your coaching. Can we have a quick chat?"
 );
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;
+const BLUE = '#5090C8';
 
-/* ─── Shared components ──────────────────────────────────────────────────── */
-function WAButton({
-  label,
-  dark = false,
-}: {
-  label: string;
-  dark?: boolean;
-}) {
+/* ─── Shared CTA ─────────────────────────────────────────────────────────── */
+function WAButton({ label }: { label: string }) {
   return (
     <a
       href={WHATSAPP_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={`
-        inline-flex items-center justify-center gap-2.5 font-bold text-sm
-        tracking-wide transition-colors duration-200 px-6 py-3.5 w-full sm:w-auto
-        rounded-full
-        bg-[#25D366] hover:bg-[#1ebe5d] text-white
-      `}
+      className="inline-flex items-center gap-2 rounded-full
+                 bg-[#25D366] hover:bg-[#1ebe5d] text-white
+                 font-bold text-[13px] tracking-wide px-5 py-3
+                 transition-colors duration-200"
     >
-      <WhatsappLogo size={18} weight="fill" />
+      <WhatsappLogo size={16} weight="fill" />
       {label}
-      <ArrowRight size={14} weight="bold" />
+      <ArrowRight size={12} weight="bold" />
     </a>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SECTION 1 — HERO
-   Mobile:  photo at top → copy below on sky-blue bg
-   Desktop: side-by-side, copy left / photo right
+   HERO — full-bleed photo, text overlaid bottom-left
 ══════════════════════════════════════════════════════════════════════════ */
 const PILLARS = [
   { Icon: Barbell,  label: 'Physical Training' },
@@ -56,142 +48,140 @@ const PILLARS = [
 
 function Hero() {
   return (
-    <section className="bg-[#EBF3FB] overflow-hidden">
-      <div className="md:grid md:grid-cols-[55%_45%] md:min-h-[600px]">
+    <section className="relative min-h-[100svh] flex flex-col overflow-hidden">
 
-        {/* PHOTO ── mobile: first (top) / desktop: second (right) */}
-        <div className="order-first md:order-last md:relative">
-          <div
-            className="w-full overflow-hidden"
-            style={{ aspectRatio: '4/3' }}
-          >
-            <img
-              src="/hero.png"
-              alt="Marcus Grima — Performance Coach"
-              className="w-full h-full object-cover object-top md:absolute md:inset-0 md:h-full md:w-full"
-              draggable={false}
-            />
-          </div>
+      {/* Background photo + overlay */}
+      <div className="absolute inset-0">
+        <img
+          src="/hero.png"
+          alt="Marcus Grima — Performance Coach"
+          className="w-full h-full object-cover object-top"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+      </div>
+
+      {/* Top bar: brand mark + decorative menu */}
+      <div className="relative z-10 flex items-start justify-between px-5 pt-5 md:px-10 md:pt-7">
+        <p className="text-white font-black text-[11px] tracking-[0.18em] leading-[1.3] uppercase">
+          MARCUS<br />GRIMA
+        </p>
+        {/* Decorative hamburger — no navigation */}
+        <div className="flex flex-col gap-[5px] pt-1 opacity-80">
+          <span className="block w-5 h-[2px] bg-white rounded-sm" />
+          <span className="block w-5 h-[2px] bg-white rounded-sm" />
+          <span className="block w-5 h-[2px] bg-white rounded-sm" />
         </div>
+      </div>
 
-        {/* COPY ── mobile: second (below photo) / desktop: first (left) */}
-        <div className="order-last md:order-first flex flex-col justify-center px-5 py-6 md:px-14 md:py-12">
-          <h1 className="text-[clamp(2.2rem,7vw,4rem)] font-black tracking-tight text-[#0F1D2E] leading-[0.93] mb-3">
+      {/* Hero copy — bottom-left */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-5 pb-10 md:pb-16 md:px-12">
+        <div className="max-w-md">
+          <p
+            className="text-[11px] font-bold tracking-[0.28em] uppercase mb-3"
+            style={{ color: BLUE }}
+          >
+            Malta · Online &amp; In-Person
+          </p>
+
+          <h1 className="text-white font-black tracking-tight leading-[0.92] mb-3"
+            style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)' }}>
             YOUR GOALS.<br />
             MY GUIDANCE.
           </h1>
 
-          <p className="text-[14px] text-slate-500 leading-relaxed mb-4 max-w-xs">
-            Personalised coaching to help you become stronger, healthier &amp; happier.
+          <p className="text-white/70 text-[14px] leading-relaxed mb-5 max-w-[260px]">
+            Personalised coaching to help you become stronger,
+            healthier &amp; happier.
           </p>
 
-          {/* Pillar tiles ── 3-col side by side */}
-          <div className="grid grid-cols-3 gap-2 mb-5 max-w-xs">
+          {/* Pillars — inline horizontal, small */}
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6">
             {PILLARS.map(({ Icon, label }) => (
-              <div
-                key={label}
-                className="bg-white/80 backdrop-blur-sm border border-white/70 shadow-sm
-                           flex flex-col items-center justify-center gap-2 py-3 px-1 text-center"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#EBF3FB] flex items-center justify-center">
-                  <Icon size={15} weight="regular" className="text-slate-600" />
-                </div>
-                <span className="text-[9px] font-bold tracking-[0.1em] text-slate-700 uppercase leading-tight">
-                  {label}
-                </span>
+              <div key={label} className="flex items-center gap-1.5">
+                <Icon size={13} weight="regular" className="text-white/65" />
+                <span className="text-[11px] text-white/75 font-medium">{label}</span>
               </div>
             ))}
           </div>
 
           <WAButton label="LET'S TALK ON WHATSAPP" />
-          <p className="text-[11px] text-slate-400 mt-2">
+          <p className="text-white/35 text-[11px] mt-3">
             Free introduction. No commitment.
           </p>
         </div>
-
       </div>
     </section>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SECTION 2 — COACHING BUILT AROUND YOU
-   Mobile:  horizontal swipe cards (snap scroll)
-   Desktop: 3-column grid
+   COACHING BUILT AROUND YOU — 3-col photo cards, all visible at once
 ══════════════════════════════════════════════════════════════════════════ */
 const CARDS = [
   {
-    key:   'train',
-    photo: '/hero.png',
-    crop:  'object-center',
-    tag:   'TRAIN',
-    title: 'A physical plan built around you.',
+    key: 'train', photo: '/hero.png',          crop: 'object-center',
+    Icon: Barbell,  tag: 'TRAIN',
+    desc: 'A physical plan built around you.',
   },
   {
-    key:   'think',
-    photo: '/mindset-today.png',
-    crop:  'object-center',
-    tag:   'THINK',
-    title: 'Guidance for confidence, mindset and mental wellbeing.',
+    key: 'think', photo: '/mindset-today.png', crop: 'object-center',
+    Icon: Brain,    tag: 'THINK',
+    desc: 'Guidance for confidence, mindset and mental wellbeing.',
   },
   {
-    key:   'live',
-    photo: '/team-amy.jpg',
-    crop:  'object-top',
-    tag:   'LIVE',
-    title: 'Support beyond the gym, for the life you want to build.',
+    key: 'live',  photo: '/team-amy.jpg',      crop: 'object-top',
+    Icon: BookOpen, tag: 'LIVE',
+    desc: 'Support beyond the gym, for the life you want to build.',
   },
 ];
 
 function CoachingCards() {
   return (
-    <section className="bg-white py-12 md:py-16">
-      {/* Header */}
-      <div className="px-5 md:px-10 mb-8 md:text-center">
-        <p className="text-[10px] font-black tracking-[0.32em] text-slate-400 uppercase mb-3">
+    <section className="bg-white py-11 md:py-16">
+      {/* Header — centred */}
+      <div className="px-4 text-center mb-7 md:mb-10">
+        <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-2"
+          style={{ color: BLUE }}>
           Personalised Coaching
         </p>
-        <h2 className="text-2xl md:text-3xl font-black text-[#0F1D2E] tracking-tight leading-tight mb-2">
+        <h2 className="text-[22px] md:text-3xl font-black text-[#0F1D2E] tracking-tight mb-2">
           COACHING BUILT AROUND YOU.
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-[13px] text-slate-500">
           Because your goals, your life and your starting point are different.
         </p>
       </div>
 
-      {/* Cards — horizontal scroll on mobile, grid on desktop */}
-      <div
-        className="flex gap-3 px-5 pb-2 overflow-x-auto snap-x snap-mandatory
-                   md:grid md:grid-cols-3 md:gap-5 md:px-10 md:overflow-visible
-                   scrollbar-hide"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        {CARDS.map(({ key, photo, crop, tag, title }) => (
+      {/* Cards — 3 equal columns, always visible */}
+      <div className="grid grid-cols-3 gap-2 px-3 md:gap-4 md:px-10 max-w-4xl md:mx-auto">
+        {CARDS.map(({ key, photo, crop, Icon, tag, desc }) => (
           <div
             key={key}
-            className="relative flex-none w-[78vw] sm:w-[55vw] md:w-auto
-                       overflow-hidden snap-start
-                       shadow-sm"
-            style={{ aspectRatio: '3/4' }}
+            className="relative rounded-2xl overflow-hidden"
+            style={{ aspectRatio: '2/3' }}
           >
             <img
-              src={photo}
-              alt={tag}
+              src={photo} alt={tag}
               className={`absolute inset-0 w-full h-full object-cover ${crop}`}
               draggable={false}
             />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+            {/* Dark gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-            {/* Label + copy */}
-            <div className="absolute bottom-0 left-0 right-0 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-black tracking-[0.28em] text-white/70 uppercase">
-                  {tag}
-                </span>
+            {/* Card content */}
+            <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4">
+              <div
+                className="w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center mb-1.5 md:mb-2"
+                style={{ backgroundColor: BLUE }}
+              >
+                <Icon size={13} weight="regular" className="text-white" />
               </div>
-              <p className="text-[14px] font-semibold text-white leading-snug">
-                {title}
+              <p className="text-white font-black text-[11px] md:text-[14px] tracking-wide mb-0.5 md:mb-1">
+                {tag}
+              </p>
+              <p className="text-white/75 text-[9px] md:text-[12px] leading-snug">
+                {desc}
               </p>
             </div>
           </div>
@@ -202,65 +192,27 @@ function CoachingCards() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SECTION 3 — SUCCESS STORIES
+   CREDIBILITY STRIP — 3 stats
 ══════════════════════════════════════════════════════════════════════════ */
-const STORIES = [
-  {
-    key:    'result-client',
-    photo:  '/result-client.jpg',
-    crop:   'object-top',
-    name:   'Daniel',
-    result: 'Body recomposition',
-    quote:  'Training with Marcus completely changed how I approach my health. The results speak for themselves.',
-  },
-  {
-    key:    'result-transformation',
-    photo:  '/result-transformation.jpg',
-    crop:   'object-center',
-    name:   'Chris',
-    result: 'Full transformation',
-    quote:  'I went from the worst shape of my life to the best — with a plan that actually worked for me.',
-  },
+const CREDS = [
+  { Icon: ShieldStar, strong: '10+ YEARS',        soft: 'Coaching Experience' },
+  { Icon: Users,      strong: 'CLIENTS ACROSS',   soft: 'Malta & Internationally' },
+  { Icon: MapPin,     strong: 'ONLINE & IN-PERSON', soft: 'Coaching that adapts to you' },
 ];
 
-function SuccessStories() {
+function CredibilityStrip() {
   return (
-    <section className="bg-[#F0F6FB] py-12 md:py-16">
-      <div className="px-5 md:px-10 mb-8 md:text-center">
-        <p className="text-[10px] font-black tracking-[0.32em] text-slate-400 uppercase mb-3">
-          Real Results
-        </p>
-        <h2 className="text-2xl md:text-3xl font-black text-[#0F1D2E] tracking-tight leading-tight">
-          CLIENT SUCCESS STORIES.
-        </h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-5 md:px-10 max-w-3xl md:mx-auto">
-        {STORIES.map(({ key, photo, crop, name, result, quote }) => (
-          <div key={key} className="bg-white shadow-sm overflow-hidden">
-            {/* Photo */}
-            <div className="w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-              <img
-                src={photo}
-                alt={`${name} — ${result}`}
-                className={`w-full h-full object-cover ${crop}`}
-                draggable={false}
-              />
-            </div>
-            {/* Copy */}
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div>
-                  <p className="text-[11px] font-black tracking-[0.18em] text-[#0F1D2E] uppercase">
-                    {name}
-                  </p>
-                  <p className="text-[10px] text-slate-400 tracking-wide uppercase">
-                    {result}
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-slate-500 leading-relaxed italic">
-                "{quote}"
+    <section className="bg-[#F4F8FB] py-7 px-3 md:py-9 md:px-10">
+      <div className="max-w-3xl mx-auto grid grid-cols-3 divide-x divide-slate-200">
+        {CREDS.map(({ Icon, strong, soft }) => (
+          <div key={strong} className="flex items-center gap-2 md:gap-3 px-2 md:px-6">
+            <Icon size={18} weight="regular" className="text-slate-400 shrink-0 hidden sm:block" />
+            <div>
+              <p className="text-[8px] md:text-[10px] font-black tracking-[0.08em] text-[#0F1D2E] uppercase leading-tight">
+                {strong}
+              </p>
+              <p className="text-[8px] md:text-[10px] text-slate-500 leading-tight mt-0.5">
+                {soft}
               </p>
             </div>
           </div>
@@ -271,66 +223,72 @@ function SuccessStories() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SECTION 4 — PHILOSOPHY / OWN YOUR JOURNEY
-   Dark navy with Marcus photo, emotional close + WhatsApp CTA
+   PHILOSOPHY — Own Your Journey
+   Mobile: text content + background photo with overlay
+   Desktop: left text / right photo
 ══════════════════════════════════════════════════════════════════════════ */
 function Philosophy() {
   return (
-    <section className="relative bg-[#111E2D] overflow-hidden">
-      {/* Background photo with strong dark overlay */}
-      <div className="absolute inset-0">
-        <img
-          src="/marcus.png"
-          alt=""
-          aria-hidden
-          className="w-full h-full object-cover object-top opacity-30"
-          draggable={false}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#111E2D]/95 via-[#111E2D]/80 to-[#111E2D]/50" />
-      </div>
+    <section className="relative bg-[#F0F5FA] overflow-hidden">
+      <div className="md:grid md:grid-cols-[55%_45%] md:min-h-[440px]">
 
-      {/* Desktop: two-column layout */}
-      <div className="relative md:grid md:grid-cols-[1fr_auto] md:items-center max-w-4xl mx-auto">
-        {/* Content */}
-        <div className="px-5 py-14 md:px-14 md:py-20">
-          <p className="text-[10px] font-black tracking-[0.32em] text-white/40 uppercase mb-5">
+        {/* Text */}
+        <div className="relative z-10 px-5 py-12 md:px-14 md:py-16 flex flex-col justify-center">
+          <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-4"
+            style={{ color: BLUE }}>
             My Philosophy
           </p>
-          <h2 className="text-[clamp(2.2rem,6vw,3.5rem)] font-black tracking-tight text-white leading-[0.95] mb-5">
+          <h2 className="font-black text-[#0F1D2E] tracking-tight leading-[0.92] mb-4"
+            style={{ fontSize: 'clamp(2.4rem,6vw,3.8rem)' }}>
             OWN YOUR<br />JOURNEY.
           </h2>
-          <p className="text-[15px] text-white/60 leading-relaxed mb-8 max-w-xs">
+          <p className="text-[14px] text-slate-500 leading-relaxed mb-7 max-w-[260px]">
             Your goals are yours.<br />
             My role is to help you move towards them.
           </p>
-          <WAButton label="TALK TO MARCUS" dark />
+          <WAButton label="TALK TO MARCUS" />
         </div>
 
-        {/* Desktop photo panel */}
-        <div className="hidden md:block w-72 h-full relative">
+        {/* Photo — right side on desktop, background on mobile */}
+        <div className="hidden md:block relative overflow-hidden">
           <img
-            src="/hero.png"
+            src="/marcus.png"
             alt="Marcus Grima"
-            className="h-full w-full object-cover object-top opacity-60"
-            style={{ minHeight: '400px' }}
+            className="w-full h-full object-cover object-top"
             draggable={false}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#111E2D] to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F0F5FA] via-[#F0F5FA]/20 to-transparent" />
         </div>
+
+      </div>
+
+      {/* Mobile: subtle Marcus photo strip below text */}
+      <div className="md:hidden">
+        <img
+          src="/marcus.png"
+          alt="Marcus Grima"
+          className="w-full object-cover object-top"
+          style={{ height: '180px' }}
+          draggable={false}
+        />
       </div>
     </section>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   FOOTER — no navigation, text only
+   FOOTER
 ══════════════════════════════════════════════════════════════════════════ */
 function Footer() {
   return (
-    <footer className="bg-[#0D1824] px-5 py-5">
-      <p className="text-[10px] text-white/20 tracking-[0.25em] uppercase">
-        Marcus Grima · Performance Coach · Malta
-      </p>
+    <footer className="bg-[#1A2535] px-5 py-5">
+      <div className="flex items-center justify-between max-w-4xl mx-auto md:px-5">
+        <p className="text-[11px] font-black tracking-[0.18em] text-white uppercase">
+          MARCUS GRIMA
+        </p>
+        <p className="text-[10px] text-white/30">© 2025 Marcus Grima</p>
+        <p className="text-[10px] text-white/30">Privacy Policy</p>
+      </div>
     </footer>
   );
 }
@@ -343,7 +301,7 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
     <div className="bg-white min-h-screen overflow-x-hidden">
       <Hero />
       <CoachingCards />
-      <SuccessStories />
+      <CredibilityStrip />
       <Philosophy />
       <Footer />
     </div>
