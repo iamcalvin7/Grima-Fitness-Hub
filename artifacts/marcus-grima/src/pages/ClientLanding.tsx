@@ -355,7 +355,7 @@ function WallOfSuccess() {
         </h2>
 
         {/* Carousel controls */}
-        <div className="flex items-center justify-end gap-4 mb-4">
+        <div className="flex items-center justify-center gap-4 mb-4">
           <p className="text-[12px] font-black tracking-[0.2em]" style={{ color: OFF_WHITE }}>
             <span style={{ color: LIME }}>{String(index + 1).padStart(2, '0')}</span>
             {' / '}
