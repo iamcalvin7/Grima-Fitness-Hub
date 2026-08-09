@@ -440,7 +440,7 @@ function WallOfSuccess() {
         </div>
 
         {/* Card column — active result card (left on desktop) */}
-        <div className="mt-0 md:order-1">
+        <div className="mt-0 md:order-1 md:max-w-[420px] md:justify-self-center w-full">
         {[RESULTS[index]].map(({ key, name, tag, before, after, story, highlight }) => {
           const isOpen = openStory === key;
           return (
