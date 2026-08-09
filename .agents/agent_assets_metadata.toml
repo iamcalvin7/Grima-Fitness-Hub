@@ -5,8 +5,8 @@ generated = []
 id = "9GP8Y1-o8JiXMF9nEsLD6"
 uri = "file://artifacts/marcus-grima/public/og-image.jpg"
 type = "image"
-title = "Share image — with photo background"
-description = "Your real training photo behind the text, darkened so the lime and white stay readable."
+title = "Active share image"
+description = "The version with your training photo in the background — this is what shared links will show after you republish."
 
 [[outputs]]
 id = "62I7fI9abpjKkEYJTyr9A"
