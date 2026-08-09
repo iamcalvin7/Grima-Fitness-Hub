@@ -342,11 +342,12 @@ function WallOfSuccess() {
           Real people.<br />Unreal progress.
         </h2>
 
-        {/* Result cards */}
+        {/* Result cards — side by side */}
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
         {RESULTS.map(({ key, name, tag, before, after, story, highlight }) => {
           const isOpen = openStory === key;
           return (
-            <div key={key} className="rounded-2xl overflow-hidden mb-4 max-w-[280px] md:max-w-[320px] mx-auto" style={{ backgroundColor: '#1A1A1A' }}>
+            <div key={key} className="rounded-2xl overflow-hidden self-start" style={{ backgroundColor: '#1A1A1A' }}>
 
               {/* Before / After slider */}
               <BeforeAfterSlider before={before} after={after} />
@@ -390,6 +391,7 @@ function WallOfSuccess() {
             </div>
           );
         })}
+        </div>
 
       </div>
     </section>
