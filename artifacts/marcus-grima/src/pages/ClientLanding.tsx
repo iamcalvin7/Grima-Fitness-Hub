@@ -512,6 +512,7 @@ function FreeCTA() {
           <span style={{ color: 'rgba(0,0,0,0.38)' }}>NO COMMITMENT REQUIRED.</span>
         </p>
         <div className="md:text-center">
+        <div className="flex items-center md:justify-center gap-3">
         <a
           href={WHATSAPP_URL}
           target="_blank"
@@ -525,6 +526,17 @@ function FreeCTA() {
           OWN YOUR JOURNEY.
           <ArrowRight size={13} weight="bold" />
         </a>
+        <a
+          href="https://www.instagram.com/marcusgrima22/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Marcus Grima on Instagram"
+          className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-opacity duration-200 hover:opacity-80"
+          style={{ backgroundColor: BLACK }}
+        >
+          <InstagramLogo size={22} weight="regular" style={{ color: LIME }} />
+        </a>
+        </div>
         <p className="text-[12px] mt-3" style={{ color: 'rgba(0,0,0,0.6)' }}>
           Click to speak on WhatsApp
         </p>
