@@ -224,7 +224,7 @@ const RESULTS = [
   {
     key:    'peter',
     name:   'PETER BORG',
-    tag:    "Real progress isn't about quick fixes.\nIt's about becoming someone new.",
+    tag:    'Music producer, songwriter & guitarist.',
     before: '/peter-before.jpg',
     after:  '/peter-after.jpg',
     story: [
@@ -259,10 +259,10 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
   };
 
   return (
-    <div className="flex justify-center px-4 pt-4" style={{ backgroundColor: '#1A1A1A' }}>
+    <div style={{ backgroundColor: '#1A1A1A' }}>
       <div
         ref={containerRef}
-        className="relative w-full max-w-[420px] md:max-w-[480px] rounded-xl overflow-hidden select-none touch-none cursor-ew-resize"
+        className="relative w-full overflow-hidden select-none touch-none cursor-ew-resize"
         style={{ aspectRatio: '1122 / 1402' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
