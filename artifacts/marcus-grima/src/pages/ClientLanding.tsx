@@ -106,7 +106,10 @@ function Hero() {
             ))}
           </div>
 
-          <WAButton label="LET'S TALK ON WHATSAPP" />
+          <WAButton label="OWN YOUR JOURNEY." />
+          <p className="text-white/30 text-[11px] mt-3">
+            Click to speak on WhatsApp
+          </p>
 
         </div>
       </div>
@@ -147,15 +150,19 @@ function CoachingCards() {
       {/* Header */}
       <div className="text-center mb-9 md:mb-12">
         <h2
-          className="font-black tracking-tight leading-tight"
-          style={{ fontSize: 'clamp(1.6rem,5vw,2.8rem)', color: OFF_WHITE }}
+          className="font-black tracking-tight leading-tight uppercase"
+          style={{ fontSize: 'clamp(1.6rem,5vw,2.8rem)', color: LIME }}
         >
           On a mission to help you become stronger, healthier &amp; happier.
         </h2>
       </div>
 
       {/* Accordion cards */}
-      <div className="flex flex-col gap-2 max-w-xl mx-auto mb-10">
+      <div className="max-w-xl mx-auto mb-10">
+        <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: OFF_WHITE }}>
+          Personalised:
+        </p>
+        <div className="flex flex-col gap-2">
         {SERVICES.map(({ key, img, title, desc }) => {
           const isOpen = openKey === key;
           return (
@@ -198,6 +205,7 @@ function CoachingCards() {
             </div>
           );
         })}
+        </div>
       </div>
 
     </section>
