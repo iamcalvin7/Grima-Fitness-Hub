@@ -7,7 +7,6 @@ import React from 'react';
 import {
   WhatsappLogo, ArrowRight,
   Barbell, Brain, BookOpen,
-  ShieldStar, Users, MapPin,
 } from '@phosphor-icons/react';
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
@@ -191,90 +190,7 @@ function CoachingCards() {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   CREDIBILITY STRIP — 3 stats
-══════════════════════════════════════════════════════════════════════════ */
-const CREDS = [
-  { Icon: ShieldStar, strong: '10+ YEARS',        soft: 'Coaching Experience' },
-  { Icon: Users,      strong: 'CLIENTS ACROSS',   soft: 'Malta & Internationally' },
-  { Icon: MapPin,     strong: 'ONLINE & IN-PERSON', soft: 'Coaching that adapts to you' },
-];
 
-function CredibilityStrip() {
-  return (
-    <section className="bg-[#F4F8FB] py-7 px-3 md:py-9 md:px-10">
-      <div className="max-w-3xl mx-auto grid grid-cols-3 divide-x divide-slate-200">
-        {CREDS.map(({ Icon, strong, soft }) => (
-          <div key={strong} className="flex items-center gap-2 md:gap-3 px-2 md:px-6">
-            <Icon size={18} weight="regular" className="text-slate-400 shrink-0 hidden sm:block" />
-            <div>
-              <p className="text-[8px] md:text-[10px] font-black tracking-[0.08em] text-[#0F1D2E] uppercase leading-tight">
-                {strong}
-              </p>
-              <p className="text-[8px] md:text-[10px] text-slate-500 leading-tight mt-0.5">
-                {soft}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   PHILOSOPHY — Own Your Journey
-   Mobile: text content + background photo with overlay
-   Desktop: left text / right photo
-══════════════════════════════════════════════════════════════════════════ */
-function Philosophy() {
-  return (
-    <section className="relative bg-[#F0F5FA] overflow-hidden">
-      <div className="md:grid md:grid-cols-[55%_45%] md:min-h-[440px]">
-
-        {/* Text */}
-        <div className="relative z-10 px-5 py-12 md:px-14 md:py-16 flex flex-col justify-center">
-          <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-4"
-            style={{ color: BLUE }}>
-            My Philosophy
-          </p>
-          <h2 className="font-black text-[#0F1D2E] tracking-tight leading-[0.92] mb-4"
-            style={{ fontSize: 'clamp(2.4rem,6vw,3.8rem)' }}>
-            OWN YOUR<br />JOURNEY.
-          </h2>
-          <p className="text-[14px] text-slate-500 leading-relaxed mb-7 max-w-[260px]">
-            Your goals are yours.<br />
-            My role is to help you move towards them.
-          </p>
-          <WAButton label="TALK TO MARCUS" />
-        </div>
-
-        {/* Photo — right side on desktop, background on mobile */}
-        <div className="hidden md:block relative overflow-hidden">
-          <img
-            src="/marcus.png"
-            alt="Marcus Grima"
-            className="w-full h-full object-cover object-top"
-            draggable={false}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#F0F5FA] via-[#F0F5FA]/20 to-transparent" />
-        </div>
-
-      </div>
-
-      {/* Mobile: subtle Marcus photo strip below text */}
-      <div className="md:hidden">
-        <img
-          src="/marcus.png"
-          alt="Marcus Grima"
-          className="w-full object-cover object-top"
-          style={{ height: '180px' }}
-          draggable={false}
-        />
-      </div>
-    </section>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    FOOTER
@@ -301,8 +217,6 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
     <div className="bg-white min-h-screen overflow-x-hidden">
       <Hero />
       <CoachingCards />
-      <CredibilityStrip />
-      <Philosophy />
       <Footer />
     </div>
   );
