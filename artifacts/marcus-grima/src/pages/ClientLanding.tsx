@@ -224,16 +224,14 @@ function CoachingCards() {
 ══════════════════════════════════════════════════════════════════════════ */
 function FreeCTA() {
   return (
-    <section style={{ backgroundColor: LIME }} className="px-5 py-12 md:py-16 md:px-12">
+    <section style={{ backgroundColor: LIME }} className="px-5 py-8 md:py-10 md:px-12">
       <div className="max-w-xl">
         <p
           className="font-black tracking-tight leading-[0.92] mb-6"
           style={{ fontSize: 'clamp(1.8rem, 6vw, 3.2rem)', color: BLACK }}
         >
-          LET'S START WITH A FREE CONVERSATION ABOUT YOUR GOALS.
-        </p>
-        <p className="text-[14px] mb-8 font-medium" style={{ color: 'rgba(0,0,0,0.55)' }}>
-          No commitment required.
+          LET'S START WITH A FREE CONVERSATION ABOUT YOUR GOALS.{' '}
+          <span style={{ color: 'rgba(0,0,0,0.38)' }}>NO COMMITMENT REQUIRED.</span>
         </p>
         <a
           href={WHATSAPP_URL}
