@@ -1,0 +1,416 @@
+REDESIGN THE MARCUS GRIMA COACHING LANDING PAGE — MOBILE FIRST
+
+Goal:
+Redesign the existing Marcus Grima coaching landing page so it feels calmer, more premium, more credible, and more aligned with the new brand positioning.
+
+The current version is cleaner than before, but still feels too much like a conventional fitness landing page.
+
+The new direction should feel closer to a premium wellbeing / performance brand.
+
+Think:
+- calm
+- breathable
+- human
+- premium
+- credible
+- editorial
+- personal
+- minimal
+
+Not:
+- aggressive gym marketing
+- SaaS
+- sales funnel
+- dark bodybuilding aesthetic
+- feature-heavy
+- overly corporate
+- cluttered
+
+The supplied mockup/reference is the visual direction.
+
+IMPORTANT:
+Build MOBILE FIRST.
+
+The majority of traffic will come directly from Instagram, so the mobile experience is the primary experience.
+
+Desktop should expand elegantly from the mobile system, not the other way around.
+
+--------------------------------------------------
+BEFORE CHANGING ANYTHING
+--------------------------------------------------
+
+1. Locate the current Marcus coaching landing page and all components/styles it uses.
+2. Read the relevant files fully.
+3. Preserve the existing WhatsApp destination exactly.
+4. Reuse existing components where appropriate.
+5. Do not change auth, database, backend, routes, environment variables, API behaviour, or unrelated pages.
+6. Do not install new dependencies unless absolutely necessary.
+7. Do not publish.
+
+--------------------------------------------------
+CORE BRAND POSITIONING
+--------------------------------------------------
+
+Marcus is not the hero of the client's story.
+
+The client owns their goals and their life journey.
+
+Marcus provides the guidance, structure and support that helps them move towards those goals.
+
+Primary brand line:
+
+YOUR GOALS.
+MY GUIDANCE.
+
+Secondary philosophy:
+
+OWN YOUR JOURNEY.
+
+Marcus now represents three interconnected areas:
+
+Physical Training
+Mental Wellbeing
+Life Coaching
+
+The overall experience should communicate that Marcus is much more than someone who writes workout plans.
+
+--------------------------------------------------
+VISUAL DIRECTION
+--------------------------------------------------
+
+Move away from the current mostly black/white visual system for this landing page.
+
+Introduce a calm premium palette inspired by the reference:
+
+- warm white / very pale grey backgrounds
+- soft sky blue
+- muted blue-grey
+- deep navy / charcoal typography
+- natural photography
+- subtle translucent surfaces
+- green reserved primarily for WhatsApp / conversion actions
+
+The blue should create a feeling of:
+space
+air
+calm
+clarity
+wellbeing
+
+Do not make it look like a medical website or generic tech startup.
+
+Avoid bright saturated blue.
+
+Use soft, natural tones.
+
+--------------------------------------------------
+PHOTOGRAPHY
+--------------------------------------------------
+
+Photography should become a major part of the page.
+
+Marcus himself provides credibility.
+
+Use the existing Marcus photography available in the project wherever possible.
+
+Photography should feel:
+- premium
+- natural
+- cinematic
+- aspirational without looking staged
+- human
+
+Ideally show different sides of Marcus:
+
+1. Strong hero portrait
+2. Physical coaching/training
+3. Thoughtful / conversational / reflective moment
+4. Lifestyle / life coaching context
+
+Do not use generic stock photography if appropriate Marcus imagery already exists.
+
+Do not AI-generate new people.
+
+--------------------------------------------------
+MOBILE PAGE STRUCTURE
+--------------------------------------------------
+
+Keep the page SHORT.
+
+Target approximately 2–3 natural mobile scrolls.
+
+Do not build a long landing page.
+
+--------------------------------------------------
+SECTION 1 — HERO
+--------------------------------------------------
+
+The hero should be visually led by Marcus photography.
+
+Mobile structure:
+
+FULL-WIDTH MARCUS IMAGE
+then content directly beneath or partially overlapping depending on what works best.
+
+Eyebrow:
+MALTA · ONLINE & IN-PERSON
+
+Headline:
+YOUR GOALS.
+MY GUIDANCE.
+
+Supporting copy:
+Personalised coaching to help you become stronger, healthier & happier.
+
+Then show the three areas compactly:
+
+Physical Training
+Mental Wellbeing
+Life Coaching
+
+Do not use emoji here in the redesigned version.
+
+Use small clean line icons or simple typographic treatment consistent with the site's design system.
+
+Primary CTA:
+LET'S TALK ON WHATSAPP →
+
+Microcopy:
+Free introduction. No commitment.
+
+The CTA should use the existing WhatsApp destination.
+
+On mobile:
+- strong full-width CTA
+- generous touch target
+- no tiny buttons
+- no unnecessary sticky CTA obscuring content
+
+The hero should immediately answer:
+
+Who is Marcus?
+How can he help me?
+What should I do next?
+
+--------------------------------------------------
+SECTION 2 — COACHING BUILT AROUND YOU
+--------------------------------------------------
+
+Eyebrow:
+PERSONALISED COACHING
+
+Headline:
+COACHING BUILT AROUND YOU.
+
+Supporting line:
+Because your goals, your life and your starting point are different.
+
+Replace the current text-heavy numbered rows with THREE highly visual compact cards.
+
+Each card should use photography.
+
+CARD 1:
+TRAIN
+
+A physical plan built around you.
+
+CARD 2:
+THINK
+
+Guidance for confidence, mindset and mental wellbeing.
+
+CARD 3:
+LIVE
+
+Support beyond the gym, for the life you want to build.
+
+Mobile:
+Use either:
+- horizontal swipe cards
+OR
+- compact stacked photographic cards
+
+Choose whichever gives the cleanest mobile experience.
+
+Do not make each card excessively tall.
+
+The photography should carry much of the storytelling.
+
+--------------------------------------------------
+SECTION 3 — CREDIBILITY
+--------------------------------------------------
+
+Add one very restrained credibility strip.
+
+Do not invent any statistics.
+
+If verified data already exists in the project, it may be used.
+
+Potential examples ONLY if verified:
+
+10+ Years Coaching Experience
+Clients Across Malta & Internationally
+Online & In-Person
+
+If exact claims cannot be verified, use non-numerical proof instead:
+
+PERSONALISED COACHING
+DIRECT ACCESS TO MARCUS
+ONLINE & IN-PERSON
+
+This section should feel like supporting evidence, not advertising.
+
+Keep it compact.
+
+--------------------------------------------------
+SECTION 4 — FINAL BRAND MOMENT
+--------------------------------------------------
+
+Use another strong Marcus image.
+
+Eyebrow:
+MY PHILOSOPHY
+
+Headline:
+OWN YOUR JOURNEY.
+
+Copy:
+Your goals are yours.
+My role is to help you move towards them.
+
+CTA:
+TALK TO MARCUS →
+
+Use the same WhatsApp destination.
+
+This should feel like the emotional conclusion of the page rather than another sales block.
+
+--------------------------------------------------
+COPY PRINCIPLES
+--------------------------------------------------
+
+Keep copy extremely concise.
+
+Avoid:
+- long paragraphs
+- coaching clichés
+- aggressive motivation
+- “results not excuses”
+- “transform your life”
+- fake urgency
+- overexplaining
+- unnecessary features
+- generic performance jargon
+
+The page should feel like Marcus speaking directly to one person.
+
+--------------------------------------------------
+DESIGN DETAILS
+--------------------------------------------------
+
+Mobile first.
+
+Recommended principles:
+
+- 16–20px mobile body copy where appropriate
+- strong headline hierarchy
+- generous but controlled whitespace
+- max readable line length
+- rounded image/card corners
+- subtle translucent or frosted UI elements where useful
+- very light borders
+- soft shadows only if needed
+- avoid heavy card containers everywhere
+- avoid excessive icons
+- avoid visual noise
+
+Use whitespace and photography instead of adding UI.
+
+The page should feel breathable.
+
+--------------------------------------------------
+RESPONSIVE BEHAVIOUR
+--------------------------------------------------
+
+Build from mobile upwards.
+
+Check at minimum:
+
+375px
+390px
+430px
+768px
+desktop
+
+On mobile:
+- no horizontal scrolling
+- no clipped headlines
+- CTA remains easy to tap
+- cards stay readable
+- photography crops intentionally
+- text never overlays important parts of Marcus's face/body
+- no giant desktop spacing carried into mobile
+
+Desktop can become more editorial:
+- split layouts
+- larger photography
+- three cards side by side
+- wider credibility strip
+
+But maintain the same visual language.
+
+--------------------------------------------------
+WHAT TO REMOVE / REPLACE
+--------------------------------------------------
+
+Remove or replace:
+
+- the current white-only functional presentation
+- numbered feature rows
+- unnecessary repeated explanation
+- any remaining hard-performance messaging
+- multiple repetitive CTA areas
+- excessive borders
+- anything that makes the page look like SaaS
+- emoji-based service presentation
+- generic “Ready to start?” ending
+
+Do not reintroduce the old long landing page.
+
+--------------------------------------------------
+ACCESSIBILITY
+--------------------------------------------------
+
+Maintain WCAG AA contrast.
+
+Because we are introducing pale blue / grey backgrounds:
+
+- normal text minimum 4.5:1
+- large text minimum 3:1
+- UI controls minimum 3:1
+
+Do not use pale grey text that becomes difficult to read.
+
+Buttons must have clearly visible focus and hover states.
+
+--------------------------------------------------
+FINAL QA
+--------------------------------------------------
+
+After implementation:
+
+1. Run TypeScript/typecheck across the relevant workspace.
+2. Zero TypeScript errors.
+3. Confirm the WhatsApp links still use the existing destination.
+4. Check mobile at 375px, 390px and 430px.
+5. Check desktop.
+6. Confirm no horizontal overflow.
+7. Confirm image crops are intentional.
+8. Confirm WCAG AA contrast.
+9. Confirm no old landing-page sections remain hidden or duplicated.
+10. Confirm no unrelated routes/components were changed.
+11. Provide a concise list of files modified.
+
+Do not publish.
+
+Return the redesigned page for review first.

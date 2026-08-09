@@ -1,16 +1,29 @@
-import React from 'react';
-import { WhatsappLogo, ArrowRight } from '@phosphor-icons/react';
+/* ═══════════════════════════════════════════════════════════════════════════
+   ClientLanding — Marcus Grima coaching lead-gen page
+   Premium wellbeing / performance direction · Mobile-first
+═══════════════════════════════════════════════════════════════════════════ */
 
-/* ─── WhatsApp destination ───────────────────────────────────────────────── */
+import React from 'react';
+import {
+  WhatsappLogo, ArrowRight,
+  Barbell, Brain, BookOpen,
+  ShieldStar, UserCircle, Globe,
+} from '@phosphor-icons/react';
+
+/* ─── WhatsApp ───────────────────────────────────────────────────────────── */
 const WHATSAPP_NUMBER  = '35699767698';
 const WHATSAPP_MESSAGE = encodeURIComponent(
   "Hi Marcus, I'm interested in your coaching. Can we have a quick chat?"
 );
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;
 
-/* ─── CTA button ─────────────────────────────────────────────────────────── */
-function WAButton({ label = "LET'S TALK ON WHATSAPP", large = false }: {
-  label?: string; large?: boolean;
+/* ─── Shared components ──────────────────────────────────────────────────── */
+function WAButton({
+  label,
+  dark = false,
+}: {
+  label: string;
+  dark?: boolean;
 }) {
   return (
     <a
@@ -18,11 +31,12 @@ function WAButton({ label = "LET'S TALK ON WHATSAPP", large = false }: {
       target="_blank"
       rel="noopener noreferrer"
       className={`
-        inline-flex items-center justify-center gap-2.5
-        bg-[#25D366] hover:bg-[#1ebe5d] active:bg-[#18a852]
-        text-white font-black tracking-wide transition-colors duration-200
-        w-full sm:w-auto
-        ${large ? 'text-sm px-7 py-4' : 'text-sm px-6 py-3.5'}
+        inline-flex items-center justify-center gap-2.5 font-bold text-sm
+        tracking-wide transition-colors duration-200 px-6 py-4 w-full sm:w-auto
+        ${dark
+          ? 'bg-[#25D366] hover:bg-[#1ebe5d] text-white'
+          : 'bg-[#25D366] hover:bg-[#1ebe5d] text-white'
+        }
       `}
     >
       <WhatsappLogo size={18} weight="fill" />
@@ -33,122 +47,240 @@ function WAButton({ label = "LET'S TALK ON WHATSAPP", large = false }: {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   HERO PHOTO — full-width at the very top
-══════════════════════════════════════════════════════════════════════════ */
-function HeroPhoto() {
-  return (
-    <div className="w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-      <img
-        src="/hero.png"
-        alt="Marcus Grima — Personal Trainer"
-        className="w-full h-full object-cover object-top"
-        draggable={false}
-      />
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   INTRO — headline, pillars, primary CTA
+   SECTION 1 — HERO
+   Mobile:  photo at top → copy below on sky-blue bg
+   Desktop: side-by-side, copy left / photo right
 ══════════════════════════════════════════════════════════════════════════ */
 const PILLARS = [
-  { emoji: '💪', label: 'Physical Training' },
-  { emoji: '🧠', label: 'Mental Wellbeing' },
-  { emoji: '📚', label: 'Life Coaching' },
+  { Icon: Barbell,  label: 'Physical Training' },
+  { Icon: Brain,    label: 'Mental Wellbeing' },
+  { Icon: BookOpen, label: 'Life Coaching' },
 ];
 
-function Intro() {
+function Hero() {
   return (
-    <section className="px-5 pt-8 pb-10 max-w-lg">
-      {/* Brand eyebrow */}
-      <p className="text-[10px] font-black tracking-[0.35em] text-neutral-400 uppercase mb-5">
-        Malta · Online &amp; In-Person
-      </p>
+    <section className="bg-[#EBF3FB] overflow-hidden">
+      <div className="md:grid md:grid-cols-[55%_45%] md:min-h-[600px]">
 
-      <h1 className="text-[clamp(2.2rem,8vw,3.8rem)] font-black tracking-tight text-neutral-900 leading-[0.95] mb-4">
-        YOUR GOALS.<br />
-        MY GUIDANCE.
-      </h1>
-
-      <p className="text-[15px] text-neutral-500 leading-relaxed mb-7 max-w-xs">
-        Personalised coaching to help you become stronger, healthier &amp; happier.
-      </p>
-
-      {/* Three pillars — compact inline row */}
-      <div className="flex flex-wrap gap-x-5 gap-y-2 mb-8">
-        {PILLARS.map(({ emoji, label }) => (
-          <span
-            key={label}
-            className="text-[11px] font-semibold text-neutral-500 tracking-wide"
+        {/* PHOTO ── mobile: first (top) / desktop: second (right) */}
+        <div className="order-first md:order-last md:relative">
+          <div
+            className="w-full overflow-hidden"
+            style={{ aspectRatio: '4/3' }}
           >
-            {emoji}&nbsp;&nbsp;{label}
-          </span>
-        ))}
+            <img
+              src="/hero.png"
+              alt="Marcus Grima — Performance Coach"
+              className="w-full h-full object-cover object-top md:absolute md:inset-0 md:h-full md:w-full"
+              draggable={false}
+            />
+          </div>
+        </div>
+
+        {/* COPY ── mobile: second (below photo) / desktop: first (left) */}
+        <div className="order-last md:order-first flex flex-col justify-center px-5 py-9 md:px-14 md:py-16">
+          <p className="text-[10px] font-black tracking-[0.32em] text-slate-500 uppercase mb-5">
+            Malta · Online &amp; In-Person
+          </p>
+
+          <h1 className="text-[clamp(2.4rem,7vw,4rem)] font-black tracking-tight text-[#0F1D2E] leading-[0.93] mb-4">
+            YOUR GOALS.<br />
+            MY GUIDANCE.
+          </h1>
+
+          <p className="text-[15px] text-slate-500 leading-relaxed mb-7 max-w-xs">
+            Personalised coaching to help you become stronger, healthier &amp; happier.
+          </p>
+
+          {/* Pillar card ── frosted white */}
+          <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-4 mb-8 shadow-sm max-w-xs">
+            {PILLARS.map(({ Icon, label }) => (
+              <div key={label} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b border-slate-100">
+                <div className="w-7 h-7 rounded-full bg-[#EBF3FB] flex items-center justify-center shrink-0">
+                  <Icon size={14} weight="regular" className="text-slate-600" />
+                </div>
+                <span className="text-[11px] font-bold tracking-[0.15em] text-slate-700 uppercase">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <WAButton label="LET'S TALK ON WHATSAPP" />
+          <p className="text-[11px] text-slate-400 mt-3">
+            Free introduction. No commitment.
+          </p>
+        </div>
+
       </div>
-
-      <WAButton large />
-
-      <p className="text-[11px] text-neutral-400 mt-3">
-        Free introduction. No commitment.
-      </p>
     </section>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   BUILT AROUND YOU — three compact benefit rows
+   SECTION 2 — COACHING BUILT AROUND YOU
+   Mobile:  horizontal swipe cards (snap scroll)
+   Desktop: 3-column grid
 ══════════════════════════════════════════════════════════════════════════ */
-const BENEFITS = [
+const CARDS = [
   {
-    n: '01',
-    title: 'A PLAN FOR YOU',
-    desc: 'Training built around your goals, lifestyle and ability — not a generic programme.',
+    key:   'train',
+    photo: '/hero.png',
+    crop:  'object-center',
+    tag:   'TRAIN',
+    title: 'A physical plan built around you.',
   },
   {
-    n: '02',
-    title: 'MARCUS IN YOUR CORNER',
-    desc: 'Personal guidance, honest feedback and accountability from your coach directly.',
+    key:   'think',
+    photo: '/mindset-today.png',
+    crop:  'object-center',
+    tag:   'THINK',
+    title: 'Guidance for confidence, mindset and mental wellbeing.',
   },
   {
-    n: '03',
-    title: 'MORE THAN TRAINING',
-    desc: 'Support for your physical health, mindset, and the life that surrounds it.',
+    key:   'live',
+    photo: '/team-amy.jpg',
+    crop:  'object-top',
+    tag:   'LIVE',
+    title: 'Support beyond the gym, for the life you want to build.',
   },
 ];
 
-function BuiltAroundYou() {
+function CoachingCards() {
   return (
-    <section className="bg-[#F7F6F4] px-5 py-12">
-      <div className="max-w-lg">
-        <p className="text-[10px] font-black tracking-[0.35em] text-neutral-400 uppercase mb-4">
+    <section className="bg-white py-12 md:py-16">
+      {/* Header */}
+      <div className="px-5 md:px-10 mb-8 md:text-center">
+        <p className="text-[10px] font-black tracking-[0.32em] text-slate-400 uppercase mb-3">
           Personalised Coaching
         </p>
-        <h2 className="text-2xl font-black text-neutral-900 tracking-tight leading-tight mb-1">
-          BUILT AROUND YOU.
+        <h2 className="text-2xl md:text-3xl font-black text-[#0F1D2E] tracking-tight leading-tight mb-2">
+          COACHING BUILT AROUND YOU.
         </h2>
-        <p className="text-sm text-neutral-400 mb-8">
-          No templates. No one-size-fits-all plans.
+        <p className="text-sm text-slate-500">
+          Because your goals, your life and your starting point are different.
         </p>
+      </div>
 
-        <div className="border-t border-neutral-200">
-          {BENEFITS.map((b) => (
-            <div
-              key={b.n}
-              className="border-b border-neutral-200 py-5 flex gap-5 items-start"
-            >
-              <span className="text-[10px] font-black text-neutral-300 tracking-widest mt-0.5 shrink-0 w-5">
-                {b.n}
-              </span>
-              <div>
-                <p className="text-[10px] font-black tracking-[0.2em] text-neutral-800 uppercase mb-1">
-                  {b.title}
-                </p>
-                <p className="text-sm text-neutral-500 leading-relaxed">
-                  {b.desc}
-                </p>
+      {/* Cards — horizontal scroll on mobile, grid on desktop */}
+      <div
+        className="flex gap-3 px-5 pb-2 overflow-x-auto snap-x snap-mandatory
+                   md:grid md:grid-cols-3 md:gap-5 md:px-10 md:overflow-visible
+                   scrollbar-hide"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {CARDS.map(({ key, photo, crop, tag, title }) => (
+          <div
+            key={key}
+            className="relative flex-none w-[78vw] sm:w-[55vw] md:w-auto
+                       rounded-2xl overflow-hidden snap-start
+                       shadow-sm"
+            style={{ aspectRatio: '3/4' }}
+          >
+            <img
+              src={photo}
+              alt={tag}
+              className={`absolute inset-0 w-full h-full object-cover ${crop}`}
+              draggable={false}
+            />
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+            {/* Label + copy */}
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-black tracking-[0.28em] text-white/70 uppercase">
+                  {tag}
+                </span>
               </div>
+              <p className="text-[14px] font-semibold text-white leading-snug">
+                {title}
+              </p>
             </div>
-          ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTION 3 — CREDIBILITY STRIP
+══════════════════════════════════════════════════════════════════════════ */
+const CREDS = [
+  { Icon: ShieldStar,  label: 'Personalised Coaching' },
+  { Icon: UserCircle,  label: 'Direct Access to Marcus' },
+  { Icon: Globe,       label: 'Online & In-Person' },
+];
+
+function CredibilityStrip() {
+  return (
+    <section className="bg-[#F0F6FB] py-10 px-5 md:px-10">
+      <div className="max-w-2xl mx-auto grid grid-cols-3 gap-4 md:gap-8">
+        {CREDS.map(({ Icon, label }, i) => (
+          <React.Fragment key={label}>
+            <div className="flex flex-col items-center text-center gap-2">
+              <Icon size={20} weight="regular" className="text-slate-500" />
+              <p className="text-[10px] md:text-xs font-bold tracking-[0.12em] text-slate-600 uppercase leading-snug">
+                {label}
+              </p>
+            </div>
+            {i < CREDS.length - 1 && (
+              <div className="hidden" aria-hidden />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTION 4 — PHILOSOPHY / OWN YOUR JOURNEY
+   Dark navy with Marcus photo, emotional close + WhatsApp CTA
+══════════════════════════════════════════════════════════════════════════ */
+function Philosophy() {
+  return (
+    <section className="relative bg-[#111E2D] overflow-hidden">
+      {/* Background photo with strong dark overlay */}
+      <div className="absolute inset-0">
+        <img
+          src="/marcus.png"
+          alt=""
+          aria-hidden
+          className="w-full h-full object-cover object-top opacity-30"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#111E2D]/95 via-[#111E2D]/80 to-[#111E2D]/50" />
+      </div>
+
+      {/* Desktop: two-column layout */}
+      <div className="relative md:grid md:grid-cols-[1fr_auto] md:items-center max-w-4xl mx-auto">
+        {/* Content */}
+        <div className="px-5 py-14 md:px-14 md:py-20">
+          <p className="text-[10px] font-black tracking-[0.32em] text-white/40 uppercase mb-5">
+            My Philosophy
+          </p>
+          <h2 className="text-[clamp(2.2rem,6vw,3.5rem)] font-black tracking-tight text-white leading-[0.95] mb-5">
+            OWN YOUR<br />JOURNEY.
+          </h2>
+          <p className="text-[15px] text-white/60 leading-relaxed mb-8 max-w-xs">
+            Your goals are yours.<br />
+            My role is to help you move towards them.
+          </p>
+          <WAButton label="TALK TO MARCUS" dark />
+        </div>
+
+        {/* Desktop photo panel */}
+        <div className="hidden md:block w-72 h-full relative">
+          <img
+            src="/hero.png"
+            alt="Marcus Grima"
+            className="h-full w-full object-cover object-top opacity-60"
+            style={{ minHeight: '400px' }}
+            draggable={false}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#111E2D] to-transparent" />
         </div>
       </div>
     </section>
@@ -156,34 +288,12 @@ function BuiltAroundYou() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   CLOSING CTA
-══════════════════════════════════════════════════════════════════════════ */
-function ClosingCTA() {
-  return (
-    <section className="px-5 py-12">
-      <div className="max-w-lg">
-        <h2 className="text-2xl font-black text-neutral-900 tracking-tight mb-2">
-          Ready to start?
-        </h2>
-        <p className="text-sm text-neutral-500 mb-7 max-w-xs leading-relaxed">
-          Send Marcus a message. The first conversation is free and there's no obligation.
-        </p>
-        <WAButton label="MESSAGE MARCUS" />
-        <p className="text-[11px] text-neutral-400 mt-3">
-          Typically replies within a few hours.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   FOOTER — minimal, no navigation
+   FOOTER — no navigation, text only
 ══════════════════════════════════════════════════════════════════════════ */
 function Footer() {
   return (
-    <footer className="border-t border-neutral-100 px-5 py-5">
-      <p className="text-[10px] text-neutral-300 tracking-widest uppercase">
+    <footer className="bg-[#0D1824] px-5 py-5">
+      <p className="text-[10px] text-white/20 tracking-[0.25em] uppercase">
         Marcus Grima · Performance Coach · Malta
       </p>
     </footer>
@@ -195,11 +305,11 @@ function Footer() {
 ══════════════════════════════════════════════════════════════════════════ */
 export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void }) {
   return (
-    <div className="bg-white min-h-screen text-neutral-900 overflow-x-hidden">
-      <HeroPhoto />
-      <Intro />
-      <BuiltAroundYou />
-      <ClosingCTA />
+    <div className="bg-white min-h-screen overflow-x-hidden">
+      <Hero />
+      <CoachingCards />
+      <CredibilityStrip />
+      <Philosophy />
       <Footer />
     </div>
   );
