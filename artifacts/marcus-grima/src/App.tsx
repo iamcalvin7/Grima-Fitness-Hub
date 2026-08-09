@@ -51,8 +51,11 @@ function readModal(): Modal {
   return null;
 }
 
-function hasJoinParam(): boolean {
-  return new URLSearchParams(window.location.search).has('join');
+function isJoinEntry(): boolean {
+  return (
+    new URLSearchParams(window.location.search).has('join') ||
+    window.location.pathname === '/join'
+  );
 }
 
 function clearQueryParams() {
@@ -74,8 +77,10 @@ function App() {
   const [enteredApp,   setEnteredApp]   = useState(false);
   const [authResolved, setAuthResolved] = useState(false);
 
-  /* Lead page: shown to unauthenticated visitors arriving via ?join */
-  const [showLeadPage, setShowLeadPage] = useState(() => hasJoinParam());
+  /* Lead page: shown to unauthenticated visitors arriving via ?join or /join */
+  const isLead = isJoinEntry();
+  const [showLeadPage, setShowLeadPage] = useState(() => isLead);
+  // Skip the splash screen entirely for lead-page visitors
 
   /* Modal driven by query params (?reset=, ?verify=, ?oauth=success …) */
   const [modal, setModal] = useState<Modal>(null);
@@ -114,7 +119,7 @@ function App() {
   };
 
   /* Keep splash up until session + profile resolve. */
-  if (showSplash || isLoading || (isAuthenticated && isProfileLoading)) {
+  if (!isLead && (showSplash || isLoading || (isAuthenticated && isProfileLoading))) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 

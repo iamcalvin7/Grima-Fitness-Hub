@@ -6,7 +6,7 @@ import {
 } from '@phosphor-icons/react';
 
 /* ── Update this with Marcus's real WhatsApp number (include country code, no +) ── */
-const WHATSAPP_NUMBER = '35699000000'; // e.g. 35699123456 for Malta (+356 99 123 456)
+const WHATSAPP_NUMBER = '35699767698';
 const WHATSAPP_MESSAGE = encodeURIComponent(
   "Hi Marcus, I'm interested in your coaching. Can we have a quick chat?"
 );
