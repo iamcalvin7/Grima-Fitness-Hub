@@ -94,8 +94,8 @@ function Hero() {
             className="font-black tracking-tight leading-[0.9] mb-4"
             style={{ fontSize: 'clamp(2.8rem, 9vw, 5rem)', color: OFF_WHITE }}
           >
-            YOUR GOALS.<br />
-            MY GUIDANCE.
+            <span className="md:whitespace-nowrap">YOUR GOALS.</span><br />
+            <span className="md:whitespace-nowrap">MY GUIDANCE.</span>
           </h1>
 
           <p className="text-white/70 text-[13px] leading-relaxed mb-6 max-w-[260px]">
@@ -409,7 +409,8 @@ function WallOfSuccess() {
           className="font-black tracking-tight leading-[0.9] mb-8 uppercase"
           style={{ fontSize: 'clamp(2rem,7vw,3.6rem)', color: OFF_WHITE }}
         >
-          Real people.<br />Unreal progress.
+          <span className="md:whitespace-nowrap">Real people.</span><br />
+          <span className="md:whitespace-nowrap">Unreal progress.</span>
         </h2>
 
         {/* Carousel controls */}
