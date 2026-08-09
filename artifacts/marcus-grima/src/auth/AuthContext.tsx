@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiRequest, ApiError } from '@/lib/api';
+import { LANDING_ONLY } from '@/config';
 
 /** Public user shape returned by the API. */
 export interface AuthUser {
@@ -210,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Public lead-gen landing (/join or ?join): skip the auth probe entirely —
     // visitors never need a session there and the 401 pollutes the console.
     const isPublicLanding =
+      LANDING_ONLY ||
       window.location.pathname === '/ownyourjourney' ||
       new URLSearchParams(window.location.search).has('join');
     if (isPublicLanding) {

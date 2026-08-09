@@ -24,6 +24,7 @@ import { VerifyEmailHandler } from '@/pages/VerifyEmailHandler';
 import { OAuthCallback }      from '@/pages/OAuthCallback';
 import { Layout }             from '@/components/Layout';
 import { useAuth } from '@/auth/AuthContext';
+import { LANDING_ONLY } from '@/config';
 
 export type Page =
   | 'home' | 'sessions' | 'workouts' | 'meals' | 'messages'
@@ -63,6 +64,14 @@ function clearQueryParams() {
 }
 
 function App() {
+  /* Landing-only mode: the whole site is the landing page — no login, no app. */
+  if (LANDING_ONLY) {
+    return <ClientLanding onSignIn={() => {}} />;
+  }
+  return <FullApp />;
+}
+
+function FullApp() {
   const { isLoading, isAuthenticated, isProfileLoading, profile, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
   const [activePage,    setActivePage]    = useState<Page>('home');
