@@ -228,12 +228,13 @@ const RESULTS = [
     before: '/peter-before.jpg',
     after:  '/peter-after.jpg',
     story: [
-      'Most people want to change their body without changing anything about how they actually live. That doesn\'t work.',
-      'Peter didn\'t just start training harder. He changed the habits, mindset and choices that had been keeping him where he was.',
-      'There\'s a version of you that got you to where you are right now. That same version cannot always get you to where you want to be. Real progress isn\'t just about motivation or a new programme. Sometimes it means being honest about what needs to change.',
-      'That\'s uncomfortable. Most people make changes for a few weeks and eventually drift back because the habits underneath never changed.',
+      'Most people want to change their body without changing anything about how they actually live.',
+      'That doesn\u2019t work.',
+      'This guy didn\u2019t just start training harder. He genuinely stopped being the person he was before \u2014 the habits, the mindset, the way he spent his time, the way he thought about himself. All of it had to go.',
+      'There\u2019s a version of you that got you to where you are right now. And that same version of you cannot get you to where you want to be. It\u2019s not about motivation or a new program. It\u2019s about being honest enough to admit that who you\u2019ve been isn\u2019t who you need to be.',
+      'That\u2019s uncomfortable. Most people won\u2019t do it. They\u2019ll change their diet for a few weeks, go to the gym for a month, and then drift back - because deep down they never actually let go of the old identity.',
     ],
-    highlight: 'Peter did.',
+    highlight: 'He did.',
   },
 ];
 
@@ -261,8 +262,8 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
     <div className="flex justify-center px-4 pt-4" style={{ backgroundColor: '#1A1A1A' }}>
       <div
         ref={containerRef}
-        className="relative w-full max-w-[300px] md:max-w-[340px] rounded-xl overflow-hidden select-none touch-none cursor-ew-resize"
-        style={{ aspectRatio: '0.49' }}
+        className="relative w-full max-w-[420px] md:max-w-[480px] rounded-xl overflow-hidden select-none touch-none cursor-ew-resize"
+        style={{ aspectRatio: '1122 / 1402' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
       >
