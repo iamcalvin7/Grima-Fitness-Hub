@@ -31,11 +31,9 @@ function WAButton({
       rel="noopener noreferrer"
       className={`
         inline-flex items-center justify-center gap-2.5 font-bold text-sm
-        tracking-wide transition-colors duration-200 px-6 py-4 w-full sm:w-auto
-        ${dark
-          ? 'bg-[#25D366] hover:bg-[#1ebe5d] text-white'
-          : 'bg-[#25D366] hover:bg-[#1ebe5d] text-white'
-        }
+        tracking-wide transition-colors duration-200 px-6 py-3.5 w-full sm:w-auto
+        rounded-full
+        bg-[#25D366] hover:bg-[#1ebe5d] text-white
       `}
     >
       <WhatsappLogo size={18} weight="fill" />
@@ -77,28 +75,28 @@ function Hero() {
         </div>
 
         {/* COPY ── mobile: second (below photo) / desktop: first (left) */}
-        <div className="order-last md:order-first flex flex-col justify-center px-5 py-9 md:px-14 md:py-16">
-          <p className="text-[10px] font-black tracking-[0.32em] text-slate-500 uppercase mb-5">
+        <div className="order-last md:order-first flex flex-col justify-center px-5 py-6 md:px-14 md:py-12">
+          <p className="text-[10px] font-black tracking-[0.32em] text-slate-500 uppercase mb-3">
             Malta · Online &amp; In-Person
           </p>
 
-          <h1 className="text-[clamp(2.4rem,7vw,4rem)] font-black tracking-tight text-[#0F1D2E] leading-[0.93] mb-4">
+          <h1 className="text-[clamp(2.2rem,7vw,4rem)] font-black tracking-tight text-[#0F1D2E] leading-[0.93] mb-3">
             YOUR GOALS.<br />
             MY GUIDANCE.
           </h1>
 
-          <p className="text-[15px] text-slate-500 leading-relaxed mb-7 max-w-xs">
+          <p className="text-[14px] text-slate-500 leading-relaxed mb-4 max-w-xs">
             Personalised coaching to help you become stronger, healthier &amp; happier.
           </p>
 
           {/* Pillar card ── frosted white */}
-          <div className="bg-white/80 backdrop-blur-sm border border-white/60 p-4 mb-8 shadow-sm max-w-xs">
+          <div className="bg-white/80 backdrop-blur-sm border border-white/60 p-3 mb-4 shadow-sm max-w-xs">
             {PILLARS.map(({ Icon, label }) => (
-              <div key={label} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b border-slate-100">
-                <div className="w-7 h-7 rounded-full bg-[#EBF3FB] flex items-center justify-center shrink-0">
-                  <Icon size={14} weight="regular" className="text-slate-600" />
+              <div key={label} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b border-slate-100">
+                <div className="w-6 h-6 rounded-full bg-[#EBF3FB] flex items-center justify-center shrink-0">
+                  <Icon size={12} weight="regular" className="text-slate-600" />
                 </div>
-                <span className="text-[11px] font-bold tracking-[0.15em] text-slate-700 uppercase">
+                <span className="text-[10px] font-bold tracking-[0.15em] text-slate-700 uppercase">
                   {label}
                 </span>
               </div>
@@ -106,7 +104,7 @@ function Hero() {
           </div>
 
           <WAButton label="LET'S TALK ON WHATSAPP" />
-          <p className="text-[11px] text-slate-400 mt-3">
+          <p className="text-[11px] text-slate-400 mt-2">
             Free introduction. No commitment.
           </p>
         </div>
