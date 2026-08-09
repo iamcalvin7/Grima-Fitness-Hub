@@ -219,7 +219,7 @@ function CoachingCards() {
 ══════════════════════════════════════════════════════════════════════════ */
 function Footer() {
   return (
-    <footer style={{ backgroundColor: BLACK }} className="px-5 pt-4 pb-4 overflow-hidden">
+    <footer style={{ backgroundColor: BLACK, borderTop: '1px solid rgba(255,255,255,0.12)' }} className="px-5 pt-4 pb-4 overflow-hidden">
       <p
         className="font-black leading-tight tracking-tight uppercase select-none mb-3"
         style={{ fontSize: 'clamp(1.4rem, 5.5vw, 2.8rem)', color: LIME, opacity: 0.6 }}
