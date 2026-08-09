@@ -111,10 +111,12 @@ function Hero() {
             ))}
           </div>
 
-          <WAButton label="OWN YOUR JOURNEY." />
-          <p className="text-white/30 text-[11px] mt-3">
-            Click to speak on WhatsApp
-          </p>
+          <div className="flex flex-col items-center text-center">
+            <WAButton label="OWN YOUR JOURNEY." />
+            <p className="text-white/30 text-[11px] mt-3">
+              Click to speak on WhatsApp
+            </p>
+          </div>
 
         </div>
       </div>
