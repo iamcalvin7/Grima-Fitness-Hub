@@ -438,7 +438,7 @@ function WallOfSuccess() {
 ══════════════════════════════════════════════════════════════════════════ */
 function FreeCTA() {
   return (
-    <section style={{ backgroundColor: LIME }} className="px-5 py-8 md:py-10 md:px-12">
+    <section style={{ backgroundColor: LIME }} className="px-5 py-12 md:py-16 md:px-12">
       <div className="max-w-xl">
         <p
           className="font-black tracking-tight leading-[0.92] mb-6"
