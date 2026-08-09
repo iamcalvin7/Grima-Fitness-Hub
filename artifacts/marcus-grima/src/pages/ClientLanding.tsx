@@ -210,17 +210,6 @@ function CoachingCards() {
         })}
       </div>
 
-      {/* Brand callout */}
-      <div className="text-center">
-        <div className="w-1.5 h-1.5 rounded-full mx-auto mb-4" style={{ backgroundColor: LIME }} />
-        <p className="text-[10px] font-black tracking-[0.28em] uppercase mb-1" style={{ color: LIME }}>
-          Your goals, my guidance.
-        </p>
-        <p className="text-[15px] font-black tracking-tight" style={{ color: OFF_WHITE }}>
-          OWN YOUR JOURNEY.
-        </p>
-      </div>
-
     </section>
   );
 }
