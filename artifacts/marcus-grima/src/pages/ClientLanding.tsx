@@ -57,7 +57,7 @@ function Hero() {
       {/* Background photo + overlay */}
       <div className="absolute inset-0">
         <img
-          src="/hero.png"
+          src="/hero.jpg"
           alt="Marcus Grima — Performance Coach"
           className="w-full h-full object-cover object-top"
           draggable={false}
@@ -89,7 +89,7 @@ function Hero() {
             MY GUIDANCE.
           </h1>
 
-          <p className="text-white/60 text-[13px] leading-relaxed mb-6 max-w-[260px]">
+          <p className="text-white/70 text-[13px] leading-relaxed mb-6 max-w-[260px]">
             Personalised coaching to help you become stronger,
             healthier &amp; happier.
           </p>
@@ -97,14 +97,19 @@ function Hero() {
           {/* Pillars — lime icons */}
           <div className="flex flex-wrap gap-x-4 gap-y-2 mb-7">
             {PILLARS.map(({ img, label }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <img
-                  src={img}
-                  alt={label}
-                  className="w-5 h-5 object-contain shrink-0"
-                  draggable={false}
-                />
-                <span className="text-[11px] font-semibold" style={{ color: LIME }}>
+              <div key={label} className="flex items-center gap-2">
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: OFF_WHITE }}
+                >
+                  <img
+                    src={img}
+                    alt=""
+                    className="w-4 h-4 object-contain"
+                    draggable={false}
+                  />
+                </span>
+                <span className="text-[12px] font-semibold" style={{ color: LIME }}>
                   {label}
                 </span>
               </div>
@@ -113,7 +118,7 @@ function Hero() {
 
           <div className="flex flex-col items-center text-center">
             <WAButton label="OWN YOUR JOURNEY." />
-            <p className="text-white/30 text-[11px] mt-3">
+            <p className="text-white/60 text-[12px] mt-3">
               Click to speak on WhatsApp
             </p>
           </div>
@@ -181,7 +186,9 @@ function CoachingCards() {
               {/* Row — always visible, tap to toggle */}
               <button
                 onClick={() => setOpenKey(isOpen ? null : key)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left"
+                className="w-full flex items-center justify-between px-5 py-4 text-left min-h-[44px]"
+                aria-expanded={isOpen}
+                aria-controls={`service-desc-${key}`}
               >
                 <div className="flex items-center gap-3">
                   <img
@@ -202,9 +209,9 @@ function CoachingCards() {
 
               {/* Expandable description */}
               {isOpen && (
-                <div className="px-5 pb-5 pt-0">
+                <div className="px-5 pb-5 pt-0" id={`service-desc-${key}`}>
                   <div className="w-5 h-[2px] rounded-full mb-3" style={{ backgroundColor: LIME }} />
-                  <p className="text-[13px] leading-relaxed" style={{ color: '#555' }}>
+                  <p className="text-[13px] leading-relaxed" style={{ color: '#444' }}>
                     {desc}
                   </p>
                 </div>
@@ -274,15 +281,33 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
   const onPointerMove = (e: React.PointerEvent) => {
     if (e.buttons > 0 || e.pointerType === 'touch') updateFromClientX(e.clientX);
   };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault(); setPos((p) => Math.max(0, p - 5));
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault(); setPos((p) => Math.min(100, p + 5));
+    } else if (e.key === 'Home') {
+      e.preventDefault(); setPos(0);
+    } else if (e.key === 'End') {
+      e.preventDefault(); setPos(100);
+    }
+  };
 
   return (
     <div style={{ backgroundColor: '#1A1A1A' }}>
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden select-none touch-none cursor-ew-resize"
-        style={{ aspectRatio: '1122 / 1402' }}
+        className="relative w-full overflow-hidden select-none touch-none cursor-ew-resize focus:outline-none focus-visible:ring-2"
+        style={{ aspectRatio: '1122 / 1402', ['--tw-ring-color' as string]: LIME }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
+        onKeyDown={onKeyDown}
+        tabIndex={0}
+        role="slider"
+        aria-label="Before and after comparison slider"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(pos)}
       >
         {/* After — base layer */}
         <img
@@ -364,7 +389,7 @@ function WallOfSuccess() {
           <button
             onClick={prev}
             aria-label="Previous client"
-            className="w-9 h-9 rounded-full border flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
+            className="w-11 h-11 rounded-full border flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
             style={{ borderColor: LIME, color: LIME }}
           >
             <ArrowRight size={14} weight="bold" style={{ transform: 'rotate(180deg)' }} />
@@ -372,7 +397,7 @@ function WallOfSuccess() {
           <button
             onClick={next}
             aria-label="Next client"
-            className="w-9 h-9 rounded-full border flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
+            className="w-11 h-11 rounded-full border flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
             style={{ borderColor: LIME, color: LIME }}
           >
             <ArrowRight size={14} weight="bold" />
@@ -394,15 +419,17 @@ function WallOfSuccess() {
                   <p className="text-[13px] font-black tracking-[0.1em] uppercase mb-1" style={{ color: OFF_WHITE }}>
                     {name}
                   </p>
-                  <p className="text-[12px] leading-snug" style={{ color: 'rgba(255,255,255,0.4)', whiteSpace: 'pre-line' }}>
+                  <p className="text-[12px] leading-snug" style={{ color: 'rgba(255,255,255,0.55)', whiteSpace: 'pre-line' }}>
                     {tag}
                   </p>
                 </div>
                 {story.length > 0 && (
                 <button
                   onClick={() => setOpenStory(isOpen ? null : key)}
-                  className="shrink-0 flex items-center gap-2 border rounded-full px-4 py-2 text-[10px] font-black tracking-[0.14em] uppercase transition-opacity duration-200 hover:opacity-70"
+                  className="shrink-0 flex items-center gap-2 border rounded-full px-4 py-2.5 min-h-[44px] text-[11px] font-black tracking-[0.14em] uppercase transition-opacity duration-200 hover:opacity-70"
                   style={{ borderColor: LIME, color: LIME }}
+                  aria-expanded={isOpen}
+                  aria-controls={`story-${key}`}
                 >
                   {isOpen ? 'CLOSE' : "READ STORY"}
                   {isOpen ? <Minus size={10} weight="bold" /> : <Plus size={10} weight="bold" />}
@@ -412,11 +439,11 @@ function WallOfSuccess() {
 
               {/* Expandable story */}
               {isOpen && (
-                <div className="px-5 pb-6">
+                <div className="px-5 pb-6" id={`story-${key}`}>
                   <div className="w-5 h-[2px] rounded-full mb-4" style={{ backgroundColor: LIME }} />
                   <p className="text-[28px] font-black leading-none mb-4" style={{ color: LIME }}>"</p>
                   {story.map((para, i) => (
-                    <p key={i} className="text-[13px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    <p key={i} className="text-[13px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>
                       {para}
                     </p>
                   ))}
@@ -460,7 +487,7 @@ function FreeCTA() {
           OWN YOUR JOURNEY.
           <ArrowRight size={13} weight="bold" />
         </a>
-        <p className="text-[11px] mt-3" style={{ color: 'rgba(0,0,0,0.45)' }}>
+        <p className="text-[12px] mt-3" style={{ color: 'rgba(0,0,0,0.6)' }}>
           Click to speak on WhatsApp
         </p>
       </div>

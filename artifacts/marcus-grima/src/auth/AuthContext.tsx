@@ -207,6 +207,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('mg_auth');
     localStorage.removeItem('mg_users');
 
+    // Public lead-gen landing (/join or ?join): skip the auth probe entirely —
+    // visitors never need a session there and the 401 pollutes the console.
+    const isPublicLanding =
+      window.location.pathname === '/join' ||
+      new URLSearchParams(window.location.search).has('join');
+    if (isPublicLanding) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {
