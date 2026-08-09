@@ -237,6 +237,83 @@ const RESULTS = [
   },
 ];
 
+function BeforeAfterSlider({ before, after }: { before: string; after: string }) {
+  const [pos, setPos] = useState(50); // percentage revealed from the left (before side)
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const updateFromClientX = (clientX: number) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const pct = ((clientX - rect.left) / rect.width) * 100;
+    setPos(Math.min(100, Math.max(0, pct)));
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    updateFromClientX(e.clientX);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (e.buttons > 0 || e.pointerType === 'touch') updateFromClientX(e.clientX);
+  };
+
+  return (
+    <div className="flex justify-center px-4 pt-4" style={{ backgroundColor: '#1A1A1A' }}>
+      <div
+        ref={containerRef}
+        className="relative w-full max-w-[300px] md:max-w-[340px] rounded-xl overflow-hidden select-none touch-none cursor-ew-resize"
+        style={{ aspectRatio: '0.49' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+      >
+        {/* After — base layer */}
+        <img
+          src={after}
+          alt="After"
+          className="absolute inset-0 w-full h-full object-cover"
+          draggable={false}
+        />
+        {/* Before — clipped to slider position */}
+        <img
+          src={before}
+          alt="Before"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
+          draggable={false}
+        />
+
+        {/* Labels */}
+        <span
+          className="absolute top-3 left-3 text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded pointer-events-none"
+          style={{ backgroundColor: LIME, color: BLACK, opacity: pos > 15 ? 1 : 0, transition: 'opacity 0.2s' }}
+        >
+          BEFORE
+        </span>
+        <span
+          className="absolute top-3 right-3 text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded pointer-events-none"
+          style={{ backgroundColor: LIME, color: BLACK, opacity: pos < 85 ? 1 : 0, transition: 'opacity 0.2s' }}
+        >
+          AFTER
+        </span>
+
+        {/* Divider + handle */}
+        <div
+          className="absolute top-0 bottom-0 pointer-events-none"
+          style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
+        >
+          <div className="w-[3px] h-full mx-auto" style={{ backgroundColor: LIME }} />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: LIME }}
+          >
+            <span className="font-black text-[12px] tracking-tighter" style={{ color: BLACK }}>{'<>'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WallOfSuccess() {
   const [openStory, setOpenStory] = useState<string | null>(null);
 
@@ -262,41 +339,8 @@ function WallOfSuccess() {
           return (
             <div key={key} className="rounded-2xl overflow-hidden mb-4" style={{ backgroundColor: '#1A1A1A' }}>
 
-              {/* Before / After photos */}
-              <div className="relative flex h-64 md:h-80 overflow-hidden">
-                {/* Before */}
-                <div className="relative flex-1 overflow-hidden">
-                  <img
-                    src={before}
-                    alt="Before"
-                    className="w-full h-full object-cover object-top grayscale"
-                    draggable={false}
-                  />
-                  <span
-                    className="absolute top-3 left-3 text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded"
-                    style={{ backgroundColor: LIME, color: BLACK }}
-                  >
-                    BEFORE
-                  </span>
-                </div>
-                {/* Divider */}
-                <div className="w-[2px]" style={{ backgroundColor: BLACK }} />
-                {/* After */}
-                <div className="relative flex-1 overflow-hidden">
-                  <img
-                    src={after}
-                    alt="After"
-                    className="w-full h-full object-cover object-top"
-                    draggable={false}
-                  />
-                  <span
-                    className="absolute top-3 right-3 text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded"
-                    style={{ backgroundColor: LIME, color: BLACK }}
-                  >
-                    AFTER
-                  </span>
-                </div>
-              </div>
+              {/* Before / After slider */}
+              <BeforeAfterSlider before={before} after={after} />
 
               {/* Name + tag + toggle */}
               <div className="px-5 py-4 flex items-start justify-between gap-4">
