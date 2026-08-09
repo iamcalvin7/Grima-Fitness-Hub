@@ -76,10 +76,6 @@ function Hero() {
 
         {/* COPY ── mobile: second (below photo) / desktop: first (left) */}
         <div className="order-last md:order-first flex flex-col justify-center px-5 py-6 md:px-14 md:py-12">
-          <p className="text-[10px] font-black tracking-[0.32em] text-slate-500 uppercase mb-3">
-            Malta · Online &amp; In-Person
-          </p>
-
           <h1 className="text-[clamp(2.2rem,7vw,4rem)] font-black tracking-tight text-[#0F1D2E] leading-[0.93] mb-3">
             YOUR GOALS.<br />
             MY GUIDANCE.
@@ -89,14 +85,18 @@ function Hero() {
             Personalised coaching to help you become stronger, healthier &amp; happier.
           </p>
 
-          {/* Pillar card ── frosted white */}
-          <div className="bg-white/80 backdrop-blur-sm border border-white/60 p-3 mb-4 shadow-sm max-w-xs">
+          {/* Pillar tiles ── 3-col side by side */}
+          <div className="grid grid-cols-3 gap-2 mb-5 max-w-xs">
             {PILLARS.map(({ Icon, label }) => (
-              <div key={label} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b border-slate-100">
-                <div className="w-6 h-6 rounded-full bg-[#EBF3FB] flex items-center justify-center shrink-0">
-                  <Icon size={12} weight="regular" className="text-slate-600" />
+              <div
+                key={label}
+                className="bg-white/80 backdrop-blur-sm border border-white/70 shadow-sm
+                           flex flex-col items-center justify-center gap-2 py-3 px-1 text-center"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#EBF3FB] flex items-center justify-center">
+                  <Icon size={15} weight="regular" className="text-slate-600" />
                 </div>
-                <span className="text-[10px] font-bold tracking-[0.15em] text-slate-700 uppercase">
+                <span className="text-[9px] font-bold tracking-[0.1em] text-slate-700 uppercase leading-tight">
                   {label}
                 </span>
               </div>
