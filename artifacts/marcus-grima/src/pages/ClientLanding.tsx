@@ -242,8 +242,14 @@ const RESULTS = [
     tag:    'Entrepreneur & Restaurateur — Surfside',
     before: '/jeff-before.jpg',
     after:  '/jeff-after.jpg',
-    story:  [] as string[],
-    highlight: '',
+    story: [
+      'What no one sees in this transformation is the person he had to become to achieve it. When we first started training together just under 2 years ago, we were doing private sessions at Surfside because walking into a gym felt intimidating.',
+      'Fast forward to today and he\u2019s gone from 115kg to 83kg. But anyone can see the physical transformation. What most people won\u2019t see is the person he had to become along the way. The early mornings. The days he couldn\u2019t be bothered. The weekends where it would\u2019ve been easier to stay comfortable. The countless small decisions nobody sees that slowly built a completely different guy. Over the last 2 years I\u2019ve watched this guy become more disciplined, more consistent, more confident and more resilient. That\u2019s the real transformation. The body is just a reflection of everything that\u2019s happened underneath.',
+      'One thing I\u2019ve learned from coaching is that people rarely change their lives because they suddenly find motivation. They change because they decide they\u2019re no longer willing to be the person they\u2019ve been.',
+      'I\u2019m incredibly proud of the transformation Jeff has made and the 2.0 version of himself he\u2019s become. But more than that, I\u2019m grateful that this journey gave me a friend I have so much admiration and respect for. One of the most special parts of this job isn\u2019t the physical transformation - it\u2019s the relationships that are built along the way. Watching people change their lives is rewarding, but building friendships that last a lifetime is something I\u2019ll never take for granted.',
+      'Jeff dedicates his transformation to his forever fit papa, Jeremy Gambin who I have no doubt would be super proud of him. \u{1FAF6}',
+    ],
+    highlight: 'Jeff did.',
   },
 ];
 
@@ -326,6 +332,10 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
 
 function WallOfSuccess() {
   const [openStory, setOpenStory] = useState<string | null>(null);
+  const [index, setIndex] = useState(0);
+
+  const prev = () => { setIndex((i) => (i - 1 + RESULTS.length) % RESULTS.length); setOpenStory(null); };
+  const next = () => { setIndex((i) => (i + 1) % RESULTS.length); setOpenStory(null); };
 
   return (
     <section style={{ backgroundColor: '#111111' }} className="px-5 py-12 md:py-16 md:px-10">
@@ -342,12 +352,36 @@ function WallOfSuccess() {
           Real people.<br />Unreal progress.
         </h2>
 
-        {/* Result cards — side by side */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4">
-        {RESULTS.map(({ key, name, tag, before, after, story, highlight }) => {
+        {/* Carousel controls */}
+        <div className="flex items-center justify-end gap-4 mb-4">
+          <p className="text-[12px] font-black tracking-[0.2em]" style={{ color: OFF_WHITE }}>
+            <span style={{ color: LIME }}>{String(index + 1).padStart(2, '0')}</span>
+            {' / '}
+            {String(RESULTS.length).padStart(2, '0')}
+          </p>
+          <button
+            onClick={prev}
+            aria-label="Previous client"
+            className="w-9 h-9 rounded-full border flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
+            style={{ borderColor: LIME, color: LIME }}
+          >
+            <ArrowRight size={14} weight="bold" style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <button
+            onClick={next}
+            aria-label="Next client"
+            className="w-9 h-9 rounded-full border flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
+            style={{ borderColor: LIME, color: LIME }}
+          >
+            <ArrowRight size={14} weight="bold" />
+          </button>
+        </div>
+
+        {/* Active result card */}
+        {[RESULTS[index]].map(({ key, name, tag, before, after, story, highlight }) => {
           const isOpen = openStory === key;
           return (
-            <div key={key} className="rounded-2xl overflow-hidden self-start" style={{ backgroundColor: '#1A1A1A' }}>
+            <div key={key} className="rounded-2xl overflow-hidden max-w-[300px] md:max-w-[340px] mx-auto" style={{ backgroundColor: '#1A1A1A' }}>
 
               {/* Before / After slider */}
               <BeforeAfterSlider before={before} after={after} />
@@ -391,7 +425,6 @@ function WallOfSuccess() {
             </div>
           );
         })}
-        </div>
 
       </div>
     </section>
