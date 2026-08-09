@@ -398,8 +398,8 @@ function WallOfSuccess() {
     <section id="wall" style={{ backgroundColor: '#111111' }} className="px-5 pt-6 md:pt-8 pb-12 md:pb-16 md:px-10">
       <div className="max-w-2xl md:max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-12 md:items-center">
 
-        {/* Left column — header + controls */}
-        <div>
+        {/* Text column — header + controls (right on desktop) */}
+        <div className="md:order-2">
 
         {/* Header */}
         <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
@@ -439,8 +439,8 @@ function WallOfSuccess() {
 
         </div>
 
-        {/* Right column — active result card */}
-        <div className="mt-0">
+        {/* Card column — active result card (left on desktop) */}
+        <div className="mt-0 md:order-1">
         {[RESULTS[index]].map(({ key, name, tag, before, after, story, highlight }) => {
           const isOpen = openStory === key;
           return (
