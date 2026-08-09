@@ -14,6 +14,7 @@ import { Team }               from '@/pages/Team';
 import { Feed }               from '@/pages/Feed';
 import { ContentAdmin }       from '@/pages/ContentAdmin';
 import { Proposal }           from '@/pages/Proposal';
+import { ClientLanding }      from '@/pages/ClientLanding';
 import { AccountSecurity }    from '@/pages/AccountSecurity';
 import { ActiveSessions }     from '@/pages/ActiveSessions';
 import { DeleteAccount }      from '@/pages/DeleteAccount';
@@ -50,6 +51,10 @@ function readModal(): Modal {
   return null;
 }
 
+function hasJoinParam(): boolean {
+  return new URLSearchParams(window.location.search).has('join');
+}
+
 function clearQueryParams() {
   window.history.replaceState({}, '', window.location.pathname);
 }
@@ -68,6 +73,9 @@ function App() {
    */
   const [enteredApp,   setEnteredApp]   = useState(false);
   const [authResolved, setAuthResolved] = useState(false);
+
+  /* Lead page: shown to unauthenticated visitors arriving via ?join */
+  const [showLeadPage, setShowLeadPage] = useState(() => hasJoinParam());
 
   /* Modal driven by query params (?reset=, ?verify=, ?oauth=success …) */
   const [modal, setModal] = useState<Modal>(null);
@@ -143,6 +151,16 @@ function App() {
           setEnteredApp(true);
         }}
         onError={() => setModal(null)}
+      />
+    );
+  }
+
+  /* ── Lead-gen landing (public, ?join URL param) ───────────────────── */
+
+  if (showLeadPage && !isAuthenticated) {
+    return (
+      <ClientLanding
+        onSignIn={() => setShowLeadPage(false)}
       />
     );
   }
