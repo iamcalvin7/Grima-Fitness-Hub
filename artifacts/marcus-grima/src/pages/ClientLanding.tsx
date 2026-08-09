@@ -146,18 +146,12 @@ function CoachingCards() {
 
       {/* Header */}
       <div className="text-center mb-9 md:mb-12">
-        <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
-          On a mission to help you
-        </p>
         <h2
-          className="font-black tracking-tight leading-tight mb-3"
+          className="font-black tracking-tight leading-tight"
           style={{ fontSize: 'clamp(1.6rem,5vw,2.8rem)', color: OFF_WHITE }}
         >
-          STRONGER. HEALTHIER. HAPPIER.
+          On a mission to help you become stronger, healthier &amp; happier.
         </h2>
-        <p className="text-[14px] text-white/35">
-          Through personalised coaching built around you.
-        </p>
       </div>
 
       {/* Accordion cards */}
