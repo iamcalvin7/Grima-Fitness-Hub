@@ -166,10 +166,15 @@ function CoachingCards() {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   return (
-    <section style={{ backgroundColor: BLACK }} className="pt-12 md:pt-16 pb-4 md:pb-6 px-4 md:px-10">
+    <section id="services" style={{ backgroundColor: BLACK }} className="pt-12 md:pt-16 pb-4 md:pb-6 px-4 md:px-10">
+
+      <div className="max-w-xl md:max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-12 md:items-center">
+
+      {/* Left column — header + accordions */}
+      <div>
 
       {/* Header — mirrors Wall of Success: lime label + off-white headline */}
-      <div className="max-w-xl mx-auto mb-8">
+      <div className="mb-8">
         <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
           Own Your Journey.
         </p>
@@ -182,7 +187,7 @@ function CoachingCards() {
       </div>
 
       {/* Accordion cards */}
-      <div className="max-w-xl mx-auto">
+      <div>
         <div className="flex flex-col gap-2">
         {SERVICES.map(({ key, img, title, desc }) => {
           const isOpen = openKey === key;
@@ -229,6 +234,22 @@ function CoachingCards() {
           );
         })}
         </div>
+      </div>
+
+      </div>
+
+      {/* Right column — photo (desktop only) */}
+      <div className="hidden md:block">
+        <div className="rounded-2xl overflow-hidden">
+          <img
+            src="/hero.jpg"
+            alt="Marcus Grima coaching"
+            className="w-full h-full object-cover object-[center_20%] aspect-[4/5]"
+            draggable={false}
+          />
+        </div>
+      </div>
+
       </div>
 
     </section>
@@ -374,8 +395,11 @@ function WallOfSuccess() {
   const next = () => { setIndex((i) => (i + 1) % RESULTS.length); setOpenStory(null); };
 
   return (
-    <section style={{ backgroundColor: '#111111' }} className="px-5 pt-6 md:pt-8 pb-12 md:pb-16 md:px-10">
-      <div className="max-w-2xl mx-auto">
+    <section id="wall" style={{ backgroundColor: '#111111' }} className="px-5 pt-6 md:pt-8 pb-12 md:pb-16 md:px-10">
+      <div className="max-w-2xl md:max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-12 md:items-center">
+
+        {/* Left column — header + controls */}
+        <div>
 
         {/* Header */}
         <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
@@ -389,7 +413,7 @@ function WallOfSuccess() {
         </h2>
 
         {/* Carousel controls */}
-        <div className="flex items-center justify-center gap-4 mb-4">
+        <div className="flex items-center justify-center md:justify-start gap-4 mb-4 md:mb-0">
           <p className="text-[12px] font-black tracking-[0.2em]" style={{ color: OFF_WHITE }}>
             <span style={{ color: LIME }}>{String(index + 1).padStart(2, '0')}</span>
             {' / '}
@@ -413,11 +437,14 @@ function WallOfSuccess() {
           </button>
         </div>
 
-        {/* Active result card */}
+        </div>
+
+        {/* Right column — active result card */}
+        <div className="mt-0">
         {[RESULTS[index]].map(({ key, name, tag, before, after, story, highlight }) => {
           const isOpen = openStory === key;
           return (
-            <div key={key} className="rounded-2xl overflow-hidden max-w-[300px] md:max-w-[340px] mx-auto" style={{ backgroundColor: '#1A1A1A' }}>
+            <div key={key} className="rounded-2xl overflow-hidden w-full" style={{ backgroundColor: '#1A1A1A' }}>
 
               {/* Before / After slider */}
               <BeforeAfterSlider before={before} after={after} />
@@ -463,6 +490,7 @@ function WallOfSuccess() {
             </div>
           );
         })}
+        </div>
 
       </div>
     </section>
@@ -509,6 +537,14 @@ function FreeCTA() {
    ROOT
 ══════════════════════════════════════════════════════════════════════════ */
 export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void }) {
+  // Scroll to #hash target after mount (SPA renders after the browser's
+  // native anchor-scroll pass, so we do it manually).
+  React.useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    document.getElementById(id)?.scrollIntoView();
+  }, []);
+
   return (
     <div style={{ backgroundColor: BLACK }} className="min-h-screen overflow-x-hidden">
       <Hero />
