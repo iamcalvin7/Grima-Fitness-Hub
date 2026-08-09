@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import {
   WhatsappLogo, ArrowRight,
-  Plus, Minus, ArrowDown,
+  Plus, Minus, ArrowDown, InstagramLogo,
 } from '@phosphor-icons/react';
 
 /* ─── Palette ────────────────────────────────────────────────────────────── */
@@ -65,11 +65,20 @@ function Hero() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
       </div>
 
-      {/* Brand mark */}
-      <div className="relative z-10 px-5 pt-5 md:px-10 md:pt-7">
+      {/* Brand mark + Instagram */}
+      <div className="relative z-10 px-5 pt-5 md:px-10 md:pt-7 flex items-start justify-between">
         <p className="text-white font-black text-[11px] tracking-[0.18em] leading-[1.3] uppercase">
           MARCUS<br />GRIMA
         </p>
+        <a
+          href="https://www.instagram.com/marcusgrima22/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Marcus Grima on Instagram"
+          className="w-11 h-11 -mt-2 -mr-2 flex items-center justify-center transition-opacity duration-200 hover:opacity-70"
+        >
+          <InstagramLogo size={22} weight="regular" style={{ color: LIME }} />
+        </a>
       </div>
 
       {/* Scroll arrow — pinned bottom centre */}
