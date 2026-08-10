@@ -308,12 +308,10 @@ const RESULTS = [
   {
     key:    'mark',
     name:   'MARK CAMILLERI',
-    tag:    '',
+    tag:    'Company Director — Still Malta',
     before: '/mark-before.jpg',
     after:  '/mark-after.jpg',
-    story: [
-      'Coming soon.',
-    ],
+    story: [],
     highlight: 'Mark did.',
   },
 ];
