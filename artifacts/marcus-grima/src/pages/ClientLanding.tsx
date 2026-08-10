@@ -257,6 +257,141 @@ function CoachingCards() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   ABOUT ME
+══════════════════════════════════════════════════════════════════════════ */
+const ABOUT_CARDS = [
+  { key: 'story',      num: '01', title: 'MY STORY',            teaser: 'From discovering my passion for coaching to the science of transformation.' },
+  { key: 'philosophy', num: '02', title: 'MY PHILOSOPHY',       teaser: 'Why fitness is a vehicle for something much bigger than the physical results.' },
+  { key: 'practice',   num: '03', title: 'I PRACTICE WHAT I TEACH', teaser: 'Athlete first. I test my limits so I can better coach yours.' },
+  { key: 'student',    num: '04', title: 'ALWAYS A STUDENT',    teaser: 'I\u2019m obsessed with learning and constantly evolving as a coach and human.' },
+  { key: 'coach',      num: '05', title: 'HOW I COACH',         teaser: 'More than programmes. It\u2019s about structure, accountability, education and real change.' },
+  { key: 'perfection', num: '06', title: 'NO PERFECTION REQUIRED', teaser: 'Real change isn\u2019t linear. It starts with self-awareness and identity.' },
+  { key: 'standfor',   num: '07', title: 'WHAT I STAND FOR',    teaser: 'The principles I live by and build everything on.' },
+  { key: 'building',   num: '08', title: 'WHAT I\u2019M BUILDING', teaser: 'An ecosystem to help thousands of people transform their lives.' },
+  { key: 'journey',    num: '09', title: 'I\u2019M ON THE JOURNEY TOO', teaser: 'I\u2019m still learning, growing and pushing for more. Let\u2019s build your best together.' },
+];
+
+function AboutCard({ num, title, teaser, isOpen, onToggle, cardKey }: {
+  num: string; title: string; teaser: string; isOpen: boolean; onToggle: () => void; cardKey: string;
+}) {
+  return (
+    <div className="rounded-2xl" style={{ backgroundColor: '#1A1A1A', border: '1px solid #262626' }}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-start justify-between px-5 py-4 text-left min-h-[44px] gap-3"
+        aria-expanded={isOpen}
+        aria-controls={`about-${cardKey}`}
+      >
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.25em] mb-1.5" style={{ color: LIME }}>{num}</p>
+          <p className="text-[13px] font-black tracking-[0.1em] uppercase mb-1.5" style={{ color: OFF_WHITE }}>{title}</p>
+          <p className="text-[12px] leading-relaxed text-white/50">{teaser}</p>
+        </div>
+        <span className="mt-1 shrink-0">
+          {isOpen
+            ? <Minus size={14} weight="bold" className="text-white/40" />
+            : <Plus  size={14} weight="bold" className="text-white/40" />
+          }
+        </span>
+      </button>
+      {isOpen && (
+        <div className="px-5 pb-5" id={`about-${cardKey}`}>
+          <div className="w-5 h-[2px] rounded-full mb-3" style={{ backgroundColor: LIME }} />
+          <p className="text-[13px] leading-relaxed text-white/70">Full story coming soon.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AboutMe() {
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const toggle = (key: string) => setOpenKey(openKey === key ? null : key);
+  const left  = ABOUT_CARDS.slice(0, 4);
+  const right = ABOUT_CARDS.slice(4, 8);
+  const last  = ABOUT_CARDS[8];
+
+  return (
+    <section id="about" style={{ backgroundColor: BLACK }} className="px-5 pt-14 md:pt-20 pb-12 md:pb-16 md:px-10">
+      <div className="max-w-xl md:max-w-6xl mx-auto">
+
+        {/* Header */}
+        <div className="text-center mb-10 md:mb-14">
+          <p className="text-[10px] font-black tracking-[0.32em] uppercase mb-3" style={{ color: LIME }}>
+            About Me
+          </p>
+          <h2
+            className="font-black tracking-tight leading-[0.95] uppercase mb-4"
+            style={{ fontSize: 'clamp(2.2rem,7vw,4.5rem)', color: OFF_WHITE }}
+          >
+            I'm Marcus Grima.
+          </h2>
+          <p className="text-[11px] md:text-[13px] font-bold tracking-[0.18em] uppercase text-white/60 mb-5">
+            Coach. Athlete. Entrepreneur. Obsessed with human potential.
+          </p>
+          <p className="text-[13px] md:text-[14px] leading-relaxed text-white/60 max-w-sm mx-auto">
+            Everything I do is driven by one mission: to help you become the strongest,
+            healthiest and happiest version of yourself.
+          </p>
+        </div>
+
+        {/* Desktop: cards | photo | cards. Mobile: photo then stacked cards. */}
+        <div className="md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:items-center">
+
+          {/* Centre visual — first on mobile */}
+          <div className="mb-6 md:mb-0 md:order-2 md:px-2">
+            <div className="relative mx-auto max-w-[280px] md:max-w-[320px]">
+              <div
+                className="absolute inset-0 rounded-full blur-3xl opacity-20 scale-90 translate-y-6"
+                style={{ backgroundColor: LIME }}
+              />
+              <img
+                src="/mission.jpg"
+                alt="Marcus Grima"
+                className="relative w-full aspect-[3/4] object-cover rounded-2xl"
+                draggable={false}
+              />
+            </div>
+          </div>
+
+          {/* Left cards */}
+          <div className="flex flex-col gap-2 md:gap-3 md:order-1 mb-2 md:mb-0">
+            {left.map((c) => (
+              <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
+                isOpen={openKey === c.key} onToggle={() => toggle(c.key)} />
+            ))}
+          </div>
+
+          {/* Right cards */}
+          <div className="flex flex-col gap-2 md:gap-3 md:order-3">
+            {right.map((c) => (
+              <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
+                isOpen={openKey === c.key} onToggle={() => toggle(c.key)} />
+            ))}
+          </div>
+        </div>
+
+        {/* Full-width 09 card */}
+        <div className="mt-2 md:mt-6">
+          <AboutCard cardKey={last.key} num={last.num} title={last.title} teaser={last.teaser}
+            isOpen={openKey === last.key} onToggle={() => toggle(last.key)} />
+        </div>
+
+        {/* Closing quote */}
+        <div className="text-center mt-10 md:mt-14">
+          <p className="text-[11px] md:text-[12px] font-bold tracking-[0.22em] uppercase leading-loose text-white/70">
+            You don't need to be perfect.<br />
+            You don't need to feel ready.<br />
+            You just need to be willing to start.
+          </p>
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    WALL OF SUCCESS
 ══════════════════════════════════════════════════════════════════════════ */
 const RESULTS = [
@@ -588,6 +723,7 @@ export function ClientLanding({ onSignIn: _onSignIn }: { onSignIn: () => void })
     <div style={{ backgroundColor: BLACK }} className="min-h-screen overflow-x-hidden">
       <Hero />
       <CoachingCards />
+      <AboutMe />
       <WallOfSuccess />
       <FreeCTA />
     </div>
