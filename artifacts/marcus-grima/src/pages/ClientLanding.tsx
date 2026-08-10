@@ -477,13 +477,6 @@ function AboutMe() {
                 className="relative w-full h-full object-cover object-top"
                 draggable={false}
               />
-              {/* Signature next to his head */}
-              <span
-                className="absolute top-[1%] right-[-8%] -rotate-6 pointer-events-none select-none"
-                style={{ fontFamily: "'Great Vibes', cursive", color: LIME, fontSize: '26px', lineHeight: 1 }}
-              >
-                Marcus Grima
-              </span>
             </div>
 
             {/* Card labels — right column, spread to match figure height */}
@@ -592,13 +585,6 @@ function AboutMe() {
                 className="relative w-full drop-shadow-2xl"
                 draggable={false}
               />
-              {/* Signature next to his head */}
-              <span
-                className="absolute top-[2%] right-[-14%] -rotate-6 pointer-events-none select-none"
-                style={{ fontFamily: "'Great Vibes', cursive", color: LIME, fontSize: '32px', lineHeight: 1 }}
-              >
-                Marcus Grima
-              </span>
             </div>
           </div>
 
