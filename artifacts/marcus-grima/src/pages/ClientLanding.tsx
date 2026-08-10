@@ -259,20 +259,126 @@ function CoachingCards() {
 /* ══════════════════════════════════════════════════════════════════════════
    ABOUT ME
 ══════════════════════════════════════════════════════════════════════════ */
-const ABOUT_CARDS = [
-  { key: 'story',      num: '01', title: 'MY STORY',            teaser: 'From discovering my passion for coaching to the science of transformation.' },
-  { key: 'philosophy', num: '02', title: 'MY PHILOSOPHY',       teaser: 'Why fitness is a vehicle for something much bigger than the physical results.' },
-  { key: 'practice',   num: '03', title: 'I PRACTICE WHAT I TEACH', teaser: 'Athlete first. I test my limits so I can better coach yours.' },
-  { key: 'student',    num: '04', title: 'ALWAYS A STUDENT',    teaser: 'I\u2019m obsessed with learning and constantly evolving as a coach and human.' },
-  { key: 'coach',      num: '05', title: 'HOW I COACH',         teaser: 'More than programmes. It\u2019s about structure, accountability, education and real change.' },
-  { key: 'perfection', num: '06', title: 'NO PERFECTION REQUIRED', teaser: 'Real change isn\u2019t linear. It starts with self-awareness and identity.' },
-  { key: 'standfor',   num: '07', title: 'WHAT I STAND FOR',    teaser: 'The principles I live by and build everything on.' },
-  { key: 'building',   num: '08', title: 'WHAT I\u2019M BUILDING', teaser: 'An ecosystem to help thousands of people transform their lives.' },
-  { key: 'journey',    num: '09', title: 'I\u2019M ON THE JOURNEY TOO', teaser: 'I\u2019m still learning, growing and pushing for more. Let\u2019s build your best together.' },
+type AboutCardData = {
+  key: string; num: string; title: string; teaser: string;
+  heading?: string;
+  body?: string[];
+  values?: { name: string; line: string }[];
+};
+
+const ABOUT_CARDS: AboutCardData[] = [
+  {
+    key: 'story', num: '01', title: 'MY STORY',
+    teaser: 'From discovering my passion for coaching to the science of transformation.',
+    body: [
+      'For most of my life, sport has been at the centre of everything I do. I spent years playing football professionally in Malta, where I learned about discipline, sacrifice, resilience and what it means to keep showing up when nobody cares how you feel.',
+      'But eventually I realised football was only one chapter.',
+      'What fascinated me even more was everything behind performance: the training, mindset, habits, psychology and the person you have to become to achieve something difficult.',
+      'That obsession led me to coaching.',
+    ],
+  },
+  {
+    key: 'philosophy', num: '02', title: 'MY PHILOSOPHY',
+    teaser: 'Why fitness is a vehicle for something much bigger than the physical results.',
+    heading: 'FITNESS IS THE START. NOT THE FINISH.',
+    body: [
+      'Getting stronger matters. Getting leaner matters. Improving your health matters.',
+      'But I believe the greatest transformation happens underneath.',
+      'Training teaches you to keep promises to yourself. To voluntarily do difficult things. To understand that discomfort isn\u2019t always a reason to stop.',
+      'Eventually, the person you become while chasing the physical goal becomes more valuable than the goal itself.',
+      'I don\u2019t just want to help you lose 10kg. I want you to become the person who knows how they did it, and knows they can do difficult things again.',
+    ],
+  },
+  {
+    key: 'practice', num: '03', title: 'I PRACTICE WHAT I TEACH',
+    teaser: 'Athlete first. I test my limits so I can better coach yours.',
+    heading: 'I\u2019M NOT INTERESTED IN COACHING FROM THE SIDELINES.',
+    body: [
+      'My own journey didn\u2019t stop with football.',
+      'It evolved into running, ultramarathons, HYROX, swimming, cycling and triathlon training. I deliberately pursue challenges that test what I\u2019m capable of physically and mentally.',
+      'Not because I expect everyone I coach to do the same.',
+      'Because putting myself through difficult things teaches me lessons I can bring back to the people I coach.',
+      'I\u2019m still testing my limits too.',
+    ],
+  },
+  {
+    key: 'student', num: '04', title: 'ALWAYS A STUDENT',
+    teaser: 'I\u2019m obsessed with learning and constantly evolving as a coach and human.',
+    heading: 'THE MORE I LEARN, THE MORE I REALISE THERE IS TO LEARN.',
+    body: [
+      'I\u2019m fascinated by performance, psychology, physiology, nutrition, longevity, behaviour change, business, philosophy and spirituality.',
+      'I learn from coaches, scientists, athletes, entrepreneurs and thinkers from completely different worlds.',
+      'Because becoming a better coach means never assuming I\u2019ve figured everything out.',
+      'Stay curious. Keep evolving.',
+    ],
+  },
+  {
+    key: 'coach', num: '05', title: 'HOW I COACH',
+    teaser: 'More than programmes. It\u2019s about structure, accountability, education and real change.',
+    heading: 'YOU DON\u2019T NEED MORE INFORMATION. YOU NEED A WAY TO LIVE IT.',
+    body: [
+      'Most people already know they should move more, eat better, sleep properly and exercise consistently.',
+      'Knowing isn\u2019t usually the problem. Doing it consistently is.',
+      'That\u2019s where coaching comes in.',
+      'Structure. Accountability. Education. Feedback.',
+      'Sometimes I\u2019ll push you. Sometimes the plan needs to change. The goal is understanding the difference.',
+      'And I\u2019m not trying to make you dependent on a coach forever.',
+      'My job is to give you the knowledge, confidence, discipline and self-awareness to eventually own your journey.',
+    ],
+  },
+  {
+    key: 'perfection', num: '06', title: 'NO PERFECTION REQUIRED',
+    teaser: 'Real change isn\u2019t linear. It starts with self-awareness and identity.',
+    heading: 'YOU DON\u2019T NEED TO HAVE IT ALL TOGETHER.',
+    body: [
+      'I\u2019ve had periods where I\u2019ve felt incredibly disciplined. I\u2019ve also fallen into habits I knew were working against me.',
+      'It\u2019s taught me that knowing what to do and consistently doing it are completely different skills.',
+      'Real change starts with understanding yourself: your habits, triggers, environment and behaviour.',
+      'So instead of only asking: \u201CWhat do I need to do?\u201D',
+      'I want you to start asking: \u201CWho do I need to become?\u201D',
+    ],
+  },
+  {
+    key: 'standfor', num: '07', title: 'WHAT I STAND FOR',
+    teaser: 'The principles I live by and build everything on.',
+    heading: 'THE THINGS THAT DON\u2019T CHANGE.',
+    values: [
+      { name: 'INTEGRITY',     line: 'Do what you said you would do.' },
+      { name: 'GROWTH',        line: 'Stay curious. Never assume you\u2019ve arrived.' },
+      { name: 'DISCIPLINE',    line: 'Your feelings matter. They can\u2019t always be in charge.' },
+      { name: 'KINDNESS',      line: 'Ambition means little if you become a worse person along the way.' },
+      { name: 'RELATIONSHIPS', line: 'Success means nothing without people to share it with.' },
+      { name: 'FAITH',         line: 'There are things greater than achievement, status and money.' },
+      { name: 'SERVICE',       line: 'Grow yourself. Then help someone else grow.' },
+    ],
+  },
+  {
+    key: 'building', num: '08', title: 'WHAT I\u2019M BUILDING',
+    teaser: 'An ecosystem to help thousands of people transform their lives.',
+    heading: 'THIS IS BIGGER THAN PERSONAL TRAINING.',
+    body: [
+      'My ambition is to build something that gives you everything you need to become stronger, healthier and happier.',
+      'Training. Nutrition. Accountability. Education. Performance. Mindset. Community.',
+      'Not simply somewhere to log workouts, but somewhere that helps you understand what to do, why you\u2019re doing it and who you\u2019re becoming in the process.',
+      'The mission is simple: help as many people as possible take ownership of their journey.',
+    ],
+  },
+  {
+    key: 'journey', num: '09', title: 'I\u2019M ON THE JOURNEY TOO',
+    teaser: 'I\u2019m still learning, growing and pushing for more. Let\u2019s build your best together.',
+    body: [
+      'I want to become a better coach. A better athlete. A better partner. A better son. A better friend. A better leader. A better human being.',
+      'I don\u2019t have everything figured out.',
+      'I\u2019m still learning, experimenting, failing, adjusting and growing.',
+      'I don\u2019t expect you to have everything figured out either.',
+    ],
+  },
 ];
 
-function AboutCard({ num, title, teaser, isOpen, onToggle, cardKey }: {
-  num: string; title: string; teaser: string; isOpen: boolean; onToggle: () => void; cardKey: string;
+function AboutCard({ num, title, teaser, heading, body, values, isOpen, onToggle, cardKey }: {
+  num: string; title: string; teaser: string;
+  heading?: string; body?: string[]; values?: { name: string; line: string }[];
+  isOpen: boolean; onToggle: () => void; cardKey: string;
 }) {
   return (
     <div className="rounded-2xl" style={{ backgroundColor: '#1A1A1A', border: '1px solid #262626' }}>
@@ -297,7 +403,26 @@ function AboutCard({ num, title, teaser, isOpen, onToggle, cardKey }: {
       {isOpen && (
         <div className="px-5 pb-5" id={`about-${cardKey}`}>
           <div className="w-5 h-[2px] rounded-full mb-3" style={{ backgroundColor: LIME }} />
-          <p className="text-[13px] leading-relaxed text-white/70">Full story coming soon.</p>
+          {heading && (
+            <p className="text-[13px] font-black tracking-[0.06em] uppercase mb-3" style={{ color: OFF_WHITE }}>{heading}</p>
+          )}
+          {body && (
+            <div className="space-y-2.5">
+              {body.map((p, i) => (
+                <p key={i} className="text-[13px] leading-relaxed text-white/70">{p}</p>
+              ))}
+            </div>
+          )}
+          {values && (
+            <div className="space-y-3">
+              {values.map((v) => (
+                <div key={v.name}>
+                  <p className="text-[12px] font-black tracking-[0.12em] uppercase" style={{ color: LIME }}>{v.name}</p>
+                  <p className="text-[13px] leading-relaxed text-white/70">{v.line}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -359,6 +484,7 @@ function AboutMe() {
           <div className="flex flex-col gap-2 md:gap-3 md:order-1 mb-2 md:mb-0">
             {left.map((c) => (
               <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
+                heading={c.heading} body={c.body} values={c.values}
                 isOpen={openKey === c.key} onToggle={() => toggle(c.key)} />
             ))}
           </div>
@@ -367,6 +493,7 @@ function AboutMe() {
           <div className="flex flex-col gap-2 md:gap-3 md:order-3">
             {right.map((c) => (
               <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
+                heading={c.heading} body={c.body} values={c.values}
                 isOpen={openKey === c.key} onToggle={() => toggle(c.key)} />
             ))}
           </div>
@@ -375,6 +502,7 @@ function AboutMe() {
         {/* Full-width 09 card */}
         <div className="mt-2 md:mt-6">
           <AboutCard cardKey={last.key} num={last.num} title={last.title} teaser={last.teaser}
+            heading={last.heading} body={last.body} values={last.values}
             isOpen={openKey === last.key} onToggle={() => toggle(last.key)} />
         </div>
 
