@@ -464,8 +464,8 @@ function AboutMe() {
         <div className="md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:items-center">
 
           {/* Centre visual — first on mobile */}
-          <div className="mb-6 md:mb-0 md:order-2 md:px-2">
-            <div className="relative mx-auto max-w-[260px] md:max-w-[300px]">
+          <div className="md:mb-0 md:order-2 md:px-2">
+            <div className="relative mx-auto max-w-[300px] md:max-w-[300px]">
               {/* Lime glow behind the figure */}
               <div
                 className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-2/3 blur-3xl opacity-25"
@@ -477,11 +477,16 @@ function AboutMe() {
                 className="relative w-full drop-shadow-2xl"
                 draggable={false}
               />
+              {/* Mobile-only fade so overlapping cards blend in */}
+              <div
+                className="absolute inset-x-0 bottom-0 h-56 md:hidden"
+                style={{ background: `linear-gradient(to bottom, transparent, ${BLACK})` }}
+              />
             </div>
           </div>
 
           {/* Left cards */}
-          <div className="flex flex-col gap-2 md:gap-3 md:order-1 mb-2 md:mb-0">
+          <div className="relative z-10 -mt-64 md:mt-0 flex flex-col gap-2 md:gap-3 md:order-1 mb-2 md:mb-0">
             {left.map((c) => (
               <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
                 heading={c.heading} body={c.body} values={c.values}
