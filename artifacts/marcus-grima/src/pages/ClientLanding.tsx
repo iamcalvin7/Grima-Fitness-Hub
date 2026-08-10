@@ -371,6 +371,7 @@ const ABOUT_CARDS: AboutCardData[] = [
       'I don\u2019t have everything figured out.',
       'I\u2019m still learning, experimenting, failing, adjusting and growing.',
       'I don\u2019t expect you to have everything figured out either.',
+      'You don\u2019t need to be perfect. You don\u2019t need to feel ready. You just need to be willing to start.',
     ],
   },
 ];
@@ -611,15 +612,6 @@ function AboutMe() {
           <AboutCard cardKey={last.key} num={last.num} title={last.title} teaser={last.teaser}
             heading={last.heading} body={last.body} values={last.values}
             isOpen={openKey === last.key} onToggle={() => toggle(last.key)} />
-        </div>
-
-        {/* Closing quote */}
-        <div className="text-center mt-10 md:mt-14">
-          <p className="text-[11px] md:text-[12px] font-bold tracking-[0.22em] uppercase leading-loose text-white/70">
-            You don't need to be perfect.<br />
-            You don't need to feel ready.<br />
-            You just need to be willing to start.
-          </p>
         </div>
 
       </div>
