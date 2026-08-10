@@ -677,6 +677,15 @@ const RESULTS = [
     story: [],
     highlight: 'Mark did.',
   },
+  {
+    key:    'kane',
+    name:   'KANE PALMIER',
+    tag:    'Restaurateur — La\u00A0Buono Trattoria del\u00A0Nonno',
+    before: '/kane-before.jpg',
+    after:  '/kane-after.jpg',
+    story: [],
+    highlight: 'Kane did.',
+  },
 ];
 
 function BeforeAfterSlider({ before, after }: { before: string; after: string }) {
