@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import {
   WhatsappLogo, ArrowRight,
-  Plus, Minus, ArrowDown, InstagramLogo,
+  Plus, Minus, ArrowDown, InstagramLogo, X,
 } from '@phosphor-icons/react';
 
 /* ─── Palette ────────────────────────────────────────────────────────────── */
@@ -479,8 +479,8 @@ function AboutMe() {
             </div>
 
             {/* Card labels — right column, spread to match figure height */}
-            <div className="flex-1 flex flex-col justify-around py-[6%] pl-0">
-              {ABOUT_CARDS.slice(0, 7).map((c) => (
+            <div className="flex-1 flex flex-col justify-around py-[2%] pl-0">
+              {ABOUT_CARDS.map((c) => (
                 <button
                   key={c.key}
                   onClick={() => toggle(c.key)}
@@ -511,39 +511,61 @@ function AboutMe() {
             </div>
           </div>
 
-          {/* Expanded content for cards 01-07 — appears below infographic */}
-          {ABOUT_CARDS.slice(0, 7).map((c) => openKey === c.key && (
-            <div key={c.key} className="mt-3 px-4 py-4 rounded-2xl" style={{ backgroundColor: '#1A1A1A', border: '1px solid #262626' }}>
-              <div className="w-5 h-[2px] rounded-full mb-3" style={{ backgroundColor: LIME }} />
-              {c.heading && (
-                <p className="text-[12px] font-black tracking-[0.06em] uppercase mb-3" style={{ color: OFF_WHITE }}>{c.heading}</p>
-              )}
-              {c.body && (
-                <div className="space-y-2">
-                  {c.body.map((p, i) => <p key={i} className="text-[13px] leading-relaxed text-white/70">{p}</p>)}
+          {/* Popup for the open card */}
+          {ABOUT_CARDS.map((c) => openKey === c.key && (
+            <div
+              key={c.key}
+              className="fixed inset-0 z-50 flex items-end justify-center"
+              role="dialog"
+              aria-modal="true"
+            >
+              {/* backdrop */}
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+                onClick={() => setOpenKey(null)}
+              />
+              {/* panel */}
+              <div
+                className="relative w-full max-h-[80vh] overflow-y-auto rounded-t-3xl px-5 pt-5 pb-8"
+                style={{ backgroundColor: '#1A1A1A', border: '1px solid #262626' }}
+              >
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-[10px] font-bold tracking-[0.25em] mb-1.5" style={{ color: LIME }}>{c.num}</p>
+                    <p className="text-[15px] font-black tracking-[0.08em] uppercase" style={{ color: OFF_WHITE }}>{c.title}</p>
+                  </div>
+                  <button
+                    onClick={() => setOpenKey(null)}
+                    className="shrink-0 w-9 h-9 rounded-full border flex items-center justify-center"
+                    style={{ borderColor: 'rgba(255,255,255,0.2)' }}
+                    aria-label="Close"
+                  >
+                    <X size={14} weight="bold" className="text-white/70" />
+                  </button>
                 </div>
-              )}
-              {c.values && (
-                <div className="space-y-2.5">
-                  {c.values.map((v) => (
-                    <div key={v.name}>
-                      <p className="text-[11px] font-black tracking-[0.12em] uppercase" style={{ color: LIME }}>{v.name}</p>
-                      <p className="text-[13px] leading-relaxed text-white/70">{v.line}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                <div className="w-5 h-[2px] rounded-full mb-4" style={{ backgroundColor: LIME }} />
+                {c.heading && (
+                  <p className="text-[13px] font-black tracking-[0.06em] uppercase mb-3" style={{ color: OFF_WHITE }}>{c.heading}</p>
+                )}
+                {c.body && (
+                  <div className="space-y-2.5">
+                    {c.body.map((p, i) => <p key={i} className="text-[13px] leading-relaxed text-white/70">{p}</p>)}
+                  </div>
+                )}
+                {c.values && (
+                  <div className="space-y-3">
+                    {c.values.map((v) => (
+                      <div key={v.name}>
+                        <p className="text-[12px] font-black tracking-[0.12em] uppercase" style={{ color: LIME }}>{v.name}</p>
+                        <p className="text-[13px] leading-relaxed text-white/70">{v.line}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
-
-          {/* Cards 08 + 09 full-width below */}
-          <div className="flex flex-col gap-2 mt-3">
-            {ABOUT_CARDS.slice(7).map((c) => (
-              <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
-                heading={c.heading} body={c.body} values={c.values}
-                isOpen={openKey === c.key} onToggle={() => toggle(c.key)} />
-            ))}
-          </div>
         </div>
 
         {/* ── DESKTOP: cards | photo | cards ────────────────────────────── */}
