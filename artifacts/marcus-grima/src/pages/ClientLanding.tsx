@@ -347,7 +347,7 @@ function AboutMe() {
                 style={{ backgroundColor: LIME }}
               />
               <img
-                src="/marcus-cutout.png"
+                src="/marcus-3d.png"
                 alt="Marcus Grima"
                 className="relative w-full drop-shadow-2xl"
                 draggable={false}
