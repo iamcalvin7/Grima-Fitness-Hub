@@ -452,10 +452,10 @@ function AboutMe() {
           >
             I'm Marcus Grima.
           </h2>
-          <p className="text-[11px] md:text-[13px] font-bold tracking-[0.18em] uppercase text-white/60 mb-5">
+          <p className="text-[11px] md:text-[13px] font-bold tracking-[0.18em] uppercase text-white mb-5">
             Coach. Athlete. Entrepreneur. Obsessed with human potential.
           </p>
-          <p className="text-[13px] md:text-[14px] leading-relaxed text-white/60 max-w-sm mx-auto">
+          <p className="text-[13px] md:text-[14px] leading-relaxed text-white max-w-sm mx-auto">
             Everything I do is driven by one mission: to help you become the strongest,
             healthiest and happiest version of yourself.
           </p>
