@@ -460,13 +460,98 @@ function AboutMe() {
           </p>
         </div>
 
-        {/* Desktop: cards | photo | cards. Mobile: photo then stacked cards. */}
-        <div className="md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:items-center">
+        {/* ── MOBILE: infographic layout ─────────────────────────────────── */}
+        <div className="md:hidden">
+          {/* Photo (left) + card labels (right) side-by-side */}
+          <div className="relative flex items-stretch">
+            {/* Marcus — left column */}
+            <div className="relative w-[46%] shrink-0">
+              <div
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-1/2 blur-3xl opacity-20 pointer-events-none"
+                style={{ backgroundColor: LIME }}
+              />
+              <img
+                src="/marcus-cutout-real.png"
+                alt="Marcus Grima"
+                className="relative w-full h-full object-cover object-top"
+                draggable={false}
+              />
+            </div>
 
-          {/* Centre visual — first on mobile */}
-          <div className="mb-6 md:mb-0 md:order-2 md:px-2">
-            <div className="relative mx-auto max-w-[260px] md:max-w-[300px]">
-              {/* Lime glow behind the figure */}
+            {/* Card labels — right column, spread to match figure height */}
+            <div className="flex-1 flex flex-col justify-around py-[6%] pl-0">
+              {ABOUT_CARDS.slice(0, 7).map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => toggle(c.key)}
+                  className="flex items-center gap-2 text-left w-full py-1"
+                  aria-expanded={openKey === c.key}
+                >
+                  {/* connector dot + line */}
+                  <span className="shrink-0 flex items-center gap-1">
+                    <span className="block w-[7px] h-[7px] rounded-full" style={{ backgroundColor: LIME }} />
+                    <span className="block w-4 h-px" style={{ backgroundColor: LIME }} />
+                  </span>
+                  {/* number + title */}
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[9px] font-bold tracking-[0.22em]" style={{ color: LIME }}>{c.num}</span>
+                    <span className="block text-[11px] font-black tracking-[0.04em] uppercase leading-tight" style={{ color: OFF_WHITE }}>{c.title}</span>
+                  </span>
+                  {/* circle + button */}
+                  <span
+                    className="shrink-0 w-[22px] h-[22px] rounded-full border flex items-center justify-center"
+                    style={{ borderColor: openKey === c.key ? LIME : 'rgba(202,255,51,0.45)' }}
+                  >
+                    {openKey === c.key
+                      ? <Minus size={9} weight="bold" style={{ color: LIME }} />
+                      : <Plus  size={9} weight="bold" style={{ color: LIME }} />}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Expanded content for cards 01-07 — appears below infographic */}
+          {ABOUT_CARDS.slice(0, 7).map((c) => openKey === c.key && (
+            <div key={c.key} className="mt-3 px-4 py-4 rounded-2xl" style={{ backgroundColor: '#1A1A1A', border: '1px solid #262626' }}>
+              <div className="w-5 h-[2px] rounded-full mb-3" style={{ backgroundColor: LIME }} />
+              {c.heading && (
+                <p className="text-[12px] font-black tracking-[0.06em] uppercase mb-3" style={{ color: OFF_WHITE }}>{c.heading}</p>
+              )}
+              {c.body && (
+                <div className="space-y-2">
+                  {c.body.map((p, i) => <p key={i} className="text-[13px] leading-relaxed text-white/70">{p}</p>)}
+                </div>
+              )}
+              {c.values && (
+                <div className="space-y-2.5">
+                  {c.values.map((v) => (
+                    <div key={v.name}>
+                      <p className="text-[11px] font-black tracking-[0.12em] uppercase" style={{ color: LIME }}>{v.name}</p>
+                      <p className="text-[13px] leading-relaxed text-white/70">{v.line}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Cards 08 + 09 full-width below */}
+          <div className="flex flex-col gap-2 mt-3">
+            {ABOUT_CARDS.slice(7).map((c) => (
+              <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
+                heading={c.heading} body={c.body} values={c.values}
+                isOpen={openKey === c.key} onToggle={() => toggle(c.key)} />
+            ))}
+          </div>
+        </div>
+
+        {/* ── DESKTOP: cards | photo | cards ────────────────────────────── */}
+        <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:items-center">
+
+          {/* Centre visual */}
+          <div className="md:order-2 md:px-2">
+            <div className="relative mx-auto md:max-w-[300px]">
               <div
                 className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-2/3 blur-3xl opacity-25"
                 style={{ backgroundColor: LIME }}
@@ -481,7 +566,7 @@ function AboutMe() {
           </div>
 
           {/* Left cards */}
-          <div className="flex flex-col gap-2 md:gap-3 md:order-1 mb-2 md:mb-0">
+          <div className="flex flex-col gap-3 md:order-1">
             {left.map((c) => (
               <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
                 heading={c.heading} body={c.body} values={c.values}
@@ -490,7 +575,7 @@ function AboutMe() {
           </div>
 
           {/* Right cards */}
-          <div className="flex flex-col gap-2 md:gap-3 md:order-3">
+          <div className="flex flex-col gap-3 md:order-3">
             {right.map((c) => (
               <AboutCard key={c.key} cardKey={c.key} num={c.num} title={c.title} teaser={c.teaser}
                 heading={c.heading} body={c.body} values={c.values}
@@ -499,8 +584,8 @@ function AboutMe() {
           </div>
         </div>
 
-        {/* Full-width 09 card */}
-        <div className="mt-2 md:mt-6">
+        {/* Full-width 09 card — desktop only (mobile already includes it above) */}
+        <div className="hidden md:block mt-6">
           <AboutCard cardKey={last.key} num={last.num} title={last.title} teaser={last.teaser}
             heading={last.heading} body={last.body} values={last.values}
             isOpen={openKey === last.key} onToggle={() => toggle(last.key)} />
