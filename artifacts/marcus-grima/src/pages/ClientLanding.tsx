@@ -340,15 +340,16 @@ function AboutMe() {
 
           {/* Centre visual — first on mobile */}
           <div className="mb-6 md:mb-0 md:order-2 md:px-2">
-            <div className="relative mx-auto max-w-[280px] md:max-w-[320px]">
+            <div className="relative mx-auto max-w-[260px] md:max-w-[300px]">
+              {/* Lime glow behind the figure */}
               <div
-                className="absolute inset-0 rounded-full blur-3xl opacity-20 scale-90 translate-y-6"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-2/3 blur-3xl opacity-25"
                 style={{ backgroundColor: LIME }}
               />
               <img
-                src="/mission.jpg"
+                src="/marcus-cutout.png"
                 alt="Marcus Grima"
-                className="relative w-full aspect-[3/4] object-cover rounded-2xl"
+                className="relative w-full drop-shadow-2xl"
                 draggable={false}
               />
             </div>
