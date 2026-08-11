@@ -472,7 +472,7 @@ function AboutMe() {
                 style={{ backgroundColor: LIME }}
               />
               <img
-                src="/marcus-cutout-real.png"
+                src="/marcus-cutout-real.webp"
                 alt="Marcus Grima"
                 className="relative w-full h-full object-cover object-top"
                 draggable={false}
@@ -580,7 +580,7 @@ function AboutMe() {
                 style={{ backgroundColor: LIME }}
               />
               <img
-                src="/marcus-cutout-real.png"
+                src="/marcus-cutout-real.webp"
                 alt="Marcus Grima"
                 className="relative w-full drop-shadow-2xl"
                 draggable={false}
