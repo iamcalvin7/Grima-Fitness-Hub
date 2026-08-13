@@ -998,6 +998,24 @@ function AddFeatureModal({ onClose, onAdded }: {
   );
 }
 
+/* ─── Delivery waves ───────────────────────────────────────────────────────────
+   Every feature sits in exactly ONE wave:
+   - Launch: everything in phase 1 (the foundation being built now)
+   - 2/4/6 weeks post launch: phase-2 work, ordered by priority
+   - Future: phase 3 and long-term items
+*/
+export type Wave = 'Launch' | '2 Weeks Post Launch' | '4 Weeks Post Launch' | '6 Weeks Post Launch' | 'Future';
+export const WAVES: Wave[] = ['Launch', '2 Weeks Post Launch', '4 Weeks Post Launch', '6 Weeks Post Launch', 'Future'];
+
+export function featureWave(f: Feature): Wave {
+  if (f.status === 'Future' || f.phase === 3) return 'Future';
+  if (f.phase === 1) return 'Launch';
+  // phase 2 → staggered by priority
+  if (f.priority === 'Critical') return '2 Weeks Post Launch';
+  if (f.priority === 'High') return '4 Weeks Post Launch';
+  return '6 Weeks Post Launch';
+}
+
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
   const [filter, setFilter] = useState<string>('All');
@@ -1020,11 +1038,7 @@ export function FeatureCatalogue() {
 
   const filtered = useMemo(() => {
     let f = [...allFeatures];
-    if (filter === 'Launch') f = f.filter(x => x.status === 'Delivered' || x.status === 'In Progress');
-    else if (filter === 'Phase 1') f = f.filter(x => x.phase === 1);
-    else if (filter === 'Phase 2') f = f.filter(x => x.phase === 2);
-    else if (filter === 'Phase 3') f = f.filter(x => x.phase === 3);
-    else if (filter === 'Ongoing') f = f.filter(x => x.status === 'Future');
+    if (filter !== 'All') f = f.filter(x => featureWave(x) === filter);
 
     f.sort((a, b) => {
       if (sortBy === 'Priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
@@ -1050,7 +1064,7 @@ export function FeatureCatalogue() {
       <div className="mb-6 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 flex-wrap">
-            {['All', 'Launch', 'Phase 1', 'Phase 2', 'Phase 3', 'Ongoing'].map((s) => {
+            {['All', ...WAVES].map((s) => {
               const active = filter === s;
               return (
                 <button
