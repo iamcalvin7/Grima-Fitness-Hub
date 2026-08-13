@@ -1095,7 +1095,6 @@ function featureAudience(f: Feature): Audience {
 export function FeatureCatalogue() {
   const [audience, setAudience] = useState<Audience>('client');
   const [filter, setFilter] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<string>('Status');
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
@@ -1109,7 +1108,6 @@ export function FeatureCatalogue() {
 
   const allFeatures = useMemo(() => [...FEATURES, ...customFeatures], [customFeatures]);
 
-  const SORT_OPTIONS = ['Status', 'Category', 'Title'];
   const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
   const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
 
@@ -1118,13 +1116,12 @@ export function FeatureCatalogue() {
     if (filter !== 'All') f = f.filter(x => featureWave(x) === filter);
 
     f.sort((a, b) => {
-      if (sortBy === 'Status') return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-      if (sortBy === 'Category') return a.category.localeCompare(b.category);
-      if (sortBy === 'Title') return a.title.localeCompare(b.title);
+      const s = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      if (s !== 0) return s;
       return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
     });
     return f;
-  }, [allFeatures, audience, filter, sortBy]);
+  }, [allFeatures, audience, filter]);
 
   const clearFilters = useCallback(() => setFilter('All'), []);
 
@@ -1193,7 +1190,6 @@ export function FeatureCatalogue() {
                 Clear
               </button>
             )}
-            <Dropdown label="Sort" options={SORT_OPTIONS} value={sortBy} onChange={setSortBy} />
           </div>
         </div>
 
