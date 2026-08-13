@@ -410,6 +410,47 @@ function Vision() {
 /* ══════════════════════════════════════════════════════════════════════════════
    3. FEATURE CATALOGUE
 ══════════════════════════════════════════════════════════════════════════════ */
+const PRODUCT_PILLARS = [
+  { title: 'Account & Onboarding', desc: 'Secure sign-up, guided onboarding and profile building — a premium first impression from day one.' },
+  { title: 'Coaching & Training', desc: 'Personalised training programmes, exercise library and structured coaching delivery.' },
+  { title: 'Progress & Accountability', desc: 'Check-ins, progress photos, measurements and visible results that keep members on track.' },
+  { title: 'Nutrition & Daily Habits', desc: 'Nutrition guidance, calorie and water tracking, and daily habit building.' },
+  { title: 'Bookings & Service Delivery', desc: 'Session booking, scheduling and cancellations managed entirely in-app.' },
+  { title: 'Communication & Community', desc: 'Direct messaging, the community feed and the home of Marcus Grima Fitness members.' },
+  { title: 'Payments & Revenue', desc: 'Memberships, subscriptions, digital products and one-off payments — all in one place.' },
+  { title: 'Business Operations', desc: 'Invoicing, VAT records, client administration and the systems that run the business.' },
+  { title: 'Growth & Acquisition', desc: 'Referrals, offers and the tools that turn the app into a customer acquisition engine.' },
+  { title: 'Content & Education', desc: 'Workout videos, educational content and knowledge delivered directly to members.' },
+  { title: 'Data & Intelligence', desc: 'Reporting, business insights and visibility across member activity and progress.' },
+  { title: 'Safety & Compliance', desc: 'Data protection, privacy and the safeguards a professional platform requires.' },
+];
+
+function ProductPillars() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Product Pillars</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+        12 pillars. One platform.
+      </h2>
+      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+        Every feature in the platform belongs to one of twelve product pillars — together they
+        cover the full member journey and the full business behind it.
+      </p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {PRODUCT_PILLARS.map((p, i) => (
+          <div key={p.title} className="border border-white/8 bg-white/[0.02] p-5">
+            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-2">
+              {String(i + 1).padStart(2, '0')}
+            </p>
+            <p className="text-sm font-bold text-white tracking-wide mb-1">{p.title}</p>
+            <p className="text-xs text-white/50 leading-relaxed">{p.desc}</p>
+          </div>
+        ))}
+      </div>
+    </FadeSection>
+  );
+}
+
 function Pillars() {
   return (
     <FadeSection className="px-5 md:px-12">
@@ -1111,6 +1152,8 @@ export const Proposal = () => {
         )}
 
         {tab === 'features' && (<>
+          <ProductPillars />
+          <Divider />
           <Pillars />
           <Divider />
           <LaunchProduct />
