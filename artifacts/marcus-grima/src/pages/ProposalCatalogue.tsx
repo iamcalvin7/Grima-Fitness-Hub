@@ -1037,6 +1037,23 @@ export function featureWave(f: Feature): Wave {
   return '6 Weeks Post Launch';
 }
 
+/* ─── Audience: who the feature serves ────────────────────────────────────────
+   Every feature is either client-facing (members use it) or a tool for Marcus. */
+type Audience = 'client' | 'marcus';
+
+const MARCUS_FEATURE_IDS = new Set([
+  'role-access', 'programme-builder', 'checkin', 'session-notes', 'announcements',
+  'client-management', 'reporting', 'ops-alerts', 'content-admin', 'mux-video',
+  'analytics', 'gdpr',
+]);
+const MARCUS_CATEGORIES = new Set<Category>(['Business Operations', 'Data & Intelligence']);
+
+function featureAudience(f: Feature): Audience {
+  if (MARCUS_FEATURE_IDS.has(f.id)) return 'marcus';
+  if (MARCUS_CATEGORIES.has(f.category)) return 'marcus';
+  return 'client';
+}
+
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
   const [filter, setFilter] = useState<string>('All');
@@ -1131,21 +1148,36 @@ export function FeatureCatalogue() {
         </p>
       </div>
 
-      {/* Feature grid */}
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
-        layout
-      >
-        <AnimatePresence mode="popLayout">
-          {filtered.map((feature) => (
-            <FeatureCard
-              key={feature.id}
-              feature={feature}
-              onClick={() => setSelectedFeature(feature)}
-            />
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {/* Feature grid — split by audience */}
+      {([
+        { audience: 'client' as Audience, label: 'Client Facing', sub: 'What members see and use' },
+        { audience: 'marcus' as Audience, label: 'For Marcus', sub: 'Tools that run the business' },
+      ]).map(({ audience, label, sub }) => {
+        const group = filtered.filter((f) => featureAudience(f) === audience);
+        if (group.length === 0) return null;
+        return (
+          <div key={audience} className="mb-8">
+            <div className="flex items-baseline gap-3 mb-3">
+              <p className={`text-[10px] font-black tracking-[0.3em] uppercase ${audience === 'client' ? 'text-primary' : 'text-white/60'}`}>{label}</p>
+              <p className="text-[10px] text-white/25 font-semibold">{sub} · {group.length}</p>
+            </div>
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+              layout
+            >
+              <AnimatePresence mode="popLayout">
+                {group.map((feature) => (
+                  <FeatureCard
+                    key={feature.id}
+                    feature={feature}
+                    onClick={() => setSelectedFeature(feature)}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        );
+      })}
 
       {filtered.length === 0 && (
         <div className="py-20 text-center">
