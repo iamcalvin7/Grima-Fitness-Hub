@@ -786,6 +786,35 @@ function ContentChecklist() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   6b. THIRD-PARTY SERVICES
+══════════════════════════════════════════════════════════════════════════════ */
+const THIRD_PARTY_SERVICES = [
+  { item: 'Mux', cost: 'Video streaming', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Usage-based pricing; free during development. Full explanation below.' },
+  { item: 'Resend (or similar)', cost: 'Transactional email', note: 'Sends verification, password-reset and notification emails. Needs a one-time API key setup before launch; free tier covers thousands of emails per month.' },
+  { item: 'Stripe', cost: 'Payments', note: 'Processes memberships, session payments and any digital products. No monthly fee — a small percentage per successful transaction only.' },
+  { item: 'Google Sign-In', cost: 'Authentication', note: 'One-tap sign-in with a Google account — already built and working in the app.' },
+  { item: 'Apple Sign-In', cost: 'Authentication', note: 'Sign-in with an Apple ID. Built, but requires the Apple Developer account ($99/yr) to switch on.' },
+  { item: 'Wearable platforms', cost: 'Health data', note: 'Fitbit, Garmin, Strava, Oura, Polar, Whoop and Withings connect via their official APIs so member activity flows into the app. Some (Garmin, Whoop) require partner approval.' },
+  { item: 'Replit', cost: 'Hosting & infrastructure', note: 'Runs the app, API and database in production, plus the AI-assisted development environment the platform is built in.' },
+];
+
+function ThirdPartyServices() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Third-Party Services</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
+        The services the platform works with, and why.
+      </h2>
+      <p className="text-sm text-white mb-10 max-w-2xl">
+        The platform doesn't reinvent solved problems — it plugs into best-in-class services
+        for video, email, payments and health data. Each one is listed here with its job.
+      </p>
+      <InvestTable title="Services" rows={THIRD_PARTY_SERVICES} headers={['Service', 'Role', 'Why we need it']} />
+    </FadeSection>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    7. MUX VIDEO STREAMING
 ══════════════════════════════════════════════════════════════════════════════ */
 const MUX_HOW = [
@@ -1012,7 +1041,11 @@ const RUNNING_COSTS = [
 ];
 
 /* Simple table renderer: Item | Cost | Notes */
-function InvestTable({ title, rows }: { title: string; rows: { item: string; cost: string; note: string }[] }) {
+function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'] }: {
+  title: string;
+  rows: { item: string; cost: string; note: string }[];
+  headers?: [string, string, string];
+}) {
   return (
     <div className="mb-10">
       <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-3">{title}</p>
@@ -1020,9 +1053,9 @@ function InvestTable({ title, rows }: { title: string; rows: { item: string; cos
         <table className="w-full text-left border-collapse min-w-[560px]">
           <thead>
             <tr className="bg-white/[0.04] border-b border-white/8">
-              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[30%]">Item</th>
-              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[22%]">Cost</th>
-              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase">Notes</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[30%]">{headers[0]}</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[22%]">{headers[1]}</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase">{headers[2]}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -1349,6 +1382,7 @@ const TABS = [
   { id: 'vision',    label: 'Vision' },
   { id: 'features',  label: 'Features' },
   { id: 'brand',     label: 'Brand & Content' },
+  { id: 'services',  label: 'Third-Party' },
   { id: 'investment', label: 'Investment' },
   { id: 'decisions', label: 'Decisions' },
   { id: 'roadmap',   label: 'Roadmap' },
@@ -1436,6 +1470,10 @@ export const Proposal = () => {
           <BrandingChecklist />
           <Divider />
           <ContentChecklist />
+        </>)}
+
+        {tab === 'services' && (<>
+          <ThirdPartyServices />
           <Divider />
           <MuxVideo />
         </>)}
