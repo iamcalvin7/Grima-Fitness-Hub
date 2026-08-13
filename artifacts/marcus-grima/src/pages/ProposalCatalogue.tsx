@@ -750,29 +750,29 @@ function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => vo
         </div>
       )}
 
-      <div className="p-4 flex flex-col gap-2.5 flex-1">
-        {/* Category + Phase */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="flex items-center gap-1 text-primary/70 text-[9px] font-bold tracking-widest uppercase">
+      <div className="p-4 flex flex-col flex-1">
+        {/* Pillar | Title */}
+        <div className="flex items-baseline gap-2 pr-5">
+          <span className="flex items-center gap-1 text-primary/70 text-[9px] font-bold tracking-widest uppercase shrink-0 self-center">
             {CATEGORY_ICONS[feature.category]}
-            <span className="truncate max-w-[120px]">{feature.category}</span>
+            <span className="truncate max-w-[110px]">{feature.category}</span>
           </span>
-          <span className="text-white/15 text-[9px]">·</span>
-          <span className="text-[9px] font-bold tracking-widest text-white/25 uppercase shrink-0">P{feature.phase}</span>
+          <span className="text-white/15 text-xs shrink-0">|</span>
+          <p className="text-sm font-black text-white tracking-tight leading-snug group-hover:text-white transition-colors">
+            {feature.title}
+          </p>
         </div>
 
-        {/* Title */}
-        <p className="text-sm font-black text-white tracking-tight leading-snug pr-5 group-hover:text-white transition-colors">
-          {feature.title}
-        </p>
+        {/* Separator */}
+        <div className="border-t border-white/8 my-3" />
 
-        {/* Tagline */}
+        {/* Description */}
         <p className="text-xs text-white/40 leading-relaxed line-clamp-2 flex-1">
           {feature.tagline}
         </p>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-1 gap-2">
+        <div className="flex items-center justify-between pt-3 gap-2">
           <span className="flex items-center gap-1.5 flex-wrap">
             <StatusChip status={feature.status} size="xs" />
             <PriorityPill priority={feature.priority} />
