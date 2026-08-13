@@ -91,35 +91,83 @@ function Hero() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   2. THE OPPORTUNITY
+   2. SETTING THE STAGE
 ══════════════════════════════════════════════════════════════════════════════ */
+const MEMBER_GAINS = [
+  'One app for their full fitness journey',
+  'Less friction from switching between multiple platforms',
+  'Clear direction across training, nutrition and daily habits',
+  'Greater consistency and accountability',
+  'Better visibility of their progress',
+  'Easier access to coaching support',
+  'Stronger motivation through community',
+];
+
+const BUSINESS_GAINS = [
+  'The central hub for every client relationship',
+  'The home of the Marcus Grima Fitness community',
+  'A platform for recurring memberships and digital products',
+  'A tool for increasing accountability and long-term retention',
+  'A scalable revenue engine',
+  'A digital asset owned by the business',
+];
+
 function Opportunity() {
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>The Opportunity</SectionLabel>
+      <SectionLabel>Setting The Stage</SectionLabel>
       <div className="max-w-3xl">
         <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight mb-6">
-          A strong foundation.<br />The next step is making it real.
+          Setting the stage.
         </h2>
+        <p className="text-sm md:text-base text-white/60 leading-relaxed mb-8">
+          The Marcus Grima Fitness app is the digital foundation of the Marcus Grima Fitness
+          business. It brings the entire client and business experience into one platform —
+          giving Marcus the infrastructure to grow the business beyond the limits of his
+          personal time.
+        </p>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="border border-white/8 bg-white/[0.02] p-6">
-            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">Where We Are</p>
-            <p className="text-sm text-white/60 leading-relaxed">
-              The app already has a polished visual identity, complete onboarding,
-              a fully secure account system, and a professional client-facing experience.
-              The design language, authentication, profile system, and technical architecture
-              are production-ready.
+            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">For Members, it simplifies the journey</p>
+            <p className="text-sm text-white/60 leading-relaxed mb-4">
+              The app gives members one place to manage every part of their fitness journey.
+              They can access their training programme, follow nutrition guidance, track
+              progress, complete check-ins, book sessions, communicate directly and take part
+              in the wider Marcus Grima Fitness community.
             </p>
+            <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Members gain</p>
+            <ul className="space-y-1.5">
+              {MEMBER_GAINS.map((g) => (
+                <li key={g} className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+                  <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
+                  <span>{g}</span>
+                </li>
+              ))}
+            </ul>
           </div>
           <div className="border border-primary/20 bg-primary/[0.04] p-6">
-            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">Where We're Going</p>
-            <p className="text-sm text-white/60 leading-relaxed">
-              The next phase is connecting the prototype to the real business: live bookings,
-              personalised programmes, real meal plans, payments, messaging, and the tools
-              Marcus needs to run every client relationship from a single screen.
+            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">For the business, it creates scale</p>
+            <p className="text-sm text-white/60 leading-relaxed mb-4">
+              The app allows Marcus Grima to support more clients, deliver a more consistent
+              level of service, strengthen retention and generate revenue beyond one-to-one
+              coaching.
             </p>
+            <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">It becomes</p>
+            <ul className="space-y-1.5">
+              {BUSINESS_GAINS.map((g) => (
+                <li key={g} className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+                  <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
+                  <span>{g}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
+        <p className="text-sm md:text-base text-white/60 leading-relaxed mt-8">
+          The platform is designed to support multiple revenue streams, including premium
+          coaching, digital memberships, workout programmes, nutrition plans, paid challenges,
+          subscriptions and one-off products.
+        </p>
       </div>
     </FadeSection>
   );
