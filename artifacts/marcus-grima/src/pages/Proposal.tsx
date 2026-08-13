@@ -495,6 +495,67 @@ const MARCUS_ITEMS = [
   'Business summary dashboard',
 ];
 
+/* ── Wearable & Health Data Support ── */
+const WEARABLES = [
+  { name: 'Apple Watch / Apple Health', how: 'Native app', phase: 'Later', note: 'Steps, workouts, heart rate, sleep. Requires the future iOS app — Apple Health is only accessible to native apps.' },
+  { name: 'Fitbit', how: 'Direct web API', phase: 'Launch-ready', note: 'Steps, activity, heart rate, sleep via one-tap account connection.' },
+  { name: 'Garmin', how: 'Direct web API', phase: 'Launch-ready', note: 'Full activity and wellness data via Garmin Connect.' },
+  { name: 'Strava', how: 'Direct web API', phase: 'Launch-ready', note: 'Runs, rides and workouts — popular with outdoor athletes.' },
+  { name: 'Oura Ring', how: 'Direct web API', phase: 'Launch-ready', note: 'Sleep, readiness and recovery scores.' },
+  { name: 'Polar', how: 'Direct web API', phase: 'Launch-ready', note: 'Training sessions and heart-rate data via Polar Flow.' },
+  { name: 'Whoop', how: 'Direct web API', phase: 'Launch-ready', note: 'Strain, recovery and sleep metrics.' },
+  { name: 'Withings', how: 'Direct web API', phase: 'Launch-ready', note: 'Smart scales and hybrid watches — weight and body composition.' },
+  { name: 'Samsung Galaxy Watch / Health Connect', how: 'Native app', phase: 'Later', note: 'Android health data via Health Connect. Requires the future Android app.' },
+  { name: 'Xiaomi / Amazfit, Suunto, Coros & others', how: 'Aggregator API', phase: 'As needed', note: 'Covered through an aggregator service (e.g. Terra) if members request them.' },
+];
+
+const WEARABLE_PHASE_STYLE: Record<string, string> = {
+  'Launch-ready': 'text-primary border-primary/30 bg-primary/10',
+  'Later':        'text-orange-400 border-orange-500/25 bg-orange-500/10',
+  'As needed':    'text-white/40 border-white/10 bg-white/5',
+};
+
+function WearableSupport() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Wearables & Health Data</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+        Members' data, wherever it lives.
+      </h2>
+      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+        Steps, workouts, heart rate and sleep flow in automatically from the devices members
+        already wear. Most connect directly from the web app with one tap — no app store
+        required. Apple Health and Health Connect follow when the native apps ship.
+      </p>
+
+      <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5 mb-6">
+        {WEARABLES.map((w) => (
+          <div key={w.name} className="p-5 md:flex md:items-start md:gap-6">
+            <div className="md:w-72 shrink-0 mb-2 md:mb-0">
+              <p className="text-sm font-bold text-white tracking-wide">{w.name}</p>
+              <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mt-1">{w.how}</p>
+            </div>
+            <p className="text-xs text-white/45 leading-relaxed flex-1">{w.note}</p>
+            <span className={`inline-block border px-2.5 py-1 text-[9px] font-bold tracking-[0.18em] uppercase mt-2 md:mt-0 shrink-0 ${WEARABLE_PHASE_STYLE[w.phase]}`}>
+              {w.phase}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="border border-white/5 bg-white/[0.01] p-4 flex items-start gap-3">
+        <Warning size={14} weight="fill" className="text-white/25 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-white/30 leading-relaxed">
+          "Launch-ready" means the provider offers a web API the platform can integrate at launch
+          without any app store presence. Apple Health and Health Connect are platform-locked to
+          native apps by Apple and Google respectively. Actual integration order will follow
+          member demand — each connection is a small, independent build.
+        </p>
+      </div>
+    </FadeSection>
+  );
+}
+
 function LaunchProduct() {
   return (
     <FadeSection className="px-5 md:px-12">
@@ -1283,6 +1344,8 @@ export const Proposal = () => {
           <Pillars />
           <Divider />
           <LaunchProduct />
+          <Divider />
+          <WearableSupport />
         </>)}
 
         {tab === 'brand' && (<>
