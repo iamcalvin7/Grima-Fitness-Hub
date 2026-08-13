@@ -105,6 +105,80 @@ router.post("/proposal-features", async (req, res) => {
   }
 });
 
+/** PATCH /proposal-features/:id — edit a custom catalogue feature. */
+router.patch("/proposal-features/:id", async (req, res) => {
+  const {
+    title,
+    category,
+    priority,
+    phase,
+    status,
+    tagline,
+    what,
+    memberBenefit,
+    businessBenefit,
+  } = (req.body ?? {}) as Record<string, unknown>;
+
+  if (title !== undefined && (typeof title !== "string" || !title.trim())) {
+    res.status(400).json({ error: "Title cannot be empty" });
+    return;
+  }
+  if (category !== undefined && (typeof category !== "string" || !VALID_CATEGORIES.includes(category.trim()))) {
+    res.status(400).json({ error: "Invalid category" });
+    return;
+  }
+  if (priority !== undefined && !VALID_PRIORITIES.includes(priority as string)) {
+    res.status(400).json({ error: "Invalid priority" });
+    return;
+  }
+  if (status !== undefined && !VALID_STATUSES.includes(status as string)) {
+    res.status(400).json({ error: "Invalid status" });
+    return;
+  }
+  if (phase !== undefined && !VALID_PHASES.includes(Number(phase))) {
+    res.status(400).json({ error: "Invalid phase" });
+    return;
+  }
+
+  const updates: Record<string, unknown> = {};
+  if (title !== undefined) updates.title = (title as string).trim();
+  if (category !== undefined) updates.category = (category as string).trim();
+  if (priority !== undefined) updates.priority = priority;
+  if (phase !== undefined) updates.phase = Number(phase);
+  if (status !== undefined) updates.status = status;
+  if (typeof tagline === "string") updates.tagline = tagline.trim();
+  if (typeof what === "string") updates.what = what.trim();
+  if (typeof memberBenefit === "string") updates.memberBenefit = memberBenefit.trim();
+  if (typeof businessBenefit === "string") updates.businessBenefit = businessBenefit.trim();
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
+    return;
+  }
+
+  try {
+    const [feature] = await db
+      .update(proposalFeaturesTable)
+      .set(updates)
+      .where(
+        and(
+          eq(proposalFeaturesTable.id, req.params.id),
+          eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
+        ),
+      )
+      .returning();
+
+    if (!feature) {
+      res.status(404).json({ error: "Feature not found" });
+      return;
+    }
+    res.json({ feature });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update proposal feature");
+    res.status(500).json({ error: "Failed to update feature" });
+  }
+});
+
 /** DELETE /proposal-features/:id — remove a custom catalogue feature. */
 router.delete("/proposal-features/:id", async (req, res) => {
   try {

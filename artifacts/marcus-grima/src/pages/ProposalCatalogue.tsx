@@ -4,7 +4,7 @@ import {
   CheckCircle, ArrowRight, X, Star, Sparkle, Lightning,
   UserCircle, Barbell, TrendUp, ForkKnife, CalendarBlank,
   ChatCircle, Money, Briefcase, BookOpen, Brain, Lock,
-  Rocket, Play, ShieldCheck, Checks, CaretDown, Funnel, Plus,
+  Rocket, Play, ShieldCheck, Checks, CaretDown, Funnel, Plus, PencilSimple, Trash,
 } from '@phosphor-icons/react';
 import { apiRequest, ApiError } from '@/lib/api';
 
@@ -41,6 +41,8 @@ export interface Feature {
   dependencies?: string[];
   costNotes?: string;
   future?: string;
+  /** True for database-backed features added via the Add Feature form (editable). */
+  custom?: boolean;
 }
 
 // ─── Feature Dataset ──────────────────────────────────────────────────────────
@@ -587,7 +589,13 @@ function StatusChip({ status, size = 'sm' }: { status: FeatureStatus; size?: 'xs
 }
 
 // ─── Feature Detail Panel ─────────────────────────────────────────────────────
-function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => void }) {
+function DetailPanel({ feature, onClose, onEdit, onDelete }: {
+  feature: Feature;
+  onClose: () => void;
+  onEdit?: (f: Feature) => void;
+  onDelete?: (f: Feature) => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
   const sc = STATUS_CONFIG[feature.status];
   return (
     <motion.div
@@ -638,6 +646,35 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
 
         {/* Body */}
         <div className="flex-1 px-6 py-6 space-y-6">
+          {/* Edit / delete for custom (database-backed) features */}
+          {feature.custom && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onEdit?.(feature)}
+                className="flex items-center gap-1.5 px-3 py-2 border border-primary/40 bg-primary/10 text-primary text-[10px] font-bold tracking-widest uppercase hover:bg-primary/20 transition-colors"
+              >
+                <PencilSimple size={12} weight="bold" /> Edit
+              </button>
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  if (!window.confirm(`Remove "${feature.title}" from the catalogue?`)) return;
+                  setDeleting(true);
+                  try {
+                    await apiRequest(`/proposal-features/${feature.id}`, { method: 'DELETE' });
+                    onDelete?.(feature);
+                    onClose();
+                  } catch {
+                    setDeleting(false);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 border border-red-500/30 bg-red-500/10 text-red-400 text-[10px] font-bold tracking-widest uppercase hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              >
+                <Trash size={12} weight="bold" /> {deleting ? 'Removing…' : 'Remove'}
+              </button>
+            </div>
+          )}
+
           {/* Tagline */}
           <p className="text-base font-semibold text-white leading-relaxed italic border-l-2 border-primary/50 pl-4">
             {feature.tagline}
@@ -893,6 +930,7 @@ function apiToFeature(f: ApiFeature): Feature {
     what: f.what,
     memberBenefit: f.memberBenefit,
     businessBenefit: f.businessBenefit,
+    custom: true,
   };
 }
 
@@ -900,18 +938,18 @@ const inputCls =
   'w-full bg-white/[0.04] border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/50';
 const labelCls = 'block text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase mb-1.5';
 
-function AddFeatureModal({ onClose, onAdded }: {
-  onClose: () => void; onAdded: (f: Feature) => void;
+function AddFeatureModal({ onClose, onAdded, initial }: {
+  onClose: () => void; onAdded: (f: Feature) => void; initial?: Feature;
 }) {
-  const [title, setTitle]       = useState('');
-  const [category, setCategory] = useState<string>(CATEGORIES[0]);
-  const [priority, setPriority] = useState<string>('Medium');
-  const [phase, setPhase]       = useState<string>('2');
-  const [status, setStatus]     = useState<string>('Planned');
-  const [tagline, setTagline]   = useState('');
-  const [what, setWhat]         = useState('');
-  const [memberBenefit, setMemberBenefit]     = useState('');
-  const [businessBenefit, setBusinessBenefit] = useState('');
+  const [title, setTitle]       = useState(initial?.title ?? '');
+  const [category, setCategory] = useState<string>(initial?.category ?? CATEGORIES[0]);
+  const [priority, setPriority] = useState<string>(initial?.priority ?? 'Medium');
+  const [phase, setPhase]       = useState<string>(initial ? String(initial.phase) : '2');
+  const [status, setStatus]     = useState<string>(initial?.status ?? 'Planned');
+  const [tagline, setTagline]   = useState(initial?.tagline ?? '');
+  const [what, setWhat]         = useState(initial?.what ?? '');
+  const [memberBenefit, setMemberBenefit]     = useState(initial?.memberBenefit ?? '');
+  const [businessBenefit, setBusinessBenefit] = useState(initial?.businessBenefit ?? '');
   const [error, setError]   = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -921,17 +959,17 @@ function AddFeatureModal({ onClose, onAdded }: {
     setSaving(true);
     setError('');
     try {
-      const res = await apiRequest<{ feature: ApiFeature }>('/proposal-features', {
-        method: 'POST',
-        body: {
-          title, category, priority, phase: Number(phase), status,
-          tagline, what, memberBenefit, businessBenefit,
-        },
-      });
+      const body = {
+        title, category, priority, phase: Number(phase), status,
+        tagline, what, memberBenefit, businessBenefit,
+      };
+      const res = initial
+        ? await apiRequest<{ feature: ApiFeature }>(`/proposal-features/${initial.id}`, { method: 'PATCH', body })
+        : await apiRequest<{ feature: ApiFeature }>('/proposal-features', { method: 'POST', body });
       onAdded(apiToFeature(res.feature));
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to add feature');
+      setError(err instanceof ApiError ? err.message : initial ? 'Failed to save changes' : 'Failed to add feature');
       setSaving(false);
     }
   };
@@ -952,7 +990,7 @@ function AddFeatureModal({ onClose, onAdded }: {
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm font-black text-primary tracking-tight uppercase">Add Feature</p>
+          <p className="text-sm font-black text-primary tracking-tight uppercase">{initial ? 'Edit Feature' : 'Add Feature'}</p>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white transition-colors">
             <X size={18} weight="bold" />
           </button>
@@ -1011,7 +1049,7 @@ function AddFeatureModal({ onClose, onAdded }: {
 
         <button type="submit" disabled={saving}
           className="mt-6 w-full py-3 bg-primary text-primary-foreground font-black tracking-[0.15em] uppercase text-xs disabled:opacity-50">
-          {saving ? 'Adding…' : 'Add Feature'}
+          {saving ? (initial ? 'Saving…' : 'Adding…') : (initial ? 'Save Changes' : 'Add Feature')}
         </button>
       </motion.form>
     </motion.div>
@@ -1024,16 +1062,16 @@ function AddFeatureModal({ onClose, onAdded }: {
    - 2/4/6 weeks post launch: phase-2 work, ordered by priority
    - Future: phase 3 and long-term items
 */
-export type Wave = 'Launch' | '2 Weeks Post Launch' | '4 Weeks Post Launch' | '6 Weeks Post Launch' | 'Future';
-export const WAVES: Wave[] = ['Launch', '2 Weeks Post Launch', '4 Weeks Post Launch', '6 Weeks Post Launch', 'Future'];
+export type Wave = 'Launch' | '2 Weeks' | '4 Weeks' | '6 Weeks' | 'Future';
+export const WAVES: Wave[] = ['Launch', '2 Weeks', '4 Weeks', '6 Weeks', 'Future'];
 
 export function featureWave(f: Feature): Wave {
   if (f.status === 'Future' || f.phase === 3) return 'Future';
   if (f.phase === 1) return 'Launch';
   // phase 2 → staggered by priority
-  if (f.priority === 'Critical') return '2 Weeks Post Launch';
-  if (f.priority === 'High') return '4 Weeks Post Launch';
-  return '6 Weeks Post Launch';
+  if (f.priority === 'Critical') return '2 Weeks';
+  if (f.priority === 'High') return '4 Weeks';
+  return '6 Weeks';
 }
 
 /* ─── Audience: who the feature serves ────────────────────────────────────────
@@ -1055,8 +1093,10 @@ function featureAudience(f: Feature): Audience {
 
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
+  const [audience, setAudience] = useState<Audience>('client');
   const [filter, setFilter] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<string>('Phase');
+  const [sortBy, setSortBy] = useState<string>('Status');
+  const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -1069,24 +1109,22 @@ export function FeatureCatalogue() {
 
   const allFeatures = useMemo(() => [...FEATURES, ...customFeatures], [customFeatures]);
 
-  const SORT_OPTIONS = ['Phase', 'Status', 'Category', 'Title'];
+  const SORT_OPTIONS = ['Status', 'Category', 'Title'];
   const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
   const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
 
   const filtered = useMemo(() => {
-    let f = [...allFeatures];
+    let f = allFeatures.filter((x) => featureAudience(x) === audience);
     if (filter !== 'All') f = f.filter(x => featureWave(x) === filter);
 
     f.sort((a, b) => {
-      if (sortBy === 'Priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-      if (sortBy === 'Phase') return a.phase - b.phase;
       if (sortBy === 'Status') return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
       if (sortBy === 'Category') return a.category.localeCompare(b.category);
       if (sortBy === 'Title') return a.title.localeCompare(b.title);
-      return 0;
+      return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
     });
     return f;
-  }, [allFeatures, filter, sortBy]);
+  }, [allFeatures, audience, filter, sortBy]);
 
   const clearFilters = useCallback(() => setFilter('All'), []);
 
@@ -1099,6 +1137,25 @@ export function FeatureCatalogue() {
 
       {/* Filter bar */}
       <div className="mb-6 space-y-3">
+        {/* Audience toggle */}
+        <div className="flex items-center gap-1">
+          {([
+            { id: 'client' as Audience, label: 'Client' },
+            { id: 'marcus' as Audience, label: 'Marcus' },
+          ]).map((a) => (
+            <button
+              key={a.id}
+              onClick={() => setAudience(a.id)}
+              className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
+                ${audience === a.id
+                  ? 'bg-primary text-black border-primary'
+                  : 'bg-transparent border-white/10 text-white/40 hover:text-white/70 hover:border-white/20'}`}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 flex-wrap">
             {['All', ...WAVES].map((s) => {
@@ -1147,36 +1204,21 @@ export function FeatureCatalogue() {
         </p>
       </div>
 
-      {/* Feature grid — split by audience */}
-      {([
-        { audience: 'client' as Audience, label: 'Client Facing', sub: 'What members see and use' },
-        { audience: 'marcus' as Audience, label: 'For Marcus', sub: 'Tools that run the business' },
-      ]).map(({ audience, label, sub }) => {
-        const group = filtered.filter((f) => featureAudience(f) === audience);
-        if (group.length === 0) return null;
-        return (
-          <div key={audience} className="mb-8">
-            <div className="flex items-baseline gap-3 mb-3">
-              <p className={`text-[10px] font-black tracking-[0.3em] uppercase ${audience === 'client' ? 'text-primary' : 'text-white/60'}`}>{label}</p>
-              <p className="text-[10px] text-white/25 font-semibold">{sub} · {group.length}</p>
-            </div>
-            <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
-              layout
-            >
-              <AnimatePresence mode="popLayout">
-                {group.map((feature) => (
-                  <FeatureCard
-                    key={feature.id}
-                    feature={feature}
-                    onClick={() => setSelectedFeature(feature)}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          </div>
-        );
-      })}
+      {/* Feature grid */}
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+        layout
+      >
+        <AnimatePresence mode="popLayout">
+          {filtered.map((feature) => (
+            <FeatureCard
+              key={feature.id}
+              feature={feature}
+              onClick={() => setSelectedFeature(feature)}
+            />
+          ))}
+        </AnimatePresence>
+      </motion.div>
 
       {filtered.length === 0 && (
         <div className="py-20 text-center">
@@ -1193,6 +1235,8 @@ export function FeatureCatalogue() {
           <DetailPanel
             feature={selectedFeature}
             onClose={() => setSelectedFeature(null)}
+            onEdit={(f) => { setSelectedFeature(null); setEditingFeature(f); }}
+            onDelete={(f) => setCustomFeatures((prev) => prev.filter((x) => x.id !== f.id))}
           />
         )}
       </AnimatePresence>
@@ -1203,6 +1247,17 @@ export function FeatureCatalogue() {
           <AddFeatureModal
             onClose={() => setShowAdd(false)}
             onAdded={(f) => setCustomFeatures((prev) => [...prev, f])}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Edit feature modal */}
+      <AnimatePresence>
+        {editingFeature && (
+          <AddFeatureModal
+            initial={editingFeature}
+            onClose={() => setEditingFeature(null)}
+            onAdded={(f) => setCustomFeatures((prev) => prev.map((x) => (x.id === f.id ? f : x)))}
           />
         )}
       </AnimatePresence>
