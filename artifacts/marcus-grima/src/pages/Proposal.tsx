@@ -159,11 +159,6 @@ function Opportunity() {
             </ul>
           </div>
         </div>
-        <p className="text-sm md:text-base text-white/60 leading-relaxed mt-8">
-          The platform is designed to support multiple revenue streams, including premium
-          coaching, digital memberships, workout programmes, nutrition plans, paid challenges,
-          subscriptions and one-off products.
-        </p>
       </div>
     </FadeSection>
   );
