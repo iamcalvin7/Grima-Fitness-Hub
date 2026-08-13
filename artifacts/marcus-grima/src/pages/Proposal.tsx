@@ -1225,8 +1225,8 @@ const DECISION_LIST = [
     d: 'Approve the scope and budget range for video and content production, including the exercise library.',
   },
   {
-    q: 'Which exercises go into the library?',
-    d: 'Confirm the exercise list used for programme building and video production, so filming can be planned in one block.',
+    q: 'Exercise library — which exercises go in?',
+    d: 'Marcus to decide the list. His chosen exercises become the library used for programme building and video production, so filming can be planned in one block.',
   },
   {
     q: 'What are the legal and business details?',
