@@ -429,9 +429,6 @@ function ProductPillars() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Product Pillars</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
-        12 pillars. One platform.
-      </h2>
       <p className="text-sm text-white mb-10 max-w-2xl">
         Every feature in the platform belongs to one of twelve product pillars — together they
         cover the full member journey and the full business behind it.
@@ -1460,8 +1457,6 @@ export const Proposal = () => {
           <ProductPillars />
           <Divider />
           <Pillars />
-          <Divider />
-          <LaunchProduct />
           <Divider />
           <OnboardingFlow />
           <Divider />
