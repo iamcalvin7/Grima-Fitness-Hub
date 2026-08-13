@@ -5,7 +5,7 @@ import {
   CheckCircle, ArrowRight, X, Confetti,
   ShieldCheck, Barbell, TrendUp, ForkKnife, CalendarBlank,
   ChatCircle, Money, Briefcase, ChartLine, BookOpen,
-  Brain, Lock, UserCircle, Rocket, Star, CaretRight,
+  Brain, Lock, UserCircle, Rocket, Star, CaretRight, CaretDown,
   Checks, Play, UploadSimple, Globe, Lightning, Warning,
 } from '@phosphor-icons/react';
 
@@ -467,18 +467,45 @@ function ProductPillars() {
 }
 
 function Pillars() {
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Feature Catalogue</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
-        Every feature. Every status.
-      </h2>
-      <p className="text-sm text-white/45 mb-10 max-w-2xl">
-        46 features across 12 product pillars — filterable by status, priority, phase, and category.
-        Each card expands into a full brief. This catalogue doubles as both the sales pitch and a live
-        delivery tracker as the build progresses.
-      </p>
-      <FeatureCatalogue />
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        className="w-full text-left group"
+      >
+        <SectionLabel>Feature Catalogue</SectionLabel>
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight">
+            Every feature. Every status.
+          </h2>
+          <span className="flex items-center gap-2 shrink-0 text-[10px] font-bold tracking-widest uppercase text-white/35 group-hover:text-primary transition-colors">
+            {collapsed ? 'Expand' : 'Collapse'}
+            <motion.span animate={{ rotate: collapsed ? 0 : 180 }} transition={{ duration: 0.2 }} className="inline-flex">
+              <CaretDown size={14} weight="bold" />
+            </motion.span>
+          </span>
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            key="catalogue"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <p className="text-sm text-white/45 mb-10 max-w-2xl">
+              46 features across 12 product pillars — each card expands into a full brief. This
+              catalogue doubles as both the sales pitch and a live delivery tracker as the build progresses.
+            </p>
+            <FeatureCatalogue />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </FadeSection>
   );
 }
