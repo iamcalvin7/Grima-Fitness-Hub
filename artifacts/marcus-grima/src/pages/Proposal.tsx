@@ -510,6 +510,65 @@ const MARCUS_ITEMS = [
   'Business summary dashboard',
 ];
 
+/* ── Onboarding Flow ── */
+const ONBOARDING_STEPS = [
+  { n: 1, title: 'Welcome & choice', desc: 'New members are greeted with the brand and choose their path: sign up with email, one tap with Google (Apple to follow), or sign in if they already have an account.' },
+  { n: 2, title: 'Name', desc: 'How Marcus greets them in the app — the experience is personal from the first screen.' },
+  { n: 3, title: 'Gender', desc: 'Helps Marcus tailor programme and nutrition guidance.' },
+  { n: 4, title: 'Age', desc: 'Used for safe, age-appropriate programming.' },
+  { n: 5, title: 'Current weight', desc: 'The starting point for progress tracking — updatable anytime in the profile.' },
+  { n: 6, title: 'Height', desc: 'Completes the basic physical profile.' },
+  { n: 7, title: 'Goal', desc: 'Build Muscle, Lose Weight, Get Fit, Increase Strength, or Improve Endurance — Marcus builds the programme around this.' },
+  { n: 8, title: 'Activity level', desc: 'Beginner, Intermediate, or Advanced — sets the right starting intensity.' },
+  { n: 9, title: 'Create login', desc: 'Email and password last, once they\u2019re already invested — then straight into the app.' },
+];
+
+function OnboardingFlow() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Onboarding Flow</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+        From stranger to member in under two minutes.
+      </h2>
+      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+        Onboarding is a guided, one-question-per-screen journey with a progress bar — built to
+        feel effortless and to hand Marcus a complete coaching profile before the member even
+        lands in the app. Members joining with Google skip the account steps and only complete
+        their profile.
+      </p>
+
+      <div className="relative max-w-2xl">
+        <div className="absolute left-[15px] top-3 bottom-3 w-px bg-white/8" />
+        <div className="flex flex-col">
+          {ONBOARDING_STEPS.map((s) => (
+            <div key={s.n} className="relative flex items-start gap-5 pl-0 py-3">
+              <div className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0 text-primary text-[11px] font-black z-10 bg-[#0A0A0A]">
+                {s.n}
+              </div>
+              <div className="pt-1">
+                <p className="text-sm font-bold text-white tracking-wide mb-0.5">{s.title}</p>
+                <p className="text-xs text-white/45 leading-relaxed">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border border-white/6 bg-white/[0.015] p-5 mt-6 max-w-2xl">
+        <div className="flex items-start gap-3">
+          <CheckCircle size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
+          <p className="text-xs text-white/50 leading-relaxed">
+            <span className="text-white/80 font-semibold">Why it matters:</span> every answer feeds
+            directly into Marcus's coaching tools — the goal, activity level and stats arrive in the
+            client dashboard the moment a member finishes, so the first programme can be built
+            without a single intake form or back-and-forth message.
+          </p>
+        </div>
+      </div>
+    </FadeSection>
+  );
+}
+
 /* ── Wearable & Health Data Support ── */
 const WEARABLES = [
   { name: 'Apple Watch / Apple Health', how: 'Native app', phase: 'Later', note: 'Steps, workouts, heart rate, sleep. Requires the future iOS app — Apple Health is only accessible to native apps.',
@@ -1481,6 +1540,8 @@ export const Proposal = () => {
           <Pillars />
           <Divider />
           <LaunchProduct />
+          <Divider />
+          <OnboardingFlow />
           <Divider />
           <WearableSupport />
         </>)}
