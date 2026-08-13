@@ -3,6 +3,8 @@
  * landing page (ClientLanding) on every URL. The client app, login and
  * onboarding are completely hidden and no auth probe is made.
  *
- * Flip to false to bring the full app back.
+ * Production (the published site) stays landing-only.
+ * Development shows the full app so we can keep building other pages;
+ * the landing page is still reachable at /ownyourjourney.
  */
-export const LANDING_ONLY = true;
+export const LANDING_ONLY = import.meta.env.PROD;
