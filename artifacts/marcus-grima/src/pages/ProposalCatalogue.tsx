@@ -622,7 +622,7 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
               <span className="text-white/20 text-[9px]">·</span>
               <span className="text-[9px] font-bold tracking-widest text-white/30 uppercase">Phase {feature.phase}</span>
             </div>
-            <h3 className="text-xl font-black text-white tracking-tight leading-tight">{feature.title}</h3>
+            <h3 className="text-xl font-black text-primary tracking-tight leading-tight">{feature.title}</h3>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <StatusChip status={feature.status} />
               <PriorityPill priority={feature.priority} />
@@ -639,14 +639,14 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
         {/* Body */}
         <div className="flex-1 px-6 py-6 space-y-6">
           {/* Tagline */}
-          <p className="text-base font-semibold text-white/70 leading-relaxed italic border-l-2 border-primary/50 pl-4">
+          <p className="text-base font-semibold text-white leading-relaxed italic border-l-2 border-primary/50 pl-4">
             {feature.tagline}
           </p>
 
           {/* What it does */}
           <div>
             <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">What It Does</p>
-            <p className="text-sm text-white/65 leading-relaxed">{feature.what}</p>
+            <p className="text-sm text-white leading-relaxed">{feature.what}</p>
           </div>
 
           {/* Dual benefit */}
@@ -655,13 +655,13 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
               <p className="text-[9px] font-black tracking-[0.25em] text-white/30 uppercase mb-2 flex items-center gap-1.5">
                 <UserCircle size={11} weight="fill" /> For Members
               </p>
-              <p className="text-sm text-white/65 leading-relaxed">{feature.memberBenefit}</p>
+              <p className="text-sm text-white leading-relaxed">{feature.memberBenefit}</p>
             </div>
             <div className="border border-primary/12 bg-primary/[0.025] p-4">
               <p className="text-[9px] font-black tracking-[0.25em] text-primary/60 uppercase mb-2 flex items-center gap-1.5">
                 <Briefcase size={11} weight="fill" /> For Marcus / Business
               </p>
-              <p className="text-sm text-white/65 leading-relaxed">{feature.businessBenefit}</p>
+              <p className="text-sm text-white leading-relaxed">{feature.businessBenefit}</p>
             </div>
           </div>
 
@@ -669,7 +669,7 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
           {feature.scope && (
             <div>
               <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">Scope</p>
-              <p className="text-sm text-white/50 leading-relaxed">{feature.scope}</p>
+              <p className="text-sm text-white leading-relaxed">{feature.scope}</p>
             </div>
           )}
 
@@ -691,7 +691,7 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
           {feature.costNotes && (
             <div className="border border-white/6 bg-white/[0.015] p-4">
               <p className="text-[9px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">Cost / Effort Notes</p>
-              <p className="text-sm text-white/50 leading-relaxed">{feature.costNotes}</p>
+              <p className="text-sm text-white leading-relaxed">{feature.costNotes}</p>
             </div>
           )}
 
@@ -701,7 +701,7 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
               <p className="text-[9px] font-black tracking-[0.3em] text-violet-400/70 uppercase mb-2 flex items-center gap-1.5">
                 <Sparkle size={11} weight="fill" /> Future Enhancements
               </p>
-              <p className="text-sm text-white/50 leading-relaxed">{feature.future}</p>
+              <p className="text-sm text-white leading-relaxed">{feature.future}</p>
             </div>
           )}
         </div>
@@ -758,7 +758,7 @@ function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => vo
             <span className="truncate max-w-[110px]">{feature.category}</span>
           </span>
           <span className="text-white/15 text-xs shrink-0">|</span>
-          <p className="text-sm font-black text-white tracking-tight leading-snug group-hover:text-white transition-colors">
+          <p className="text-sm font-black text-primary tracking-tight leading-snug group-hover:text-white transition-colors">
             {feature.title}
           </p>
         </div>
@@ -767,7 +767,7 @@ function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => vo
         <div className="border-t border-white/8 my-3" />
 
         {/* Description */}
-        <p className="text-xs text-white/40 leading-relaxed line-clamp-2 flex-1">
+        <p className="text-xs text-white leading-relaxed line-clamp-2 flex-1">
           {feature.tagline}
         </p>
 
@@ -953,7 +953,7 @@ function AddFeatureModal({ onClose, onAdded }: {
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm font-black text-white tracking-tight uppercase">Add Feature</p>
+          <p className="text-sm font-black text-primary tracking-tight uppercase">Add Feature</p>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white transition-colors">
             <X size={18} weight="bold" />
           </button>

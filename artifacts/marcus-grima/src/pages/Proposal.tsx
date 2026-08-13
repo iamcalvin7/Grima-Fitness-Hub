@@ -79,7 +79,7 @@ function Hero() {
           { value: 'Jan 3, 2026', label: 'Public Launch' },
         ].map((s) => (
           <div key={s.label} className="border border-white/8 bg-white/[0.03] px-4 py-5">
-            <p className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none mb-1.5">{s.value}</p>
+            <p className="text-2xl md:text-3xl font-black text-primary tracking-tight leading-none mb-1.5">{s.value}</p>
             <p className="text-[9px] font-bold tracking-[0.22em] text-white/35 uppercase">{s.label}</p>
           </div>
         ))}
@@ -253,7 +253,7 @@ function WhatWhyHow() {
           <ul className="space-y-1.5 mb-4">
             {HOW_BENEFITS.map((b) => <VisionBullet key={b}>{b}</VisionBullet>)}
           </ul>
-          <p className="text-sm text-white/70 leading-relaxed">
+          <p className="text-sm text-white leading-relaxed">
             The app does not replace Marcus’s role as a coach. It gives him the systems to
             extend his impact, protect the quality of the service and build a business that
             can grow beyond the limits of his time.
@@ -313,7 +313,7 @@ function Vision() {
       <SectionLabel>Product Vision</SectionLabel>
       <div className="max-w-3xl">
         {/* Vision statement */}
-        <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight mb-6">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight leading-tight mb-6">
           The best fitness app in Malta.
         </h2>
         <div className="space-y-4 mb-10">
@@ -396,7 +396,7 @@ function Vision() {
           </div>
         </div>
 
-        <p className="text-sm md:text-base text-white/70 leading-relaxed">
+        <p className="text-sm md:text-base text-white leading-relaxed">
           This is not simply an upgrade to the current coaching service. We will build a
           category-leading fitness business with the brand, systems and technology to attract
           more customers, create stronger loyalty and grow well beyond the limits of Marcus's
@@ -429,10 +429,10 @@ function ProductPillars() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Product Pillars</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         12 pillars. One platform.
       </h2>
-      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-10 max-w-2xl">
         Every feature in the platform belongs to one of twelve product pillars — together they
         cover the full member journey and the full business behind it.
       </p>
@@ -451,7 +451,7 @@ function ProductPillars() {
                 {String(i + 1).padStart(2, '0')}
               </p>
               <p className="text-sm font-bold text-white tracking-wide mb-1">{p.title}</p>
-              <p className="text-xs text-white/50 leading-relaxed">{p.desc}</p>
+              <p className="text-xs text-white leading-relaxed">{p.desc}</p>
             </div>
           ))}
         </div>
@@ -477,7 +477,7 @@ function Pillars() {
       >
         <SectionLabel>Feature Catalogue</SectionLabel>
         <div className="flex items-center justify-between gap-4 mb-3">
-          <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight">
+          <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight">
             Every feature. Every status.
           </h2>
           <span className="flex items-center gap-2 shrink-0 text-[10px] font-bold tracking-widest uppercase text-white/35 group-hover:text-primary transition-colors">
@@ -498,7 +498,7 @@ function Pillars() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="text-sm text-white/45 mb-10 max-w-2xl">
+            <p className="text-sm text-white mb-10 max-w-2xl">
               46 features across 12 product pillars — each card expands into a full brief. This
               catalogue doubles as both the sales pitch and a live delivery tracker as the build progresses.
             </p>
@@ -554,10 +554,10 @@ function OnboardingFlow() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Onboarding Flow</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         From stranger to member in under two minutes.
       </h2>
-      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-10 max-w-2xl">
         Onboarding is a guided, one-question-per-screen journey with a progress bar — built to
         feel effortless and to hand Marcus a complete coaching profile before the member even
         lands in the app. Members joining with Google skip the account steps and only complete
@@ -574,7 +574,7 @@ function OnboardingFlow() {
               </div>
               <div className="pt-1">
                 <p className="text-sm font-bold text-white tracking-wide mb-0.5">{s.title}</p>
-                <p className="text-xs text-white/45 leading-relaxed">{s.desc}</p>
+                <p className="text-xs text-white leading-relaxed">{s.desc}</p>
               </div>
             </div>
           ))}
@@ -584,7 +584,7 @@ function OnboardingFlow() {
       <div className="border border-white/6 bg-white/[0.015] p-5 mt-6 max-w-2xl">
         <div className="flex items-start gap-3">
           <CheckCircle size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
-          <p className="text-xs text-white/50 leading-relaxed">
+          <p className="text-xs text-white leading-relaxed">
             <span className="text-white/80 font-semibold">Why it matters:</span> every answer feeds
             directly into Marcus's coaching tools — the goal, activity level and stats arrive in the
             client dashboard the moment a member finishes, so the first programme can be built
@@ -630,10 +630,10 @@ function WearableSupport() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Wearables & Health Data</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         Members' data, wherever it lives.
       </h2>
-      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-10 max-w-2xl">
         Steps, workouts, heart rate and sleep flow in automatically from the devices members
         already wear. Most connect directly from the web app with one tap — no app store
         required. Apple Health and Health Connect follow when the native apps ship.
@@ -647,7 +647,7 @@ function WearableSupport() {
               <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mt-1">{w.how}</p>
             </div>
             <div className="flex-1">
-              <p className="text-xs text-white/45 leading-relaxed">{w.note}</p>
+              <p className="text-xs text-white leading-relaxed">{w.note}</p>
               <p className="text-[11px] text-white/35 leading-relaxed mt-1.5">
                 <span className="text-primary/70 font-semibold uppercase tracking-wider text-[9px] mr-1.5">Access &amp; cost</span>
                 {w.access}
@@ -677,10 +677,10 @@ function LaunchProduct() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Recommended Launch Product</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         Personalised coaching membership.
       </h2>
-      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-10 max-w-2xl">
         The launch proposition is focused: a premium one-to-one coaching relationship, fully
         delivered through the app. Members get a complete experience; Marcus gets everything
         he needs to manage it.
@@ -728,8 +728,8 @@ function BrandingChecklist() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Branding</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">Branding checklist.</h2>
-      <p className="text-sm text-white/40 mb-8 max-w-xl">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Branding checklist.</h2>
+      <p className="text-sm text-white mb-8 max-w-xl">
         Building a brand that matches the quality of the platform.
       </p>
 
@@ -741,7 +741,7 @@ function BrandingChecklist() {
             </div>
             <div>
               <p className="text-sm font-bold text-white tracking-wide mb-1">{area.title}</p>
-              <p className="text-xs text-white/45 leading-relaxed">{area.desc}</p>
+              <p className="text-xs text-white leading-relaxed">{area.desc}</p>
             </div>
           </div>
         ))}
@@ -755,7 +755,7 @@ function BrandingChecklist() {
         </div>
         <div className="text-right">
           <div className="flex items-baseline gap-3 justify-end">
-            <span className="text-3xl font-black text-white tracking-tight">€3,067</span>
+            <span className="text-3xl font-black text-primary tracking-tight">€3,067</span>
             <span className="text-sm text-white/25 line-through">€6,134</span>
           </div>
           <p className="text-[9px] font-bold tracking-widest text-primary/70 uppercase mt-0.5">50% discount applied</p>
@@ -781,8 +781,8 @@ function ContentChecklist() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Content Production</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">Content production checklist.</h2>
-      <p className="text-sm text-white/40 mb-8 max-w-xl">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Content production checklist.</h2>
+      <p className="text-sm text-white mb-8 max-w-xl">
         Quality content is what elevates the platform from functional to exceptional.
       </p>
 
@@ -794,7 +794,7 @@ function ContentChecklist() {
             </div>
             <div>
               <p className="text-sm font-bold text-white tracking-wide mb-1">{area.title}</p>
-              <p className="text-xs text-white/45 leading-relaxed">{area.desc}</p>
+              <p className="text-xs text-white leading-relaxed">{area.desc}</p>
             </div>
           </div>
         ))}
@@ -804,9 +804,9 @@ function ContentChecklist() {
       <div className="grid md:grid-cols-2 gap-4">
         <div className="border border-primary/20 bg-primary/[0.04] p-6">
           <p className="text-[9px] font-bold tracking-[0.3em] text-primary uppercase mb-1">Creative Direction & Production Management</p>
-          <p className="text-xs text-white/40 mb-4">50% introductory rate applied</p>
+          <p className="text-xs text-white mb-4">50% introductory rate applied</p>
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-black text-white tracking-tight">€5,420</span>
+            <span className="text-3xl font-black text-primary tracking-tight">€5,420</span>
             <span className="text-sm text-white/25 line-through">€10,840</span>
           </div>
           <p className="text-[9px] font-bold tracking-widest text-primary/70 uppercase mt-1">50% discount applied</p>
@@ -867,10 +867,10 @@ function MuxVideo() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Build Plan · Content &amp; Video</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         Video streaming, done properly.
       </h2>
-      <p className="text-sm text-white/45 mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-10 max-w-2xl">
         All video content on the platform — feed posts, exercise demonstrations, educational
         videos, and recorded classes — is hosted and streamed through{' '}
         <span className="text-white/80 font-semibold">Mux</span>, a purpose-built video
@@ -888,7 +888,7 @@ function MuxVideo() {
               <Play size={14} weight="fill" className="text-primary shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-bold text-white tracking-wide mb-0.5">{u.label}</p>
-                <p className="text-xs text-white/40 leading-relaxed">{u.desc}</p>
+                <p className="text-xs text-white leading-relaxed">{u.desc}</p>
               </div>
             </div>
           ))}
@@ -906,7 +906,7 @@ function MuxVideo() {
               </div>
               <div>
                 <p className="text-sm font-bold text-white tracking-wide mb-1">{h.title}</p>
-                <p className="text-xs text-white/45 leading-relaxed">{h.desc}</p>
+                <p className="text-xs text-white leading-relaxed">{h.desc}</p>
               </div>
             </div>
           ))}
@@ -923,7 +923,7 @@ function MuxVideo() {
             <CheckCircle size={16} weight="fill" className="text-primary" />
             <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Free / Testing</p>
           </div>
-          <p className="text-2xl font-black text-white tracking-tight mb-1">€0</p>
+          <p className="text-2xl font-black text-primary tracking-tight mb-1">€0</p>
           <p className="text-[9px] font-bold tracking-widest text-white/30 uppercase mb-4">During development &amp; testing</p>
           <div className="space-y-2">
             {[
@@ -946,7 +946,7 @@ function MuxVideo() {
             <Rocket size={16} weight="fill" className="text-primary" />
             <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Paid · Live Platform</p>
           </div>
-          <p className="text-2xl font-black text-white tracking-tight mb-1">Pay-as-you-go</p>
+          <p className="text-2xl font-black text-primary tracking-tight mb-1">Pay-as-you-go</p>
           <p className="text-[9px] font-bold tracking-widest text-white/30 uppercase mb-4">No monthly minimum</p>
           <div className="space-y-3">
             {[
@@ -969,7 +969,7 @@ function MuxVideo() {
           <ChartLine size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-white/80 mb-1.5">What determines the monthly bill</p>
-            <p className="text-xs text-white/45 leading-relaxed">
+            <p className="text-xs text-white leading-relaxed">
               Mux charges are driven by three things: how many videos are stored, how many minutes of
               video are uploaded over time, and how many minutes members spend watching. A small video
               library with moderate member activity typically costs well under{' '}
@@ -1002,8 +1002,8 @@ function BuildCost() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Build Cost Model</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">How the build is costed.</h2>
-      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">How the build is costed.</h2>
+      <p className="text-sm text-white mb-10 max-w-2xl">
         The platform is built on Replit with AI-assisted development. Costs are transparent and
         benchmarked against what has already been built — not estimated against traditional agency day rates.
       </p>
@@ -1013,16 +1013,16 @@ function BuildCost() {
           <p className="text-[9px] font-bold tracking-[0.25em] text-white/35 uppercase mb-4">Actual Replit AI Usage — Current Project</p>
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-2xl font-black text-white tracking-tight">$156.01</p>
+              <p className="text-2xl font-black text-primary tracking-tight">$156.01</p>
               <p className="text-[10px] font-bold tracking-wider text-white/35 uppercase mt-1">AI usage this period</p>
             </div>
             <div>
-              <p className="text-2xl font-black text-white tracking-tight">$156.15</p>
+              <p className="text-2xl font-black text-primary tracking-tight">$156.15</p>
               <p className="text-[10px] font-bold tracking-wider text-white/35 uppercase mt-1">Total project usage</p>
             </div>
           </div>
           <div className="border-t border-white/5 mt-5 pt-5">
-            <p className="text-xs text-white/40 leading-relaxed">
+            <p className="text-xs text-white leading-relaxed">
               These are verified figures from the Replit billing dashboard for the current project period.
               Future features are estimated using the completed authentication system as a complexity benchmark,
               with revision allowances applied per sprint.
@@ -1033,7 +1033,7 @@ function BuildCost() {
         <div className="border border-primary/15 bg-primary/[0.03] p-6">
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary/70 uppercase mb-4">Calvin — Product Owner Rate</p>
           <div className="mb-4">
-            <p className="text-2xl font-black text-white tracking-tight">€26.44<span className="text-base font-bold text-white/40">/hr</span></p>
+            <p className="text-2xl font-black text-primary tracking-tight">€26.44<span className="text-base font-bold text-white/40">/hr</span></p>
             <p className="text-[10px] font-bold tracking-wider text-primary/70 uppercase mt-1">Discounted rate</p>
           </div>
           <div className="border-t border-white/8 pt-4">
@@ -1046,7 +1046,7 @@ function BuildCost() {
       <div className="border border-white/6 bg-white/[0.015] p-5">
         <div className="flex items-start gap-3">
           <ChartLine size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
-          <p className="text-xs text-white/50 leading-relaxed">
+          <p className="text-xs text-white leading-relaxed">
             <span className="text-white/80 font-semibold">Benchmark methodology:</span> The fully built authentication system
             (sign-up, sign-in, password reset, email verification, OAuth, session management, account lifecycle — 6,000+ lines,
             34 production-ready features) establishes the cost-per-complexity baseline. Each future feature sprint is estimated
@@ -1125,7 +1125,7 @@ function CostTable({ rows }: { rows: typeof LAUNCH_COSTS }) {
             <p className="text-sm font-black text-primary tracking-tight whitespace-nowrap">{r.cost}</p>
           </div>
           <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mb-1.5">{r.kind}</p>
-          <p className="text-xs text-white/45 leading-relaxed">{r.note}</p>
+          <p className="text-xs text-white leading-relaxed">{r.note}</p>
         </div>
       ))}
     </div>
@@ -1136,10 +1136,10 @@ function LaunchRunningCosts() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Launch & Running Costs</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         The full picture, not just the build.
       </h2>
-      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-10 max-w-2xl">
         Beyond the build itself, the platform carries a small set of launch and operating
         costs. They are all listed here — there are no hidden fees, and most only grow
         when the business grows.
@@ -1164,7 +1164,7 @@ function LaunchRunningCosts() {
           { value: '% based', label: 'Payment & store fees', sub: 'Only charged when revenue comes in' },
         ].map((s) => (
           <div key={s.label} className="border border-primary/15 bg-primary/[0.03] p-5">
-            <p className="text-2xl font-black text-white tracking-tight">{s.value}</p>
+            <p className="text-2xl font-black text-primary tracking-tight">{s.value}</p>
             <p className="text-[9px] font-bold tracking-[0.22em] text-primary/70 uppercase mt-1.5">{s.label}</p>
             <p className="text-[10px] text-white/30 mt-1">{s.sub}</p>
           </div>
@@ -1205,7 +1205,7 @@ function Roadmap() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Roadmap</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-10">Timeline to launch.</h2>
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-10">Timeline to launch.</h2>
 
       <div className="relative">
         {/* Vertical line */}
@@ -1236,7 +1236,7 @@ function Roadmap() {
               {item.highlight ? (
                 <div className="w-full border border-primary/30 bg-primary/[0.06] px-5 py-4">
                   <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-1">{item.dates}</p>
-                  <p className="text-xl font-black text-white tracking-tight">{item.label}</p>
+                  <p className="text-xl font-black text-primary tracking-tight">{item.label}</p>
                   <p className="text-xs text-primary/70 font-semibold mt-1 tracking-wider">TARGET LAUNCH DATE</p>
                 </div>
               ) : (
@@ -1295,7 +1295,7 @@ function ProConList({ title, items, positive }: { title: string; items: string[]
             {positive
               ? <CheckCircle size={13} weight="fill" className="text-primary shrink-0 mt-0.5" />
               : <Warning size={13} weight="fill" className="text-orange-400/70 shrink-0 mt-0.5" />}
-            <span className="text-xs text-white/50 leading-relaxed">{item}</span>
+            <span className="text-xs text-white leading-relaxed">{item}</span>
           </div>
         ))}
       </div>
@@ -1307,8 +1307,8 @@ function WebVsAppDecision() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Key Decision</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">Web app vs App Store.</h2>
-      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Web app vs App Store.</h2>
+      <p className="text-sm text-white mb-10 max-w-2xl">
         How the app reaches members is the biggest structural decision of the project — it
         affects cost, launch speed, and what data the platform can collect. The two routes
         below are not mutually exclusive: the recommended path starts with one and adds the other.
@@ -1321,7 +1321,7 @@ function WebVsAppDecision() {
             <Rocket size={16} weight="fill" className="text-primary" />
             <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Option A — Recommended first</p>
           </div>
-          <h3 className="text-lg font-black text-white tracking-tight mb-5">Web App (PWA)</h3>
+          <h3 className="text-lg font-black text-primary tracking-tight mb-5">Web App (PWA)</h3>
           <div className="space-y-6">
             <ProConList title="Pros" items={WEB_APP_PROS} positive />
             <ProConList title="Cons" items={WEB_APP_CONS} positive={false} />
@@ -1334,7 +1334,7 @@ function WebVsAppDecision() {
             <Star size={16} weight="fill" className="text-white/40" />
             <p className="text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase">Option B — Later addition</p>
           </div>
-          <h3 className="text-lg font-black text-white tracking-tight mb-5">Native Apps (App Store & Google Play)</h3>
+          <h3 className="text-lg font-black text-primary tracking-tight mb-5">Native Apps (App Store & Google Play)</h3>
           <div className="space-y-6">
             <ProConList title="Pros" items={STORE_APP_PROS} positive />
             <ProConList title="Cons" items={STORE_APP_CONS} positive={false} />
@@ -1345,7 +1345,7 @@ function WebVsAppDecision() {
       {/* Recommendation */}
       <div className="border border-primary/20 bg-primary/[0.04] p-6">
         <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">Recommended Path</p>
-        <p className="text-sm text-white/70 leading-relaxed max-w-3xl">
+        <p className="text-sm text-white leading-relaxed max-w-3xl">
           <span className="text-white font-bold">Launch as a web app, add native apps later.</span>{' '}
           Start with the PWA: zero store fees, no commission, instant updates, and most wearables
           connect from day one. Once revenue justifies it, ship a lightweight native app whose main
@@ -1376,8 +1376,8 @@ function Decisions() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Next Steps</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">Decisions required from Marcus.</h2>
-      <p className="text-sm text-white/40 mb-8 max-w-xl">Eight actions to move from proposal to production.</p>
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Decisions required from Marcus.</h2>
+      <p className="text-sm text-white mb-8 max-w-xl">Eight actions to move from proposal to production.</p>
 
       <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5 max-w-2xl">
         {DECISIONS.map((d) => (
@@ -1400,7 +1400,7 @@ function FinalCTA({ onApprove, onReview }: { onApprove: () => void; onReview: ()
     <FadeSection className="px-5 md:px-12 pb-24">
       <div className="max-w-2xl">
         <SectionLabel>Proposal Summary</SectionLabel>
-        <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-6">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-6">
           Launch focused. Scale with confidence.
         </h2>
         <p className="text-sm md:text-base text-white/55 leading-relaxed mb-10">
@@ -1459,8 +1459,8 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
             <div className="w-12 h-12 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center mb-6">
               <Checks size={22} weight="fill" className="text-primary" />
             </div>
-            <h3 className="text-xl font-black text-white tracking-tight mb-2">Approve project direction?</h3>
-            <p className="text-sm text-white/45 leading-relaxed mb-8">
+            <h3 className="text-xl font-black text-primary tracking-tight mb-2">Approve project direction?</h3>
+            <p className="text-sm text-white leading-relaxed mb-8">
               This records your approval of the Marcus Grima Fitness project proposal, scope, and timeline as presented.
             </p>
             <div className="flex flex-col gap-3">
@@ -1484,8 +1484,8 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
             >
               <Confetti size={28} weight="fill" className="text-primary" />
             </motion.div>
-            <h3 className="text-xl font-black text-white tracking-tight mb-2">Direction approved.</h3>
-            <p className="text-sm text-white/40 leading-relaxed mb-6">
+            <h3 className="text-xl font-black text-primary tracking-tight mb-2">Direction approved.</h3>
+            <p className="text-sm text-white leading-relaxed mb-6">
               Marcus Grima Fitness is a go. The next step is confirming the eight decisions and starting the sprint.
             </p>
             <button
