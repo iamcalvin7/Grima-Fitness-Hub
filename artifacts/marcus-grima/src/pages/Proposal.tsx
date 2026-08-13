@@ -450,7 +450,7 @@ function ProductPillars() {
               <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-2">
                 {String(i + 1).padStart(2, '0')}
               </p>
-              <p className="text-sm font-bold text-white tracking-wide mb-1">{p.title}</p>
+              <p className="text-sm font-bold text-primary tracking-wide mb-1">{p.title}</p>
               <p className="text-xs text-white leading-relaxed">{p.desc}</p>
             </div>
           ))}
@@ -573,7 +573,7 @@ function OnboardingFlow() {
                 {s.n}
               </div>
               <div className="pt-1">
-                <p className="text-sm font-bold text-white tracking-wide mb-0.5">{s.title}</p>
+                <p className="text-sm font-bold text-primary tracking-wide mb-0.5">{s.title}</p>
                 <p className="text-xs text-white leading-relaxed">{s.desc}</p>
               </div>
             </div>
@@ -643,7 +643,7 @@ function WearableSupport() {
         {WEARABLES.map((w) => (
           <div key={w.name} className="p-5 md:flex md:items-start md:gap-6">
             <div className="md:w-72 shrink-0 mb-2 md:mb-0">
-              <p className="text-sm font-bold text-white tracking-wide">{w.name}</p>
+              <p className="text-sm font-bold text-primary tracking-wide">{w.name}</p>
               <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mt-1">{w.how}</p>
             </div>
             <div className="flex-1">
@@ -740,7 +740,7 @@ function BrandingChecklist() {
               <span className="text-[9px] font-bold text-primary">{i + 1}</span>
             </div>
             <div>
-              <p className="text-sm font-bold text-white tracking-wide mb-1">{area.title}</p>
+              <p className="text-sm font-bold text-primary tracking-wide mb-1">{area.title}</p>
               <p className="text-xs text-white leading-relaxed">{area.desc}</p>
             </div>
           </div>
@@ -793,7 +793,7 @@ function ContentChecklist() {
               <span className="text-[9px] font-bold text-white/50">{i + 1}</span>
             </div>
             <div>
-              <p className="text-sm font-bold text-white tracking-wide mb-1">{area.title}</p>
+              <p className="text-sm font-bold text-primary tracking-wide mb-1">{area.title}</p>
               <p className="text-xs text-white leading-relaxed">{area.desc}</p>
             </div>
           </div>
@@ -887,7 +887,7 @@ function MuxVideo() {
             <div key={u.label} className="flex items-start gap-3 border border-white/6 bg-white/[0.02] p-4">
               <Play size={14} weight="fill" className="text-primary shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-bold text-white tracking-wide mb-0.5">{u.label}</p>
+                <p className="text-sm font-bold text-primary tracking-wide mb-0.5">{u.label}</p>
                 <p className="text-xs text-white leading-relaxed">{u.desc}</p>
               </div>
             </div>
@@ -905,7 +905,7 @@ function MuxVideo() {
                 {h.icon}
               </div>
               <div>
-                <p className="text-sm font-bold text-white tracking-wide mb-1">{h.title}</p>
+                <p className="text-sm font-bold text-primary tracking-wide mb-1">{h.title}</p>
                 <p className="text-xs text-white leading-relaxed">{h.desc}</p>
               </div>
             </div>
@@ -1121,7 +1121,7 @@ function CostTable({ rows }: { rows: typeof LAUNCH_COSTS }) {
       {rows.map((r) => (
         <div key={r.item} className="p-5">
           <div className="flex items-baseline justify-between gap-4 flex-wrap mb-1">
-            <p className="text-sm font-bold text-white tracking-wide">{r.item}</p>
+            <p className="text-sm font-bold text-primary tracking-wide">{r.item}</p>
             <p className="text-sm font-black text-primary tracking-tight whitespace-nowrap">{r.cost}</p>
           </div>
           <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mb-1.5">{r.kind}</p>
