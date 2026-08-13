@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle, ArrowRight, X, Star, Sparkle, Lightning,
   UserCircle, Barbell, TrendUp, ForkKnife, CalendarBlank,
   ChatCircle, Money, Briefcase, BookOpen, Brain, Lock,
-  Rocket, Play, ShieldCheck, Checks, CaretDown, Funnel,
+  Rocket, Play, ShieldCheck, Checks, CaretDown, Funnel, Plus,
 } from '@phosphor-icons/react';
+import { apiRequest, ApiError } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type Priority = 'Critical' | 'High' | 'Medium' | 'Low';
@@ -538,11 +539,12 @@ const STATUS_CONFIG: Record<FeatureStatus, { label: string; color: string; bg: s
   'Future':      { label: 'Future',      color: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/25',  dot: 'bg-violet-400',  icon: <Sparkle size={11} weight="fill" /> },
 };
 
-const PRIORITY_BORDER: Record<Priority, string> = {
-  Critical: 'border-l-red-500/70',
-  High:     'border-l-orange-400/70',
-  Medium:   'border-l-yellow-500/50',
-  Low:      'border-l-white/10',
+/* Left border follows STATUS so the card's colour matches its status chip. */
+const STATUS_BORDER: Record<FeatureStatus, string> = {
+  'Delivered':   'border-l-emerald-400/70',
+  'In Progress': 'border-l-orange-400/70',
+  'Planned':     'border-l-white/15',
+  'Future':      'border-l-violet-400/60',
 };
 
 const PRIORITY_DOT: Record<Priority, string> = {
@@ -709,7 +711,7 @@ function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => vo
       layout
       onClick={onClick}
       className={`
-        relative w-full text-left border border-l-4 ${PRIORITY_BORDER[feature.priority]}
+        relative w-full text-left border border-l-4 ${STATUS_BORDER[feature.status]}
         bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/12
         transition-all duration-200 group flex flex-col
         ${isDelivered ? 'border-emerald-500/20' : 'border-white/6'}
@@ -842,6 +844,160 @@ function Dropdown({ label, options, value, onChange }: {
   );
 }
 
+// ─── Add Feature Modal ────────────────────────────────────────────────────────
+interface ApiFeature {
+  id: string;
+  title: string;
+  category: string;
+  priority: string;
+  phase: number;
+  status: string;
+  tagline: string;
+  what: string;
+  memberBenefit: string;
+  businessBenefit: string;
+}
+
+function apiToFeature(f: ApiFeature): Feature {
+  return {
+    id: f.id,
+    title: f.title,
+    category: (CATEGORIES as readonly string[]).includes(f.category)
+      ? (f.category as Category) : 'Business Operations',
+    priority: (PRIORITIES as readonly string[]).includes(f.priority)
+      ? (f.priority as Priority) : 'Medium',
+    phase: (f.phase >= 1 && f.phase <= 3 ? f.phase : 2) as Phase,
+    status: (STATUSES as readonly string[]).includes(f.status)
+      ? (f.status as FeatureStatus) : 'Planned',
+    tagline: f.tagline,
+    what: f.what,
+    memberBenefit: f.memberBenefit,
+    businessBenefit: f.businessBenefit,
+  };
+}
+
+const inputCls =
+  'w-full bg-white/[0.04] border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/50';
+const labelCls = 'block text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase mb-1.5';
+
+function AddFeatureModal({ onClose, onAdded }: {
+  onClose: () => void; onAdded: (f: Feature) => void;
+}) {
+  const [title, setTitle]       = useState('');
+  const [category, setCategory] = useState<string>(CATEGORIES[0]);
+  const [priority, setPriority] = useState<string>('Medium');
+  const [phase, setPhase]       = useState<string>('2');
+  const [status, setStatus]     = useState<string>('Planned');
+  const [tagline, setTagline]   = useState('');
+  const [what, setWhat]         = useState('');
+  const [memberBenefit, setMemberBenefit]     = useState('');
+  const [businessBenefit, setBusinessBenefit] = useState('');
+  const [error, setError]   = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) { setError('Title is required'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const res = await apiRequest<{ feature: ApiFeature }>('/proposal-features', {
+        method: 'POST',
+        body: {
+          title, category, priority, phase: Number(phase), status,
+          tagline, what, memberBenefit, businessBenefit,
+        },
+      });
+      onAdded(apiToFeature(res.feature));
+      onClose();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to add feature');
+      setSaving(false);
+    }
+  };
+
+  const selectCls = inputCls + ' appearance-none';
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full md:max-w-lg max-h-[90vh] overflow-y-auto bg-[#111] border border-white/10 p-6 md:p-8"
+        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-sm font-black text-white tracking-tight uppercase">Add Feature</p>
+          <button type="button" onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+            <X size={18} weight="bold" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className={labelCls}>Title *</label>
+            <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Feature name" />
+          </div>
+          <div>
+            <label className={labelCls}>Category</label>
+            <select className={selectCls} value={category} onChange={(e) => setCategory(e.target.value)}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={labelCls}>Priority</label>
+              <select className={selectCls} value={priority} onChange={(e) => setPriority(e.target.value)}>
+                {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Phase</label>
+              <select className={selectCls} value={phase} onChange={(e) => setPhase(e.target.value)}>
+                {PHASES.map((p) => <option key={p} value={String(p)}>Phase {p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Status</label>
+              <select className={selectCls} value={status} onChange={(e) => setStatus(e.target.value)}>
+                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Tagline</label>
+            <input className={inputCls} value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="One-line summary" />
+          </div>
+          <div>
+            <label className={labelCls}>What is it?</label>
+            <textarea className={inputCls} rows={3} value={what} onChange={(e) => setWhat(e.target.value)} placeholder="Describe the feature" />
+          </div>
+          <div>
+            <label className={labelCls}>Member benefit</label>
+            <textarea className={inputCls} rows={2} value={memberBenefit} onChange={(e) => setMemberBenefit(e.target.value)} placeholder="What members gain" />
+          </div>
+          <div>
+            <label className={labelCls}>Business benefit</label>
+            <textarea className={inputCls} rows={2} value={businessBenefit} onChange={(e) => setBusinessBenefit(e.target.value)} placeholder="What the business gains" />
+          </div>
+        </div>
+
+        {error && <p className="text-xs text-red-400 font-semibold mt-4">{error}</p>}
+
+        <button type="submit" disabled={saving}
+          className="mt-6 w-full py-3 bg-primary text-primary-foreground font-black tracking-[0.15em] uppercase text-xs disabled:opacity-50">
+          {saving ? 'Adding…' : 'Add Feature'}
+        </button>
+      </motion.form>
+    </motion.div>
+  );
+}
+
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -850,13 +1006,23 @@ export function FeatureCatalogue() {
   const [phaseFilter, setPhaseFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('Priority');
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+  const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => {
+    apiRequest<{ features: ApiFeature[] }>('/proposal-features')
+      .then((res) => setCustomFeatures(res.features.map(apiToFeature)))
+      .catch(() => { /* staff-only endpoint; ignore load errors */ });
+  }, []);
+
+  const allFeatures = useMemo(() => [...FEATURES, ...customFeatures], [customFeatures]);
 
   const SORT_OPTIONS = ['Priority', 'Phase', 'Status', 'Category', 'Title'];
   const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
   const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
 
   const filtered = useMemo(() => {
-    let f = [...FEATURES];
+    let f = [...allFeatures];
     if (statusFilter !== 'All') f = f.filter(x => x.status === statusFilter);
     if (categoryFilter !== 'All') f = f.filter(x => x.category === categoryFilter);
     if (priorityFilter !== 'All') f = f.filter(x => x.priority === priorityFilter);
@@ -871,7 +1037,7 @@ export function FeatureCatalogue() {
       return 0;
     });
     return f;
-  }, [statusFilter, categoryFilter, priorityFilter, phaseFilter, sortBy]);
+  }, [allFeatures, statusFilter, categoryFilter, priorityFilter, phaseFilter, sortBy]);
 
   const clearFilters = useCallback(() => {
     setStatusFilter('All'); setCategoryFilter('All');
@@ -883,7 +1049,7 @@ export function FeatureCatalogue() {
   return (
     <>
       {/* Stats */}
-      <CatalogueStats features={FEATURES} />
+      <CatalogueStats features={allFeatures} />
 
       {/* Filter bar */}
       <div className="mb-6 space-y-3">
@@ -923,6 +1089,12 @@ export function FeatureCatalogue() {
           <Dropdown label="Phase" options={PHASES.map(String)} value={phaseFilter} onChange={setPhaseFilter} />
 
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 px-3 py-2 border border-primary/40 bg-primary/10 text-primary text-xs font-bold tracking-widest uppercase hover:bg-primary/20 transition-colors"
+            >
+              <Plus size={12} weight="bold" /> Add Feature
+            </button>
             {hasFilters && (
               <button
                 onClick={clearFilters}
@@ -937,7 +1109,7 @@ export function FeatureCatalogue() {
 
         {/* Result count */}
         <p className="text-[10px] font-bold tracking-widest text-white/25 uppercase">
-          Showing {filtered.length} of {FEATURES.length} features
+          Showing {filtered.length} of {allFeatures.length} features
           {hasFilters && <span className="text-primary/60"> · Filtered</span>}
         </p>
       </div>
@@ -973,6 +1145,16 @@ export function FeatureCatalogue() {
           <DetailPanel
             feature={selectedFeature}
             onClose={() => setSelectedFeature(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Add feature modal */}
+      <AnimatePresence>
+        {showAdd && (
+          <AddFeatureModal
+            onClose={() => setShowAdd(false)}
+            onAdded={(f) => setCustomFeatures((prev) => [...prev, f])}
           />
         )}
       </AnimatePresence>

@@ -6,6 +6,7 @@ import accountRouter from "./account";
 import oauthRouter from "./oauth";
 import storageRouter from "./storage";
 import contentRouter from "./content";
+import proposalFeaturesRouter from "./proposalFeatures";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(accountRouter);
 router.use(oauthRouter);
 router.use(storageRouter);
 router.use(contentRouter);
+router.use(proposalFeaturesRouter);
 
 export default router;
