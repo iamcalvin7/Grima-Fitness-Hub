@@ -996,69 +996,6 @@ function MuxVideo() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   8. BUILD COST MODEL
-══════════════════════════════════════════════════════════════════════════════ */
-function BuildCost() {
-  return (
-    <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Build Cost Model</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">How the build is costed.</h2>
-      <p className="text-sm text-white mb-10 max-w-2xl">
-        The platform is built on Replit with AI-assisted development. Costs are transparent and
-        benchmarked against what has already been built — not estimated against traditional agency day rates.
-      </p>
-
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
-        <div className="border border-white/8 bg-white/[0.02] p-6 md:col-span-2">
-          <p className="text-[9px] font-bold tracking-[0.25em] text-white/35 uppercase mb-4">Actual Replit AI Usage — Current Project</p>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <p className="text-2xl font-black text-primary tracking-tight">$156.01</p>
-              <p className="text-[10px] font-bold tracking-wider text-white/35 uppercase mt-1">AI usage this period</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-primary tracking-tight">$156.15</p>
-              <p className="text-[10px] font-bold tracking-wider text-white/35 uppercase mt-1">Total project usage</p>
-            </div>
-          </div>
-          <div className="border-t border-white/5 mt-5 pt-5">
-            <p className="text-xs text-white leading-relaxed">
-              These are verified figures from the Replit billing dashboard for the current project period.
-              Future features are estimated using the completed authentication system as a complexity benchmark,
-              with revision allowances applied per sprint.
-            </p>
-          </div>
-        </div>
-
-        <div className="border border-primary/15 bg-primary/[0.03] p-6">
-          <p className="text-[9px] font-bold tracking-[0.25em] text-primary/70 uppercase mb-4">Calvin — Product Owner Rate</p>
-          <div className="mb-4">
-            <p className="text-2xl font-black text-primary tracking-tight">€26.44<span className="text-base font-bold text-white/40">/hr</span></p>
-            <p className="text-[10px] font-bold tracking-wider text-primary/70 uppercase mt-1">Discounted rate</p>
-          </div>
-          <div className="border-t border-white/8 pt-4">
-            <p className="text-xl font-bold text-white/40 tracking-tight">€52.88<span className="text-sm">/hr</span></p>
-            <p className="text-[9px] font-bold tracking-wider text-white/25 uppercase mt-0.5 line-through">Standard rate</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="border border-white/6 bg-white/[0.015] p-5">
-        <div className="flex items-start gap-3">
-          <ChartLine size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
-          <p className="text-xs text-white leading-relaxed">
-            <span className="text-white/80 font-semibold">Benchmark methodology:</span> The fully built authentication system
-            (sign-up, sign-in, password reset, email verification, OAuth, session management, account lifecycle — 6,000+ lines,
-            34 production-ready features) establishes the cost-per-complexity baseline. Each future feature sprint is estimated
-            relative to this benchmark, adjusted for integration complexity and revision cycles.
-          </p>
-        </div>
-      </div>
-    </FadeSection>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
    8b. LAUNCH & RUNNING COSTS
 ══════════════════════════════════════════════════════════════════════════════ */
 const LAUNCH_COSTS = [
@@ -1115,46 +1052,56 @@ const RUNNING_COSTS = [
   },
 ];
 
-function CostTable({ rows }: { rows: typeof LAUNCH_COSTS }) {
+/* Simple table renderer: Item | Cost | Notes */
+function InvestTable({ title, rows }: { title: string; rows: { item: string; cost: string; note: string }[] }) {
   return (
-    <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5">
-      {rows.map((r) => (
-        <div key={r.item} className="p-5">
-          <div className="flex items-baseline justify-between gap-4 flex-wrap mb-1">
-            <p className="text-sm font-bold text-primary tracking-wide">{r.item}</p>
-            <p className="text-sm font-black text-primary tracking-tight whitespace-nowrap">{r.cost}</p>
-          </div>
-          <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mb-1.5">{r.kind}</p>
-          <p className="text-xs text-white leading-relaxed">{r.note}</p>
-        </div>
-      ))}
+    <div className="mb-10">
+      <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-3">{title}</p>
+      <div className="border border-white/8 overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[560px]">
+          <thead>
+            <tr className="bg-white/[0.04] border-b border-white/8">
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[30%]">Item</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[22%]">Cost</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase">Notes</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {rows.map((r) => (
+              <tr key={r.item} className="bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+                <td className="px-4 py-3.5 text-sm font-bold text-primary align-top">{r.item}</td>
+                <td className="px-4 py-3.5 text-sm font-black text-white align-top whitespace-nowrap">{r.cost}</td>
+                <td className="px-4 py-3.5 text-xs text-white/70 leading-relaxed align-top">{r.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-function LaunchRunningCosts() {
+const BUILD_ROWS = [
+  { item: 'AI-assisted build (Replit)', cost: '$156 to date', note: 'Verified from the Replit billing dashboard. Future features estimated against the completed authentication system as a benchmark.' },
+  { item: 'Calvin â product owner', cost: '€26.44 / hr', note: 'Discounted rate (standard €52.88/hr).' },
+];
+
+function Investment() {
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Launch & Running Costs</SectionLabel>
+      <SectionLabel>Investment</SectionLabel>
       <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
-        The full picture, not just the build.
+        Every cost, in one place.
       </h2>
       <p className="text-sm text-white mb-10 max-w-2xl">
-        Beyond the build itself, the platform carries a small set of launch and operating
-        costs. They are all listed here — there are no hidden fees, and most only grow
-        when the business grows.
+        Three tables cover the entire financial picture: building the platform, getting it
+        launched, and keeping it running. No hidden fees â most costs only grow when the
+        business grows.
       </p>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div>
-          <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">App Store Launch</p>
-          <CostTable rows={LAUNCH_COSTS} />
-        </div>
-        <div>
-          <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">Monthly Running Costs</p>
-          <CostTable rows={RUNNING_COSTS} />
-        </div>
-      </div>
+      <InvestTable title="1 · Build" rows={BUILD_ROWS} />
+      <InvestTable title="2 · Launch (One-off)" rows={LAUNCH_COSTS} />
+      <InvestTable title="3 · Running (Monthly)" rows={RUNNING_COSTS} />
 
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
@@ -1174,10 +1121,9 @@ function LaunchRunningCosts() {
       <div className="border border-white/5 bg-white/[0.01] p-4 flex items-start gap-3">
         <Warning size={14} weight="fill" className="text-white/25 shrink-0 mt-0.5" />
         <p className="text-[11px] text-white/30 leading-relaxed">
-          Figures are based on current public pricing (USD where noted) and are subject to change
-          by the providers. Store commissions apply only to digital products sold inside the
-          mobile apps; coaching paid via the web or in person is unaffected. This section will be
-          updated with real invoices once the platform is live.
+          Figures follow current public pricing (USD where noted) and are subject to change by the
+          providers. Store commissions apply only to digital products sold inside the mobile apps.
+          This page will be updated with real invoices once the platform is live.
         </p>
       </div>
     </FadeSection>
@@ -1602,11 +1548,9 @@ export const Proposal = () => {
           <MuxVideo />
         </>)}
 
-        {tab === 'investment' && (<>
-          <BuildCost />
-          <Divider />
-          <LaunchRunningCosts />
-        </>)}
+        {tab === 'investment' && (
+          <Investment />
+        )}
 
         {tab === 'decisions' && (<>
           <WebVsAppDecision />
