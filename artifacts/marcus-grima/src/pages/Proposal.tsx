@@ -820,12 +820,28 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
 /* ══════════════════════════════════════════════════════════════════════════════
    ROOT
 ══════════════════════════════════════════════════════════════════════════════ */
+const TABS = [
+  { id: 'overview',  label: 'Overview' },
+  { id: 'features',  label: 'Features' },
+  { id: 'brand',     label: 'Brand & Content' },
+  { id: 'investment', label: 'Investment' },
+  { id: 'roadmap',   label: 'Roadmap' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
 export const Proposal = () => {
   const [showModal, setShowModal] = useState(false);
+  const [tab, setTab] = useState<TabId>('overview');
   const roadmapRef = useRef<HTMLDivElement>(null);
 
   const scrollToRoadmap = () => {
     roadmapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectTab = (id: TabId) => {
+    setTab(id);
+    window.scrollTo({ top: 0 });
   };
 
   return (
@@ -833,32 +849,56 @@ export const Proposal = () => {
 
       <Hero />
 
-      <div className="space-y-0">
-        <Divider />
-        <Opportunity />
-        <Divider />
-        <Pillars />
-        <Divider />
-        <LaunchProduct />
-        <Divider />
-        <BrandingChecklist />
-        <Divider />
-        <ContentChecklist />
-        <Divider />
-        <MuxVideo />
-        <Divider />
-        <BuildCost />
-        <Divider />
-        <div ref={roadmapRef}>
-          <Roadmap />
+      {/* Tab bar */}
+      <div className="sticky top-0 z-20 bg-[#0D0D0D]/95 backdrop-blur-sm border-y border-white/8">
+        <div className="flex gap-1 px-5 md:px-12 overflow-x-auto no-scrollbar">
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => selectTab(t.id)}
+              className={`shrink-0 px-4 py-3.5 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors border-b-2 -mb-px
+                ${tab === t.id
+                  ? 'text-primary border-primary'
+                  : 'text-white/40 border-transparent hover:text-white/70'}`}>
+              {t.label}
+            </button>
+          ))}
         </div>
-        <Divider />
-        <Decisions />
-        <Divider />
-        <FinalCTA
-          onApprove={() => setShowModal(true)}
-          onReview={scrollToRoadmap}
-        />
+      </div>
+
+      <div key={tab} className="space-y-0 pt-4">
+        {tab === 'overview' && (
+          <Opportunity />
+        )}
+
+        {tab === 'features' && (<>
+          <Pillars />
+          <Divider />
+          <LaunchProduct />
+        </>)}
+
+        {tab === 'brand' && (<>
+          <BrandingChecklist />
+          <Divider />
+          <ContentChecklist />
+          <Divider />
+          <MuxVideo />
+        </>)}
+
+        {tab === 'investment' && (
+          <BuildCost />
+        )}
+
+        {tab === 'roadmap' && (<>
+          <div ref={roadmapRef}>
+            <Roadmap />
+          </div>
+          <Divider />
+          <Decisions />
+          <Divider />
+          <FinalCTA
+            onApprove={() => setShowModal(true)}
+            onReview={scrollToRoadmap}
+          />
+        </>)}
       </div>
 
       <AnimatePresence>
