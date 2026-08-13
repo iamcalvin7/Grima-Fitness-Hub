@@ -200,6 +200,15 @@ export const FEATURES: Feature[] = [
     costNotes: 'Storage cost: ~$0.02/GB/month on GCS. Negligible for member photo volumes.',
   },
   {
+    id: 'photo-guide', title: 'Progress Photo Guide', category: 'Progress & Accountability',
+    priority: 'Critical', phase: 2, status: 'Planned',
+    tagline: 'Consistent photos, honest comparisons.',
+    what: 'A short in-app guide showing members how to take proper progress photos — lighting, distance, angles, poses and clothing — with visual examples and an overlay/framing aid when shooting.',
+    memberBenefit: 'Photos taken the same way every time, so side-by-side comparisons genuinely show progress instead of differences in lighting or angle.',
+    businessBenefit: 'Higher-quality, consistent transformation photos for coaching reviews and (with consent) marketing material.',
+    dependencies: ['Progress Photo Library'],
+  },
+  {
     id: 'stats-history', title: 'Weight & Stats History Charts', category: 'Progress & Accountability',
     priority: 'High', phase: 2, status: 'Planned',
     tagline: 'Progress visualised over weeks, months, and years.',

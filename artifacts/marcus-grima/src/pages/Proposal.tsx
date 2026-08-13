@@ -789,13 +789,13 @@ function ContentChecklist() {
    6b. THIRD-PARTY SERVICES
 ══════════════════════════════════════════════════════════════════════════════ */
 const THIRD_PARTY_SERVICES = [
-  { item: 'Mux', cost: 'Video streaming', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Usage-based pricing; free during development. Full explanation below.' },
-  { item: 'Resend (or similar)', cost: 'Transactional email', note: 'Sends verification, password-reset and notification emails. Needs a one-time API key setup before launch; free tier covers thousands of emails per month.' },
-  { item: 'Stripe', cost: 'Payments', note: 'Processes memberships, session payments and any digital products. No monthly fee — a small percentage per successful transaction only.' },
-  { item: 'Google Sign-In', cost: 'Authentication', note: 'One-tap sign-in with a Google account — already built and working in the app.' },
-  { item: 'Apple Sign-In', cost: 'Authentication', note: 'Sign-in with an Apple ID. Built, but requires the Apple Developer account ($99/yr) to switch on.' },
-  { item: 'Wearable platforms', cost: 'Health data', note: 'Fitbit, Garmin, Strava, Oura, Polar, Whoop and Withings connect via their official APIs so member activity flows into the app. Some (Garmin, Whoop) require partner approval.' },
-  { item: 'Replit', cost: 'Hosting & infrastructure', note: 'Runs the app, API and database in production, plus the AI-assisted development environment the platform is built in.' },
+  { item: 'Mux — video streaming', cost: 'Usage-based · ~€0–50/mo early on', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Free during development; live costs scale with library size and viewing. Full explanation below.' },
+  { item: 'Resend (or similar) — email', cost: 'Free tier · €0–20/mo', note: 'Sends verification, password-reset and notification emails. Free tier covers thousands of emails per month; paid tiers only as volume grows. Needs a one-time API key setup before launch.' },
+  { item: 'Stripe — payments', cost: '~1.5–2.9% + €0.25 per transaction', note: 'Processes memberships, session payments and any digital products. No monthly fee — costs only exist when revenue exists.' },
+  { item: 'Google Sign-In — authentication', cost: 'Free', note: 'One-tap sign-in with a Google account — already built and working in the app.' },
+  { item: 'Apple Sign-In — authentication', cost: 'Included in Apple $99/yr', note: 'Sign-in with an Apple ID. Built, but requires the Apple Developer account to switch on.' },
+  { item: 'Wearable platforms — health data', cost: 'Free APIs (aggregator ~€100+/mo only if needed)', note: 'Fitbit, Garmin, Strava, Oura, Polar, Whoop and Withings connect via their official APIs so member activity flows into the app. Some (Garmin, Whoop) require partner approval.' },
+  { item: 'Replit — hosting & infrastructure', cost: '~€20–40/mo', note: 'Runs the app, API and database in production, plus the AI-assisted development environment the platform is built in. Scales with traffic.' },
 ];
 
 function ThirdPartyServices() {
@@ -809,7 +809,7 @@ function ThirdPartyServices() {
         The platform doesn't reinvent solved problems — it plugs into best-in-class services
         for video, email, payments and health data. Each one is listed here with its job.
       </p>
-      <InvestTable title="Services" rows={THIRD_PARTY_SERVICES} headers={['Service', 'Role', 'Why we need it']} />
+      <InvestTable title="Services" rows={THIRD_PARTY_SERVICES} headers={['Service', 'Pricing', 'Why we need it']} />
     </FadeSection>
   );
 }
