@@ -213,16 +213,16 @@ function Vision() {
       <div className="max-w-3xl">
         {/* Vision statement */}
         <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight mb-6">
-          To build the best fitness app in Malta.
+          The best fitness app in Malta.
         </h2>
         <div className="space-y-4 mb-10">
           <p className="text-sm md:text-base text-white/60 leading-relaxed">
-            To build the best fitness app in Malta and turn Marcus Grima Fitness into a
-            recognised, scalable fitness business. The app should become a reason people
+            We will build the best fitness app in Malta and turn Marcus Grima Fitness into a
+            recognised, scalable fitness business. The app will become a reason people
             choose Marcus Grima Fitness.
           </p>
           <p className="text-sm md:text-base text-white/60 leading-relaxed">
-            It should not only support existing members. It should attract new customers,
+            It will not only support existing members. It will attract new customers,
             strengthen the brand and create a level of service that competitors cannot
             easily match.
           </p>
@@ -241,16 +241,16 @@ function Vision() {
           <div className="border border-white/8 bg-white/[0.02] p-6">
             <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Member Experience</p>
             <p className="text-sm text-white/60 leading-relaxed mb-4">
-              The member experience should feel complete, simple and premium.
-              Everything should live in one place:
+              The member experience will feel complete, simple and premium.
+              Everything will live in one place:
             </p>
             <ul className="space-y-1.5 mb-4">
               {MEMBER_EXPERIENCE_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
             </ul>
             <p className="text-sm text-white/60 leading-relaxed">
-              Members should not need to piece together their fitness journey across multiple
-              apps, spreadsheets and message threads. The app should give them a clear plan,
-              visible progress and a stronger sense of support and belonging. It should feel
+              Members will no longer need to piece together their fitness journey across multiple
+              apps, spreadsheets and message threads. The app will give them a clear plan,
+              visible progress and a stronger sense of support and belonging. It will feel
               personal, structured and motivating from the moment they join — an experience
               strong enough that the app itself becomes part of the reason people sign up
               and stay.
@@ -259,8 +259,8 @@ function Vision() {
           <div className="border border-white/8 bg-white/[0.02] p-6">
             <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Business Platform</p>
             <p className="text-sm text-white/60 leading-relaxed mb-4">
-              The app should transform Marcus Grima Fitness from a personal coaching service
-              into a proper, scalable business. It should centralise the systems needed to
+              The app will transform Marcus Grima Fitness from a personal coaching service
+              into a proper, scalable business. It will centralise the systems needed to
               run the company:
             </p>
             <ul className="space-y-1.5 mb-4">
@@ -280,7 +280,7 @@ function Vision() {
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Long-Term Ambition</p>
           <p className="text-sm text-white/60 leading-relaxed mb-4">
             The long-term ambition is to make Marcus Grima Fitness one of Malta's strongest
-            fitness brands. The app should become:
+            fitness brands. The app will become:
           </p>
           <ul className="space-y-1.5 mb-6">
             {AMBITION_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
@@ -296,7 +296,7 @@ function Vision() {
         </div>
 
         <p className="text-sm md:text-base text-white/70 leading-relaxed">
-          The goal is not simply to improve the current coaching service. It is to build a
+          This is not simply an upgrade to the current coaching service. We will build a
           category-leading fitness business with the brand, systems and technology to attract
           more customers, create stronger loyalty and grow well beyond the limits of Marcus's
           personal time.
