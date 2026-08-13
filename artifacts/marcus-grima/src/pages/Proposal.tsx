@@ -115,7 +115,7 @@ function Opportunity() {
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Setting The Stage</SectionLabel>
       <div className="max-w-3xl">
-        <p className="text-sm md:text-base text-white/60 leading-relaxed mb-8">
+        <p className="text-sm md:text-base text-white leading-relaxed mb-8">
           The app will become the digital engine behind the next stage of the business.
           It will bring the client experience, coaching delivery and day-to-day operations
           into one connected platform, giving Marcus the infrastructure to serve more people,
@@ -125,7 +125,7 @@ function Opportunity() {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="border border-white/8 bg-white/[0.02] p-6">
             <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">For Members, it simplifies the journey</p>
-            <p className="text-sm text-white/60 leading-relaxed mb-4">
+            <p className="text-sm text-white leading-relaxed mb-4">
               The app gives members one place to manage every part of their fitness journey.
               They can access their training programme, follow nutrition guidance, track
               progress, complete check-ins, book sessions, communicate directly and take part
@@ -134,7 +134,7 @@ function Opportunity() {
             <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Members gain</p>
             <ul className="space-y-1.5">
               {MEMBER_GAINS.map((g) => (
-                <li key={g} className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+                <li key={g} className="flex items-start gap-2 text-sm text-white leading-relaxed">
                   <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
                   <span>{g}</span>
                 </li>
@@ -143,7 +143,7 @@ function Opportunity() {
           </div>
           <div className="border border-primary/20 bg-primary/[0.04] p-6">
             <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">For the business, it creates scale</p>
-            <p className="text-sm text-white/60 leading-relaxed mb-4">
+            <p className="text-sm text-white leading-relaxed mb-4">
               The app allows Marcus Grima to support more clients, deliver a more consistent
               level of service, strengthen retention and generate revenue beyond one-to-one
               coaching.
@@ -151,7 +151,7 @@ function Opportunity() {
             <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">It becomes</p>
             <ul className="space-y-1.5">
               {BUSINESS_GAINS.map((g) => (
-                <li key={g} className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+                <li key={g} className="flex items-start gap-2 text-sm text-white leading-relaxed">
                   <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
                   <span>{g}</span>
                 </li>
@@ -187,7 +187,7 @@ function WhatWhyHow() {
 
         <div className="border border-white/8 bg-white/[0.02] p-6">
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">What</p>
-          <div className="space-y-3 text-sm text-white/60 leading-relaxed">
+          <div className="space-y-3 text-sm text-white leading-relaxed">
             <p>
               The Marcus Grima Fitness app brings the full member journey into one connected
               platform. Training, nutrition, progress, check-ins, bookings, communication,
@@ -208,7 +208,7 @@ function WhatWhyHow() {
 
         <div className="border border-white/8 bg-white/[0.02] p-6">
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">Why</p>
-          <div className="space-y-3 text-sm text-white/60 leading-relaxed">
+          <div className="space-y-3 text-sm text-white leading-relaxed">
             <p>
               The current model becomes harder to sustain as the business grows. Too much of
               the client experience depends on Marcus working one-to-one: answering questions,
@@ -234,7 +234,7 @@ function WhatWhyHow() {
 
         <div className="border border-primary/20 bg-primary/[0.04] p-6">
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">How</p>
-          <div className="space-y-3 text-sm text-white/60 leading-relaxed mb-4">
+          <div className="space-y-3 text-sm text-white leading-relaxed mb-4">
             <p>
               The app creates one central system for members and the business. Members receive
               their programmes, guidance, tracking tools, bookings, communication and community
@@ -300,7 +300,7 @@ const OVER_TIME_ITEMS = [
 
 function VisionBullet({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+    <li className="flex items-start gap-2 text-sm text-white leading-relaxed">
       <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
       <span>{children}</span>
     </li>
@@ -317,17 +317,17 @@ function Vision() {
           The best fitness app in Malta.
         </h2>
         <div className="space-y-4 mb-10">
-          <p className="text-sm md:text-base text-white/60 leading-relaxed">
+          <p className="text-sm md:text-base text-white leading-relaxed">
             We will build the best fitness app in Malta and turn Marcus Grima Fitness into a
             recognised, scalable fitness business. The app will become a reason people
             choose Marcus Grima Fitness.
           </p>
-          <p className="text-sm md:text-base text-white/60 leading-relaxed">
+          <p className="text-sm md:text-base text-white leading-relaxed">
             It will not only support existing members. It will attract new customers,
             strengthen the brand and create a level of service that competitors cannot
             easily match.
           </p>
-          <p className="text-sm md:text-base text-white/60 leading-relaxed">
+          <p className="text-sm md:text-base text-white leading-relaxed">
             The ambition is to build the leading digital fitness platform in Malta: one place
             where people can train, track progress, access coaching, manage bookings, connect
             with a community and stay accountable.
@@ -341,14 +341,14 @@ function Vision() {
         <div className="grid md:grid-cols-2 gap-6 mb-10">
           <div className="border border-white/8 bg-white/[0.02] p-6">
             <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Member Experience</p>
-            <p className="text-sm text-white/60 leading-relaxed mb-4">
+            <p className="text-sm text-white leading-relaxed mb-4">
               The member experience will feel complete, simple and premium.
               Everything will live in one place:
             </p>
             <ul className="space-y-1.5 mb-4">
               {MEMBER_EXPERIENCE_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
             </ul>
-            <p className="text-sm text-white/60 leading-relaxed">
+            <p className="text-sm text-white leading-relaxed">
               Members will no longer need to piece together their fitness journey across multiple
               apps, spreadsheets and message threads. The app will give them a clear plan,
               visible progress and a stronger sense of support and belonging. It will feel
@@ -359,7 +359,7 @@ function Vision() {
           </div>
           <div className="border border-white/8 bg-white/[0.02] p-6">
             <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Business Platform</p>
-            <p className="text-sm text-white/60 leading-relaxed mb-4">
+            <p className="text-sm text-white leading-relaxed mb-4">
               The app will transform Marcus Grima Fitness from a personal coaching service
               into a proper, scalable business. It will centralise the systems needed to
               run the company:
@@ -367,7 +367,7 @@ function Vision() {
             <ul className="space-y-1.5 mb-4">
               {BUSINESS_PLATFORM_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
             </ul>
-            <p className="text-sm text-white/60 leading-relaxed">
+            <p className="text-sm text-white leading-relaxed">
               This gives Marcus greater control, reduces manual administration and creates a
               more consistent experience across every client — allowing the business to grow
               without every new member creating the same increase in one-to-one work, and
@@ -379,7 +379,7 @@ function Vision() {
         {/* Long-term ambition */}
         <div className="border border-primary/20 bg-primary/[0.04] p-6 mb-8">
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Long-Term Ambition</p>
-          <p className="text-sm text-white/60 leading-relaxed mb-4">
+          <p className="text-sm text-white leading-relaxed mb-4">
             The long-term ambition is to make Marcus Grima Fitness one of Malta's strongest
             fitness brands. The app will become:
           </p>
@@ -1403,7 +1403,7 @@ function FinalCTA({ onApprove, onReview }: { onApprove: () => void; onReview: ()
         <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-6">
           Launch focused. Scale with confidence.
         </h2>
-        <p className="text-sm md:text-base text-white/55 leading-relaxed mb-10">
+        <p className="text-sm md:text-base text-white leading-relaxed mb-10">
           The recommendation is to launch Marcus Grima Fitness as a focused personalised coaching platform first —
           delivering a genuinely exceptional experience for the first cohort of members. Once the core experience
           is proven, the platform expands naturally into digital products, open community, and intelligent automation.
