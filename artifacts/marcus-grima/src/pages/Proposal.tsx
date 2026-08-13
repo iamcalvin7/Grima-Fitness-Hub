@@ -165,6 +165,148 @@ function Opportunity() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   2b. PRODUCT VISION
+══════════════════════════════════════════════════════════════════════════════ */
+const MEMBER_EXPERIENCE_ITEMS = [
+  'Training programmes', 'Nutrition guidance', 'Calorie and water tracking',
+  'Progress photos and measurements', 'Check-ins', 'Bookings', 'Payments',
+  'Communication', 'Education', 'Community',
+];
+
+const BUSINESS_PLATFORM_ITEMS = [
+  'Client onboarding', 'Programme delivery', 'Progress monitoring',
+  'Bookings and scheduling', 'Payments and subscriptions', 'Invoicing and VAT records',
+  'Client communication', 'Community management', 'Content distribution',
+  'Reporting and business insights',
+];
+
+const AMBITION_ITEMS = [
+  'The leading fitness platform in Malta',
+  'A major customer acquisition tool',
+  'The home of the Marcus Grima Fitness community',
+  'A recurring revenue engine',
+  'A platform for digital products and memberships',
+  'A system that supports additional coaches and specialists',
+  'A valuable digital asset owned by the business',
+];
+
+const OVER_TIME_ITEMS = [
+  'Premium one-to-one coaching', 'Group coaching', 'Monthly memberships',
+  'Self-guided programmes', 'Nutrition plans', 'Paid challenges',
+  'Educational content', 'Community events', 'Corporate wellness',
+  'Brand partnerships', 'Additional trainers and services',
+];
+
+function VisionBullet({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+      <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function Vision() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Product Vision</SectionLabel>
+      <div className="max-w-3xl">
+        {/* Vision statement */}
+        <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight mb-6">
+          To build the best fitness app in Malta.
+        </h2>
+        <div className="space-y-4 mb-10">
+          <p className="text-sm md:text-base text-white/60 leading-relaxed">
+            To build the best fitness app in Malta and turn Marcus Grima Fitness into a
+            recognised, scalable fitness business. The app should become a reason people
+            choose Marcus Grima Fitness.
+          </p>
+          <p className="text-sm md:text-base text-white/60 leading-relaxed">
+            It should not only support existing members. It should attract new customers,
+            strengthen the brand and create a level of service that competitors cannot
+            easily match.
+          </p>
+          <p className="text-sm md:text-base text-white/60 leading-relaxed">
+            The ambition is to build the leading digital fitness platform in Malta: one place
+            where people can train, track progress, access coaching, manage bookings, connect
+            with a community and stay accountable.
+          </p>
+          <p className="text-sm md:text-base text-white/80 font-semibold leading-relaxed">
+            For the business, the app becomes the engine behind growth.
+          </p>
+        </div>
+
+        {/* Member experience / Business platform */}
+        <div className="grid md:grid-cols-2 gap-6 mb-10">
+          <div className="border border-white/8 bg-white/[0.02] p-6">
+            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Member Experience</p>
+            <p className="text-sm text-white/60 leading-relaxed mb-4">
+              The member experience should feel complete, simple and premium.
+              Everything should live in one place:
+            </p>
+            <ul className="space-y-1.5 mb-4">
+              {MEMBER_EXPERIENCE_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
+            </ul>
+            <p className="text-sm text-white/60 leading-relaxed">
+              Members should not need to piece together their fitness journey across multiple
+              apps, spreadsheets and message threads. The app should give them a clear plan,
+              visible progress and a stronger sense of support and belonging. It should feel
+              personal, structured and motivating from the moment they join — an experience
+              strong enough that the app itself becomes part of the reason people sign up
+              and stay.
+            </p>
+          </div>
+          <div className="border border-white/8 bg-white/[0.02] p-6">
+            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Business Platform</p>
+            <p className="text-sm text-white/60 leading-relaxed mb-4">
+              The app should transform Marcus Grima Fitness from a personal coaching service
+              into a proper, scalable business. It should centralise the systems needed to
+              run the company:
+            </p>
+            <ul className="space-y-1.5 mb-4">
+              {BUSINESS_PLATFORM_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
+            </ul>
+            <p className="text-sm text-white/60 leading-relaxed">
+              This gives Marcus greater control, reduces manual administration and creates a
+              more consistent experience across every client — allowing the business to grow
+              without every new member creating the same increase in one-to-one work, and
+              eventually expand beyond Marcus alone.
+            </p>
+          </div>
+        </div>
+
+        {/* Long-term ambition */}
+        <div className="border border-primary/20 bg-primary/[0.04] p-6 mb-8">
+          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">The Long-Term Ambition</p>
+          <p className="text-sm text-white/60 leading-relaxed mb-4">
+            The long-term ambition is to make Marcus Grima Fitness one of Malta's strongest
+            fitness brands. The app should become:
+          </p>
+          <ul className="space-y-1.5 mb-6">
+            {AMBITION_ITEMS.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
+          </ul>
+          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Over time, the platform can support</p>
+          <div className="flex flex-wrap gap-2">
+            {OVER_TIME_ITEMS.map((i) => (
+              <span key={i} className="px-3 py-1.5 border border-white/10 bg-white/[0.03] text-[11px] font-semibold text-white/60 tracking-wide">
+                {i}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-sm md:text-base text-white/70 leading-relaxed">
+          The goal is not simply to improve the current coaching service. It is to build a
+          category-leading fitness business with the brand, systems and technology to attract
+          more customers, create stronger loyalty and grow well beyond the limits of Marcus's
+          personal time.
+        </p>
+      </div>
+    </FadeSection>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    3. FEATURE CATALOGUE
 ══════════════════════════════════════════════════════════════════════════════ */
 function Pillars() {
@@ -813,6 +955,7 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
 ══════════════════════════════════════════════════════════════════════════════ */
 const TABS = [
   { id: 'overview',  label: 'Overview' },
+  { id: 'vision',    label: 'Vision' },
   { id: 'features',  label: 'Features' },
   { id: 'brand',     label: 'Brand & Content' },
   { id: 'investment', label: 'Investment' },
@@ -858,6 +1001,10 @@ export const Proposal = () => {
       <div key={tab} className="space-y-0 pt-4">
         {tab === 'overview' && (
           <Opportunity />
+        )}
+
+        {tab === 'vision' && (
+          <Vision />
         )}
 
         {tab === 'features' && (<>
