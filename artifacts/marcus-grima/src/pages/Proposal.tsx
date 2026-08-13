@@ -60,13 +60,12 @@ function Hero() {
         </p>
 
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-[1.05] max-w-3xl mb-8">
-          Building the operating system for Marcus Grima Fitness.
+          Building the future of Marcus Grima Fitness.
         </h1>
 
         <p className="text-base md:text-lg text-white/55 font-medium leading-relaxed max-w-2xl mb-12">
-          A single platform connecting personalised coaching, training, progress, bookings,
-          communication, payments and business operations — everything Marcus needs to run
-          a world-class PT business, in one place.
+          Turning Marcus Grima Fitness into a scalable digital business with one connected
+          platform for members, coaching and growth.
         </p>
       </motion.div>
 
