@@ -436,17 +436,32 @@ function ProductPillars() {
         Every feature in the platform belongs to one of twelve product pillars — together they
         cover the full member journey and the full business behind it.
       </p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {PRODUCT_PILLARS.map((p, i) => (
-          <div key={p.title} className="border border-white/8 bg-white/[0.02] p-5">
-            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-2">
-              {String(i + 1).padStart(2, '0')}
-            </p>
-            <p className="text-sm font-bold text-white tracking-wide mb-1">{p.title}</p>
-            <p className="text-xs text-white/50 leading-relaxed">{p.desc}</p>
-          </div>
-        ))}
+      {/* Horizontal scroll strip — swipe/scroll through the 12 pillars */}
+      <div className="relative -mx-5 md:-mx-12">
+        <div
+          className="flex gap-4 overflow-x-auto px-5 md:px-12 pb-4 snap-x snap-mandatory"
+          style={{ scrollbarWidth: 'thin' }}
+        >
+          {PRODUCT_PILLARS.map((p, i) => (
+            <div
+              key={p.title}
+              className="border border-white/8 bg-white/[0.02] p-5 w-[240px] sm:w-[260px] shrink-0 snap-start"
+            >
+              <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-2">
+                {String(i + 1).padStart(2, '0')}
+              </p>
+              <p className="text-sm font-bold text-white tracking-wide mb-1">{p.title}</p>
+              <p className="text-xs text-white/50 leading-relaxed">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+        {/* Edge fades to hint at more content */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black/80 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/80 to-transparent" />
       </div>
+      <p className="mt-2 text-[10px] font-bold tracking-widest text-white/25 uppercase flex items-center gap-1.5">
+        Scroll to explore all 12 <ArrowRight size={11} weight="bold" className="text-primary" />
+      </p>
     </FadeSection>
   );
 }
