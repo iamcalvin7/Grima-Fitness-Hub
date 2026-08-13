@@ -267,9 +267,20 @@ function SlideScreen({ s, onNext, isLast, onSkip }: {
 /* ─────────────────────────────────────────────────────────────────────────
    Choice screen
 ───────────────────────────────────────────────────────────────────────── */
-function ChoiceScreen({ onNew, onReturning, providers }: {
-  onNew: () => void; onReturning: () => void; providers: AuthProviders | null;
+function ChoiceScreen({ onNew, onReturning, onAuth, providers }: {
+  onNew: () => void; onReturning: () => void; onAuth: () => void; providers: AuthProviders | null;
 }) {
+  const { signIn } = useAuth();
+  const [devBusy, setDevBusy] = useState(false);
+  const devSignIn = async () => {
+    setDevBusy(true);
+    try {
+      await signIn('dev@marcusgrima.test', 'devpass123');
+      onAuth();
+    } catch {
+      setDevBusy(false);
+    }
+  };
   return (
     <motion.div {...slide} className="fixed inset-0 bg-[#060606] flex flex-col">
       {/* Full-bleed hero photo */}
@@ -327,6 +338,13 @@ function ChoiceScreen({ onNew, onReturning, providers }: {
           className="text-center text-[11px] text-white/50 font-bold tracking-[0.15em] uppercase mt-6 hover:text-white transition-colors">
           Already a member? Sign in
         </button>
+        {import.meta.env.DEV && (
+          <button onClick={devSignIn} disabled={devBusy}
+            className="text-center text-[11px] font-bold tracking-[0.15em] uppercase mt-3 transition-colors disabled:opacity-50"
+            style={{ color: '#CAFF33' }}>
+            {devBusy ? 'Signing in…' : 'Skip — dev sign-in'}
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -827,7 +845,8 @@ export function Onboarding({ onComplete, profileOnly = false }: OnboardingProps)
       {!profileOnly && step.kind === 'choice' && (
         <ChoiceScreen key="choice" providers={providers}
           onNew={() => go({ kind: 'name' })}
-          onReturning={() => go({ kind: 'signin' })} />
+          onReturning={() => go({ kind: 'signin' })}
+          onAuth={onComplete} />
       )}
       {!profileOnly && step.kind === 'signin' && (
         <SignInScreen key="signin" providers={providers}
