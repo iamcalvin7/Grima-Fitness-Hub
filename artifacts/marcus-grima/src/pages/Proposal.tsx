@@ -75,8 +75,8 @@ function Hero() {
         className="grid grid-cols-2 gap-4 max-w-lg"
       >
         {[
-          { value: 'Oct 15, 2025', label: 'Soft Launch' },
-          { value: 'Jan 3, 2026', label: 'Public Launch' },
+          { value: 'Oct 15, 2026', label: 'Soft Launch' },
+          { value: 'Jan 3, 2027', label: 'Public Launch' },
         ].map((s) => (
           <div key={s.label} className="border border-white/8 bg-white/[0.03] px-4 py-5">
             <p className="text-2xl md:text-3xl font-black text-primary tracking-tight leading-none mb-1.5">{s.value}</p>
@@ -1135,16 +1135,16 @@ function Investment() {
 ══════════════════════════════════════════════════════════════════════════════ */
 const ROADMAP = [
   { dates: '3–14 Aug 2026',         label: 'Final decisions & planning',             highlight: false },
-  { dates: '17 Aug–11 Sep 2026',    label: 'Branding & product direction',            highlight: false },
-  { dates: '17 Aug–16 Oct 2026',    label: 'Core platform build',                     highlight: false },
-  { dates: '21 Sep–30 Oct 2026',    label: 'Bookings, payments & communication',      highlight: false },
-  { dates: '14 Sep–2 Oct 2026',     label: 'Content planning & pre-production',       highlight: false },
-  { dates: '5–23 Oct 2026',         label: 'Content production',                      highlight: false },
-  { dates: '19 Oct–13 Nov 2026',    label: 'Editing & content integration',           highlight: false },
-  { dates: '19 Oct–13 Nov 2026',    label: 'Website & launch journey',                highlight: false },
-  { dates: '16–27 Nov 2026',        label: 'Testing & client migration',              highlight: false },
-  { dates: '30 Nov–11 Dec 2026',    label: 'Soft launch',                             highlight: false },
-  { dates: '14 December 2026',      label: 'Public Launch',                           highlight: true  },
+  { dates: '17 Aug–4 Sep 2026',     label: 'Branding & product direction',            highlight: false },
+  { dates: '17 Aug–25 Sep 2026',    label: 'Core platform build',                     highlight: false },
+  { dates: '24 Aug–11 Sep 2026',    label: 'Content planning & pre-production',       highlight: false },
+  { dates: '7 Sep–2 Oct 2026',      label: 'Bookings, payments & communication',      highlight: false },
+  { dates: '14 Sep–2 Oct 2026',     label: 'Content production',                      highlight: false },
+  { dates: '28 Sep–9 Oct 2026',     label: 'Editing, content & website integration',  highlight: false },
+  { dates: '5–14 Oct 2026',         label: 'Testing & client migration',              highlight: false },
+  { dates: '15 October 2026',       label: 'Soft Launch',                             highlight: true  },
+  { dates: '15 Oct–18 Dec 2026',    label: 'Soft-launch period — feedback & refinement', highlight: false },
+  { dates: '3 January 2027',        label: 'Public Launch',                           highlight: true  },
 ];
 
 function Roadmap() {
@@ -1200,137 +1200,65 @@ function Roadmap() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   9a. KEY DECISION — WEB APP VS APP STORE
-══════════════════════════════════════════════════════════════════════════════ */
-const WEB_APP_PROS = [
-  'No commission — payments via Stripe (~1.5–2.9%) instead of Apple/Google taking 15–30% of every subscription',
-  'No store fees — saves the $99/yr Apple fee and $25 Google registration',
-  'Instant updates — new features go live immediately, no store review delays',
-  'Full member data ownership — all tracking and analytics with no Apple restrictions',
-  'Works on every device from day one — members "Add to Home Screen" and it behaves like an app',
-  'Most wearables (Fitbit, Garmin, Oura, Polar, Whoop, Withings) connect directly — no store needed',
-];
-
-const WEB_APP_CONS = [
-  'No Apple Health access — iPhone step counts and Apple Watch data need a native app',
-  'No App Store presence — no discoverability from people browsing the stores',
-  'Members must be shown how to add it to their home screen (a one-time prompt)',
-  'iOS push notifications work, but are slightly more limited than native',
-];
-
-const STORE_APP_PROS = [
-  'Full Apple Health & Health Connect access — steps, Apple Watch and Galaxy Watch data flow in automatically',
-  'App Store credibility and discoverability — "download our app" carries weight',
-  'Best-in-class push notifications and home-screen presence by default',
-];
-
-const STORE_APP_CONS = [
-  '15–30% commission on subscriptions sold inside the app — the single biggest cost of this route',
-  '$99/yr Apple + $25 Google fees, plus ongoing store review on every update',
-  'Review delays — updates can take days to be approved, and can be rejected',
-  'Apple\u2019s privacy rules restrict tracking and analytics inside the app',
-];
-
-function ProConList({ title, items, positive }: { title: string; items: string[]; positive: boolean }) {
-  return (
-    <div>
-      <p className={`text-[10px] font-bold tracking-[0.25em] uppercase mb-3 ${positive ? 'text-primary' : 'text-orange-400'}`}>{title}</p>
-      <div className="space-y-2.5">
-        {items.map((item) => (
-          <div key={item} className="flex items-start gap-2.5">
-            {positive
-              ? <CheckCircle size={13} weight="fill" className="text-primary shrink-0 mt-0.5" />
-              : <Warning size={13} weight="fill" className="text-orange-400/70 shrink-0 mt-0.5" />}
-            <span className="text-xs text-white leading-relaxed">{item}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WebVsAppDecision() {
-  return (
-    <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Key Decision</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Web app vs App Store.</h2>
-      <p className="text-sm text-white mb-10 max-w-2xl">
-        How the app reaches members is the biggest structural decision of the project — it
-        affects cost, launch speed, and what data the platform can collect. The two routes
-        below are not mutually exclusive: the recommended path starts with one and adds the other.
-      </p>
-
-      <div className="grid md:grid-cols-2 gap-4 mb-8">
-        {/* Web app */}
-        <div className="border border-primary/15 bg-primary/[0.03] p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Rocket size={16} weight="fill" className="text-primary" />
-            <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Option A — Recommended first</p>
-          </div>
-          <h3 className="text-lg font-black text-primary tracking-tight mb-5">Web App (PWA)</h3>
-          <div className="space-y-6">
-            <ProConList title="Pros" items={WEB_APP_PROS} positive />
-            <ProConList title="Cons" items={WEB_APP_CONS} positive={false} />
-          </div>
-        </div>
-
-        {/* Store app */}
-        <div className="border border-white/8 bg-white/[0.02] p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Star size={16} weight="fill" className="text-white/40" />
-            <p className="text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase">Option B — Later addition</p>
-          </div>
-          <h3 className="text-lg font-black text-primary tracking-tight mb-5">Native Apps (App Store & Google Play)</h3>
-          <div className="space-y-6">
-            <ProConList title="Pros" items={STORE_APP_PROS} positive />
-            <ProConList title="Cons" items={STORE_APP_CONS} positive={false} />
-          </div>
-        </div>
-      </div>
-
-      {/* Recommendation */}
-      <div className="border border-primary/20 bg-primary/[0.04] p-6">
-        <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">Recommended Path</p>
-        <p className="text-sm text-white leading-relaxed max-w-3xl">
-          <span className="text-white font-bold">Launch as a web app, add native apps later.</span>{' '}
-          Start with the PWA: zero store fees, no commission, instant updates, and most wearables
-          connect from day one. Once revenue justifies it, ship a lightweight native app whose main
-          job is Apple Health / Health Connect syncing — with subscriptions kept on the web, the
-          15–30% commission never applies, so the only new cost is the $99/yr Apple membership.
-          Best of both, in the right order.
-        </p>
-      </div>
-    </FadeSection>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
    9. DECISIONS REQUIRED
 ══════════════════════════════════════════════════════════════════════════════ */
-const DECISIONS = [
-  { n: 1, text: 'Approve the launch scope and feature set' },
-  { n: 2, text: 'Confirm membership options and session pricing' },
-  { n: 3, text: 'Confirm booking rules, cancellation policy, and lead times' },
-  { n: 4, text: 'Approve the branding scope and investment' },
-  { n: 5, text: 'Approve the content production scope and budget range' },
-  { n: 6, text: 'Confirm the exercise list for programme and video production' },
-  { n: 7, text: 'Provide legal and business information (company name, VAT, address)' },
-  { n: 8, text: 'Approve final budgets and timeline to begin' },
+const DECISION_LIST = [
+  {
+    q: 'Web app or App Store?',
+    d: 'Recommended: launch as a web app (PWA) — no store fees, no 15–30% commission, instant updates, and most wearables connect from day one. Add a lightweight native app later for Apple Health / Health Connect syncing, keeping subscriptions on the web so the commission never applies.',
+  },
+  {
+    q: 'What is in the launch scope?',
+    d: 'Approve the launch feature set — the Launch wave in the Feature Catalogue defines exactly what ships on day one.',
+  },
+  {
+    q: 'What are the membership options and prices?',
+    d: 'Confirm the membership tiers, session pricing and any packages before payments are built.',
+  },
+  {
+    q: 'What are the booking rules?',
+    d: 'Confirm the cancellation policy, lead times and rescheduling rules that the booking system will enforce.',
+  },
+  {
+    q: 'What is the branding scope?',
+    d: 'Approve the branding direction and investment — logo, colours, typography and how the brand carries through the app.',
+  },
+  {
+    q: 'What is the content production budget?',
+    d: 'Approve the scope and budget range for video and content production, including the exercise library.',
+  },
+  {
+    q: 'Which exercises go into the library?',
+    d: 'Confirm the exercise list used for programme building and video production, so filming can be planned in one block.',
+  },
+  {
+    q: 'What are the legal and business details?',
+    d: 'Provide company name, VAT number and registered address for invoices, terms and payment setup.',
+  },
+  {
+    q: 'Approve budget and timeline?',
+    d: 'Final sign-off on the overall budget and roadmap dates so the build can begin.',
+  },
 ];
 
 function Decisions() {
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Next Steps</SectionLabel>
+      <SectionLabel>Decisions</SectionLabel>
       <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Decisions required from Marcus.</h2>
-      <p className="text-sm text-white mb-8 max-w-xl">Eight actions to move from proposal to production.</p>
+      <p className="text-sm text-white mb-10 max-w-2xl">
+        Nine questions to answer to move from proposal to production. The first one is the
+        biggest — the rest are quick confirmations.
+      </p>
 
-      <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5 max-w-2xl">
-        {DECISIONS.map((d) => (
-          <div key={d.n} className="flex items-center gap-4 px-5 py-4">
-            <span className="text-[10px] font-black text-white/20 w-5 text-right shrink-0">{d.n}</span>
-            <ArrowRight size={12} weight="bold" className="text-primary shrink-0" />
-            <span className="text-sm text-white/70">{d.text}</span>
+      <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5 max-w-3xl">
+        {DECISION_LIST.map((d, i) => (
+          <div key={d.q} className="flex items-start gap-4 px-5 py-5">
+            <span className="text-sm font-black text-primary/40 w-6 text-right shrink-0 mt-0.5">{i + 1}</span>
+            <div>
+              <p className="text-sm font-black text-primary tracking-tight mb-1.5">{d.q}</p>
+              <p className="text-xs text-white leading-relaxed">{d.d}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -1552,22 +1480,15 @@ export const Proposal = () => {
           <Investment />
         )}
 
-        {tab === 'decisions' && (<>
-          <WebVsAppDecision />
-          <Divider />
+        {tab === 'decisions' && (
           <Decisions />
-        </>)}
+        )}
 
-        {tab === 'roadmap' && (<>
+        {tab === 'roadmap' && (
           <div ref={roadmapRef}>
             <Roadmap />
           </div>
-          <Divider />
-          <FinalCTA
-            onApprove={() => setShowModal(true)}
-            onReview={scrollToRoadmap}
-          />
-        </>)}
+        )}
         </div>
       </div>
 
