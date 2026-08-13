@@ -165,6 +165,107 @@ function Opportunity() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   2a. THE OPPORTUNITY — WHAT / WHY / HOW
+══════════════════════════════════════════════════════════════════════════════ */
+const HOW_BENEFITS = [
+  'Support more members without increasing one-to-one administration at the same rate',
+  'Deliver a more consistent coaching experience',
+  'Reduce reliance on manual follow-ups and individual messaging',
+  'Simplify bookings, payments, invoicing and VAT administration',
+  'Improve accountability, engagement and retention',
+  'Build and activate a connected fitness community',
+  'Introduce recurring memberships, paid programmes and digital products',
+  'Generate revenue beyond one-to-one coaching',
+  'Grow without being limited entirely by Marcus\u2019s personal availability',
+];
+
+function WhatWhyHow() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>The Opportunity</SectionLabel>
+      <div className="max-w-3xl space-y-6">
+
+        <div className="border border-white/8 bg-white/[0.02] p-6">
+          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">What</p>
+          <div className="space-y-3 text-sm text-white/60 leading-relaxed">
+            <p>
+              The Marcus Grima Fitness app brings the full member journey into one connected
+              platform. Training, nutrition, progress, check-ins, bookings, communication,
+              education and community are brought together in one place.
+            </p>
+            <p>
+              For members, this creates a simpler and more consistent experience. Instead of
+              moving between multiple apps and conversations, they can manage every part of
+              their fitness journey through one platform.
+            </p>
+            <p>
+              For the business, it creates the digital infrastructure needed to deliver
+              coaching more consistently, build a stronger community, simplify operations
+              and support new revenue streams.
+            </p>
+          </div>
+        </div>
+
+        <div className="border border-white/8 bg-white/[0.02] p-6">
+          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">Why</p>
+          <div className="space-y-3 text-sm text-white/60 leading-relaxed">
+            <p>
+              The current model becomes harder to sustain as the business grows. Too much of
+              the client experience depends on Marcus working one-to-one: answering questions,
+              checking progress, sharing guidance, following up and keeping members accountable.
+            </p>
+            <p>
+              That approach creates a clear limit. Marcus can only support so many people,
+              respond to so many messages and deliver so many hours of coaching in a day.
+            </p>
+            <p>
+              The same pressure exists behind the scenes. Bookings, payments, invoicing,
+              VAT records, cancellations, client information and follow-ups all add to the
+              administrative workload. As the client base grows, that workload grows with it.
+            </p>
+            <p>
+              Without a central platform, growth means more manual work, more operational
+              pressure and greater dependence on Marcus’s personal availability. That limits
+              reach, restricts capacity and keeps revenue tied too closely to the number of
+              hours he can personally deliver.
+            </p>
+          </div>
+        </div>
+
+        <div className="border border-primary/20 bg-primary/[0.04] p-6">
+          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">How</p>
+          <div className="space-y-3 text-sm text-white/60 leading-relaxed mb-4">
+            <p>
+              The app creates one central system for members and the business. Members receive
+              their programmes, guidance, tracking tools, bookings, communication and community
+              experience through a single platform.
+            </p>
+            <p>
+              Marcus gains the ability to communicate at scale, automate routine parts of the
+              client journey and maintain visibility across member activity and progress. The
+              platform can also manage key business operations, including bookings, payments,
+              invoicing, VAT records, client administration, cancellations and follow-ups.
+              This reduces manual work and gives Marcus a clearer view of both the coaching
+              service and the business behind it.
+            </p>
+          </div>
+          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">This allows the business to</p>
+          <ul className="space-y-1.5 mb-4">
+            {HOW_BENEFITS.map((b) => <VisionBullet key={b}>{b}</VisionBullet>)}
+          </ul>
+          <p className="text-sm text-white/70 leading-relaxed">
+            The app does not replace Marcus’s role as a coach. It gives him the systems to
+            extend his impact, protect the quality of the service and build a business that
+            can grow beyond the limits of his time.
+          </p>
+        </div>
+
+      </div>
+    </FadeSection>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    2b. PRODUCT VISION
 ══════════════════════════════════════════════════════════════════════════════ */
 const MEMBER_EXPERIENCE_ITEMS = [
@@ -999,9 +1100,11 @@ export const Proposal = () => {
       </div>
 
       <div key={tab} className="space-y-0 pt-4">
-        {tab === 'overview' && (
+        {tab === 'overview' && (<>
           <Opportunity />
-        )}
+          <Divider />
+          <WhatWhyHow />
+        </>)}
 
         {tab === 'vision' && (
           <Vision />
