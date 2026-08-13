@@ -497,16 +497,26 @@ const MARCUS_ITEMS = [
 
 /* ── Wearable & Health Data Support ── */
 const WEARABLES = [
-  { name: 'Apple Watch / Apple Health', how: 'Native app', phase: 'Later', note: 'Steps, workouts, heart rate, sleep. Requires the future iOS app — Apple Health is only accessible to native apps.' },
-  { name: 'Fitbit', how: 'Direct web API', phase: 'Launch-ready', note: 'Steps, activity, heart rate, sleep via one-tap account connection.' },
-  { name: 'Garmin', how: 'Direct web API', phase: 'Launch-ready', note: 'Full activity and wellness data via Garmin Connect.' },
-  { name: 'Strava', how: 'Direct web API', phase: 'Launch-ready', note: 'Runs, rides and workouts — popular with outdoor athletes.' },
-  { name: 'Oura Ring', how: 'Direct web API', phase: 'Launch-ready', note: 'Sleep, readiness and recovery scores.' },
-  { name: 'Polar', how: 'Direct web API', phase: 'Launch-ready', note: 'Training sessions and heart-rate data via Polar Flow.' },
-  { name: 'Whoop', how: 'Direct web API', phase: 'Launch-ready', note: 'Strain, recovery and sleep metrics.' },
-  { name: 'Withings', how: 'Direct web API', phase: 'Launch-ready', note: 'Smart scales and hybrid watches — weight and body composition.' },
-  { name: 'Samsung Galaxy Watch / Health Connect', how: 'Native app', phase: 'Later', note: 'Android health data via Health Connect. Requires the future Android app.' },
-  { name: 'Xiaomi / Amazfit, Suunto, Coros & others', how: 'Aggregator API', phase: 'As needed', note: 'Covered through an aggregator service (e.g. Terra) if members request them.' },
+  { name: 'Apple Watch / Apple Health', how: 'Native app', phase: 'Later', note: 'Steps, workouts, heart rate, sleep. Requires the future iOS app — Apple Health is only accessible to native apps.',
+    access: 'API is free, but only reachable through a native iOS app — which carries the $99/yr Apple Developer fee.' },
+  { name: 'Fitbit', how: 'Direct web API', phase: 'Launch-ready', note: 'Steps, activity, heart rate, sleep via one-tap account connection.',
+    access: 'Free and dependable. Minute-by-minute detail needs a simple approval from Google, routinely granted.' },
+  { name: 'Garmin', how: 'Direct web API', phase: 'Launch-ready', note: 'Full activity and wellness data via Garmin Connect.',
+    access: 'Free, but requires applying to Garmin as a business — approval can take weeks and is not automatic.' },
+  { name: 'Strava', how: 'Direct web API', phase: 'Launch-ready', note: 'Runs, rides and workouts — popular with outdoor athletes.',
+    access: 'Free, with a caveat: Strava\u2019s terms restrict showing a member\u2019s data to anyone but the member — coach visibility sits in a grey area.' },
+  { name: 'Oura Ring', how: 'Direct web API', phase: 'Launch-ready', note: 'Sleep, readiness and recovery scores.',
+    access: 'Free and straightforward — no approval process.' },
+  { name: 'Polar', how: 'Direct web API', phase: 'Launch-ready', note: 'Training sessions and heart-rate data via Polar Flow.',
+    access: 'Free (Polar AccessLink API) — no approval process.' },
+  { name: 'Whoop', how: 'Direct web API', phase: 'Launch-ready', note: 'Strain, recovery and sleep metrics.',
+    access: 'Free, but developer access must be applied for and approved by Whoop.' },
+  { name: 'Withings', how: 'Direct web API', phase: 'Launch-ready', note: 'Smart scales and hybrid watches — weight and body composition.',
+    access: 'Free and straightforward — no approval process.' },
+  { name: 'Samsung Galaxy Watch / Health Connect', how: 'Native app', phase: 'Later', note: 'Android health data via Health Connect. Requires the future Android app.',
+    access: 'API is free, but only reachable through a native Android app ($25 one-off Google Play registration).' },
+  { name: 'Xiaomi / Amazfit, Suunto, Coros & others', how: 'Aggregator API', phase: 'As needed', note: 'Covered through an aggregator service (e.g. Terra) if members request them.',
+    access: 'Not free — aggregator services typically cost ~€100+/month. Only worth adding once member demand justifies it.' },
 ];
 
 const WEARABLE_PHASE_STYLE: Record<string, string> = {
@@ -535,7 +545,13 @@ function WearableSupport() {
               <p className="text-sm font-bold text-white tracking-wide">{w.name}</p>
               <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mt-1">{w.how}</p>
             </div>
-            <p className="text-xs text-white/45 leading-relaxed flex-1">{w.note}</p>
+            <div className="flex-1">
+              <p className="text-xs text-white/45 leading-relaxed">{w.note}</p>
+              <p className="text-[11px] text-white/35 leading-relaxed mt-1.5">
+                <span className="text-primary/70 font-semibold uppercase tracking-wider text-[9px] mr-1.5">Access &amp; cost</span>
+                {w.access}
+              </p>
+            </div>
             <span className={`inline-block border px-2.5 py-1 text-[9px] font-bold tracking-[0.18em] uppercase mt-2 md:mt-0 shrink-0 ${WEARABLE_PHASE_STYLE[w.phase]}`}>
               {w.phase}
             </span>
@@ -1137,6 +1153,111 @@ function Roadmap() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   9a. KEY DECISION — WEB APP VS APP STORE
+══════════════════════════════════════════════════════════════════════════════ */
+const WEB_APP_PROS = [
+  'No commission — payments via Stripe (~1.5–2.9%) instead of Apple/Google taking 15–30% of every subscription',
+  'No store fees — saves the $99/yr Apple fee and $25 Google registration',
+  'Instant updates — new features go live immediately, no store review delays',
+  'Full member data ownership — all tracking and analytics with no Apple restrictions',
+  'Works on every device from day one — members "Add to Home Screen" and it behaves like an app',
+  'Most wearables (Fitbit, Garmin, Oura, Polar, Whoop, Withings) connect directly — no store needed',
+];
+
+const WEB_APP_CONS = [
+  'No Apple Health access — iPhone step counts and Apple Watch data need a native app',
+  'No App Store presence — no discoverability from people browsing the stores',
+  'Members must be shown how to add it to their home screen (a one-time prompt)',
+  'iOS push notifications work, but are slightly more limited than native',
+];
+
+const STORE_APP_PROS = [
+  'Full Apple Health & Health Connect access — steps, Apple Watch and Galaxy Watch data flow in automatically',
+  'App Store credibility and discoverability — "download our app" carries weight',
+  'Best-in-class push notifications and home-screen presence by default',
+];
+
+const STORE_APP_CONS = [
+  '15–30% commission on subscriptions sold inside the app — the single biggest cost of this route',
+  '$99/yr Apple + $25 Google fees, plus ongoing store review on every update',
+  'Review delays — updates can take days to be approved, and can be rejected',
+  'Apple\u2019s privacy rules restrict tracking and analytics inside the app',
+];
+
+function ProConList({ title, items, positive }: { title: string; items: string[]; positive: boolean }) {
+  return (
+    <div>
+      <p className={`text-[10px] font-bold tracking-[0.25em] uppercase mb-3 ${positive ? 'text-primary' : 'text-orange-400'}`}>{title}</p>
+      <div className="space-y-2.5">
+        {items.map((item) => (
+          <div key={item} className="flex items-start gap-2.5">
+            {positive
+              ? <CheckCircle size={13} weight="fill" className="text-primary shrink-0 mt-0.5" />
+              : <Warning size={13} weight="fill" className="text-orange-400/70 shrink-0 mt-0.5" />}
+            <span className="text-xs text-white/50 leading-relaxed">{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WebVsAppDecision() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Key Decision</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">Web app vs App Store.</h2>
+      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+        How the app reaches members is the biggest structural decision of the project — it
+        affects cost, launch speed, and what data the platform can collect. The two routes
+        below are not mutually exclusive: the recommended path starts with one and adds the other.
+      </p>
+
+      <div className="grid md:grid-cols-2 gap-4 mb-8">
+        {/* Web app */}
+        <div className="border border-primary/15 bg-primary/[0.03] p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Rocket size={16} weight="fill" className="text-primary" />
+            <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Option A — Recommended first</p>
+          </div>
+          <h3 className="text-lg font-black text-white tracking-tight mb-5">Web App (PWA)</h3>
+          <div className="space-y-6">
+            <ProConList title="Pros" items={WEB_APP_PROS} positive />
+            <ProConList title="Cons" items={WEB_APP_CONS} positive={false} />
+          </div>
+        </div>
+
+        {/* Store app */}
+        <div className="border border-white/8 bg-white/[0.02] p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Star size={16} weight="fill" className="text-white/40" />
+            <p className="text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase">Option B — Later addition</p>
+          </div>
+          <h3 className="text-lg font-black text-white tracking-tight mb-5">Native Apps (App Store & Google Play)</h3>
+          <div className="space-y-6">
+            <ProConList title="Pros" items={STORE_APP_PROS} positive />
+            <ProConList title="Cons" items={STORE_APP_CONS} positive={false} />
+          </div>
+        </div>
+      </div>
+
+      {/* Recommendation */}
+      <div className="border border-primary/20 bg-primary/[0.04] p-6">
+        <p className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase mb-3">Recommended Path</p>
+        <p className="text-sm text-white/70 leading-relaxed max-w-3xl">
+          <span className="text-white font-bold">Launch as a web app, add native apps later.</span>{' '}
+          Start with the PWA: zero store fees, no commission, instant updates, and most wearables
+          connect from day one. Once revenue justifies it, ship a lightweight native app whose main
+          job is Apple Health / Health Connect syncing — with subscriptions kept on the web, the
+          15–30% commission never applies, so the only new cost is the $99/yr Apple membership.
+          Best of both, in the right order.
+        </p>
+      </div>
+    </FadeSection>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    9. DECISIONS REQUIRED
 ══════════════════════════════════════════════════════════════════════════════ */
 const DECISIONS = [
@@ -1288,6 +1409,7 @@ const TABS = [
   { id: 'features',  label: 'Features' },
   { id: 'brand',     label: 'Brand & Content' },
   { id: 'investment', label: 'Investment' },
+  { id: 'decisions', label: 'Decisions' },
   { id: 'roadmap',   label: 'Roadmap' },
 ] as const;
 
@@ -1362,12 +1484,16 @@ export const Proposal = () => {
           <LaunchRunningCosts />
         </>)}
 
+        {tab === 'decisions' && (<>
+          <WebVsAppDecision />
+          <Divider />
+          <Decisions />
+        </>)}
+
         {tab === 'roadmap' && (<>
           <div ref={roadmapRef}>
             <Roadmap />
           </div>
-          <Divider />
-          <Decisions />
           <Divider />
           <FinalCTA
             onApprove={() => setShowModal(true)}
