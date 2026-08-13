@@ -547,6 +547,27 @@ const STATUS_BORDER: Record<FeatureStatus, string> = {
   'Future':      'border-l-violet-400/60',
 };
 
+/* Friendly display labels for priorities */
+const PRIORITY_LABEL: Record<Priority, string> = {
+  Critical: 'Critical',
+  High:     'Important',
+  Medium:   'Medium',
+  Low:      'Nice to have',
+};
+const PRIORITY_PILL: Record<Priority, string> = {
+  Critical: 'text-red-400 bg-red-500/10 border-red-500/25',
+  High:     'text-orange-400 bg-orange-500/10 border-orange-500/25',
+  Medium:   'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+  Low:      'text-white/45 bg-white/5 border-white/10',
+};
+function PriorityPill({ priority }: { priority: Priority }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider uppercase ${PRIORITY_PILL[priority]}`}>
+      {PRIORITY_LABEL[priority]}
+    </span>
+  );
+}
+
 const PRIORITY_DOT: Record<Priority, string> = {
   Critical: 'bg-red-500',
   High:     'bg-orange-400',
@@ -604,10 +625,7 @@ function DetailPanel({ feature, onClose }: { feature: Feature; onClose: () => vo
             <h3 className="text-xl font-black text-white tracking-tight leading-tight">{feature.title}</h3>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <StatusChip status={feature.status} />
-              <span className="flex items-center gap-1.5 text-[9px] font-black tracking-widest uppercase">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[feature.priority]}`} />
-                <span className="text-white/40">{feature.priority} Priority</span>
-              </span>
+              <PriorityPill priority={feature.priority} />
             </div>
           </div>
           <button
@@ -754,8 +772,11 @@ function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => vo
         </p>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-1">
-          <StatusChip status={feature.status} size="xs" />
+        <div className="flex items-center justify-between pt-1 gap-2">
+          <span className="flex items-center gap-1.5 flex-wrap">
+            <StatusChip status={feature.status} size="xs" />
+            <PriorityPill priority={feature.priority} />
+          </span>
           <ArrowRight
             size={12}
             weight="bold"
@@ -953,7 +974,7 @@ function AddFeatureModal({ onClose, onAdded }: {
             <div>
               <label className={labelCls}>Priority</label>
               <select className={selectCls} value={priority} onChange={(e) => setPriority(e.target.value)}>
-                {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+                {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
               </select>
             </div>
             <div>
@@ -1019,7 +1040,7 @@ export function featureWave(f: Feature): Wave {
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
   const [filter, setFilter] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<string>('Priority');
+  const [sortBy, setSortBy] = useState<string>('Phase');
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -1032,7 +1053,7 @@ export function FeatureCatalogue() {
 
   const allFeatures = useMemo(() => [...FEATURES, ...customFeatures], [customFeatures]);
 
-  const SORT_OPTIONS = ['Priority', 'Phase', 'Status', 'Category', 'Title'];
+  const SORT_OPTIONS = ['Phase', 'Status', 'Category', 'Title'];
   const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
   const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
 
