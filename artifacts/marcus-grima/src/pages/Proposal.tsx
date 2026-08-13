@@ -116,10 +116,11 @@ function Opportunity() {
       <SectionLabel>Setting The Stage</SectionLabel>
       <div className="max-w-3xl">
         <p className="text-sm md:text-base text-white/60 leading-relaxed mb-8">
-          The Marcus Grima Fitness app is the digital foundation of the Marcus Grima Fitness
-          business. It brings the entire client and business experience into one platform —
-          giving Marcus the infrastructure to grow the business beyond the limits of his
-          personal time.
+          The app will become the digital engine behind the next stage of the business.
+          It will bring the client experience, coaching delivery and day-to-day operations
+          into one connected platform, giving Marcus the infrastructure to serve more people,
+          create new revenue opportunities and scale the business well beyond the limits of
+          one-to-one time.
         </p>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="border border-white/8 bg-white/[0.02] p-6">
