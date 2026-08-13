@@ -59,7 +59,7 @@ function Hero() {
           Project Proposal · 2026
         </p>
 
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-[1.05] max-w-3xl mb-8">
+        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-primary leading-[1.05] max-w-3xl mb-8">
           Building the future of Marcus Grima Fitness.
         </h1>
 
@@ -1531,13 +1531,18 @@ export const Proposal = () => {
   };
 
   return (
-    <div className="min-h-screen text-foreground pb-4">
+    <div
+      className="min-h-screen text-foreground pb-4"
+      /* Scope the brand lime (#CAFF33) to the proposal page: all `primary`
+         accents inside resolve to lime instead of the app-wide white. */
+      style={{ ['--primary' as string]: '76 100% 60%' }}
+    >
 
       <Hero />
 
-      {/* Tab bar */}
-      <div className="sticky top-0 z-20 bg-[#0D0D0D]/95 backdrop-blur-sm border-y border-white/8">
-        <div className="flex gap-1 px-5 md:px-12 overflow-x-auto no-scrollbar">
+      {/* Mobile: horizontal tab bar (sidebars don't fit small screens) */}
+      <div className="md:hidden sticky top-0 z-20 bg-[#0D0D0D]/95 backdrop-blur-sm border-y border-white/8">
+        <div className="flex gap-1 px-5 overflow-x-auto no-scrollbar">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => selectTab(t.id)}
               className={`shrink-0 px-4 py-3.5 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors border-b-2 -mb-px
@@ -1550,7 +1555,23 @@ export const Proposal = () => {
         </div>
       </div>
 
-      <div key={tab} className="space-y-0 pt-4">
+      <div className="md:flex md:items-start">
+        {/* Desktop: side tab navigation */}
+        <nav className="hidden md:block sticky top-0 shrink-0 w-52 pl-12 pr-6 py-8 self-start">
+          <div className="border-l border-white/8 flex flex-col">
+            {TABS.map((t) => (
+              <button key={t.id} onClick={() => selectTab(t.id)}
+                className={`text-left px-4 py-3 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors border-l-2 -ml-px
+                  ${tab === t.id
+                    ? 'text-primary border-primary'
+                    : 'text-white/40 border-transparent hover:text-white/70'}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <div key={tab} className="space-y-0 pt-4 flex-1 min-w-0">
         {tab === 'overview' && (<>
           <Opportunity />
           <Divider />
@@ -1603,6 +1624,7 @@ export const Proposal = () => {
             onReview={scrollToRoadmap}
           />
         </>)}
+        </div>
       </div>
 
       <AnimatePresence>

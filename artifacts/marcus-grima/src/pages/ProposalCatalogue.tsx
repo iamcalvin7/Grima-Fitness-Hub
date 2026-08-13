@@ -751,13 +751,12 @@ function FeatureCard({ feature, onClick }: { feature: Feature; onClick: () => vo
       )}
 
       <div className="p-4 flex flex-col flex-1">
-        {/* Pillar | Title */}
-        <div className="flex items-baseline gap-2 pr-5">
-          <span className="flex items-center gap-1 text-primary/70 text-[9px] font-bold tracking-widest uppercase shrink-0 self-center">
+        {/* Pillar, then title stacked underneath */}
+        <div className="pr-5">
+          <span className="flex items-center gap-1 text-primary/70 text-[9px] font-bold tracking-widest uppercase mb-1.5">
             {CATEGORY_ICONS[feature.category]}
-            <span className="truncate max-w-[110px]">{feature.category}</span>
+            <span className="truncate">{feature.category}</span>
           </span>
-          <span className="text-white/15 text-xs shrink-0">|</span>
           <p className="text-sm font-black text-primary tracking-tight leading-snug group-hover:text-white transition-colors">
             {feature.title}
           </p>
