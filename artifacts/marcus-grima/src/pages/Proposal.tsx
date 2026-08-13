@@ -47,7 +47,7 @@ function Divider() {
 ══════════════════════════════════════════════════════════════════════════════ */
 function Hero() {
   return (
-    <section className="relative pt-20 pb-20 px-5 md:px-12 overflow-hidden">
+    <section className="relative pt-20 pb-8 px-5 md:px-12 overflow-hidden">
       {/* Glow */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[140%] h-72 rounded-full"
@@ -73,12 +73,11 @@ function Hero() {
       {/* Stats row */}
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.15 }}
-        className="grid grid-cols-3 gap-4 max-w-lg"
+        className="grid grid-cols-2 gap-4 max-w-lg"
       >
         {[
-          { value: '12', label: 'Product Pillars' },
-          { value: 'Nov 30', label: 'Soft Launch' },
-          { value: 'Dec 14', label: 'Public Launch' },
+          { value: 'Oct 15, 2025', label: 'Soft Launch' },
+          { value: 'Jan 3, 2026', label: 'Public Launch' },
         ].map((s) => (
           <div key={s.label} className="border border-white/8 bg-white/[0.03] px-4 py-5">
             <p className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none mb-1.5">{s.value}</p>
