@@ -48,7 +48,7 @@ export const FEATURES: Feature[] = [
   // ── Account & Onboarding ──
   {
     id: 'auth-email', title: 'Email Registration & Verification', category: 'Account & Onboarding',
-    priority: 'Critical', phase: 1, status: 'Delivered',
+    priority: 'Critical', phase: 1, status: 'In Progress',
     tagline: 'Secure, verified accounts from day one.',
     what: 'Full email-based sign-up flow with account verification, duplicate detection, and secure credential storage using scrypt hashing.',
     memberBenefit: 'A trustworthy, familiar sign-up experience that protects their credentials from the start.',
@@ -76,7 +76,7 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'auth-oauth', title: 'Google & Apple Sign-In (OAuth)', category: 'Account & Onboarding',
-    priority: 'High', phase: 1, status: 'Delivered',
+    priority: 'High', phase: 1, status: 'In Progress',
     tagline: 'One tap to join — no password required.',
     what: 'OAuth 2.0 PKCE flow for Google. Accounts are linked intelligently — if an email already exists, the OAuth identity is attached rather than duplicating the account.',
     memberBenefit: 'Fastest possible sign-up and sign-in experience, especially on mobile.',
