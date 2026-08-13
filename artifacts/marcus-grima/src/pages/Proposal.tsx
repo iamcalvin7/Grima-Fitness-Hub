@@ -115,9 +115,6 @@ function Opportunity() {
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Setting The Stage</SectionLabel>
       <div className="max-w-3xl">
-        <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight mb-6">
-          Setting the stage.
-        </h2>
         <p className="text-sm md:text-base text-white/60 leading-relaxed mb-8">
           The Marcus Grima Fitness app is the digital foundation of the Marcus Grima Fitness
           business. It brings the entire client and business experience into one platform —
