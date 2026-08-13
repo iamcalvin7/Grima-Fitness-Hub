@@ -881,6 +881,132 @@ function BuildCost() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   8b. LAUNCH & RUNNING COSTS
+══════════════════════════════════════════════════════════════════════════════ */
+const LAUNCH_COSTS = [
+  {
+    item: 'Apple Developer Program',
+    cost: '$99 / year',
+    kind: 'Required for App Store',
+    note: 'Mandatory annual membership to publish and keep the iOS app on the App Store. Also unlocks Apple Sign-In.',
+  },
+  {
+    item: 'Google Play Developer Account',
+    cost: '$25 one-off',
+    kind: 'Required for Play Store',
+    note: 'One-time registration fee to publish the Android app on Google Play.',
+  },
+  {
+    item: 'App store commission',
+    cost: '15–30% of in-app sales',
+    kind: 'Only on in-app purchases',
+    note: 'Apple and Google take a commission on digital subscriptions sold inside the apps (15% under the Small Business Program up to $1M/yr). Web payments avoid this.',
+  },
+];
+
+const RUNNING_COSTS = [
+  {
+    item: 'Hosting (Replit deployment)',
+    cost: '~€20–40 / month',
+    kind: 'Core infrastructure',
+    note: 'Runs the app, API and database in production. Scales with traffic; current usage sits at the low end.',
+  },
+  {
+    item: 'Custom domain',
+    cost: '~€10–20 / year',
+    kind: 'Brand',
+    note: 'e.g. marcusgrimafitness.com — annual renewal.',
+  },
+  {
+    item: 'Video streaming (Mux)',
+    cost: '€0 now · usage-based live',
+    kind: 'Scales with content',
+    note: 'Free during development. Live costs depend on library size and viewing — typically well under €50/month early on. Detailed breakdown in the Brand & Content tab.',
+  },
+  {
+    item: 'Transactional email (Resend or similar)',
+    cost: '€0–20 / month',
+    kind: 'Verification & notifications',
+    note: 'Sends verification, password-reset and notification emails. Free tier covers thousands of emails per month; paid tiers only as volume grows.',
+  },
+  {
+    item: 'Payment processing (Stripe)',
+    cost: '~1.5–2.9% + €0.25 per transaction',
+    kind: 'Only when earning',
+    note: 'No monthly fee — Stripe charges a small percentage of each successful payment. Costs only exist when revenue exists.',
+  },
+];
+
+function CostTable({ rows }: { rows: typeof LAUNCH_COSTS }) {
+  return (
+    <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5">
+      {rows.map((r) => (
+        <div key={r.item} className="p-5">
+          <div className="flex items-baseline justify-between gap-4 flex-wrap mb-1">
+            <p className="text-sm font-bold text-white tracking-wide">{r.item}</p>
+            <p className="text-sm font-black text-primary tracking-tight whitespace-nowrap">{r.cost}</p>
+          </div>
+          <p className="text-[9px] font-bold tracking-[0.22em] text-white/30 uppercase mb-1.5">{r.kind}</p>
+          <p className="text-xs text-white/45 leading-relaxed">{r.note}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LaunchRunningCosts() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Launch & Running Costs</SectionLabel>
+      <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
+        The full picture, not just the build.
+      </h2>
+      <p className="text-sm text-white/40 mb-10 max-w-2xl">
+        Beyond the build itself, the platform carries a small set of launch and operating
+        costs. They are all listed here — there are no hidden fees, and most only grow
+        when the business grows.
+      </p>
+
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">App Store Launch</p>
+          <CostTable rows={LAUNCH_COSTS} />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">Monthly Running Costs</p>
+          <CostTable rows={RUNNING_COSTS} />
+        </div>
+      </div>
+
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        {[
+          { value: '~€125', label: 'One-off to launch on both stores', sub: 'Apple $99/yr + Google $25' },
+          { value: '€30–80', label: 'Typical monthly running cost', sub: 'Hosting, email, early video usage' },
+          { value: '% based', label: 'Payment & store fees', sub: 'Only charged when revenue comes in' },
+        ].map((s) => (
+          <div key={s.label} className="border border-primary/15 bg-primary/[0.03] p-5">
+            <p className="text-2xl font-black text-white tracking-tight">{s.value}</p>
+            <p className="text-[9px] font-bold tracking-[0.22em] text-primary/70 uppercase mt-1.5">{s.label}</p>
+            <p className="text-[10px] text-white/30 mt-1">{s.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="border border-white/5 bg-white/[0.01] p-4 flex items-start gap-3">
+        <Warning size={14} weight="fill" className="text-white/25 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-white/30 leading-relaxed">
+          Figures are based on current public pricing (USD where noted) and are subject to change
+          by the providers. Store commissions apply only to digital products sold inside the
+          mobile apps; coaching paid via the web or in person is unaffected. This section will be
+          updated with real invoices once the platform is live.
+        </p>
+      </div>
+    </FadeSection>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    8. ROADMAP
 ══════════════════════════════════════════════════════════════════════════════ */
 const ROADMAP = [
@@ -1167,9 +1293,11 @@ export const Proposal = () => {
           <MuxVideo />
         </>)}
 
-        {tab === 'investment' && (
+        {tab === 'investment' && (<>
           <BuildCost />
-        )}
+          <Divider />
+          <LaunchRunningCosts />
+        </>)}
 
         {tab === 'roadmap' && (<>
           <div ref={roadmapRef}>
