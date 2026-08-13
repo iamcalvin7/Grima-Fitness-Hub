@@ -743,21 +743,6 @@ function BrandingChecklist() {
           </div>
         ))}
       </div>
-
-      {/* Price */}
-      <div className="border border-primary/20 bg-primary/[0.04] p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-[9px] font-bold tracking-[0.3em] text-primary uppercase mb-1">Branding Investment</p>
-          <p className="text-xs text-white/40">50% introductory rate · Full value shown for reference</p>
-        </div>
-        <div className="text-right">
-          <div className="flex items-baseline gap-3 justify-end">
-            <span className="text-3xl font-black text-primary tracking-tight">€3,067</span>
-            <span className="text-sm text-white/25 line-through">€6,134</span>
-          </div>
-          <p className="text-[9px] font-bold tracking-widest text-primary/70 uppercase mt-0.5">50% discount applied</p>
-        </div>
-      </div>
     </FadeSection>
   );
 }
@@ -795,29 +780,6 @@ function ContentChecklist() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Prices */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="border border-primary/20 bg-primary/[0.04] p-6">
-          <p className="text-[9px] font-bold tracking-[0.3em] text-primary uppercase mb-1">Creative Direction & Production Management</p>
-          <p className="text-xs text-white mb-4">50% introductory rate applied</p>
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-black text-primary tracking-tight">€5,420</span>
-            <span className="text-sm text-white/25 line-through">€10,840</span>
-          </div>
-          <p className="text-[9px] font-bold tracking-widest text-primary/70 uppercase mt-1">50% discount applied</p>
-        </div>
-        <div className="border border-white/8 bg-white/[0.02] p-6">
-          <p className="text-[9px] font-bold tracking-[0.3em] text-white/40 uppercase mb-1">External Production Costs</p>
-          <p className="text-xs text-white/30 mb-4">Estimated range depending on shoot scale, exercise count, and production team</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-white/70 tracking-tight">€8,700</span>
-            <span className="text-white/30 text-sm">–</span>
-            <span className="text-2xl font-black text-white/70 tracking-tight">€26,000</span>
-          </div>
-          <p className="text-[9px] font-bold tracking-widest text-white/25 uppercase mt-1">Estimate only · Confirmed on scope</p>
-        </div>
       </div>
     </FadeSection>
   );
@@ -1080,7 +1042,13 @@ function InvestTable({ title, rows }: { title: string; rows: { item: string; cos
 
 const BUILD_ROWS = [
   { item: 'AI-assisted build (Replit)', cost: '$156 to date', note: 'Verified from the Replit billing dashboard. Future features estimated against the completed authentication system as a benchmark.' },
-  { item: 'Calvin â product owner', cost: '€26.44 / hr', note: 'Discounted rate (standard €52.88/hr).' },
+  { item: 'Calvin — product owner', cost: '€26.44 / hr', note: 'Discounted rate (standard €52.88/hr).' },
+];
+
+const BRAND_CONTENT_ROWS = [
+  { item: 'Branding', cost: '€3,067', note: '50% introductory rate (full value €6,134). Brand foundations, identity, digital look & feel, content direction and final brand package.' },
+  { item: 'Creative direction & production management', cost: '€5,420', note: '50% introductory rate (full value €10,840). Managing the full content production effort end to end.' },
+  { item: 'External production costs', cost: '€8,700–26,000', note: 'Estimate only — depends on shoot scale, exercise count and production team. Confirmed on scope.' },
 ];
 
 function Investment() {
@@ -1092,13 +1060,14 @@ function Investment() {
       </h2>
       <p className="text-sm text-white mb-10 max-w-2xl">
         Three tables cover the entire financial picture: building the platform, getting it
-        launched, and keeping it running. No hidden fees â most costs only grow when the
+        launched, and keeping it running. No hidden fees — most costs only grow when the
         business grows.
       </p>
 
       <InvestTable title="1 · Build" rows={BUILD_ROWS} />
-      <InvestTable title="2 · Launch (One-off)" rows={LAUNCH_COSTS} />
-      <InvestTable title="3 · Running (Monthly)" rows={RUNNING_COSTS} />
+      <InvestTable title="2 · Branding & Content" rows={BRAND_CONTENT_ROWS} />
+      <InvestTable title="3 · Launch (One-off)" rows={LAUNCH_COSTS} />
+      <InvestTable title="4 · Running (Monthly)" rows={RUNNING_COSTS} />
 
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
