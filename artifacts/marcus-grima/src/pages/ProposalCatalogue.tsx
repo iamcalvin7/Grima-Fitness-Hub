@@ -1000,10 +1000,7 @@ function AddFeatureModal({ onClose, onAdded }: {
 
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [categoryFilter, setCategoryFilter] = useState<string>('All');
-  const [priorityFilter, setPriorityFilter] = useState<string>('All');
-  const [phaseFilter, setPhaseFilter] = useState<string>('All');
+  const [filter, setFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('Priority');
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
@@ -1023,10 +1020,11 @@ export function FeatureCatalogue() {
 
   const filtered = useMemo(() => {
     let f = [...allFeatures];
-    if (statusFilter !== 'All') f = f.filter(x => x.status === statusFilter);
-    if (categoryFilter !== 'All') f = f.filter(x => x.category === categoryFilter);
-    if (priorityFilter !== 'All') f = f.filter(x => x.priority === priorityFilter);
-    if (phaseFilter !== 'All') f = f.filter(x => String(x.phase) === phaseFilter);
+    if (filter === 'Launch') f = f.filter(x => x.status === 'Delivered' || x.status === 'In Progress');
+    else if (filter === 'Phase 1') f = f.filter(x => x.phase === 1);
+    else if (filter === 'Phase 2') f = f.filter(x => x.phase === 2);
+    else if (filter === 'Phase 3') f = f.filter(x => x.phase === 3);
+    else if (filter === 'Ongoing') f = f.filter(x => x.status === 'Future');
 
     f.sort((a, b) => {
       if (sortBy === 'Priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
@@ -1037,14 +1035,11 @@ export function FeatureCatalogue() {
       return 0;
     });
     return f;
-  }, [allFeatures, statusFilter, categoryFilter, priorityFilter, phaseFilter, sortBy]);
+  }, [allFeatures, filter, sortBy]);
 
-  const clearFilters = useCallback(() => {
-    setStatusFilter('All'); setCategoryFilter('All');
-    setPriorityFilter('All'); setPhaseFilter('All');
-  }, []);
+  const clearFilters = useCallback(() => setFilter('All'), []);
 
-  const hasFilters = statusFilter !== 'All' || categoryFilter !== 'All' || priorityFilter !== 'All' || phaseFilter !== 'All';
+  const hasFilters = filter !== 'All';
 
   return (
     <>
@@ -1053,40 +1048,27 @@ export function FeatureCatalogue() {
 
       {/* Filter bar */}
       <div className="mb-6 space-y-3">
-        {/* Status tabs */}
-        <div className="flex items-center gap-1 flex-wrap">
-          {(['All', ...STATUSES] as string[]).map((s) => {
-            const active = statusFilter === s;
-            const sc = s !== 'All' ? STATUS_CONFIG[s as FeatureStatus] : null;
-            return (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
-                  ${active
-                    ? sc
-                      ? `${sc.bg} ${sc.border} ${sc.color}`
-                      : 'bg-white/10 border-white/20 text-white'
-                    : 'bg-transparent border-white/6 text-white/35 hover:text-white/60 hover:border-white/12'
-                  }
-                `}
-              >
-                {s !== 'All' && sc && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sc.dot}`} />}
-                {s}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Dropdowns + sort */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="flex items-center gap-1.5 text-white/25 text-[10px] font-bold tracking-widest uppercase mr-1">
-            <Funnel size={11} weight="fill" /> Filter
-          </span>
-          <Dropdown label="Category" options={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
-          <Dropdown label="Priority" options={PRIORITIES} value={priorityFilter} onChange={setPriorityFilter} />
-          <Dropdown label="Phase" options={PHASES.map(String)} value={phaseFilter} onChange={setPhaseFilter} />
+          <div className="flex items-center gap-1 flex-wrap">
+            {['All', 'Launch', 'Phase 1', 'Phase 2', 'Phase 3', 'Ongoing'].map((s) => {
+              const active = filter === s;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setFilter(s)}
+                  className={`
+                    px-3 py-1.5 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
+                    ${active
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-transparent border-white/6 text-white/35 hover:text-white/60 hover:border-white/12'
+                    }
+                  `}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
 
           <div className="ml-auto flex items-center gap-2">
             <button
