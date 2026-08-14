@@ -687,7 +687,7 @@ function DetailPanel({ feature, onClose, onEdit, onDelete, isLaunch, onOverride 
                   className="flex items-center gap-1.5 px-3 py-2 border border-primary/40 bg-primary/10 text-primary text-[10px] font-bold tracking-widest uppercase hover:bg-primary/20 transition-colors"
                 >
                   <Rocket size={12} weight="fill" />
-                  {isLaunch ? 'Move to Future sprints' : 'Move to Launch'}
+                  {isLaunch ? 'Move to sprints' : 'Move to At Launch'}
                 </button>
               </div>
             </div>
@@ -1213,8 +1213,8 @@ function CatalogueBoard({ features, columnOf, onMove, onSelect }: {
   const [overCol, setOverCol] = useState<BoardColumn | null>(null);
 
   const columns: { key: BoardColumn; title: string; sub: string; accent: boolean }[] = [
-    { key: 'built', title: 'Built', sub: 'Live in the app today', accent: true },
-    { key: 'launch', title: 'Launch', sub: 'Ready for launch day', accent: true },
+    { key: 'built', title: 'Live Now', sub: 'Already working in the app', accent: true },
+    { key: 'launch', title: 'At Launch', sub: 'Ready on day one — 15 Oct', accent: true },
     ...Array.from({ length: SPRINT_COUNT }, (_, i) => ({
       key: (i + 1) as BoardColumn,
       title: `Sprint ${i + 1}`,
@@ -1226,7 +1226,7 @@ function CatalogueBoard({ features, columnOf, onMove, onSelect }: {
   return (
     <div>
       <p className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase mb-4">
-        Drag features between columns — into Built when shipped, into Launch for day one, or into a two-week sprint after soft launch. Changes are saved for everyone.
+        Drag features between columns — into Live Now when shipped, into At Launch for day one, or into a two-week sprint after soft launch. Changes are saved for everyone.
       </p>
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1">
         {columns.map((col) => {
