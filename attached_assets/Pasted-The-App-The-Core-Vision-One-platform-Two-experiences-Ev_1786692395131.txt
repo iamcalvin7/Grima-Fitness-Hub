@@ -1,0 +1,188 @@
+The App
+The Core Vision
+
+One platform. Two experiences. Everything connected.
+
+The core vision is to bring the entire Marcus Grima Fitness journey under one roof.
+
+Today, clients and the business rely on a mix of separate tools for training, progress tracking, nutrition, bookings, messaging, payments and content. Each tool solves one part of the journey, but together they create a fragmented experience.
+
+The app changes that.
+
+It will bring the most important parts of the client experience and the day-to-day business into one connected platform.
+
+For clients, it becomes the single place they use to train, track progress, stay accountable, communicate and manage their fitness journey.
+
+For Marcus, it becomes the control centre for coaching, client management, content, bookings, payments and business operations.
+
+The ambition is not to replace every specialist tool behind the scenes. It is to make those tools invisible to the client and give them one clear, branded experience.
+
+Today: multiple apps, multiple systems, multiple journeys.
+
+Tomorrow: one Marcus Grima Fitness platform.
+
+Today vs Tomorrow
+Today
+
+A client may use:
+
+WhatsApp for communication
+Google Calendar / Calendly for bookings
+MyFitnessPal for calories and nutrition
+Strong / Hevy / Fitbod for workout tracking
+Apple Health / Google Fit for activity data
+Notes / spreadsheets for measurements and progress
+YouTube / Instagram for exercise demonstrations and education
+Stripe / Revolut / banking apps for payments
+Email for updates and resources
+Facebook / WhatsApp groups for community
+Google Drive / PDFs for plans and documents
+
+Marcus may also rely on:
+
+Spreadsheets
+Calendars
+Messaging apps
+Payment dashboards
+Notes
+Content platforms
+Client records
+Manual follow-ups
+
+The result is a fitness experience spread across multiple places.
+
+Tomorrow
+
+The Marcus Grima Fitness app becomes the central platform.
+
+It can potentially replace or reduce the need for:
+
+Workout tracking apps
+Programme PDFs
+Progress spreadsheets
+Habit trackers
+Calorie and hydration trackers
+Booking tools
+Client messaging tools
+Basic community groups
+Educational content libraries
+Exercise video libraries
+Membership portals
+Payment and subscription management tools
+Manual client check-ins
+Manual follow-up systems
+
+Some specialist services will still power parts of the experience behind the scenes, but the client will not need to think about them.
+
+They will simply open one app.
+
+The Client Side
+
+Everything the client needs to move forward.
+
+Training
+Personalised programmes
+Guided workouts
+Exercise demonstrations
+Sets, reps and weights
+Workout history
+Progressive overload tracking
+Progress
+Measurements
+Progress photos
+Goals
+Milestones
+Check-ins
+Habit tracking
+Performance history
+Nutrition
+Nutrition guidance
+Calorie tracking
+Hydration tracking
+Meal plans
+Recipes
+Daily habits
+Coaching
+Direct messaging
+Feedback
+Coaching updates
+Reminders
+Accountability
+Personalised guidance
+Bookings
+Session booking
+Availability
+Upcoming sessions
+Changes and cancellations
+Content & Community
+Educational videos
+Articles
+Exercise content
+Member feed
+Challenges
+Community experiences
+Membership
+Membership status
+Payments
+Subscription management
+Account settings
+
+Instead of managing their fitness across multiple platforms, the client gets one clear home for their journey.
+
+Marcus HQ
+
+Everything Marcus needs to deliver and manage the experience.
+
+Clients
+Client database
+Client profiles
+Onboarding
+Goals
+History
+Client status
+Coaching
+Programme builder
+Workout builder
+Exercise library
+Programme assignment
+Check-in reviews
+Performance monitoring
+Client Oversight
+Progress dashboards
+Missed workout indicators
+Check-in status
+Engagement signals
+Clients requiring attention
+Bookings
+Calendar
+Availability
+Session management
+Rescheduling
+Attendance
+Communication
+Direct client messaging
+Broadcast updates
+Follow-ups
+Reminders
+Notifications
+Content
+Upload videos
+Publish articles
+Manage exercise demonstrations
+Member feed
+Educational resources
+Commercial
+Memberships
+Subscriptions
+Payments
+Client status
+Revenue visibility
+Business Intelligence
+Client growth
+Engagement
+Retention
+Programme activity
+Revenue
+Operational insights
+
+The client sees a simple fitness app. Marcus sees the operating system behind it.
