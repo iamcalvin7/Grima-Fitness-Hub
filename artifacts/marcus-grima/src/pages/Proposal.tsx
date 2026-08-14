@@ -1348,10 +1348,40 @@ const BUILD_ROWS = [
    authentication system (the most complex feature built so far). Each tier
    combines AI-assisted build spend with Calvin's product-owner hours. */
 const FEATURE_COST_ROWS = [
-  { item: 'Small feature', cost: '~€60–160', note: 'A focused screen or improvement — e.g. offers page, leaderboard tweaks, notification preferences. Roughly $10–25 of AI build plus 2–4 hours of product-owner time.' },
-  { item: 'Standard feature', cost: '~€160–400', note: 'A full feature with its own data and screens — e.g. session booking, meal plan viewer, progress photos. Roughly $25–60 of AI build plus 5–12 hours of product-owner time.' },
-  { item: 'Complex feature', cost: '~€400–900', note: 'Features touching payments, integrations or many parts of the app at once — e.g. Stripe memberships, wearable syncing, video content system. Roughly $60–150 of AI build plus 12–25 hours of product-owner time. The authentication system sits in this tier.' },
+  { item: 'Small feature', ai: '~$10–25', owner: '2–4 hrs · ~€53–106', note: 'A focused screen or improvement — e.g. offers page, leaderboard tweaks, notification preferences.' },
+  { item: 'Standard feature', ai: '~$25–60', owner: '5–12 hrs · ~€132–317', note: 'A full feature with its own data and screens — e.g. session booking, meal plan viewer, progress photos.' },
+  { item: 'Complex feature', ai: '~$60–150', owner: '12–25 hrs · ~€317–661', note: 'Features touching payments, integrations or many parts of the app at once — e.g. Stripe memberships, wearable syncing, video content system. The authentication system sits in this tier.' },
 ];
+
+function FeatureCostTable() {
+  return (
+    <div className="mb-10">
+      <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-3">1b · Indicative cost per feature</p>
+      <div className="border border-white/8 overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[640px]">
+          <thead>
+            <tr className="bg-white/[0.04] border-b border-white/8">
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[20%]">Feature size</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[16%]">AI build (Replit)</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[24%]">Product owner (€26.44/hr)</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase">What that looks like</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {FEATURE_COST_ROWS.map((r) => (
+              <tr key={r.item} className="bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+                <td className="px-4 py-3.5 text-sm font-bold text-primary align-top">{r.item}</td>
+                <td className="px-4 py-3.5 text-sm font-black text-white align-top whitespace-nowrap">{r.ai}</td>
+                <td className="px-4 py-3.5 text-sm font-black text-white align-top whitespace-nowrap">{r.owner}</td>
+                <td className="px-4 py-3.5 text-xs text-white/70 leading-relaxed align-top">{r.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 const BRAND_CONTENT_ROWS = [
   { item: 'Branding', cost: '€3,067', note: '50% introductory rate (full value €6,134). Brand foundations, identity, digital look & feel, content direction and final brand package.' },
@@ -1373,7 +1403,7 @@ function Investment() {
       </p>
 
       <InvestTable title="1 · Build" rows={BUILD_ROWS} />
-      <InvestTable title="1b · Indicative cost per feature" rows={FEATURE_COST_ROWS} headers={['Feature size', 'Indicative cost', 'What that looks like']} />
+      <FeatureCostTable />
 
       <div className="border border-white/6 bg-white/[0.015] p-5 mb-10 -mt-6 flex items-start gap-3">
         <ChartLine size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
