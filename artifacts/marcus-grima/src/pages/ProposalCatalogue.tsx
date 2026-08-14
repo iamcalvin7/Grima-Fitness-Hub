@@ -1510,7 +1510,13 @@ export function FeatureCatalogue() {
         {showAdd && (
           <AddFeatureModal
             onClose={() => setShowAdd(false)}
-            onAdded={(f) => setCustomFeatures((prev) => [...prev, f])}
+            onAdded={(f) => {
+              setCustomFeatures((prev) => [...prev, f]);
+              // Jump to where the new feature lives so it's immediately visible.
+              setAudience(featureAudience(f));
+              setPill(isLaunchFeature(f, overrides[f.id]) ? 'Launch' : 'Future');
+              setSelectedFeature(f);
+            }}
           />
         )}
       </AnimatePresence>
