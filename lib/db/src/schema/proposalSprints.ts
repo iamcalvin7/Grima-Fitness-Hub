@@ -21,7 +21,11 @@ export const proposalSprintsTable = pgTable(
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     featureId: text("feature_id").notNull(),
-    sprint: integer("sprint").notNull(),
+    sprint: integer("sprint"),
+    /** Status override for built-in catalogue features (e.g. "Delivered"). */
+    status: text("status"),
+    /** Placement override: "launch" | "future". Null = derived from phase. */
+    placement: text("placement"),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
       .notNull()
       .defaultNow(),

@@ -598,11 +598,13 @@ function StatusChip({ status, size = 'sm' }: { status: FeatureStatus; size?: 'xs
 }
 
 // ─── Feature Detail Panel ─────────────────────────────────────────────────────
-function DetailPanel({ feature, onClose, onEdit, onDelete }: {
+function DetailPanel({ feature, onClose, onEdit, onDelete, isLaunch, onOverride }: {
   feature: Feature;
   onClose: () => void;
   onEdit?: (f: Feature) => void;
   onDelete?: (f: Feature) => void;
+  isLaunch?: boolean;
+  onOverride?: (featureId: string, patch: { status?: string; placement?: string }) => void;
 }) {
   const [deleting, setDeleting] = useState(false);
   const sc = STATUS_CONFIG[feature.status];
@@ -655,6 +657,41 @@ function DetailPanel({ feature, onClose, onEdit, onDelete }: {
 
         {/* Body */}
         <div className="flex-1 px-6 py-6 space-y-6">
+          {/* Status & placement controls */}
+          {onOverride && (
+            <div className="border border-white/6 bg-white/[0.02] p-4 space-y-3">
+              <div>
+                <p className="text-[9px] font-black tracking-[0.25em] text-white/30 uppercase mb-1.5">Status</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {STATUSES.map((s) => {
+                    const active = feature.status === s;
+                    const c = STATUS_CONFIG[s];
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => { if (!active) onOverride(feature.id, { status: s }); }}
+                        className={`px-2.5 py-1.5 border text-[9px] font-black tracking-widest uppercase transition-colors ${
+                          active ? `${c.color} ${c.bg} ${c.border}` : 'border-white/8 text-white/30 hover:text-white/60 hover:border-white/20'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="text-[9px] font-black tracking-[0.25em] text-white/30 uppercase mb-1.5">Delivery</p>
+                <button
+                  onClick={() => onOverride(feature.id, { placement: isLaunch ? 'future' : 'launch' })}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-primary/40 bg-primary/10 text-primary text-[10px] font-bold tracking-widest uppercase hover:bg-primary/20 transition-colors"
+                >
+                  <Rocket size={12} weight="fill" />
+                  {isLaunch ? 'Move to Future sprints' : 'Move to Launch'}
+                </button>
+              </div>
+            </div>
+          )}
           {/* Edit / delete for custom (database-backed) features */}
           {feature.custom && (
             <div className="flex items-center gap-2">
@@ -1071,7 +1108,13 @@ function AddFeatureModal({ onClose, onAdded, initial }: {
    - Future: everything else, organised into two-week sprints after soft launch.
      Sprint assignments are drag-and-drop and persisted server-side.
 */
-type Pill = 'Launch' | 'Future';
+type Pill = 'Built' | 'Launch' | 'Future';
+
+export interface FeatureOverride {
+  sprint?: number;
+  status?: string;
+  placement?: string; // 'launch' | 'future'
+}
 
 const SPRINT_COUNT = 6;
 const SOFT_LAUNCH = new Date(2026, 9, 15); // 15 Oct 2026
@@ -1081,7 +1124,9 @@ function sprintEndDate(sprint: number): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: undefined });
 }
 
-export function isLaunchFeature(f: Feature): boolean {
+export function isLaunchFeature(f: Feature, override?: FeatureOverride): boolean {
+  if (override?.placement === 'launch') return true;
+  if (override?.placement === 'future') return false;
   return f.phase === 1;
 }
 
@@ -1159,20 +1204,43 @@ function SprintCard({ feature, onClick, onDragStart, onDragEnd, dragging }: {
 function SprintBoard({ features, sprintOf, onMove, onSelect }: {
   features: Feature[];
   sprintOf: (f: Feature) => number;
-  onMove: (featureId: string, sprint: number) => void;
+  onMove: (featureId: string, target: number | 'launch') => void;
   onSelect: (f: Feature) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [overSprint, setOverSprint] = useState<number | null>(null);
+  const [overSprint, setOverSprint] = useState<number | 'launch' | null>(null);
 
   const sprints = Array.from({ length: SPRINT_COUNT }, (_, i) => i + 1);
 
   return (
     <div>
       <p className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase mb-4">
-        Two-week sprints after soft launch — drag features between sprints to reprioritise. Changes are saved for everyone.
+        Two-week sprints after soft launch — drag features between sprints, or into Launch, to reprioritise. Changes are saved for everyone.
       </p>
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1">
+        {/* Launch drop zone */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setOverSprint('launch'); }}
+          onDragLeave={() => setOverSprint((s) => (s === 'launch' ? null : s))}
+          onDrop={(e) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('text/feature-id');
+            if (id) onMove(id, 'launch');
+            setOverSprint(null);
+            setDraggingId(null);
+          }}
+          className={`shrink-0 w-[170px] border border-dashed transition-colors flex flex-col ${
+            overSprint === 'launch' ? 'border-primary bg-primary/[0.08]' : 'border-primary/25 bg-primary/[0.02]'
+          }`}
+        >
+          <div className="px-3 py-3 border-b border-primary/15">
+            <p className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">→ Launch</p>
+            <p className="text-[9px] font-bold text-white/30 mt-0.5">Drop here to pull a feature into launch scope</p>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-3">
+            <Rocket size={22} weight="fill" className="text-primary/30" />
+          </div>
+        </div>
         {sprints.map((n) => {
           const inSprint = sortFeatures(features.filter((f) => sprintOf(f) === n));
           const isOver = overSprint === n;
@@ -1235,62 +1303,84 @@ export function FeatureCatalogue() {
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
-  const [sprintOverrides, setSprintOverrides] = useState<Record<string, number>>({});
+  const [overrides, setOverrides] = useState<Record<string, FeatureOverride>>({});
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     apiRequest<{ features: ApiFeature[] }>('/proposal-features')
       .then((res) => setCustomFeatures(res.features.map(apiToFeature)))
       .catch(() => { /* staff-only endpoint; ignore load errors */ });
-    apiRequest<{ sprints: Record<string, number> }>('/proposal-features/sprints')
-      .then((res) => setSprintOverrides(res.sprints))
+    apiRequest<{ overrides: Record<string, FeatureOverride> }>('/proposal-features/sprints')
+      .then((res) => setOverrides(res.overrides))
       .catch(() => { /* ignore */ });
   }, []);
 
-  const allFeatures = useMemo(() => [...FEATURES, ...customFeatures], [customFeatures]);
+  // Apply status overrides so every view reflects the saved status.
+  const allFeatures = useMemo(() => {
+    return [...FEATURES, ...customFeatures].map((f) => {
+      const o = overrides[f.id];
+      return o?.status && STATUSES.includes(o.status as FeatureStatus)
+        ? { ...f, status: o.status as FeatureStatus }
+        : f;
+    });
+  }, [customFeatures, overrides]);
 
   const audienceFeatures = useMemo(
     () => allFeatures.filter((x) => featureAudience(x) === audience),
     [allFeatures, audience],
   );
 
-  const launchFeatures = useMemo(
-    () => audienceFeatures.filter(isLaunchFeature),
+  const builtFeatures = useMemo(
+    () => audienceFeatures.filter((f) => f.status === 'Delivered'),
     [audienceFeatures],
   );
+  const launchFeatures = useMemo(
+    () => audienceFeatures.filter((f) => f.status !== 'Delivered' && isLaunchFeature(f, overrides[f.id])),
+    [audienceFeatures, overrides],
+  );
   const futureFeatures = useMemo(
-    () => audienceFeatures.filter((f) => !isLaunchFeature(f)),
-    [audienceFeatures],
+    () => audienceFeatures.filter((f) => f.status !== 'Delivered' && !isLaunchFeature(f, overrides[f.id])),
+    [audienceFeatures, overrides],
   );
 
   const sprintOf = useCallback(
-    (f: Feature) => sprintOverrides[f.id] ?? defaultSprint(f),
-    [sprintOverrides],
+    (f: Feature) => overrides[f.id]?.sprint ?? defaultSprint(f),
+    [overrides],
   );
 
   const [sprintError, setSprintError] = useState(false);
 
-  const moveToSprint = useCallback((featureId: string, sprint: number) => {
-    setSprintOverrides((prev) => ({ ...prev, [featureId]: sprint }));
+  const saveOverride = useCallback((featureId: string, patch: FeatureOverride) => {
+    setOverrides((prev) => ({ ...prev, [featureId]: { ...prev[featureId], ...patch } }));
     apiRequest('/proposal-features/sprints', {
       method: 'PUT',
-      body: { featureId, sprint },
+      body: { featureId, ...patch },
     }).then(() => setSprintError(false))
       .catch(() => {
         setSprintError(true);
         // Roll back to the server's saved state so the board never lies.
-        apiRequest<{ sprints: Record<string, number> }>('/proposal-features/sprints')
-          .then((res) => setSprintOverrides(res.sprints))
+        apiRequest<{ overrides: Record<string, FeatureOverride> }>('/proposal-features/sprints')
+          .then((res) => setOverrides(res.overrides))
           .catch(() => { /* keep local state if even the reload fails */ });
       });
   }, []);
 
-  // Launch view: grouped by pillar
-  const launchByPillar = useMemo(() => {
+  const moveToSprint = useCallback((featureId: string, target: number | 'launch') => {
+    if (target === 'launch') {
+      saveOverride(featureId, { placement: 'launch' });
+    } else {
+      saveOverride(featureId, { sprint: target, placement: 'future' });
+    }
+  }, [saveOverride]);
+
+  // Built & Launch views: grouped by pillar
+  const groupByPillar = useCallback((list: Feature[]) => {
     return CATEGORIES
-      .map((c) => ({ category: c, features: sortFeatures(launchFeatures.filter((f) => f.category === c)) }))
+      .map((c) => ({ category: c, features: sortFeatures(list.filter((f) => f.category === c)) }))
       .filter((g) => g.features.length > 0);
-  }, [launchFeatures]);
+  }, []);
+  const builtByPillar = useMemo(() => groupByPillar(builtFeatures), [groupByPillar, builtFeatures]);
+  const launchByPillar = useMemo(() => groupByPillar(launchFeatures), [groupByPillar, launchFeatures]);
 
   return (
     <>
@@ -1320,9 +1410,9 @@ export function FeatureCatalogue() {
           </div>
 
           <div className="flex items-center gap-1 ml-2">
-            {(['Launch', 'Future'] as Pill[]).map((p) => {
+            {(['Built', 'Launch', 'Future'] as Pill[]).map((p) => {
               const active = pill === p;
-              const count = p === 'Launch' ? launchFeatures.length : futureFeatures.length;
+              const count = p === 'Built' ? builtFeatures.length : p === 'Launch' ? launchFeatures.length : futureFeatures.length;
               return (
                 <button
                   key={p}
@@ -1349,10 +1439,10 @@ export function FeatureCatalogue() {
         </div>
       </div>
 
-      {/* Launch: grouped by pillar */}
-      {pill === 'Launch' && (
+      {/* Built / Launch: grouped by pillar */}
+      {(pill === 'Built' || pill === 'Launch') && (
         <div className="space-y-10">
-          {launchByPillar.map((group) => (
+          {(pill === 'Built' ? builtByPillar : launchByPillar).map((group) => (
             <div key={group.category}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-primary">{CATEGORY_ICONS[group.category]}</span>
@@ -1371,8 +1461,10 @@ export function FeatureCatalogue() {
               </div>
             </div>
           ))}
-          {launchByPillar.length === 0 && (
-            <p className="py-20 text-center text-white/20 text-sm font-semibold">No launch features for this audience.</p>
+          {(pill === 'Built' ? builtByPillar : launchByPillar).length === 0 && (
+            <p className="py-20 text-center text-white/20 text-sm font-semibold">
+              No {pill.toLowerCase()} features for this audience.
+            </p>
           )}
         </div>
       )}
@@ -1400,6 +1492,15 @@ export function FeatureCatalogue() {
             onClose={() => setSelectedFeature(null)}
             onEdit={(f) => { setSelectedFeature(null); setEditingFeature(f); }}
             onDelete={(f) => setCustomFeatures((prev) => prev.filter((x) => x.id !== f.id))}
+            isLaunch={isLaunchFeature(selectedFeature, overrides[selectedFeature.id])}
+            onOverride={(featureId, patch) => {
+              saveOverride(featureId, patch);
+              setSelectedFeature((cur) =>
+                cur && cur.id === featureId && patch.status
+                  ? { ...cur, status: patch.status as FeatureStatus }
+                  : cur,
+              );
+            }}
           />
         )}
       </AnimatePresence>

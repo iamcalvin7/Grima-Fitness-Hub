@@ -46,32 +46,71 @@ router.get("/proposal-features", async (req, res) => {
   }
 });
 
-/** GET /proposal-features/sprints — sprint assignment overrides (featureId → sprint). */
+interface FeatureOverride {
+  sprint?: number;
+  status?: string;
+  placement?: string;
+}
+
+/** GET /proposal-features/sprints — per-feature overrides (sprint, status, placement). */
 router.get("/proposal-features/sprints", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(proposalSprintsTable)
       .where(eq(proposalSprintsTable.tenantId, req.user!.tenantId));
-    const sprints: Record<string, number> = {};
-    for (const r of rows) sprints[r.featureId] = r.sprint;
-    res.json({ sprints });
+    const overrides: Record<string, FeatureOverride> = {};
+    for (const r of rows) {
+      const o: FeatureOverride = {};
+      if (r.sprint != null) o.sprint = r.sprint;
+      if (r.status != null) o.status = r.status;
+      if (r.placement != null) o.placement = r.placement;
+      overrides[r.featureId] = o;
+    }
+    res.json({ overrides });
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch proposal sprints");
-    res.status(500).json({ error: "Failed to fetch sprints" });
+    req.log.error({ err }, "Failed to fetch proposal overrides");
+    res.status(500).json({ error: "Failed to fetch overrides" });
   }
 });
 
-/** PUT /proposal-features/sprints — upsert one sprint assignment. */
+const VALID_PLACEMENTS = ["launch", "future"];
+
+/** PUT /proposal-features/sprints — upsert one feature override (sprint / status / placement). */
 router.put("/proposal-features/sprints", async (req, res) => {
-  const { featureId, sprint } = (req.body ?? {}) as Record<string, unknown>;
+  const { featureId, sprint, status, placement } = (req.body ?? {}) as Record<
+    string,
+    unknown
+  >;
   if (typeof featureId !== "string" || !featureId.trim() || featureId.length > 100) {
     res.status(400).json({ error: "featureId is required" });
     return;
   }
-  const s = Number(sprint);
-  if (!Number.isInteger(s) || s < 1 || s > 6) {
-    res.status(400).json({ error: "sprint must be an integer between 1 and 6" });
+  const patch: { sprint?: number; status?: string; placement?: string } = {};
+  if (sprint !== undefined) {
+    const s = Number(sprint);
+    if (!Number.isInteger(s) || s < 1 || s > 6) {
+      res.status(400).json({ error: "sprint must be an integer between 1 and 6" });
+      return;
+    }
+    patch.sprint = s;
+  }
+  if (status !== undefined) {
+    if (typeof status !== "string" || !VALID_STATUSES.includes(status)) {
+      res.status(400).json({ error: "Invalid status" });
+      return;
+    }
+    patch.status = status;
+  }
+  if (placement !== undefined) {
+    if (typeof placement !== "string" || !VALID_PLACEMENTS.includes(placement)) {
+      res.status(400).json({ error: "Invalid placement" });
+      return;
+    }
+    patch.placement = placement;
+  }
+  if (Object.keys(patch).length === 0) {
+    res.status(400).json({ error: "Nothing to update" });
     return;
   }
   const fid = featureId.trim();
@@ -100,10 +139,10 @@ router.put("/proposal-features/sprints", async (req, res) => {
     }
     await db
       .insert(proposalSprintsTable)
-      .values({ tenantId: req.user!.tenantId, featureId: fid, sprint: s })
+      .values({ tenantId: req.user!.tenantId, featureId: fid, ...patch })
       .onConflictDoUpdate({
         target: [proposalSprintsTable.tenantId, proposalSprintsTable.featureId],
-        set: { sprint: s, updatedAt: new Date() },
+        set: { ...patch, updatedAt: new Date() },
       });
     res.json({ ok: true });
   } catch (err) {
