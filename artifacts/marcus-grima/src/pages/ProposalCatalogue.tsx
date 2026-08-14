@@ -1065,22 +1065,32 @@ function AddFeatureModal({ onClose, onAdded, initial }: {
   );
 }
 
-/* ─── Delivery waves ───────────────────────────────────────────────────────────
-   Every feature sits in exactly ONE wave:
+/* ─── Delivery: Launch vs Future sprints ──────────────────────────────────────
+   Two pills only:
    - Launch: everything in phase 1 (the foundation being built now)
-   - 2/4/6 weeks post launch: phase-2 work, ordered by priority
-   - Future: phase 3 and long-term items
+   - Future: everything else, organised into two-week sprints after soft launch.
+     Sprint assignments are drag-and-drop and persisted server-side.
 */
-export type Wave = 'Launch' | '2 Weeks' | '4 Weeks' | '6 Weeks' | 'Future';
-export const WAVES: Wave[] = ['Launch', '2 Weeks', '4 Weeks', '6 Weeks', 'Future'];
+type Pill = 'Launch' | 'Future';
 
-export function featureWave(f: Feature): Wave {
-  if (f.status === 'Future' || f.phase === 3) return 'Future';
-  if (f.phase === 1) return 'Launch';
-  // phase 2 → staggered by priority
-  if (f.priority === 'Critical') return '2 Weeks';
-  if (f.priority === 'High') return '4 Weeks';
-  return '6 Weeks';
+const SPRINT_COUNT = 6;
+const SOFT_LAUNCH = new Date(2026, 9, 15); // 15 Oct 2026
+
+function sprintEndDate(sprint: number): string {
+  const d = new Date(SOFT_LAUNCH.getTime() + sprint * 14 * 24 * 3600 * 1000);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: undefined });
+}
+
+export function isLaunchFeature(f: Feature): boolean {
+  return f.phase === 1;
+}
+
+/** Default sprint for non-launch features, before any manual drag-and-drop. */
+export function defaultSprint(f: Feature): number {
+  if (f.status === 'Future' || f.phase === 3) return 4;
+  if (f.priority === 'Critical') return 1;
+  if (f.priority === 'High') return 2;
+  return 3;
 }
 
 /* ─── Audience: who the feature serves ────────────────────────────────────────
@@ -1100,41 +1110,187 @@ function featureAudience(f: Feature): Audience {
   return 'client';
 }
 
+const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
+
+function sortFeatures(list: Feature[]): Feature[] {
+  return [...list].sort((a, b) => {
+    const s = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    if (s !== 0) return s;
+    return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+  });
+}
+
+// ─── Compact sprint card (draggable) ─────────────────────────────────────────
+function SprintCard({ feature, onClick, onDragStart, onDragEnd, dragging }: {
+  feature: Feature;
+  onClick: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  dragging: boolean;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      className={`
+        cursor-grab active:cursor-grabbing select-none border border-l-4 ${STATUS_BORDER[feature.status]}
+        bg-white/[0.03] hover:bg-white/[0.06] border-white/6 hover:border-white/15
+        p-3 transition-all duration-150
+        ${dragging ? 'opacity-30' : ''}
+      `}
+    >
+      <span className="flex items-center gap-1 text-primary/70 text-[8px] font-bold tracking-widest uppercase mb-1">
+        {CATEGORY_ICONS[feature.category]}
+        <span className="truncate">{feature.category}</span>
+      </span>
+      <p className="text-xs font-black text-white tracking-tight leading-snug">{feature.title}</p>
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+        <PriorityPill priority={feature.priority} />
+        <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[feature.priority]}`} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Sprint board with drag & drop ────────────────────────────────────────────
+function SprintBoard({ features, sprintOf, onMove, onSelect }: {
+  features: Feature[];
+  sprintOf: (f: Feature) => number;
+  onMove: (featureId: string, sprint: number) => void;
+  onSelect: (f: Feature) => void;
+}) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overSprint, setOverSprint] = useState<number | null>(null);
+
+  const sprints = Array.from({ length: SPRINT_COUNT }, (_, i) => i + 1);
+
+  return (
+    <div>
+      <p className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase mb-4">
+        Two-week sprints after soft launch — drag features between sprints to reprioritise. Changes are saved for everyone.
+      </p>
+      <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1">
+        {sprints.map((n) => {
+          const inSprint = sortFeatures(features.filter((f) => sprintOf(f) === n));
+          const isOver = overSprint === n;
+          return (
+            <div
+              key={n}
+              onDragOver={(e) => { e.preventDefault(); setOverSprint(n); }}
+              onDragLeave={() => setOverSprint((s) => (s === n ? null : s))}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData('text/feature-id');
+                if (id) onMove(id, n);
+                setOverSprint(null);
+                setDraggingId(null);
+              }}
+              className={`shrink-0 w-[250px] border transition-colors ${
+                isOver ? 'border-primary/50 bg-primary/[0.04]' : 'border-white/8 bg-white/[0.015]'
+              }`}
+            >
+              <div className="px-3 py-3 border-b border-white/6 flex items-baseline justify-between">
+                <div>
+                  <p className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">Sprint {n}</p>
+                  <p className="text-[9px] font-bold text-white/30 mt-0.5">
+                    New features by {sprintEndDate(n)}{n === 1 ? ' · +2 weeks' : ''}
+                  </p>
+                </div>
+                <p className="text-[10px] font-black text-white/25">{inSprint.length}</p>
+              </div>
+              <div className="p-2.5 space-y-2 min-h-[120px]">
+                {inSprint.map((f) => (
+                  <SprintCard
+                    key={f.id}
+                    feature={f}
+                    dragging={draggingId === f.id}
+                    onClick={() => onSelect(f)}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/feature-id', f.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDraggingId(f.id);
+                    }}
+                    onDragEnd={() => { setDraggingId(null); setOverSprint(null); }}
+                  />
+                ))}
+                {inSprint.length === 0 && (
+                  <p className="text-[10px] text-white/15 font-semibold text-center py-8">Drop features here</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
   const [audience, setAudience] = useState<Audience>('client');
-  const [filter, setFilter] = useState<string>('All');
+  const [pill, setPill] = useState<Pill>('Launch');
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
+  const [sprintOverrides, setSprintOverrides] = useState<Record<string, number>>({});
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     apiRequest<{ features: ApiFeature[] }>('/proposal-features')
       .then((res) => setCustomFeatures(res.features.map(apiToFeature)))
       .catch(() => { /* staff-only endpoint; ignore load errors */ });
+    apiRequest<{ sprints: Record<string, number> }>('/proposal-features/sprints')
+      .then((res) => setSprintOverrides(res.sprints))
+      .catch(() => { /* ignore */ });
   }, []);
 
   const allFeatures = useMemo(() => [...FEATURES, ...customFeatures], [customFeatures]);
 
-  const PRIORITY_ORDER: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
-  const STATUS_ORDER: Record<FeatureStatus, number> = { 'Delivered': 0, 'In Progress': 1, Planned: 2, Future: 3 };
+  const audienceFeatures = useMemo(
+    () => allFeatures.filter((x) => featureAudience(x) === audience),
+    [allFeatures, audience],
+  );
 
-  const filtered = useMemo(() => {
-    let f = allFeatures.filter((x) => featureAudience(x) === audience);
-    if (filter !== 'All') f = f.filter(x => featureWave(x) === filter);
+  const launchFeatures = useMemo(
+    () => audienceFeatures.filter(isLaunchFeature),
+    [audienceFeatures],
+  );
+  const futureFeatures = useMemo(
+    () => audienceFeatures.filter((f) => !isLaunchFeature(f)),
+    [audienceFeatures],
+  );
 
-    f.sort((a, b) => {
-      const s = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-      if (s !== 0) return s;
-      return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-    });
-    return f;
-  }, [allFeatures, audience, filter]);
+  const sprintOf = useCallback(
+    (f: Feature) => sprintOverrides[f.id] ?? defaultSprint(f),
+    [sprintOverrides],
+  );
 
-  const clearFilters = useCallback(() => setFilter('All'), []);
+  const [sprintError, setSprintError] = useState(false);
 
-  const hasFilters = filter !== 'All';
+  const moveToSprint = useCallback((featureId: string, sprint: number) => {
+    setSprintOverrides((prev) => ({ ...prev, [featureId]: sprint }));
+    apiRequest('/proposal-features/sprints', {
+      method: 'PUT',
+      body: { featureId, sprint },
+    }).then(() => setSprintError(false))
+      .catch(() => {
+        setSprintError(true);
+        // Roll back to the server's saved state so the board never lies.
+        apiRequest<{ sprints: Record<string, number> }>('/proposal-features/sprints')
+          .then((res) => setSprintOverrides(res.sprints))
+          .catch(() => { /* keep local state if even the reload fails */ });
+      });
+  }, []);
+
+  // Launch view: grouped by pillar
+  const launchByPillar = useMemo(() => {
+    return CATEGORIES
+      .map((c) => ({ category: c, features: sortFeatures(launchFeatures.filter((f) => f.category === c)) }))
+      .filter((g) => g.features.length > 0);
+  }, [launchFeatures]);
 
   return (
     <>
@@ -1144,94 +1300,96 @@ export function FeatureCatalogue() {
       {/* Filter bar */}
       <div className="mb-6 space-y-3">
         {/* Audience toggle */}
-        <div className="flex items-center gap-1">
-          {([
-            { id: 'client' as Audience, label: 'Client' },
-            { id: 'marcus' as Audience, label: 'Marcus' },
-          ]).map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setAudience(a.id)}
-              className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
-                ${audience === a.id
-                  ? 'bg-primary text-black border-primary'
-                  : 'bg-transparent border-white/10 text-white/40 hover:text-white/70 hover:border-white/20'}`}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
-
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 flex-wrap">
-            {['All', ...WAVES].map((s) => {
-              const active = filter === s;
+          <div className="flex items-center gap-1">
+            {([
+              { id: 'client' as Audience, label: 'Client' },
+              { id: 'marcus' as Audience, label: 'Marcus' },
+            ]).map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setAudience(a.id)}
+                className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
+                  ${audience === a.id
+                    ? 'bg-primary text-black border-primary'
+                    : 'bg-transparent border-white/10 text-white/40 hover:text-white/70 hover:border-white/20'}`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 ml-2">
+            {(['Launch', 'Future'] as Pill[]).map((p) => {
+              const active = pill === p;
+              const count = p === 'Launch' ? launchFeatures.length : futureFeatures.length;
               return (
                 <button
-                  key={s}
-                  onClick={() => setFilter(s)}
-                  className={`
-                    px-3 py-1.5 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
+                  key={p}
+                  onClick={() => setPill(p)}
+                  className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
                     ${active
                       ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'bg-transparent border-white/6 text-white/35 hover:text-white/60 hover:border-white/12'
-                    }
-                  `}
+                      : 'bg-transparent border-white/6 text-white/35 hover:text-white/60 hover:border-white/12'}`}
                 >
-                  {s}
+                  {p} · {count}
                 </button>
               );
             })}
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto">
             <button
               onClick={() => setShowAdd(true)}
               className="flex items-center gap-1.5 px-3 py-2 border border-primary/40 bg-primary/10 text-primary text-xs font-bold tracking-widest uppercase hover:bg-primary/20 transition-colors"
             >
               <Plus size={12} weight="bold" /> Add Feature
             </button>
-            {hasFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-[10px] font-bold text-white/30 hover:text-white/60 tracking-widest uppercase transition-colors"
-              >
-                Clear
-              </button>
-            )}
           </div>
         </div>
-
-        {/* Result count */}
-        <p className="text-[10px] font-bold tracking-widest text-white/25 uppercase">
-          Showing {filtered.length} of {allFeatures.length} features
-          {hasFilters && <span className="text-primary/60"> · Filtered</span>}
-        </p>
       </div>
 
-      {/* Feature grid */}
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
-        layout
-      >
-        <AnimatePresence mode="popLayout">
-          {filtered.map((feature) => (
-            <FeatureCard
-              key={feature.id}
-              feature={feature}
-              onClick={() => setSelectedFeature(feature)}
-            />
+      {/* Launch: grouped by pillar */}
+      {pill === 'Launch' && (
+        <div className="space-y-10">
+          {launchByPillar.map((group) => (
+            <div key={group.category}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-primary">{CATEGORY_ICONS[group.category]}</span>
+                <h3 className="text-sm font-black text-white tracking-tight uppercase">{group.category}</h3>
+                <span className="text-[10px] font-black text-white/25">{group.features.length}</span>
+                <div className="flex-1 border-t border-white/6" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {group.features.map((feature) => (
+                  <FeatureCard
+                    key={feature.id}
+                    feature={feature}
+                    onClick={() => setSelectedFeature(feature)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
-        </AnimatePresence>
-      </motion.div>
-
-      {filtered.length === 0 && (
-        <div className="py-20 text-center">
-          <p className="text-white/20 text-sm font-semibold">No features match these filters.</p>
-          <button onClick={clearFilters} className="mt-3 text-primary text-xs font-bold tracking-widest uppercase hover:text-primary/70 transition-colors">
-            Clear filters
-          </button>
+          {launchByPillar.length === 0 && (
+            <p className="py-20 text-center text-white/20 text-sm font-semibold">No launch features for this audience.</p>
+          )}
         </div>
+      )}
+
+      {/* Future: sprint board */}
+      {pill === 'Future' && sprintError && (
+        <p className="mb-3 text-[11px] font-bold text-red-400">
+          Couldn't save the last move — the board has been restored. Please try again.
+        </p>
+      )}
+      {pill === 'Future' && (
+        <SprintBoard
+          features={futureFeatures}
+          sprintOf={sprintOf}
+          onMove={moveToSprint}
+          onSelect={setSelectedFeature}
+        />
       )}
 
       {/* Detail panel */}

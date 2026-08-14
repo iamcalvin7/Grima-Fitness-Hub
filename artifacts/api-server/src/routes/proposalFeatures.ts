@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, asc, eq } from "drizzle-orm";
-import { db, proposalFeaturesTable } from "@workspace/db";
+import { db, proposalFeaturesTable, proposalSprintsTable } from "@workspace/db";
 import { attachUser, requireAuth, requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -43,6 +43,72 @@ router.get("/proposal-features", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to fetch proposal features");
     res.status(500).json({ error: "Failed to fetch features" });
+  }
+});
+
+/** GET /proposal-features/sprints — sprint assignment overrides (featureId → sprint). */
+router.get("/proposal-features/sprints", async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(proposalSprintsTable)
+      .where(eq(proposalSprintsTable.tenantId, req.user!.tenantId));
+    const sprints: Record<string, number> = {};
+    for (const r of rows) sprints[r.featureId] = r.sprint;
+    res.json({ sprints });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch proposal sprints");
+    res.status(500).json({ error: "Failed to fetch sprints" });
+  }
+});
+
+/** PUT /proposal-features/sprints — upsert one sprint assignment. */
+router.put("/proposal-features/sprints", async (req, res) => {
+  const { featureId, sprint } = (req.body ?? {}) as Record<string, unknown>;
+  if (typeof featureId !== "string" || !featureId.trim() || featureId.length > 100) {
+    res.status(400).json({ error: "featureId is required" });
+    return;
+  }
+  const s = Number(sprint);
+  if (!Number.isInteger(s) || s < 1 || s > 6) {
+    res.status(400).json({ error: "sprint must be an integer between 1 and 6" });
+    return;
+  }
+  const fid = featureId.trim();
+  // Built-in catalogue ids are slugs; UUIDs must belong to a custom feature in this tenant.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fid);
+  if (!isUuid && !/^[a-z0-9-]+$/.test(fid)) {
+    res.status(400).json({ error: "Invalid featureId" });
+    return;
+  }
+  try {
+    if (isUuid) {
+      const rows = await db
+        .select({ id: proposalFeaturesTable.id })
+        .from(proposalFeaturesTable)
+        .where(
+          and(
+            eq(proposalFeaturesTable.id, fid),
+            eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .limit(1);
+      if (!rows[0]) {
+        res.status(404).json({ error: "Feature not found" });
+        return;
+      }
+    }
+    await db
+      .insert(proposalSprintsTable)
+      .values({ tenantId: req.user!.tenantId, featureId: fid, sprint: s })
+      .onConflictDoUpdate({
+        target: [proposalSprintsTable.tenantId, proposalSprintsTable.featureId],
+        set: { sprint: s, updatedAt: new Date() },
+      });
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save proposal sprint");
+    res.status(500).json({ error: "Failed to save sprint" });
   }
 });
 

@@ -6,3 +6,4 @@ export * from "./authIdentities";
 export * from "./accountTokens";
 export * from "./contentPosts";
 export * from "./proposalFeatures";
+export * from "./proposalSprints";
