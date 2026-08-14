@@ -89,177 +89,168 @@ function Hero() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   2. SETTING THE STAGE
+   2. SETTING THE STAGE — WHY / WHAT / HOW
 ══════════════════════════════════════════════════════════════════════════════ */
-const MEMBER_GAINS = [
-  'One app for their full fitness journey',
-  'Less friction from switching between multiple platforms',
-  'Clear direction across training, nutrition and daily habits',
-  'Greater consistency and accountability',
-  'Better visibility of their progress',
-  'Easier access to coaching support',
-  'Stronger motivation through community',
+const CLIENT_DEMANDS = [
+  'More programmes to manage',
+  'More communication',
+  'More bookings and follow-ups',
+  'More progress tracking',
+  'More content to deliver',
+  'More admin behind the scenes',
+  'More demand on Marcus personally',
 ];
 
-const BUSINESS_GAINS = [
-  'The central hub for every client relationship',
-  'The home of the Marcus Grima Fitness community',
-  'A platform for recurring memberships and digital products',
-  'A tool for increasing accountability and long-term retention',
-  'A scalable revenue engine',
-  'A digital asset owned by the business',
+const CLIENT_ABILITIES = [
+  'Access their personalised training programme',
+  'Follow workouts step by step',
+  'Log weights, sets, reps and performance',
+  'Track progress over time',
+  'Complete regular check-ins',
+  'Set and follow goals',
+  'Build better habits',
+  'Access nutrition guidance',
+  'Book coaching sessions',
+  'Communicate directly with Marcus',
+  'Watch exercise demonstrations',
+  'Access educational and motivational content',
+  'Manage their membership and account',
 ];
 
-function Opportunity() {
+const APP_ENCOURAGES = [
+  { k: 'Consistency', v: 'by making the next action clear' },
+  { k: 'Accountability', v: 'through check-ins, progress and goals' },
+  { k: 'Growth', v: 'by making improvement visible' },
+  { k: 'Confidence', v: 'through education and guidance' },
+  { k: 'Engagement', v: 'by maintaining the coaching relationship between sessions' },
+  { k: 'Ownership', v: 'by helping clients understand and control their own journey' },
+];
+
+const BEST_MEANS = [
+  'The easiest to use',
+  'The most personal',
+  'The most motivating',
+  'The most connected',
+  'The most useful day to day',
+  'Unmistakably Marcus',
+];
+
+function Bullets({ items }: { items: string[] }) {
   return (
-    <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Setting The Stage</SectionLabel>
-      <div className="max-w-3xl">
-        <p className="text-sm md:text-base text-white leading-relaxed mb-8">
-          The app will become the digital engine behind the next stage of the business.
-          It will bring the client experience, coaching delivery and day-to-day operations
-          into one connected platform, giving Marcus the infrastructure to serve more people,
-          create new revenue opportunities and scale the business well beyond the limits of
-          one-to-one time.
-        </p>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="border border-white/8 bg-white/[0.02] p-6">
-            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">For Members, it simplifies the journey</p>
-            <p className="text-sm text-white leading-relaxed mb-4">
-              The app gives members one place to manage every part of their fitness journey.
-              They can access their training programme, follow nutrition guidance, track
-              progress, complete check-ins, book sessions, communicate directly and take part
-              in the wider Marcus Grima Fitness community.
-            </p>
-            <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Members gain</p>
-            <ul className="space-y-1.5">
-              {MEMBER_GAINS.map((g) => (
-                <li key={g} className="flex items-start gap-2 text-sm text-white leading-relaxed">
-                  <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
-                  <span>{g}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="border border-primary/20 bg-primary/[0.04] p-6">
-            <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">For the business, it creates scale</p>
-            <p className="text-sm text-white leading-relaxed mb-4">
-              The app allows Marcus Grima to support more clients, deliver a more consistent
-              level of service, strengthen retention and generate revenue beyond one-to-one
-              coaching.
-            </p>
-            <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">It becomes</p>
-            <ul className="space-y-1.5">
-              {BUSINESS_GAINS.map((g) => (
-                <li key={g} className="flex items-start gap-2 text-sm text-white leading-relaxed">
-                  <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
-                  <span>{g}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </FadeSection>
+    <ul className="space-y-1.5 mb-6">
+      {items.map((g) => (
+        <li key={g} className="flex items-start gap-2 text-sm text-white leading-relaxed">
+          <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
+          <span>{g}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   2a. THE OPPORTUNITY — WHAT / WHY / HOW
-══════════════════════════════════════════════════════════════════════════════ */
-const HOW_BENEFITS = [
-  'Support more members without increasing one-to-one administration at the same rate',
-  'Deliver a more consistent coaching experience',
-  'Reduce reliance on manual follow-ups and individual messaging',
-  'Simplify bookings, payments, invoicing and VAT administration',
-  'Improve accountability, engagement and retention',
-  'Build and activate a connected fitness community',
-  'Introduce recurring memberships, paid programmes and digital products',
-  'Generate revenue beyond one-to-one coaching',
-  'Grow without being limited entirely by Marcus\u2019s personal availability',
-];
-
-function WhatWhyHow() {
+function SettingTheStage() {
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>The Opportunity</SectionLabel>
-      <div className="max-w-3xl space-y-6">
+      <SectionLabel>Setting The Stage</SectionLabel>
 
-        <div className="border border-white/8 bg-white/[0.02] p-6">
-          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">What</p>
-          <div className="space-y-3 text-sm text-white leading-relaxed">
-            <p>
-              The Marcus Grima Fitness app brings the full member journey into one connected
-              platform. Training, nutrition, progress, check-ins, bookings, communication,
-              education and community are brought together in one place.
-            </p>
-            <p>
-              For members, this creates a simpler and more consistent experience. Instead of
-              moving between multiple apps and conversations, they can manage every part of
-              their fitness journey through one platform.
-            </p>
-            <p>
-              For the business, it creates the digital infrastructure needed to deliver
-              coaching more consistently, build a stronger community, simplify operations
-              and support new revenue streams.
-            </p>
-          </div>
-        </div>
+      {/* The Why */}
+      <div className="max-w-3xl mb-14">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-5">The Why — The Challenge</h2>
+        <p className="text-base md:text-lg font-bold text-white leading-relaxed mb-5">
+          The business has grown because Marcus is at the centre of everything.
+          That is also what will eventually limit it.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          Marcus has built a loyal client base through trust, expertise, personal service and
+          the direct relationship he has with the people he coaches. That is what made the
+          business successful. But the same model that created the growth will eventually
+          create a ceiling.
+        </p>
+        <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Every new client means</p>
+        <Bullets items={CLIENT_DEMANDS} />
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          There are only so many hours in the day. If every new client requires more of
+          Marcus's time, the business can continue to grow, but it cannot scale efficiently.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          There is also a wider opportunity. Today, most revenue is still tied directly to
+          personal training. Marcus has the potential to become one of Malta's most
+          recognised names in fitness, performance and wellbeing — but reaching that level
+          requires a business model that goes beyond selling hours.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed">
+          The opportunity now is to take everything that makes Marcus's coaching valuable and
+          build a business around it that can reach far more people.
+        </p>
+      </div>
 
-        <div className="border border-white/8 bg-white/[0.02] p-6">
-          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">Why</p>
-          <div className="space-y-3 text-sm text-white leading-relaxed">
-            <p>
-              The current model becomes harder to sustain as the business grows. Too much of
-              the client experience depends on Marcus working one-to-one: answering questions,
-              checking progress, sharing guidance, following up and keeping members accountable.
-            </p>
-            <p>
-              That approach creates a clear limit. Marcus can only support so many people,
-              respond to so many messages and deliver so many hours of coaching in a day.
-            </p>
-            <p>
-              The same pressure exists behind the scenes. Bookings, payments, invoicing,
-              VAT records, cancellations, client information and follow-ups all add to the
-              administrative workload. As the client base grows, that workload grows with it.
-            </p>
-            <p>
-              Without a central platform, growth means more manual work, more operational
-              pressure and greater dependence on Marcus’s personal availability. That limits
-              reach, restricts capacity and keeps revenue tied too closely to the number of
-              hours he can personally deliver.
-            </p>
-          </div>
-        </div>
+      {/* The What */}
+      <div className="max-w-3xl mb-14">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-5">The What — The Client Experience</h2>
+        <p className="text-base md:text-lg font-bold text-white leading-relaxed mb-5">
+          The app will become the centre of the client's fitness journey.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          One place to know what to do, understand how they are progressing, stay
+          accountable, receive guidance and remain connected to Marcus throughout the week.
+          Instead of moving between WhatsApp conversations, booking systems, workout
+          trackers, nutrition tools, notes and saved content, the most important parts of the
+          client experience will live in one connected platform.
+        </p>
+        <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Clients will be able to</p>
+        <Bullets items={CLIENT_ABILITIES} />
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          But the app will be more than a collection of tools. It will act as an extension of
+          Marcus — a digital coaching layer that continues supporting clients when Marcus is
+          not physically beside them.
+        </p>
+        <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">It will encourage</p>
+        <ul className="space-y-1.5 mb-6">
+          {APP_ENCOURAGES.map((e) => (
+            <li key={e.k} className="flex items-start gap-2 text-sm text-white leading-relaxed">
+              <span className="mt-[7px] h-1 w-1 rounded-full bg-primary shrink-0" />
+              <span><span className="font-bold text-primary">{e.k}</span> {e.v}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="text-sm md:text-base text-white leading-relaxed">
+          The app will not replace the personal relationship. It will make it stronger.
+          Marcus's coaching will no longer exist only inside the gym session — it will become
+          part of the client's everyday fitness journey.
+        </p>
+      </div>
 
-        <div className="border border-primary/20 bg-primary/[0.04] p-6">
-          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">How</p>
-          <div className="space-y-3 text-sm text-white leading-relaxed mb-4">
-            <p>
-              The app creates one central system for members and the business. Members receive
-              their programmes, guidance, tracking tools, bookings, communication and community
-              experience through a single platform.
-            </p>
-            <p>
-              Marcus gains the ability to communicate at scale, automate routine parts of the
-              client journey and maintain visibility across member activity and progress. The
-              platform can also manage key business operations, including bookings, payments,
-              invoicing, VAT records, client administration, cancellations and follow-ups.
-              This reduces manual work and gives Marcus a clearer view of both the coaching
-              service and the business behind it.
-            </p>
-          </div>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">This allows the business to</p>
-          <ul className="space-y-1.5 mb-4">
-            {HOW_BENEFITS.map((b) => <VisionBullet key={b}>{b}</VisionBullet>)}
-          </ul>
-          <p className="text-sm text-white leading-relaxed">
-            The app does not replace Marcus’s role as a coach. It gives him the systems to
-            extend his impact, protect the quality of the service and build a business that
-            can grow beyond the limits of his time.
-          </p>
-        </div>
-
+      {/* The How */}
+      <div className="max-w-3xl">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-5">The How — The Vision</h2>
+        <p className="text-base md:text-lg font-bold text-white leading-relaxed mb-5">
+          Build the best fitness and coaching platform in Malta.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          We are not building a companion app for the existing business. We are building the
+          digital product that will define the next version of it. The ambition is to create
+          an experience that feels premium, personal and genuinely useful enough that clients
+          choose to use it every day.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          It will take the strongest behaviours people already value from training apps,
+          habit trackers, nutrition tools, booking platforms, messaging and content platforms
+          — and bring them together into one experience built specifically around Marcus's
+          coaching philosophy.
+        </p>
+        <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Being the best will not mean having the most features. It will mean being</p>
+        <Bullets items={BEST_MEANS} />
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          The platform will be built to evolve. As the business grows, it will support new
+          programmes, memberships, services, content, community experiences and future
+          revenue opportunities without needing to rebuild the foundation each time.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed">
+          The result will be more than an app. It will become the digital home of the brand
+          and the infrastructure behind its next stage of growth. The goal is not to compete
+          with other personal trainers — it is to set the standard for what a modern fitness
+          brand in Malta can become.
+        </p>
       </div>
     </FadeSection>
   );
@@ -1446,11 +1437,9 @@ export const Proposal = () => {
         </nav>
 
         <div key={tab} className="space-y-0 pt-4 flex-1 min-w-0">
-        {tab === 'overview' && (<>
-          <Opportunity />
-          <Divider />
-          <WhatWhyHow />
-        </>)}
+        {tab === 'overview' && (
+          <SettingTheStage />
+        )}
 
         {tab === 'vision' && (
           <Vision />
