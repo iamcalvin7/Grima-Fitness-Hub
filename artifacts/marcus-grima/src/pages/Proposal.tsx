@@ -452,25 +452,27 @@ const TOMORROW_REPLACES = [
   'Manual client check-ins', 'Manual follow-up systems',
 ];
 
-const CLIENT_SIDE_GROUPS: { title: string; items: string[] }[] = [
-  { title: 'Training', items: ['Personalised programmes', 'Guided workouts', 'Exercise demonstrations', 'Sets, reps and weights', 'Workout history', 'Progressive overload tracking'] },
-  { title: 'Progress', items: ['Measurements', 'Progress photos', 'Goals', 'Milestones', 'Check-ins', 'Habit tracking', 'Performance history'] },
-  { title: 'Nutrition', items: ['Nutrition guidance', 'Calorie tracking', 'Hydration tracking', 'Meal plans', 'Recipes', 'Daily habits'] },
-  { title: 'Coaching', items: ['Direct messaging', 'Feedback', 'Coaching updates', 'Reminders', 'Accountability', 'Personalised guidance'] },
-  { title: 'Bookings', items: ['Session booking', 'Availability', 'Upcoming sessions', 'Changes and cancellations'] },
-  { title: 'Content & Community', items: ['Educational videos', 'Articles', 'Exercise content', 'Member feed', 'Challenges', 'Community experiences'] },
-  { title: 'Membership', items: ['Membership status', 'Payments', 'Subscription management', 'Account settings'] },
+type VisionGroup = { title: string; icon: React.ElementType; items: string[] };
+
+const CLIENT_SIDE_GROUPS: VisionGroup[] = [
+  { title: 'Training', icon: Barbell, items: ['Personalised programmes', 'Guided workouts', 'Exercise demonstrations', 'Sets, reps and weights', 'Workout history', 'Progressive overload tracking'] },
+  { title: 'Progress', icon: TrendUp, items: ['Measurements', 'Progress photos', 'Goals', 'Milestones', 'Check-ins', 'Habit tracking', 'Performance history'] },
+  { title: 'Nutrition', icon: ForkKnife, items: ['Nutrition guidance', 'Calorie tracking', 'Hydration tracking', 'Meal plans', 'Recipes', 'Daily habits'] },
+  { title: 'Coaching', icon: ChatCircle, items: ['Direct messaging', 'Feedback', 'Coaching updates', 'Reminders', 'Accountability', 'Personalised guidance'] },
+  { title: 'Bookings', icon: CalendarBlank, items: ['Session booking', 'Availability', 'Upcoming sessions', 'Changes and cancellations'] },
+  { title: 'Content & Community', icon: Globe, items: ['Educational videos', 'Articles', 'Exercise content', 'Member feed', 'Challenges', 'Community experiences'] },
+  { title: 'Membership', icon: Money, items: ['Membership status', 'Payments', 'Subscription management', 'Account settings'] },
 ];
 
-const MARCUS_HQ_GROUPS: { title: string; items: string[] }[] = [
-  { title: 'Clients', items: ['Client database', 'Client profiles', 'Onboarding', 'Goals', 'History', 'Client status'] },
-  { title: 'Coaching', items: ['Programme builder', 'Workout builder', 'Exercise library', 'Programme assignment', 'Check-in reviews', 'Performance monitoring'] },
-  { title: 'Client Oversight', items: ['Progress dashboards', 'Missed workout indicators', 'Check-in status', 'Engagement signals', 'Clients requiring attention'] },
-  { title: 'Bookings', items: ['Calendar', 'Availability', 'Session management', 'Rescheduling', 'Attendance'] },
-  { title: 'Communication', items: ['Direct client messaging', 'Broadcast updates', 'Follow-ups', 'Reminders', 'Notifications'] },
-  { title: 'Content', items: ['Upload videos', 'Publish articles', 'Manage exercise demonstrations', 'Member feed', 'Educational resources'] },
-  { title: 'Commercial', items: ['Memberships', 'Subscriptions', 'Payments', 'Client status', 'Revenue visibility'] },
-  { title: 'Business Intelligence', items: ['Client growth', 'Engagement', 'Retention', 'Programme activity', 'Revenue', 'Operational insights'] },
+const MARCUS_HQ_GROUPS: VisionGroup[] = [
+  { title: 'Clients', icon: UserCircle, items: ['Client database', 'Client profiles', 'Onboarding', 'Goals', 'History', 'Client status'] },
+  { title: 'Coaching', icon: Barbell, items: ['Programme builder', 'Workout builder', 'Exercise library', 'Programme assignment', 'Check-in reviews', 'Performance monitoring'] },
+  { title: 'Client Oversight', icon: ChartLine, items: ['Progress dashboards', 'Missed workout indicators', 'Check-in status', 'Engagement signals', 'Clients requiring attention'] },
+  { title: 'Bookings', icon: CalendarBlank, items: ['Calendar', 'Availability', 'Session management', 'Rescheduling', 'Attendance'] },
+  { title: 'Communication', icon: ChatCircle, items: ['Direct client messaging', 'Broadcast updates', 'Follow-ups', 'Reminders', 'Notifications'] },
+  { title: 'Content', icon: Play, items: ['Upload videos', 'Publish articles', 'Manage exercise demonstrations', 'Member feed', 'Educational resources'] },
+  { title: 'Commercial', icon: Money, items: ['Memberships', 'Subscriptions', 'Payments', 'Client status', 'Revenue visibility'] },
+  { title: 'Business Intelligence', icon: Brain, items: ['Client growth', 'Engagement', 'Retention', 'Programme activity', 'Revenue', 'Operational insights'] },
 ];
 
 function VisionBullet({ children }: { children: React.ReactNode }) {
@@ -515,38 +517,72 @@ function Vision() {
         </div>
       </div>
 
-      {/* Today vs Tomorrow */}
-      <div className="grid md:grid-cols-2 gap-6 mb-14 max-w-5xl">
-        <div className="border border-white/8 bg-white/[0.02] p-6">
+      {/* Today vs Tomorrow — the chaos collapses into one app */}
+      <div className="grid md:grid-cols-[1fr_auto_1fr] gap-6 md:gap-4 items-stretch mb-14 max-w-5xl">
+        {/* Today: scattered tool chaos */}
+        <div className="border border-white/8 bg-white/[0.02] p-6 flex flex-col">
           <p className="text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase mb-1">Today</p>
-          <p className="text-lg font-black text-white tracking-tight mb-4">Multiple apps. Multiple systems. Multiple journeys.</p>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">A client may use</p>
-          <ul className="space-y-1.5 mb-5">
-            {TODAY_CLIENT_TOOLS.map(([tool, use]) => (
-              <li key={tool} className="flex items-start gap-2 text-sm leading-relaxed">
-                <span className="mt-[7px] h-1 w-1 rounded-full bg-white/30 shrink-0" />
-                <span className="text-white"><span className="font-bold">{tool}</span> <span className="text-white/50">— {use}</span></span>
-              </li>
+          <p className="text-lg font-black text-white tracking-tight mb-5">Multiple apps. Multiple systems. Multiple journeys.</p>
+          <div className="flex-1 flex flex-wrap content-center justify-center gap-2.5 py-4">
+            {TODAY_CLIENT_TOOLS.map(([tool, use], i) => (
+              <motion.span
+                key={tool}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05, duration: 0.3 }}
+                title={use}
+                style={{ transform: `rotate(${[-3, 2, -1.5, 2.5, -2, 1, 3, -2.5, 1.5, -1, 2][i % 11]}deg)` }}
+                className="px-3 py-1.5 border border-white/12 bg-white/[0.04] text-[11px] font-bold text-white/70 shadow-lg"
+              >
+                {tool}
+              </motion.span>
             ))}
-          </ul>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">Marcus may also rely on</p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {TODAY_MARCUS_TOOLS.map((t) => (
-              <span key={t} className="px-2.5 py-1 border border-white/10 bg-white/[0.03] text-[11px] font-semibold text-white/60">{t}</span>
+            {TODAY_MARCUS_TOOLS.map((t, i) => (
+              <span
+                key={t}
+                style={{ transform: `rotate(${[2, -2.5, 1.5, -1, 3, -3, 1, -2][i % 8]}deg)` }}
+                className="px-2.5 py-1 border border-white/8 bg-white/[0.02] text-[10px] font-semibold text-white/40"
+              >
+                {t}
+              </span>
             ))}
           </div>
-          <p className="text-sm text-white/60 leading-relaxed">The result is a fitness experience spread across multiple places.</p>
+          <p className="text-sm text-white/60 leading-relaxed mt-4 text-center">
+            A fitness experience spread across <span className="font-black text-white">{TODAY_CLIENT_TOOLS.length + TODAY_MARCUS_TOOLS.length}+ separate places</span>.
+          </p>
         </div>
-        <div className="border border-primary/25 bg-primary/[0.04] p-6">
+
+        {/* Arrow */}
+        <div className="flex md:flex-col items-center justify-center gap-2 text-primary">
+          <Lightning size={22} weight="fill" />
+          <ArrowRight size={26} weight="bold" className="rotate-90 md:rotate-0" />
+        </div>
+
+        {/* Tomorrow: one phone */}
+        <div className="border border-primary/25 bg-primary/[0.04] p-6 flex flex-col">
           <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-1">Tomorrow</p>
-          <p className="text-lg font-black text-white tracking-tight mb-4">One Marcus Grima Fitness platform.</p>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">It can replace or reduce the need for</p>
-          <ul className="space-y-1.5 mb-5">
-            {TOMORROW_REPLACES.map((t) => <VisionBullet key={t}>{t}</VisionBullet>)}
-          </ul>
-          <p className="text-sm text-white leading-relaxed">
-            Some specialist services will still power parts of the experience behind the scenes,
-            but the client will not need to think about them. They will simply open one app.
+          <p className="text-lg font-black text-white tracking-tight mb-5">One Marcus Grima Fitness platform.</p>
+          <div className="flex-1 flex items-center justify-center py-4">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="w-[150px] h-[290px] rounded-[28px] border-2 border-primary/50 bg-black shadow-[0_0_60px_-15px_rgba(190,255,60,0.4)] relative overflow-hidden"
+            >
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-14 h-4 rounded-full bg-white/8" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4">
+                <span className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-black font-black text-lg tracking-tighter">MG</span>
+                <p className="text-[10px] font-black tracking-[0.2em] text-white uppercase text-center leading-relaxed">Marcus Grima<br />Fitness</p>
+                <p className="text-[8px] font-bold tracking-[0.15em] text-primary uppercase">One app. Everything.</p>
+              </div>
+              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full bg-white/15" />
+            </motion.div>
+          </div>
+          <p className="text-sm text-white leading-relaxed mt-4 text-center">
+            Replaces or reduces the need for <span className="font-black text-primary">{TOMORROW_REPLACES.length} categories of tools</span> —
+            anything still running behind the scenes stays invisible to the client.
           </p>
         </div>
       </div>
@@ -577,14 +613,30 @@ function Vision() {
             : 'Everything Marcus needs to deliver and manage the experience.'}
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.map((g) => (
-            <div key={g.title} className="border border-white/8 bg-white/[0.02] p-5">
-              <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-3">{g.title}</p>
-              <ul className="space-y-1.5">
-                {g.items.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
-              </ul>
-            </div>
-          ))}
+          {groups.map((g, gi) => {
+            const Icon = g.icon;
+            return (
+              <motion.div
+                key={g.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: gi * 0.06, duration: 0.35 }}
+                className="border border-white/8 bg-white/[0.02] p-5 hover:border-primary/30 transition-colors group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <span className="h-9 w-9 border border-primary/30 bg-primary/10 flex items-center justify-center">
+                    <Icon size={17} weight="fill" className="text-primary" />
+                  </span>
+                  <span className="text-[9px] font-black text-white/25 tracking-widest">{String(g.items.length).padStart(2, '0')}</span>
+                </div>
+                <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase mb-3">{g.title}</p>
+                <ul className="space-y-1.5">
+                  {g.items.map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
+                </ul>
+              </motion.div>
+            );
+          })}
         </div>
         <p className="text-sm md:text-base text-white leading-relaxed mt-8">
           {side === 'client'
