@@ -805,6 +805,162 @@ const HQ_ONBOARDING_VIEW = [
   'Programme: Not assigned',
 ];
 
+function OnboardingProgress({ n }: { n: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
+        <div className="h-full bg-primary rounded-full" style={{ width: `${(n / ONBOARDING_STEPS.length) * 100}%` }} />
+      </div>
+      <p className="text-[7px] font-black tracking-widest text-white/30 uppercase shrink-0">{n}/{ONBOARDING_STEPS.length}</p>
+    </div>
+  );
+}
+
+function OnboardingScreen({ step: s }: { step: { n: number; title: string; desc: string; items?: string[] } }) {
+  // Special screens
+  if (s.n === 9) {
+    const days: [string, 'pref' | 'avail' | 'no'][] = [
+      ['Mon', 'pref'], ['Tue', 'avail'], ['Wed', 'no'], ['Thu', 'pref'], ['Fri', 'avail'], ['Sat', 'pref'], ['Sun', 'no'],
+    ];
+    return (
+      <>
+        <OnboardingProgress n={s.n} />
+        <p className="text-sm font-black text-white tracking-tight leading-snug">When can training fit into your week?</p>
+        <div className="space-y-1.5 flex-1">
+          {days.map(([d, state]) => (
+            <div key={d} className={`flex items-center justify-between rounded-lg px-3 py-1.5 border ${
+              state === 'pref' ? 'border-primary/50 bg-primary/15' : state === 'avail' ? 'border-white/12 bg-white/[0.04]' : 'border-white/6 bg-transparent'
+            }`}>
+              <p className={`text-[10px] font-bold ${state === 'no' ? 'text-white/25' : 'text-white'}`}>{d}</p>
+              <p className={`text-[7px] font-black tracking-widest uppercase ${state === 'pref' ? 'text-primary' : state === 'avail' ? 'text-white/40' : 'text-white/20'}`}>
+                {state === 'pref' ? 'Preferred' : state === 'avail' ? 'Available' : 'Not available'}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-full bg-primary py-2 text-center text-[8px] font-black tracking-widest text-black uppercase">Continue</div>
+      </>
+    );
+  }
+  if (s.n === 12) {
+    return (
+      <>
+        <OnboardingProgress n={s.n} />
+        <p className="text-sm font-black text-white tracking-tight leading-snug">Your Goal Forecast</p>
+        <div className="rounded-xl bg-primary p-3">
+          <p className="text-[7px] font-black tracking-widest text-black/50 uppercase">Your goal</p>
+          <p className="text-sm font-black text-black leading-tight">Lose 8 kg</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-white/8 bg-white/[0.03] p-2.5">
+            <p className="text-[7px] font-black tracking-widest text-white/30 uppercase mb-0.5">Timeline</p>
+            <p className="text-[11px] font-black text-white">16–20 wks</p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/[0.03] p-2.5">
+            <p className="text-[7px] font-black tracking-widest text-white/30 uppercase mb-0.5">Goal date</p>
+            <p className="text-[11px] font-black text-primary">18 Dec 2026</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-2.5 flex-1">
+          <p className="text-[7px] font-black tracking-widest text-white/30 uppercase mb-1.5">Your starting plan</p>
+          {['3 sessions per week', '8,000 daily steps', 'Nutrition target', 'Weekly check-in'].map((p) => (
+            <div key={p} className="flex items-center gap-1.5 py-0.5">
+              <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
+              <p className="text-[9px] font-semibold text-white/80">{p}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[7px] text-white/30 leading-relaxed">An estimate, not a guarantee — updates as your consistency changes.</p>
+        <div className="rounded-full bg-primary py-2 text-center text-[8px] font-black tracking-widest text-black uppercase">Continue</div>
+      </>
+    );
+  }
+  if (s.n === 13) {
+    return (
+      <>
+        <OnboardingProgress n={s.n} />
+        <p className="text-sm font-black text-white tracking-tight leading-snug">Your starting plan</p>
+        <div className="space-y-1.5 flex-1">
+          {[['Goal', 'Lose 8 kg & improve fitness'], ['Timeline', '~16–20 weeks'], ['Training', '3 sessions / week'], ['Focus', 'Strength · nutrition · movement'], ['Goal date', '18 December 2026']].map(([k, v]) => (
+            <div key={k} className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+              <p className="text-[7px] font-black tracking-widest text-white/30 uppercase">{k}</p>
+              <p className="text-[10px] font-bold text-white leading-snug">{v}</p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-full bg-primary py-2 text-center text-[8px] font-black tracking-widest text-black uppercase">I'm ready to start</div>
+      </>
+    );
+  }
+  if (s.n === 14) {
+    return (
+      <>
+        <OnboardingProgress n={s.n} />
+        <p className="text-sm font-black text-white tracking-tight leading-snug">Marcus has everything he needs.</p>
+        <div className="space-y-1.5 flex-1">
+          {[['Profile complete', true], ['Assessment complete', true], ['Goal forecast created', true], ['Programme being prepared', false], ['First session pending', false]].map(([t, done]) => (
+            <div key={t as string} className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-primary' : 'border border-white/20'}`}>
+                {done ? <CheckCircle size={9} weight="bold" className="text-black" /> : null}
+              </div>
+              <p className={`text-[10px] font-bold ${done ? 'text-white' : 'text-white/40'}`}>{t}</p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-full bg-primary py-2 text-center text-[8px] font-black tracking-widest text-black uppercase">Book first session</div>
+      </>
+    );
+  }
+  if (s.n === 15) {
+    return (
+      <>
+        <div>
+          <p className="text-[8px] font-bold tracking-widest text-white/30 uppercase">Day one</p>
+          <p className="text-sm font-black text-white tracking-tight">Morning, Sarah 👋</p>
+        </div>
+        <div className="rounded-xl bg-primary p-3">
+          <p className="text-[7px] font-black tracking-widest text-black/50 uppercase mb-0.5">Your goal</p>
+          <p className="text-lg font-black text-black leading-none">94 days</p>
+          <p className="text-[8px] font-bold text-black/60 mt-1">to your goal · On Track</p>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 flex-1">
+          <p className="text-[7px] font-black tracking-widest text-white/30 uppercase mb-1.5">Today</p>
+          {[['Complete your workout', true], ['Hit your water target', false], ['Reach your step goal', false], ['Log your nutrition', false]].map(([t, done]) => (
+            <div key={t as string} className="flex items-center gap-2 py-1">
+              <div className={`w-3 h-3 rounded-full border ${done ? 'bg-primary border-primary' : 'border-white/20'}`} />
+              <p className={`text-[9px] font-semibold ${done ? 'text-white' : 'text-white/50'}`}>{t}</p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-full border border-primary/40 py-2 text-center text-[8px] font-black tracking-widest text-primary uppercase">Message Marcus</div>
+      </>
+    );
+  }
+  // Generic question screen
+  return (
+    <>
+      <OnboardingProgress n={s.n} />
+      <p className="text-sm font-black text-white tracking-tight leading-snug">{s.title}</p>
+      <p className="text-[9px] text-white/40 leading-relaxed">{s.desc.length > 110 ? `${s.desc.slice(0, 110)}…` : s.desc}</p>
+      <div className="space-y-1.5 flex-1 overflow-hidden">
+        {(s.items ?? ['Tell us a little more…']).slice(0, 6).map((i, idx) => (
+          <div
+            key={i}
+            className={`rounded-lg border px-3 py-2 text-[10px] font-bold leading-snug ${
+              idx === 0 ? 'border-primary/50 bg-primary/15 text-white' : 'border-white/10 bg-white/[0.03] text-white/60'
+            }`}
+          >
+            {i}
+          </div>
+        ))}
+      </div>
+      <div className="rounded-full bg-primary py-2 text-center text-[8px] font-black tracking-widest text-black uppercase">
+        {s.n === 1 ? 'Start my journey' : 'Continue'}
+      </div>
+    </>
+  );
+}
+
 function OnboardingFlow() {
   return (
     <FadeSection className="px-5 md:px-12">
@@ -821,41 +977,21 @@ function OnboardingFlow() {
         Understand the person → the goal → the starting point → build the plan → show the destination
       </p>
 
-      {/* Scrollable step strip */}
+      {/* Scrollable phone-screen strip — how each step looks in the app */}
       <div className="relative -mx-5 md:-mx-12">
         <div
-          className="flex gap-4 overflow-x-auto px-5 md:px-12 pb-4 snap-x snap-mandatory"
+          className="flex gap-5 overflow-x-auto px-5 md:px-12 pb-4 snap-x snap-mandatory"
           style={{ scrollbarWidth: 'thin' }}
         >
           {ONBOARDING_STEPS.map((s) => (
-            <div
-              key={s.n}
-              className="border border-white/8 bg-white/[0.02] p-5 w-[250px] sm:w-[270px] shrink-0 snap-start flex flex-col"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-primary text-[11px] font-black">
-                  {s.n}
-                </span>
-                <span className="text-[9px] font-black text-white/20 tracking-widest">{String(s.n).padStart(2, '0')} / {ONBOARDING_STEPS.length}</span>
-              </div>
-              <p className="text-sm font-bold text-primary tracking-wide mb-1.5 leading-snug">{s.title}</p>
-              <p className="text-xs text-white leading-relaxed mb-3">{s.desc}</p>
-              {s.items && (
-                <ul className="mt-auto space-y-1">
-                  {s.items.map((i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-white/60 leading-relaxed">
-                      <span className="mt-[6px] h-1 w-1 rounded-full bg-primary/60 shrink-0" />
-                      <span>{i}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <PhoneFrame key={s.n} label={`${String(s.n).padStart(2, '0')} · ${s.title}`}>
+              <OnboardingScreen step={s} />
+            </PhoneFrame>
           ))}
         </div>
       </div>
       <p className="text-[9px] font-bold tracking-[0.25em] text-white/25 uppercase mt-1 mb-8">
-        Swipe or scroll through the 15 steps →
+        Swipe or scroll through the 15 screens → · Early concept mockups — final design follows the branding phase
       </p>
 
       {/* Marcus HQ during onboarding */}
