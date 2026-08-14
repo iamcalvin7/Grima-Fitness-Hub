@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { apiRequest } from '../lib/api';
 import { FeatureCatalogue } from './ProposalCatalogue';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
@@ -6,7 +7,7 @@ import {
   ShieldCheck, Barbell, TrendUp, ForkKnife, CalendarBlank,
   ChatCircle, Money, Briefcase, ChartLine, BookOpen,
   Brain, Lock, UserCircle, Rocket, Star, CaretRight, CaretDown,
-  Checks, Play, UploadSimple, Globe, Lightning, Warning,
+  Checks, Play, UploadSimple, Globe, Lightning, Warning, Plus,
 } from '@phosphor-icons/react';
 
 /* ── Fade-in section wrapper ───────────────────────────────────────────────── */
@@ -1684,34 +1685,72 @@ const DECISION_LIST = [
     d: 'Confirm the cancellation policy, lead times and rescheduling rules that the booking system will enforce.',
   },
   {
-    q: 'What is the branding scope?',
-    d: 'Approve the branding direction and investment — logo, colours, typography and how the brand carries through the app.',
+    q: 'Which production company will handle content?',
+    d: 'Confirm the production company for video and content production, including the exercise library.',
   },
   {
-    q: 'What is the content production budget?',
-    d: 'Approve the scope and budget range for video and content production, including the exercise library.',
-  },
-  {
-    q: 'Exercise library — which exercises go in?',
+    q: 'Which exercises go in the exercise library?',
     d: 'Marcus to decide the list. His chosen exercises become the library used for programme building and video production, so filming can be planned in one block.',
-  },
-  {
-    q: 'What are the legal and business details?',
-    d: 'Provide company name, VAT number and registered address for invoices, terms and payment setup.',
-  },
-  {
-    q: 'Approve budget and timeline?',
-    d: 'Final sign-off on the overall budget and roadmap dates so the build can begin.',
   },
 ];
 
+interface CustomDecision {
+  id: string;
+  question: string;
+  detail: string;
+}
+
 function Decisions() {
+  const [custom, setCustom] = useState<CustomDecision[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [detail, setDetail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiRequest<{ decisions: CustomDecision[] }>('/proposal-decisions')
+      .then((r) => setCustom(r.decisions))
+      .catch(() => {});
+  }, []);
+
+  const addQuestion = async () => {
+    if (!question.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const r = await apiRequest<{ decision: CustomDecision }>('/proposal-decisions', {
+        method: 'POST',
+        body: { question: question.trim(), detail: detail.trim() },
+      });
+      setCustom((c) => [...c, r.decision]);
+      setQuestion('');
+      setDetail('');
+      setShowForm(false);
+    } catch {
+      setError('Could not save the question. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeQuestion = async (id: string) => {
+    try {
+      await apiRequest(`/proposal-decisions/${id}`, { method: 'DELETE' });
+      setCustom((c) => c.filter((d) => d.id !== id));
+    } catch {
+      setError('Could not remove the question. Please try again.');
+    }
+  };
+
+  const total = DECISION_LIST.length + custom.length;
+
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Decisions</SectionLabel>
       <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Decisions required from Marcus.</h2>
       <p className="text-sm text-white mb-10 max-w-2xl">
-        Nine questions to answer to move from proposal to production. The first one is the
+        {total} questions to answer to move from proposal to production. The first one is the
         biggest — the rest are quick confirmations.
       </p>
 
@@ -1725,6 +1764,69 @@ function Decisions() {
             </div>
           </div>
         ))}
+        {custom.map((d, i) => (
+          <div key={d.id} className="flex items-start gap-4 px-5 py-5 group">
+            <span className="text-sm font-black text-primary/40 w-6 text-right shrink-0 mt-0.5">{DECISION_LIST.length + i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-primary tracking-tight mb-1.5">{d.question}</p>
+              {d.detail && <p className="text-xs text-white leading-relaxed">{d.detail}</p>}
+            </div>
+            <button
+              onClick={() => removeQuestion(d.id)}
+              aria-label={`Remove question: ${d.question}`}
+              className="text-white/25 hover:text-white/70 transition-colors shrink-0 mt-0.5"
+            >
+              <X size={14} weight="bold" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="max-w-3xl mt-4">
+        {!showForm ? (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 hover:text-primary transition-colors py-2"
+          >
+            <Plus size={13} weight="bold" />
+            Add a question
+          </button>
+        ) : (
+          <div className="border border-white/8 bg-white/[0.02] p-5 space-y-3">
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              maxLength={300}
+              placeholder="Question (e.g. Which payment provider do we use?)"
+              className="w-full bg-black/30 border border-white/10 focus:border-primary/50 outline-none px-3.5 py-2.5 text-sm text-white placeholder:text-white/25"
+              autoFocus
+            />
+            <textarea
+              value={detail}
+              onChange={(e) => setDetail(e.target.value)}
+              maxLength={1000}
+              rows={2}
+              placeholder="Optional detail — context or what needs confirming"
+              className="w-full bg-black/30 border border-white/10 focus:border-primary/50 outline-none px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 resize-y"
+            />
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={addQuestion}
+                disabled={!question.trim() || saving}
+                className="bg-primary hover:bg-primary/85 disabled:opacity-40 transition-colors px-5 py-2.5 text-black font-bold tracking-[0.12em] uppercase text-[11px]"
+              >
+                {saving ? 'Saving…' : 'Add question'}
+              </button>
+              <button
+                onClick={() => { setShowForm(false); setError(null); }}
+                className="border border-white/10 hover:border-white/25 transition-colors px-5 py-2.5 text-white/50 hover:text-white font-bold tracking-[0.12em] uppercase text-[11px]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </FadeSection>
   );
@@ -1824,7 +1926,7 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
             </motion.div>
             <h3 className="text-xl font-black text-primary tracking-tight mb-2">Direction approved.</h3>
             <p className="text-sm text-white leading-relaxed mb-6">
-              Marcus Grima Fitness is a go. The next step is confirming the eight decisions and starting the sprint.
+              Marcus Grima Fitness is a go. The next step is confirming the open decisions and starting the sprint.
             </p>
             <button
               onClick={onClose}
@@ -1842,10 +1944,70 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
 /* ══════════════════════════════════════════════════════════════════════════════
    ROOT
 ══════════════════════════════════════════════════════════════════════════════ */
+/* ── Business Model ─────────────────────────────────────────────────────── */
+
+const REVENUE_SYSTEMS = [
+  {
+    kicker: 'Revenue system 01',
+    title: 'Personal Training',
+    summary: 'Users buy credits and use them to book training sessions.',
+    body: 'When a session is booked, the maximum session price is reserved in credits. Once the booking window closes, the final number of participants is confirmed, the final price is calculated, and any unused credits are returned to the user\u2019s wallet.',
+    example: 'A session has a maximum price of \u20AC40. If three people are confirmed when the session locks, the final price becomes \u20AC25 each and 15 credits are returned to each user.',
+  },
+  {
+    kicker: 'Revenue system 02',
+    title: 'Digital Experience',
+    summary: 'Users subscribe to a membership tier to access premium features within the app.',
+    body: 'Silver, Gold and Diamond memberships unlock different levels of tools, insights, coaching and access, creating recurring monthly revenue.',
+    example: 'Silver can include workout plans and progress tracking, Gold can add AI coaching and advanced insights, while Diamond can include direct access to Marcus and priority booking.',
+  },
+  {
+    kicker: 'Revenue system 03',
+    title: 'Brand Partnerships',
+    summary: 'Selected brands pay to become part of the app experience.',
+    body: 'Partnerships can include sponsored content, branded challenges, product integrations, exclusive offers and experiences that are relevant to the fitness audience.',
+    example: 'Nike could sponsor a 30-day running challenge, a nutrition brand could sponsor meal-planning content, or Garmin could support a performance-tracking feature.',
+  },
+];
+
+function BusinessModel() {
+  return (
+    <FadeSection className="px-5 md:px-12">
+      <SectionLabel>Business Model</SectionLabel>
+
+      <div className="max-w-3xl mb-12">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight leading-tight mb-6">
+          The Overall Model
+        </h2>
+        <p className="text-sm md:text-base text-white leading-relaxed">
+          The business will operate through{' '}
+          <span className="font-bold">three separate revenue systems</span>.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-5 max-w-6xl">
+        {REVENUE_SYSTEMS.map((s) => (
+          <div key={s.title} className="border border-white/8 bg-white/[0.02] p-6 flex flex-col">
+            <p className="text-[9px] font-bold tracking-[0.25em] text-primary/70 uppercase mb-2">{s.kicker}</p>
+            <h3 className="text-xl font-black text-white tracking-tight mb-3">{s.title}</h3>
+            <p className="text-sm font-bold text-white leading-relaxed mb-3">{s.summary}</p>
+            <p className="text-sm text-white/70 leading-relaxed mb-5">{s.body}</p>
+            <div className="mt-auto border-t border-white/8 pt-4">
+              <p className="text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase mb-1.5">Example</p>
+              <p className="text-sm text-white/70 leading-relaxed">{s.example}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </FadeSection>
+  );
+}
+
 const TABS = [
   { id: 'overview',  label: 'Overview' },
   { id: 'vision',    label: 'Vision' },
   { id: 'features',  label: 'Features' },
+  { id: 'model',     label: 'Business Model' },
   { id: 'brand',     label: 'Brand & Content' },
   { id: 'services',  label: 'Third-Party' },
   { id: 'investment', label: 'Investment' },
@@ -1928,6 +2090,10 @@ export const Proposal = () => {
           <Divider />
           <WearableSupport />
         </>)}
+
+        {tab === 'model' && (
+          <BusinessModel />
+        )}
 
         {tab === 'brand' && (<>
           <BrandingChecklist />

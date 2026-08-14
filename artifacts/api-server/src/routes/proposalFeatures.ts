@@ -1,6 +1,11 @@
 import { Router, type IRouter } from "express";
 import { and, asc, eq } from "drizzle-orm";
-import { db, proposalFeaturesTable, proposalSprintsTable } from "@workspace/db";
+import {
+  db,
+  proposalDecisionsTable,
+  proposalFeaturesTable,
+  proposalSprintsTable,
+} from "@workspace/db";
 import { attachUser, requireAuth, requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -305,6 +310,80 @@ router.delete("/proposal-features/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to delete proposal feature");
     res.status(500).json({ error: "Failed to delete feature" });
+  }
+});
+
+// Custom decision questions (Decisions tab) — same staff-only guard.
+router.use(
+  "/proposal-decisions",
+  attachUser,
+  requireAuth,
+  requireRole("admin", "trainer"),
+);
+
+/** GET /proposal-decisions — list custom decision questions. */
+router.get("/proposal-decisions", async (req, res) => {
+  try {
+    const decisions = await db
+      .select()
+      .from(proposalDecisionsTable)
+      .where(eq(proposalDecisionsTable.tenantId, req.user!.tenantId))
+      .orderBy(asc(proposalDecisionsTable.createdAt));
+    res.json({ decisions });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch proposal decisions");
+    res.status(500).json({ error: "Failed to fetch decisions" });
+  }
+});
+
+/** POST /proposal-decisions — add a custom decision question. */
+router.post("/proposal-decisions", async (req, res) => {
+  const { question, detail } = (req.body ?? {}) as Record<string, unknown>;
+  if (typeof question !== "string" || !question.trim() || question.length > 300) {
+    res.status(400).json({ error: "Question is required (max 300 characters)" });
+    return;
+  }
+  if (detail !== undefined && (typeof detail !== "string" || detail.length > 1000)) {
+    res.status(400).json({ error: "Detail must be a string (max 1000 characters)" });
+    return;
+  }
+  try {
+    const [decision] = await db
+      .insert(proposalDecisionsTable)
+      .values({
+        tenantId: req.user!.tenantId,
+        authorId: req.user!.id,
+        question: question.trim(),
+        detail: typeof detail === "string" ? detail.trim() : "",
+      })
+      .returning();
+    res.status(201).json({ decision });
+  } catch (err) {
+    req.log.error({ err }, "Failed to create proposal decision");
+    res.status(500).json({ error: "Failed to create decision" });
+  }
+});
+
+/** DELETE /proposal-decisions/:id — remove a custom decision question. */
+router.delete("/proposal-decisions/:id", async (req, res) => {
+  try {
+    const [deleted] = await db
+      .delete(proposalDecisionsTable)
+      .where(
+        and(
+          eq(proposalDecisionsTable.id, req.params.id),
+          eq(proposalDecisionsTable.tenantId, req.user!.tenantId),
+        ),
+      )
+      .returning({ id: proposalDecisionsTable.id });
+    if (!deleted) {
+      res.status(404).json({ error: "Decision not found" });
+      return;
+    }
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete proposal decision");
+    res.status(500).json({ error: "Failed to delete decision" });
   }
 });
 
