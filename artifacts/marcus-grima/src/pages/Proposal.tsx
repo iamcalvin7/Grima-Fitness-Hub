@@ -1348,7 +1348,7 @@ const THIRD_PARTY_SERVICES = [
   { item: 'Google Sign-In — authentication', cost: 'Free', note: 'One-tap sign-in with a Google account — already built and working in the app.' },
   { item: 'Apple Sign-In — authentication', cost: 'Included in Apple $99/yr', note: 'Sign-in with an Apple ID. Built, but requires the Apple Developer account to switch on.' },
   { item: 'Wearable platforms — health data', cost: 'Free APIs (aggregator ~€100+/mo only if needed)', note: 'Fitbit, Garmin, Strava, Oura, Polar, Whoop and Withings connect via their official APIs so member activity flows into the app. Some (Garmin, Whoop) require partner approval.' },
-  { item: 'Replit — hosting & infrastructure', cost: '~€20–40/mo', note: 'Runs the app, API and database in production, plus the AI-assisted development environment the platform is built in. Scales with traffic.' },
+  { item: 'Replit — hosting & infrastructure', cost: '~€20–40/mo', note: 'Runs the app, API and database in production, plus the development environment the platform is built in. Scales with traffic.' },
   { item: 'Domain — marcusgrima.com (GoDaddy)', cost: '~€15–25/yr', note: 'The platform\'s own web address, registered through GoDaddy. A small annual renewal keeps the domain owned by Marcus.' },
 ];
 
@@ -1465,13 +1465,13 @@ function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'], total }
 }
 
 const BUILD_ROWS = [
-  { item: 'AI-assisted build (Replit)', cost: '$156 to date', note: 'Verified from the Replit billing dashboard. Future features estimated against the completed authentication system as a benchmark.' },
+  { item: 'Replit build', cost: '$156 to date', note: 'Verified from the Replit billing dashboard. Future features estimated against the completed authentication system as a benchmark.' },
   { item: 'Calvin — product owner', cost: '€52.88 / hr', note: 'Full standard rate shown — product-owner time is not charged on this project.', struck: true },
 ];
 
 /* Indicative build cost per feature — benchmarked against the completed
    authentication system (the most complex feature built so far). Each tier
-   combines AI-assisted build spend with Calvin's product-owner hours. */
+   combines Replit build spend with Calvin's product-owner hours. */
 const FEATURE_COST_ROWS = [
   { item: 'Small feature', ai: '~$10–25', owner: '2–4 hrs · ~€106–212', note: 'A focused screen or improvement — e.g. offers page, leaderboard tweaks, notification preferences.' },
   { item: 'Standard feature', ai: '~$25–60', owner: '5–12 hrs · ~€264–635', note: 'A full feature with its own data and screens — e.g. session booking, meal plan viewer, progress photos.' },
@@ -1487,7 +1487,7 @@ function FeatureCostTable() {
           <thead>
             <tr className="bg-white/[0.04] border-b border-white/8">
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[20%]">Feature size</th>
-              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[16%]">AI build (Replit)</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[16%]">Replit build</th>
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[24%]"><span className="line-through decoration-white/40">Product owner (€52.88/hr)</span> — not charged</th>
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase">What that looks like</th>
             </tr>
@@ -1530,7 +1530,7 @@ function Investment() {
       <InvestTable
         title="1 · Build"
         rows={BUILD_ROWS}
-        total={{ cost: '$156 to date', note: 'AI-assisted build spend only — product-owner time is crossed out above and not charged.' }}
+        total={{ cost: '$156 to date', note: 'Replit build spend only — product-owner time is crossed out above and not charged.' }}
       />
       <FeatureCostTable />
 
@@ -1542,10 +1542,11 @@ function Investment() {
             These are indicative ranges, benchmarked against the features already built —
             the authentication system being the most complex so far. Each feature in the
             catalogue falls into one of these tiers, so the total build cost depends on
-            which features are approved for launch. A launch product of roughly 10–15
-            standard features with a handful of complex ones lands in the region of{' '}
-            <span className="text-white/70 font-semibold">€4,000–8,000</span> of build
-            investment. Exact figures are confirmed per sprint as the feature list is agreed.
+            which features are approved for launch. Using the Replit figures only, a launch
+            product of roughly 10–15 standard features with a handful of complex ones lands
+            in the region of{' '}
+            <span className="text-white/70 font-semibold">$500–1,500</span> of Replit build
+            spend. Exact figures are confirmed per sprint as the feature list is agreed.
           </p>
         </div>
       </div>
