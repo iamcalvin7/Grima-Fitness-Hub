@@ -1344,6 +1344,15 @@ const BUILD_ROWS = [
   { item: 'Calvin — product owner', cost: '€26.44 / hr', note: 'Discounted rate (standard €52.88/hr).' },
 ];
 
+/* Indicative build cost per feature — benchmarked against the completed
+   authentication system (the most complex feature built so far). Each tier
+   combines AI-assisted build spend with Calvin's product-owner hours. */
+const FEATURE_COST_ROWS = [
+  { item: 'Small feature', cost: '~€60–160', note: 'A focused screen or improvement — e.g. offers page, leaderboard tweaks, notification preferences. Roughly $10–25 of AI build plus 2–4 hours of product-owner time.' },
+  { item: 'Standard feature', cost: '~€160–400', note: 'A full feature with its own data and screens — e.g. session booking, meal plan viewer, progress photos. Roughly $25–60 of AI build plus 5–12 hours of product-owner time.' },
+  { item: 'Complex feature', cost: '~€400–900', note: 'Features touching payments, integrations or many parts of the app at once — e.g. Stripe memberships, wearable syncing, video content system. Roughly $60–150 of AI build plus 12–25 hours of product-owner time. The authentication system sits in this tier.' },
+];
+
 const BRAND_CONTENT_ROWS = [
   { item: 'Branding', cost: '€3,067', note: '50% introductory rate (full value €6,134). Brand foundations, identity, digital look & feel, content direction and final brand package.' },
   { item: 'Creative direction & production management', cost: '€5,420', note: '50% introductory rate (full value €10,840). Managing the full content production effort end to end.' },
@@ -1364,6 +1373,24 @@ function Investment() {
       </p>
 
       <InvestTable title="1 · Build" rows={BUILD_ROWS} />
+      <InvestTable title="1b · Indicative cost per feature" rows={FEATURE_COST_ROWS} headers={['Feature size', 'Indicative cost', 'What that looks like']} />
+
+      <div className="border border-white/6 bg-white/[0.015] p-5 mb-10 -mt-6 flex items-start gap-3">
+        <ChartLine size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs font-semibold text-white/80 mb-1.5">How to read this</p>
+          <p className="text-xs text-white leading-relaxed">
+            These are indicative ranges, benchmarked against the features already built —
+            the authentication system being the most complex so far. Each feature in the
+            catalogue falls into one of these tiers, so the total build cost depends on
+            which features are approved for launch. A launch product of roughly 10–15
+            standard features with a handful of complex ones lands in the region of{' '}
+            <span className="text-white/70 font-semibold">€4,000–8,000</span> of build
+            investment. Exact figures are confirmed per sprint as the feature list is agreed.
+          </p>
+        </div>
+      </div>
+
       <InvestTable title="2 · Branding & Content" rows={BRAND_CONTENT_ROWS} />
       <InvestTable title="3 · Launch (One-off)" rows={LAUNCH_COSTS} />
       <InvestTable title="4 · Running (Monthly)" rows={RUNNING_COSTS} />
