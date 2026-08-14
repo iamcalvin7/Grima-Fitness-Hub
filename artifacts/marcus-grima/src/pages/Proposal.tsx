@@ -1509,9 +1509,9 @@ function FeatureCostTable() {
 }
 
 const BRAND_CONTENT_ROWS = [
-  { item: 'Branding', cost: '€3,067', note: '50% introductory rate (full value €6,134). Brand foundations, identity, digital look & feel, content direction and final brand package.' },
-  { item: 'Creative direction & production management', cost: '€5,420', note: '50% introductory rate (full value €10,840). Managing the full content production effort end to end.' },
-  { item: 'External production costs', cost: '€8,700–26,000', note: 'Estimate only — depends on shoot scale, exercise count and production team. Confirmed on scope.' },
+  { item: 'Branding', cost: '€6,134', note: 'Full value shown — not charged on this project. Brand foundations, identity, digital look & feel, content direction and final brand package.', struck: true },
+  { item: 'Creative direction & production management', cost: 'TBC', note: 'Managing the full content production effort end to end. Price to be confirmed.' },
+  { item: 'External production costs', cost: 'TBC', note: 'Depends on shoot scale, exercise count and production team. Confirmed on scope.' },
 ];
 
 function Investment() {
@@ -1554,7 +1554,7 @@ function Investment() {
       <InvestTable
         title="2 · Branding & Content"
         rows={BRAND_CONTENT_ROWS}
-        total={{ cost: '€17,187–34,487', note: '€8,487 branding & creative direction (at 50% introductory rates) + €8,700–26,000 external production, confirmed on scope.' }}
+        total={{ cost: 'TBC', note: 'Branding is crossed out above and not charged. Creative direction and external production are confirmed on scope.' }}
       />
       <InvestTable
         title="3 · Launch (One-off)"
