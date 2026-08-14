@@ -184,6 +184,8 @@ function SettingTheStage() {
         </p>
       </div>
 
+      <AppMockups />
+
       {/* The What */}
       <div className="max-w-3xl mb-14">
         <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-5">The What — The Client Experience</h2>
@@ -253,6 +255,170 @@ function SettingTheStage() {
         </p>
       </div>
     </FadeSection>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   2x. APP MOCKUPS — visual break for the overview
+══════════════════════════════════════════════════════════════════════════════ */
+function PhoneFrame({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="shrink-0 snap-center w-[230px]">
+      <div className="rounded-[2rem] border border-white/12 bg-[#0A0A0A] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+        <div className="rounded-[1.6rem] bg-[#111] overflow-hidden relative">
+          {/* Notch */}
+          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-full z-10" />
+          <div className="pt-8 pb-5 px-3.5 h-[420px] flex flex-col gap-3">
+            {children}
+          </div>
+        </div>
+      </div>
+      <p className="text-[9px] font-bold tracking-[0.25em] text-white/35 uppercase text-center mt-3">{label}</p>
+    </div>
+  );
+}
+
+function MockToday() {
+  return (
+    <>
+      <div>
+        <p className="text-[8px] font-bold tracking-widest text-white/30 uppercase">Wednesday</p>
+        <p className="text-sm font-black text-white tracking-tight">Morning, Sarah 👋</p>
+      </div>
+      <div className="rounded-xl bg-primary p-3">
+        <p className="text-[8px] font-black tracking-widest text-black/50 uppercase mb-0.5">Today's Session</p>
+        <p className="text-xs font-black text-black leading-tight">Lower Body Strength</p>
+        <p className="text-[9px] font-bold text-black/60 mt-1">6 exercises · 45 min</p>
+        <div className="mt-2 inline-block rounded-full bg-black px-3 py-1 text-[8px] font-black tracking-widest text-primary uppercase">Start Workout</div>
+      </div>
+      <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+        <p className="text-[8px] font-black tracking-widest text-white/30 uppercase mb-1.5">Today's Habits</p>
+        {[['Protein target', true], ['10k steps', true], ['Evening stretch', false]].map(([h, done]) => (
+          <div key={h as string} className="flex items-center gap-2 py-1">
+            <div className={`w-3 h-3 rounded-full border ${done ? 'bg-primary border-primary' : 'border-white/20'}`} />
+            <p className={`text-[10px] font-semibold ${done ? 'text-white' : 'text-white/40'}`}>{h}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 flex items-center justify-between">
+        <div>
+          <p className="text-[8px] font-black tracking-widest text-white/30 uppercase">Next PT Session</p>
+          <p className="text-[10px] font-bold text-white mt-0.5">Fri 07:30 · with Marcus</p>
+        </div>
+        <div className="text-primary text-[16px] font-black">→</div>
+      </div>
+    </>
+  );
+}
+
+function MockWorkout() {
+  return (
+    <>
+      <div>
+        <p className="text-[8px] font-bold tracking-widest text-primary uppercase">Lower Body Strength</p>
+        <p className="text-sm font-black text-white tracking-tight">Back Squat</p>
+        <p className="text-[9px] text-white/40 font-semibold">Set 3 of 4 · 90s rest</p>
+      </div>
+      <div className="rounded-xl overflow-hidden border border-white/8">
+        {[['1', '80 kg', '8 reps', true], ['2', '85 kg', '6 reps', true], ['3', '90 kg', '5 reps', false], ['4', '90 kg', '5 reps', false]].map(([set, kg, reps, done]) => (
+          <div key={set as string} className={`flex items-center justify-between px-3 py-2 border-b border-white/5 last:border-0 ${done ? 'bg-primary/[0.06]' : 'bg-white/[0.02]'}`}>
+            <p className="text-[9px] font-black text-white/30">SET {set}</p>
+            <p className="text-[10px] font-bold text-white">{kg}</p>
+            <p className="text-[10px] font-bold text-white/60">{reps}</p>
+            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${done ? 'bg-primary border-primary' : 'border-white/20'}`}>
+              {done ? <span className="text-[7px] font-black text-black">✓</span> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl bg-white/[0.03] border border-white/8 p-3">
+        <p className="text-[8px] font-black tracking-widest text-white/30 uppercase mb-1">Form Cue · from Marcus</p>
+        <p className="text-[10px] text-white leading-relaxed">Drive through the mid-foot, chest proud out of the hole.</p>
+      </div>
+      <div className="mt-auto rounded-full bg-primary py-2 text-center text-[9px] font-black tracking-widest text-black uppercase">Log Set · 90 kg × 5</div>
+    </>
+  );
+}
+
+function MockProgress() {
+  return (
+    <>
+      <div>
+        <p className="text-[8px] font-bold tracking-widest text-white/30 uppercase">Progress</p>
+        <p className="text-sm font-black text-white tracking-tight">12 weeks in</p>
+      </div>
+      <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="text-[8px] font-black tracking-widest text-white/30 uppercase">Body Weight</p>
+          <p className="text-[10px] font-black text-primary">-6.4 kg</p>
+        </div>
+        <svg viewBox="0 0 180 60" className="w-full">
+          <polyline
+            points="0,12 25,16 50,22 75,20 100,30 125,36 150,42 180,50"
+            fill="none" stroke="hsl(76 100% 60%)" strokeWidth="2.5" strokeLinecap="round"
+          />
+          <circle cx="180" cy="50" r="3.5" fill="hsl(76 100% 60%)" />
+        </svg>
+        <div className="flex justify-between mt-1">
+          <p className="text-[8px] font-bold text-white/25">MAY</p>
+          <p className="text-[8px] font-bold text-white/25">AUG</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {[['Squat 1RM', '+15 kg'], ['Check-ins', '12/12'], ['Streak', '38 days'], ['Sessions', '46']].map(([k, v]) => (
+          <div key={k} className="rounded-xl border border-white/8 bg-white/[0.03] p-2.5">
+            <p className="text-[11px] font-black text-primary tracking-tight">{v}</p>
+            <p className="text-[8px] font-bold tracking-widest text-white/30 uppercase mt-0.5">{k}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border border-primary/20 bg-primary/[0.05] p-2.5">
+        <p className="text-[9px] font-bold text-primary leading-relaxed">🎉 New milestone — strongest squat to date.</p>
+      </div>
+    </>
+  );
+}
+
+function MockCoach() {
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-[10px] font-black text-black">MG</div>
+        <div>
+          <p className="text-[11px] font-black text-white tracking-tight leading-none">Marcus</p>
+          <p className="text-[8px] font-bold text-primary mt-0.5">● Online</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 flex-1">
+        <div className="self-start max-w-[85%] rounded-2xl rounded-tl-sm bg-white/[0.06] border border-white/8 px-3 py-2">
+          <p className="text-[10px] text-white leading-relaxed">Saw your check-in — sleep is trending up. Nice work 💪</p>
+        </div>
+        <div className="self-start max-w-[85%] rounded-2xl rounded-tl-sm bg-white/[0.06] border border-white/8 px-3 py-2">
+          <p className="text-[10px] text-white leading-relaxed">I've bumped Friday's squat top set. You're ready for it.</p>
+        </div>
+        <div className="self-end max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-3 py-2">
+          <p className="text-[10px] text-black font-semibold leading-relaxed">Let's go 🔥 see you Friday</p>
+        </div>
+      </div>
+      <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 flex items-center justify-between">
+        <p className="text-[9px] text-white/25 font-semibold">Message Marcus…</p>
+        <span className="text-primary text-[11px] font-black">↑</span>
+      </div>
+    </>
+  );
+}
+
+function AppMockups() {
+  return (
+    <div className="relative -mx-5 md:-mx-12 my-12">
+      <div className="flex gap-6 overflow-x-auto px-5 md:px-12 pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'thin' }}>
+        <PhoneFrame label="Today"><MockToday /></PhoneFrame>
+        <PhoneFrame label="Workout Logging"><MockWorkout /></PhoneFrame>
+        <PhoneFrame label="Progress"><MockProgress /></PhoneFrame>
+        <PhoneFrame label="Coaching Chat"><MockCoach /></PhoneFrame>
+      </div>
+      <p className="text-[9px] font-bold tracking-[0.25em] text-white/25 uppercase text-center mt-2">Early concept mockups — final design follows the branding phase</p>
+    </div>
   );
 }
 
