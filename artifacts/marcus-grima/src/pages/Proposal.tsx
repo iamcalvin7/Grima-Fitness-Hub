@@ -1223,13 +1223,14 @@ function ContentChecklist() {
    6b. THIRD-PARTY SERVICES
 ══════════════════════════════════════════════════════════════════════════════ */
 const THIRD_PARTY_SERVICES = [
-  { item: 'Mux — video streaming', cost: 'Usage-based · ~€0–50/mo early on', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Free during development; live costs scale with library size and viewing. Full explanation below.' },
+  { item: 'Mux — video streaming', cost: 'Pay-as-you-go · ~€0–50/mo early on', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Free during development. Live costs are pay-as-you-go with no monthly minimum: ~$0.015 per minute uploaded, ~$0.007 per GB stored/month, ~$0.00025 per viewer-minute watched — a small library with moderate viewing typically stays well under €50/mo.' },
   { item: 'Resend (or similar) — email', cost: 'Free tier · €0–20/mo', note: 'Sends verification, password-reset and notification emails. Free tier covers thousands of emails per month; paid tiers only as volume grows. Needs a one-time API key setup before launch.' },
   { item: 'Stripe — payments', cost: '~1.5–2.9% + €0.25 per transaction', note: 'Processes memberships, session payments and any digital products. No monthly fee — costs only exist when revenue exists.' },
   { item: 'Google Sign-In — authentication', cost: 'Free', note: 'One-tap sign-in with a Google account — already built and working in the app.' },
   { item: 'Apple Sign-In — authentication', cost: 'Included in Apple $99/yr', note: 'Sign-in with an Apple ID. Built, but requires the Apple Developer account to switch on.' },
   { item: 'Wearable platforms — health data', cost: 'Free APIs (aggregator ~€100+/mo only if needed)', note: 'Fitbit, Garmin, Strava, Oura, Polar, Whoop and Withings connect via their official APIs so member activity flows into the app. Some (Garmin, Whoop) require partner approval.' },
   { item: 'Replit — hosting & infrastructure', cost: '~€20–40/mo', note: 'Runs the app, API and database in production, plus the AI-assisted development environment the platform is built in. Scales with traffic.' },
+  { item: 'Domain — marcusgrima.com (GoDaddy)', cost: '~€15–25/yr', note: 'The platform\'s own web address, registered through GoDaddy. A small annual renewal keeps the domain owned by Marcus.' },
 ];
 
 function ThirdPartyServices() {
@@ -1244,175 +1245,6 @@ function ThirdPartyServices() {
         for video, email, payments and health data. Each one is listed here with its job.
       </p>
       <InvestTable title="Services" rows={THIRD_PARTY_SERVICES} headers={['Service', 'Pricing', 'Why we need it']} />
-    </FadeSection>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   7. MUX VIDEO STREAMING
-══════════════════════════════════════════════════════════════════════════════ */
-const MUX_HOW = [
-  {
-    step: 1,
-    icon: <UploadSimple size={18} weight="fill" />,
-    title: 'Marcus uploads a video',
-    desc: 'From the Content Admin panel, Marcus selects a video file. It goes directly to Mux — it never sits on the app server.',
-  },
-  {
-    step: 2,
-    icon: <Lightning size={18} weight="fill" />,
-    title: 'Mux processes it automatically',
-    desc: 'Mux compresses the file, generates a thumbnail, and creates streaming-ready versions for every screen size and connection speed.',
-  },
-  {
-    step: 3,
-    icon: <Globe size={18} weight="fill" />,
-    title: 'Members stream it instantly',
-    desc: 'The video is delivered from Mux\'s global CDN — fast and smooth whether a member is on Wi-Fi in Malta or mobile data abroad.',
-  },
-  {
-    step: 4,
-    icon: <ShieldCheck size={18} weight="fill" />,
-    title: 'The app stores only a playback ID',
-    desc: 'The platform never stores raw video files. It holds a short reference ID; Mux handles everything else. Clean, secure, scalable.',
-  },
-];
-
-const MUX_USES = [
-  { label: 'Feed videos', desc: 'Training tips, mindset content, announcements, and anything Marcus publishes to the member feed.' },
-  { label: 'Exercise demonstrations', desc: 'Every exercise in the programme library gets a clear, branded demonstration video.' },
-  { label: 'Educational content', desc: 'Longer-form nutrition guides, technique breakdowns, and mindset videos.' },
-  { label: 'Recorded classes', desc: 'Any group sessions or recorded live workouts made available to members on demand.' },
-];
-
-function MuxVideo() {
-  return (
-    <FadeSection className="px-5 md:px-12">
-      <SectionLabel>Build Plan · Content &amp; Video</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
-        Video streaming, done properly.
-      </h2>
-      <p className="text-sm text-white mb-10 max-w-2xl">
-        All video content on the platform — feed posts, exercise demonstrations, educational
-        videos, and recorded classes — is hosted and streamed through{' '}
-        <span className="text-white/80 font-semibold">Mux</span>, a purpose-built video
-        infrastructure service used by the world's leading fitness and media apps. The platform
-        integrates with Mux so Marcus gets professional-grade video delivery without any of
-        the infrastructure overhead.
-      </p>
-
-      {/* Where Mux is used */}
-      <div className="mb-10">
-        <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">Where Mux is used</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {MUX_USES.map((u) => (
-            <div key={u.label} className="flex items-start gap-3 border border-white/6 bg-white/[0.02] p-4">
-              <Play size={14} weight="fill" className="text-primary shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-primary tracking-wide mb-0.5">{u.label}</p>
-                <p className="text-xs text-white leading-relaxed">{u.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* How it works */}
-      <div className="mb-10">
-        <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">How it works</p>
-        <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5">
-          {MUX_HOW.map((h) => (
-            <div key={h.step} className="flex items-start gap-4 p-5">
-              <div className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0 text-primary mt-0.5">
-                {h.icon}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-primary tracking-wide mb-1">{h.title}</p>
-                <p className="text-xs text-white leading-relaxed">{h.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Cost section */}
-      <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-4">Mux Costs</p>
-
-      <div className="grid md:grid-cols-2 gap-4 mb-5">
-        {/* Free / testing */}
-        <div className="border border-white/8 bg-white/[0.02] p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <CheckCircle size={16} weight="fill" className="text-primary" />
-            <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Free / Testing</p>
-          </div>
-          <p className="text-2xl font-black text-primary tracking-tight mb-1">€0</p>
-          <p className="text-[9px] font-bold tracking-widest text-white/30 uppercase mb-4">During development &amp; testing</p>
-          <div className="space-y-2">
-            {[
-              'Up to 10 video assets stored at no cost',
-              'Generous viewing hours for internal testing',
-              'Full feature access — no restricted plan',
-              'No credit card required to start',
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-2">
-                <ArrowRight size={11} weight="bold" className="text-primary shrink-0 mt-0.5" />
-                <span className="text-xs text-white/50">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Paid production */}
-        <div className="border border-primary/15 bg-primary/[0.03] p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Rocket size={16} weight="fill" className="text-primary" />
-            <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Paid · Live Platform</p>
-          </div>
-          <p className="text-2xl font-black text-primary tracking-tight mb-1">Pay-as-you-go</p>
-          <p className="text-[9px] font-bold tracking-widest text-white/30 uppercase mb-4">No monthly minimum</p>
-          <div className="space-y-3">
-            {[
-              { trigger: 'Uploading a video', rate: '~$0.015 per minute of video uploaded' },
-              { trigger: 'Storing videos', rate: '~$0.007 per GB stored per month' },
-              { trigger: 'Members watching', rate: '~$0.00025 per viewer-minute delivered' },
-            ].map((row) => (
-              <div key={row.trigger} className="border-t border-white/5 pt-3 first:border-0 first:pt-0">
-                <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-0.5">{row.trigger}</p>
-                <p className="text-xs text-white/40">{row.rate}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* What triggers costs */}
-      <div className="border border-white/6 bg-white/[0.015] p-5 mb-4">
-        <div className="flex items-start gap-3">
-          <ChartLine size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-white/80 mb-1.5">What determines the monthly bill</p>
-            <p className="text-xs text-white leading-relaxed">
-              Mux charges are driven by three things: how many videos are stored, how many minutes of
-              video are uploaded over time, and how many minutes members spend watching. A small video
-              library with moderate member activity typically costs well under{' '}
-              <span className="text-white/70 font-semibold">€50/month</span>. A large library with
-              high engagement can scale toward several hundred. The exact figure is only known once
-              content volume and member viewing habits are established — and because it scales with
-              usage, it grows in proportion to the business.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Advisory note */}
-      <div className="border border-white/5 bg-white/[0.01] p-4 flex items-start gap-3">
-        <Warning size={14} weight="fill" className="text-white/25 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-white/30 leading-relaxed">
-          Mux pricing shown is approximate and based on current public rates. All figures are in USD and
-          subject to change. Actual costs are confirmed in the Mux dashboard and billed directly to
-          the account holder. This section will be updated with real usage data once the platform goes live.
-        </p>
-      </div>
     </FadeSection>
   );
 }
@@ -1907,7 +1739,6 @@ export const Proposal = () => {
         {tab === 'services' && (<>
           <ThirdPartyServices />
           <Divider />
-          <MuxVideo />
         </>)}
 
         {tab === 'investment' && (
