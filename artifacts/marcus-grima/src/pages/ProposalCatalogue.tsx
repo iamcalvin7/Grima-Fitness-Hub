@@ -1200,77 +1200,71 @@ function SprintCard({ feature, onClick, onDragStart, onDragEnd, dragging }: {
   );
 }
 
-// ─── Sprint board with drag & drop ────────────────────────────────────────────
-function SprintBoard({ features, sprintOf, onMove, onSelect }: {
+// ─── Unified catalogue board with drag & drop ─────────────────────────────────
+type BoardColumn = 'built' | 'launch' | number;
+
+function CatalogueBoard({ features, columnOf, onMove, onSelect }: {
   features: Feature[];
-  sprintOf: (f: Feature) => number;
-  onMove: (featureId: string, target: number | 'launch') => void;
+  columnOf: (f: Feature) => BoardColumn;
+  onMove: (featureId: string, target: BoardColumn) => void;
   onSelect: (f: Feature) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [overSprint, setOverSprint] = useState<number | 'launch' | null>(null);
+  const [overCol, setOverCol] = useState<BoardColumn | null>(null);
 
-  const sprints = Array.from({ length: SPRINT_COUNT }, (_, i) => i + 1);
+  const columns: { key: BoardColumn; title: string; sub: string; accent: boolean }[] = [
+    { key: 'built', title: 'Built', sub: 'Live in the app today', accent: true },
+    { key: 'launch', title: 'Launch', sub: 'Ready for launch day', accent: true },
+    ...Array.from({ length: SPRINT_COUNT }, (_, i) => ({
+      key: (i + 1) as BoardColumn,
+      title: `Sprint ${i + 1}`,
+      sub: `New features by ${sprintEndDate(i + 1)}`,
+      accent: false,
+    })),
+  ];
 
   return (
     <div>
       <p className="text-[10px] font-bold tracking-[0.2em] text-white/35 uppercase mb-4">
-        Two-week sprints after soft launch — drag features between sprints, or into Launch, to reprioritise. Changes are saved for everyone.
+        Drag features between columns — into Built when shipped, into Launch for day one, or into a two-week sprint after soft launch. Changes are saved for everyone.
       </p>
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1">
-        {/* Launch drop zone */}
-        <div
-          onDragOver={(e) => { e.preventDefault(); setOverSprint('launch'); }}
-          onDragLeave={() => setOverSprint((s) => (s === 'launch' ? null : s))}
-          onDrop={(e) => {
-            e.preventDefault();
-            const id = e.dataTransfer.getData('text/feature-id');
-            if (id) onMove(id, 'launch');
-            setOverSprint(null);
-            setDraggingId(null);
-          }}
-          className={`shrink-0 w-[170px] border border-dashed transition-colors flex flex-col ${
-            overSprint === 'launch' ? 'border-primary bg-primary/[0.08]' : 'border-primary/25 bg-primary/[0.02]'
-          }`}
-        >
-          <div className="px-3 py-3 border-b border-primary/15">
-            <p className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">→ Launch</p>
-            <p className="text-[9px] font-bold text-white/30 mt-0.5">Drop here to pull a feature into launch scope</p>
-          </div>
-          <div className="flex-1 flex items-center justify-center p-3">
-            <Rocket size={22} weight="fill" className="text-primary/30" />
-          </div>
-        </div>
-        {sprints.map((n) => {
-          const inSprint = sortFeatures(features.filter((f) => sprintOf(f) === n));
-          const isOver = overSprint === n;
+        {columns.map((col) => {
+          const inCol = sortFeatures(features.filter((f) => columnOf(f) === col.key));
+          const isOver = overCol === col.key;
           return (
             <div
-              key={n}
-              onDragOver={(e) => { e.preventDefault(); setOverSprint(n); }}
-              onDragLeave={() => setOverSprint((s) => (s === n ? null : s))}
+              key={String(col.key)}
+              onDragOver={(e) => { e.preventDefault(); setOverCol(col.key); }}
+              onDragLeave={() => setOverCol((s) => (s === col.key ? null : s))}
               onDrop={(e) => {
                 e.preventDefault();
                 const id = e.dataTransfer.getData('text/feature-id');
-                if (id) onMove(id, n);
-                setOverSprint(null);
+                if (id) onMove(id, col.key);
+                setOverCol(null);
                 setDraggingId(null);
               }}
               className={`shrink-0 w-[250px] border transition-colors ${
-                isOver ? 'border-primary/50 bg-primary/[0.04]' : 'border-white/8 bg-white/[0.015]'
+                isOver
+                  ? 'border-primary/60 bg-primary/[0.06]'
+                  : col.accent
+                    ? 'border-primary/25 bg-primary/[0.02]'
+                    : 'border-white/8 bg-white/[0.015]'
               }`}
             >
-              <div className="px-3 py-3 border-b border-white/6 flex items-baseline justify-between">
+              <div className={`px-3 py-3 border-b flex items-baseline justify-between ${col.accent ? 'border-primary/15' : 'border-white/6'}`}>
                 <div>
-                  <p className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">Sprint {n}</p>
-                  <p className="text-[9px] font-bold text-white/30 mt-0.5">
-                    New features by {sprintEndDate(n)}{n === 1 ? ' · +2 weeks' : ''}
+                  <p className={`text-[10px] font-black tracking-[0.2em] uppercase flex items-center gap-1.5 ${col.accent ? 'text-primary' : 'text-primary/80'}`}>
+                    {col.key === 'built' && <CheckCircle size={12} weight="fill" />}
+                    {col.key === 'launch' && <Rocket size={12} weight="fill" />}
+                    {col.title}
                   </p>
+                  <p className="text-[9px] font-bold text-white/30 mt-0.5">{col.sub}</p>
                 </div>
-                <p className="text-[10px] font-black text-white/25">{inSprint.length}</p>
+                <p className="text-[10px] font-black text-white/25">{inCol.length}</p>
               </div>
-              <div className="p-2.5 space-y-2 min-h-[120px]">
-                {inSprint.map((f) => (
+              <div className="p-2.5 space-y-2 min-h-[120px] max-h-[520px] overflow-y-auto">
+                {inCol.map((f) => (
                   <SprintCard
                     key={f.id}
                     feature={f}
@@ -1281,10 +1275,10 @@ function SprintBoard({ features, sprintOf, onMove, onSelect }: {
                       e.dataTransfer.effectAllowed = 'move';
                       setDraggingId(f.id);
                     }}
-                    onDragEnd={() => { setDraggingId(null); setOverSprint(null); }}
+                    onDragEnd={() => { setDraggingId(null); setOverCol(null); }}
                   />
                 ))}
-                {inSprint.length === 0 && (
+                {inCol.length === 0 && (
                   <p className="text-[10px] text-white/15 font-semibold text-center py-8">Drop features here</p>
                 )}
               </div>
@@ -1299,7 +1293,6 @@ function SprintBoard({ features, sprintOf, onMove, onSelect }: {
 // ─── Main Catalogue Component ─────────────────────────────────────────────────
 export function FeatureCatalogue() {
   const [audience, setAudience] = useState<Audience>('client');
-  const [pill, setPill] = useState<Pill>('Launch');
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [customFeatures, setCustomFeatures] = useState<Feature[]>([]);
@@ -1330,21 +1323,13 @@ export function FeatureCatalogue() {
     [allFeatures, audience],
   );
 
-  const builtFeatures = useMemo(
-    () => audienceFeatures.filter((f) => f.status === 'Delivered'),
-    [audienceFeatures],
-  );
-  const launchFeatures = useMemo(
-    () => audienceFeatures.filter((f) => isLaunchFeature(f, overrides[f.id])),
-    [audienceFeatures, overrides],
-  );
-  const futureFeatures = useMemo(
-    () => audienceFeatures.filter((f) => !isLaunchFeature(f, overrides[f.id])),
-    [audienceFeatures, overrides],
-  );
-
-  const sprintOf = useCallback(
-    (f: Feature) => overrides[f.id]?.sprint ?? defaultSprint(f),
+  // Column membership: Built (shipped) → Launch (day-one scope) → sprint columns.
+  const columnOf = useCallback(
+    (f: Feature): BoardColumn => {
+      if (f.status === 'Delivered') return 'built';
+      if (isLaunchFeature(f, overrides[f.id])) return 'launch';
+      return overrides[f.id]?.sprint ?? defaultSprint(f);
+    },
     [overrides],
   );
 
@@ -1365,22 +1350,21 @@ export function FeatureCatalogue() {
       });
   }, []);
 
-  const moveToSprint = useCallback((featureId: string, target: number | 'launch') => {
-    if (target === 'launch') {
-      saveOverride(featureId, { placement: 'launch' });
+  const moveToColumn = useCallback((featureId: string, target: BoardColumn) => {
+    if (target === 'built') {
+      saveOverride(featureId, { status: 'Delivered' });
+    } else if (target === 'launch') {
+      const patch: FeatureOverride = { placement: 'launch' };
+      const current = allFeatures.find((f) => f.id === featureId);
+      if (current?.status === 'Delivered') patch.status = 'Planned';
+      saveOverride(featureId, patch);
     } else {
-      saveOverride(featureId, { sprint: target, placement: 'future' });
+      const patch: FeatureOverride = { sprint: target, placement: 'future' };
+      const current = allFeatures.find((f) => f.id === featureId);
+      if (current?.status === 'Delivered') patch.status = 'Planned';
+      saveOverride(featureId, patch);
     }
-  }, [saveOverride]);
-
-  // Built & Launch views: grouped by pillar
-  const groupByPillar = useCallback((list: Feature[]) => {
-    return CATEGORIES
-      .map((c) => ({ category: c, features: sortFeatures(list.filter((f) => f.category === c)) }))
-      .filter((g) => g.features.length > 0);
-  }, []);
-  const builtByPillar = useMemo(() => groupByPillar(builtFeatures), [groupByPillar, builtFeatures]);
-  const launchByPillar = useMemo(() => groupByPillar(launchFeatures), [groupByPillar, launchFeatures]);
+  }, [saveOverride, allFeatures]);
 
   return (
     <>
@@ -1409,25 +1393,6 @@ export function FeatureCatalogue() {
             ))}
           </div>
 
-          <div className="flex items-center gap-1 ml-2">
-            {(['Built', 'Launch', 'Future'] as Pill[]).map((p) => {
-              const active = pill === p;
-              const count = p === 'Built' ? builtFeatures.length : p === 'Launch' ? launchFeatures.length : futureFeatures.length;
-              return (
-                <button
-                  key={p}
-                  onClick={() => setPill(p)}
-                  className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase transition-all duration-150 border
-                    ${active
-                      ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'bg-transparent border-white/6 text-white/35 hover:text-white/60 hover:border-white/12'}`}
-                >
-                  {p} · {count}
-                </button>
-              );
-            })}
-          </div>
-
           <div className="ml-auto">
             <button
               onClick={() => setShowAdd(true)}
@@ -1439,50 +1404,18 @@ export function FeatureCatalogue() {
         </div>
       </div>
 
-      {/* Built / Launch: grouped by pillar */}
-      {(pill === 'Built' || pill === 'Launch') && (
-        <div className="space-y-10">
-          {(pill === 'Built' ? builtByPillar : launchByPillar).map((group) => (
-            <div key={group.category}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-primary">{CATEGORY_ICONS[group.category]}</span>
-                <h3 className="text-sm font-black text-white tracking-tight uppercase">{group.category}</h3>
-                <span className="text-[10px] font-black text-white/25">{group.features.length}</span>
-                <div className="flex-1 border-t border-white/6" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {group.features.map((feature) => (
-                  <FeatureCard
-                    key={feature.id}
-                    feature={feature}
-                    onClick={() => setSelectedFeature(feature)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-          {(pill === 'Built' ? builtByPillar : launchByPillar).length === 0 && (
-            <p className="py-20 text-center text-white/20 text-sm font-semibold">
-              No {pill.toLowerCase()} features for this audience.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Future: sprint board */}
-      {pill === 'Future' && sprintError && (
+      {/* Unified board */}
+      {sprintError && (
         <p className="mb-3 text-[11px] font-bold text-red-400">
           Couldn't save the last move — the board has been restored. Please try again.
         </p>
       )}
-      {pill === 'Future' && (
-        <SprintBoard
-          features={futureFeatures}
-          sprintOf={sprintOf}
-          onMove={moveToSprint}
-          onSelect={setSelectedFeature}
-        />
-      )}
+      <CatalogueBoard
+        features={audienceFeatures}
+        columnOf={columnOf}
+        onMove={moveToColumn}
+        onSelect={setSelectedFeature}
+      />
 
       {/* Detail panel */}
       <AnimatePresence>
@@ -1514,7 +1447,6 @@ export function FeatureCatalogue() {
               setCustomFeatures((prev) => [...prev, f]);
               // Jump to where the new feature lives so it's immediately visible.
               setAudience(featureAudience(f));
-              setPill(isLaunchFeature(f, overrides[f.id]) ? 'Launch' : 'Future');
               setSelectedFeature(f);
             }}
           />
