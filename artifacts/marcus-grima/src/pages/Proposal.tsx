@@ -1148,11 +1148,60 @@ function LaunchProduct() {
    5. BRANDING CHECKLIST
 ══════════════════════════════════════════════════════════════════════════════ */
 const BRANDING_AREAS = [
-  { title: 'Brand Foundations', desc: 'Brand positioning, tone of voice, target audience definition, and competitive differentiation. The strategic layer that everything else is built on.' },
-  { title: 'Brand Identity', desc: 'Final logo suite, typography selection, colour system, iconography style, and the complete visual identity package.' },
-  { title: 'Digital Look & Feel', desc: 'UI component refinement, app visual language, motion principles, and design system documentation aligned to the final brand.' },
-  { title: 'Content Direction', desc: 'Photography art direction, video treatment, social media style guide, and content templates for ongoing use.' },
-  { title: 'Final Brand Package', desc: 'Delivered brand guidelines document, all asset files, and a usage guide Marcus can hand to any future creative partner.' },
+  {
+    title: 'Brand Foundations',
+    desc: 'The strategic layer everything else is built on.',
+    items: [
+      'Brand positioning statement — what Marcus Grima Fitness stands for, in one page',
+      'Target audience profiles — who the members are and what they need to hear',
+      'Tone of voice guide — how the brand speaks in the app, on social and in email',
+      'Competitive differentiation — why this beats every other PT offer in Malta',
+      'Brand name & tagline confirmation',
+    ],
+  },
+  {
+    title: 'Logo',
+    desc: 'One logo that works everywhere, delivered in every format needed.',
+    items: [
+      'Primary logo + horizontal and stacked variations',
+      'App icon (all required sizes) and favicon',
+      'Monochrome versions — white-on-dark and black-on-light',
+      'Clear-space and minimum-size rules so it is never used wrong',
+      'All files in vector (SVG/AI) and PNG at every needed size',
+    ],
+  },
+  {
+    title: 'Colours & Typography',
+    desc: 'The exact palette and fonts, specified so there is never guesswork.',
+    items: [
+      'Full colour palette with exact codes (hex/RGB) — primary, dark base, neutrals, accents',
+      'Usage rules — which colour for buttons, backgrounds, alerts, text',
+      'Accessibility check — every text/background combination passes contrast standards',
+      'Font selection for headlines, body and numbers, with licences sorted',
+      'Type scale — exact sizes and weights for every heading and paragraph level',
+    ],
+  },
+  {
+    title: 'Brand Guidelines Document',
+    desc: 'The single rulebook — anyone can produce on-brand work without asking.',
+    items: [
+      'One PDF/web document covering logo, colours, type, photography and voice',
+      'Correct vs incorrect usage examples for each element',
+      'Social media templates — post, story and cover formats',
+      'App & web design system notes — buttons, cards, spacing, iconography style',
+      'Handover walkthrough so Marcus and any future partner can apply it unaided',
+    ],
+  },
+  {
+    title: 'Brand Asset Library',
+    desc: 'Every file, organised and ready to hand to anyone.',
+    items: [
+      'Single organised folder (cloud drive) with all logos, fonts, colours and templates',
+      'Ready-to-use exports for social, email, print and the app',
+      'Naming convention so the right file is always obvious',
+      'Ownership transferred to Marcus — full rights to every asset',
+    ],
+  },
 ];
 
 function BrandingChecklist() {
@@ -1172,7 +1221,15 @@ function BrandingChecklist() {
             </div>
             <div>
               <p className="text-sm font-bold text-primary tracking-wide mb-1">{area.title}</p>
-              <p className="text-xs text-white leading-relaxed">{area.desc}</p>
+              <p className="text-xs text-white leading-relaxed mb-3">{area.desc}</p>
+              <ul className="space-y-1.5">
+                {area.items.map((it) => (
+                  <li key={it} className="flex items-start gap-2 text-xs text-white/70 leading-relaxed">
+                    <CheckCircle size={13} weight="fill" className="text-primary/60 shrink-0 mt-[2px]" />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ))}
@@ -1185,12 +1242,66 @@ function BrandingChecklist() {
    6. CONTENT PRODUCTION CHECKLIST
 ══════════════════════════════════════════════════════════════════════════════ */
 const CONTENT_AREAS = [
-  { title: 'Brand & Website Photography', desc: 'Marcus portraits, in-gym action photography, lifestyle content, and hero imagery for the website and app store.' },
-  { title: 'Exercise Videos', desc: 'Demonstration videos for every exercise in the programme library — clean, branded, showing proper form.' },
-  { title: 'App How-To Videos', desc: 'Short screen-capture or filmed tutorials showing members how to use key features: bookings, programmes, check-ins.' },
-  { title: 'Educational Content', desc: 'Training principles, nutrition foundations, recovery guidance, and mindset content for in-app delivery.' },
-  { title: 'Launch Content', desc: 'Social media content, email announcements, launch-day posts, and member welcome materials.' },
-  { title: 'Editing & Delivery', desc: 'Full post-production, colour grading, audio clean-up, subtitle generation, and final file delivery in all required formats.' },
+  {
+    title: 'Brand & Website Photography',
+    desc: 'The imagery that sells the brand before a word is read.',
+    items: [
+      'Marcus portrait set — headshots and personality shots on brand backgrounds',
+      'In-gym action photography — coaching moments, training intensity',
+      'Lifestyle set — nutrition, recovery, community moments',
+      'Hero imagery for the website, app screens and app-store listing',
+      'Shot list agreed and signed off before the shoot day',
+    ],
+  },
+  {
+    title: 'Exercise Videos',
+    desc: 'A branded demonstration video for every movement in the library.',
+    items: [
+      'Full exercise list confirmed before filming — nothing shot twice',
+      'Each video: proper form, common-mistake cue, consistent framing and lighting',
+      'Branded intro/outro and on-screen exercise name',
+      'Filmed in batches to keep production days efficient',
+    ],
+  },
+  {
+    title: 'App How-To Videos',
+    desc: 'Short tutorials so no member ever feels lost.',
+    items: [
+      'One short video per key feature: bookings, programmes, logging, check-ins, messaging',
+      'Under 60 seconds each, subtitled for sound-off viewing',
+      'Refreshed whenever a feature changes significantly',
+    ],
+  },
+  {
+    title: 'Educational Content',
+    desc: 'The knowledge layer that keeps members engaged between sessions.',
+    items: [
+      'Training principles series — why the programme works',
+      'Nutrition foundations series — practical, no-fad guidance',
+      'Recovery & mindset content',
+      'Content calendar mapping what publishes when',
+    ],
+  },
+  {
+    title: 'Launch Content',
+    desc: 'Everything needed for launch week, ready before launch day.',
+    items: [
+      'Social media countdown and launch-day posts (from the brand templates)',
+      'Email announcement sequence to the existing client list',
+      'Member welcome pack — first-week guide inside the app',
+      'Press/partner one-pager about the platform',
+    ],
+  },
+  {
+    title: 'Editing & Delivery',
+    desc: 'Finished, consistent files — not raw footage.',
+    items: [
+      'Full post-production: edit, colour grade, audio clean-up',
+      'Subtitles on every video',
+      'Exports in every needed format (app, social portrait/landscape, web)',
+      'Delivered into the organised brand asset library',
+    ],
+  },
 ];
 
 function ContentChecklist() {
@@ -1210,7 +1321,15 @@ function ContentChecklist() {
             </div>
             <div>
               <p className="text-sm font-bold text-primary tracking-wide mb-1">{area.title}</p>
-              <p className="text-xs text-white leading-relaxed">{area.desc}</p>
+              <p className="text-xs text-white leading-relaxed mb-3">{area.desc}</p>
+              <ul className="space-y-1.5">
+                {area.items.map((it) => (
+                  <li key={it} className="flex items-start gap-2 text-xs text-white/70 leading-relaxed">
+                    <CheckCircle size={13} weight="fill" className="text-white/30 shrink-0 mt-[2px]" />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ))}
@@ -1306,11 +1425,14 @@ const RUNNING_COSTS = [
   },
 ];
 
-/* Simple table renderer: Item | Cost | Notes */
-function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'] }: {
+/* Simple table renderer: Item | Cost | Notes.
+   Rows with `struck` render crossed out (shown at full value but not charged).
+   `total` adds a section total row — struck rows are excluded from it. */
+function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'], total }: {
   title: string;
-  rows: { item: string; cost: string; note: string }[];
+  rows: { item: string; cost: string; note: string; struck?: boolean }[];
   headers?: [string, string, string];
+  total?: { cost: string; note?: string };
 }) {
   return (
     <div className="mb-10">
@@ -1327,12 +1449,21 @@ function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'] }: {
           <tbody className="divide-y divide-white/5">
             {rows.map((r) => (
               <tr key={r.item} className="bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
-                <td className="px-4 py-3.5 text-sm font-bold text-primary align-top">{r.item}</td>
-                <td className="px-4 py-3.5 text-sm font-black text-white align-top whitespace-nowrap">{r.cost}</td>
+                <td className={`px-4 py-3.5 text-sm font-bold align-top ${r.struck ? 'text-white/35 line-through decoration-white/40' : 'text-primary'}`}>{r.item}</td>
+                <td className={`px-4 py-3.5 text-sm font-black align-top whitespace-nowrap ${r.struck ? 'text-white/35 line-through decoration-white/40' : 'text-white'}`}>{r.cost}</td>
                 <td className="px-4 py-3.5 text-xs text-white/70 leading-relaxed align-top">{r.note}</td>
               </tr>
             ))}
           </tbody>
+          {total && (
+            <tfoot>
+              <tr className="bg-primary/[0.06] border-t border-primary/20">
+                <td className="px-4 py-3.5 text-[10px] font-black tracking-[0.25em] text-primary uppercase align-top">Total</td>
+                <td className="px-4 py-3.5 text-sm font-black text-primary align-top whitespace-nowrap">{total.cost}</td>
+                <td className="px-4 py-3.5 text-xs text-white/50 leading-relaxed align-top">{total.note}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
@@ -1341,16 +1472,16 @@ function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'] }: {
 
 const BUILD_ROWS = [
   { item: 'AI-assisted build (Replit)', cost: '$156 to date', note: 'Verified from the Replit billing dashboard. Future features estimated against the completed authentication system as a benchmark.' },
-  { item: 'Calvin — product owner', cost: '€26.44 / hr', note: 'Discounted rate (standard €52.88/hr).' },
+  { item: 'Calvin — product owner', cost: '€52.88 / hr', note: 'Full standard rate shown — product-owner time is not charged on this project.', struck: true },
 ];
 
 /* Indicative build cost per feature — benchmarked against the completed
    authentication system (the most complex feature built so far). Each tier
    combines AI-assisted build spend with Calvin's product-owner hours. */
 const FEATURE_COST_ROWS = [
-  { item: 'Small feature', ai: '~$10–25', owner: '2–4 hrs · ~€53–106', note: 'A focused screen or improvement — e.g. offers page, leaderboard tweaks, notification preferences.' },
-  { item: 'Standard feature', ai: '~$25–60', owner: '5–12 hrs · ~€132–317', note: 'A full feature with its own data and screens — e.g. session booking, meal plan viewer, progress photos.' },
-  { item: 'Complex feature', ai: '~$60–150', owner: '12–25 hrs · ~€317–661', note: 'Features touching payments, integrations or many parts of the app at once — e.g. Stripe memberships, wearable syncing, video content system. The authentication system sits in this tier.' },
+  { item: 'Small feature', ai: '~$10–25', owner: '2–4 hrs · ~€106–212', note: 'A focused screen or improvement — e.g. offers page, leaderboard tweaks, notification preferences.' },
+  { item: 'Standard feature', ai: '~$25–60', owner: '5–12 hrs · ~€264–635', note: 'A full feature with its own data and screens — e.g. session booking, meal plan viewer, progress photos.' },
+  { item: 'Complex feature', ai: '~$60–150', owner: '12–25 hrs · ~€635–1,322', note: 'Features touching payments, integrations or many parts of the app at once — e.g. Stripe memberships, wearable syncing, video content system. The authentication system sits in this tier.' },
 ];
 
 function FeatureCostTable() {
@@ -1363,7 +1494,7 @@ function FeatureCostTable() {
             <tr className="bg-white/[0.04] border-b border-white/8">
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[20%]">Feature size</th>
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[16%]">AI build (Replit)</th>
-              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[24%]">Product owner (€26.44/hr)</th>
+              <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[24%]"><span className="line-through decoration-white/40">Product owner (€52.88/hr)</span> — not charged</th>
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase">What that looks like</th>
             </tr>
           </thead>
@@ -1372,7 +1503,7 @@ function FeatureCostTable() {
               <tr key={r.item} className="bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
                 <td className="px-4 py-3.5 text-sm font-bold text-primary align-top">{r.item}</td>
                 <td className="px-4 py-3.5 text-sm font-black text-white align-top whitespace-nowrap">{r.ai}</td>
-                <td className="px-4 py-3.5 text-sm font-black text-white align-top whitespace-nowrap">{r.owner}</td>
+                <td className="px-4 py-3.5 text-sm font-black text-white/35 align-top whitespace-nowrap line-through decoration-white/40">{r.owner}</td>
                 <td className="px-4 py-3.5 text-xs text-white/70 leading-relaxed align-top">{r.note}</td>
               </tr>
             ))}
@@ -1402,7 +1533,11 @@ function Investment() {
         business grows.
       </p>
 
-      <InvestTable title="1 · Build" rows={BUILD_ROWS} />
+      <InvestTable
+        title="1 · Build"
+        rows={BUILD_ROWS}
+        total={{ cost: '$156 to date', note: 'AI-assisted build spend only — product-owner time is crossed out above and not charged.' }}
+      />
       <FeatureCostTable />
 
       <div className="border border-white/6 bg-white/[0.015] p-5 mb-10 -mt-6 flex items-start gap-3">
@@ -1421,9 +1556,21 @@ function Investment() {
         </div>
       </div>
 
-      <InvestTable title="2 · Branding & Content" rows={BRAND_CONTENT_ROWS} />
-      <InvestTable title="3 · Launch (One-off)" rows={LAUNCH_COSTS} />
-      <InvestTable title="4 · Running (Monthly)" rows={RUNNING_COSTS} />
+      <InvestTable
+        title="2 · Branding & Content"
+        rows={BRAND_CONTENT_ROWS}
+        total={{ cost: '€17,187–34,487', note: '€8,487 branding & creative direction (at 50% introductory rates) + €8,700–26,000 external production, confirmed on scope.' }}
+      />
+      <InvestTable
+        title="3 · Launch (One-off)"
+        rows={LAUNCH_COSTS}
+        total={{ cost: '~€125 one-off', note: 'Apple $99/yr + Google $25. Store commission is percentage-based and applies only to in-app digital sales.' }}
+      />
+      <InvestTable
+        title="4 · Running (Monthly)"
+        rows={RUNNING_COSTS}
+        total={{ cost: '~€30–80 / month', note: 'Typical early-stage total. Stripe fees are per-transaction and only apply when revenue comes in.' }}
+      />
 
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
