@@ -92,14 +92,6 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
           accent: '#4ade80',
           badge: undefined as string | undefined,
         },
-        {
-          id: 'proposal' as Page,
-          label: 'Project Proposal',
-          sub: 'Full product roadmap and pitch deck',
-          icon: <Presentation size={26} weight="fill" />,
-          accent: '#4ade80',
-          badge: undefined as string | undefined,
-        },
       ]
     : MENU_ITEMS;
 
@@ -188,6 +180,25 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
                   </button>
                 );
               })}
+
+              {isStaff && (
+                <a
+                  href={`${import.meta.env.BASE_URL}proposal`}
+                  className="w-full text-left flex items-center gap-4 p-5 rounded-2xl border transition-all border-white/8 bg-[#141414] hover:border-white/20"
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#4ade80' }}
+                  >
+                    <Presentation size={26} weight="fill" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-bold tracking-wide text-white">Project Proposal</p>
+                    <p className="text-xs text-white/40 font-medium mt-0.5">Full product roadmap and pitch deck</p>
+                  </div>
+                  <ChevronRight size={16} weight="bold" className="text-white/25 shrink-0" />
+                </a>
+              )}
 
               {/* Premium hint */}
               <div className="flex items-center gap-2 px-1 mt-2">

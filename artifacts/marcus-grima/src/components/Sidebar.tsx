@@ -29,7 +29,6 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
     ? [
         ...memberNavItems,
         { id: 'content-admin' as Page, label: 'Content Admin', icon: <Folders size={18} weight="fill" />, badge: undefined as boolean | undefined },
-        { id: 'proposal' as Page, label: 'Project Proposal', icon: <Presentation size={18} weight="fill" />, badge: undefined as boolean | undefined },
       ]
     : memberNavItems;
 
@@ -69,6 +68,15 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
             </button>
           );
         })}
+        {isStaff && (
+          <a
+            href={`${import.meta.env.BASE_URL}proposal`}
+            className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-all text-muted-foreground hover:text-foreground hover:bg-white/4"
+          >
+            <Presentation size={18} weight="fill" />
+            <span className="text-sm font-bold tracking-[0.1em] uppercase">Project Proposal</span>
+          </a>
+        )}
       </nav>
 
       {/* Book CTA */}

@@ -30,7 +30,14 @@ export type Page =
   | 'home' | 'sessions' | 'workouts' | 'meals' | 'messages'
   | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team'
   | 'security' | 'active-sessions' | 'delete-account'
-  | 'proposal' | 'feed' | 'content-admin';
+  | 'feed' | 'content-admin';
+
+/* Standalone proposal page: lives at its own URL under the app base path. */
+export const PROPOSAL_PATH = `${import.meta.env.BASE_URL}proposal`;
+
+function isProposalEntry(): boolean {
+  return window.location.pathname.replace(/\/+$/, '') === PROPOSAL_PATH.replace(/\/+$/, '');
+}
 
 /* ── Query-parameter entry points ─────────────────────────────────────── */
 type Modal =
@@ -72,7 +79,7 @@ function App() {
 }
 
 function FullApp() {
-  const { isLoading, isAuthenticated, isProfileLoading, profile, signOut } = useAuth();
+  const { isLoading, isAuthenticated, isProfileLoading, profile, user, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
   const [activePage,    setActivePage]    = useState<Page>('home');
   const [sessionFocus,  setSessionFocus]  = useState<number | undefined>(undefined);
@@ -190,6 +197,16 @@ function FullApp() {
     return <Onboarding onComplete={() => setEnteredApp(true)} profileOnly />;
   }
 
+  /* ── Standalone proposal page (own URL, staff only) ──────────────────── */
+  if (isProposalEntry()) {
+    const isStaff = profile && (user?.role === 'trainer' || user?.role === 'admin');
+    if (!isStaff) {
+      window.location.replace(import.meta.env.BASE_URL);
+      return null;
+    }
+    return <Proposal />;
+  }
+
   /* ── Main app ────────────────────────────────────────────────────────── */
 
   /* Full-screen security sub-pages: rendered outside Layout to avoid nav. */
@@ -232,7 +249,6 @@ function FullApp() {
       {activePage === 'team'          && <Team />}
       {activePage === 'feed'          && <Feed />}
       {activePage === 'content-admin' && <ContentAdmin />}
-      {activePage === 'proposal'      && <Proposal />}
     </Layout>
   );
 }
