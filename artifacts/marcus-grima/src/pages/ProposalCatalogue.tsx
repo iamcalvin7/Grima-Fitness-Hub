@@ -1335,11 +1335,11 @@ export function FeatureCatalogue() {
     [audienceFeatures],
   );
   const launchFeatures = useMemo(
-    () => audienceFeatures.filter((f) => f.status !== 'Delivered' && isLaunchFeature(f, overrides[f.id])),
+    () => audienceFeatures.filter((f) => isLaunchFeature(f, overrides[f.id])),
     [audienceFeatures, overrides],
   );
   const futureFeatures = useMemo(
-    () => audienceFeatures.filter((f) => f.status !== 'Delivered' && !isLaunchFeature(f, overrides[f.id])),
+    () => audienceFeatures.filter((f) => !isLaunchFeature(f, overrides[f.id])),
     [audienceFeatures, overrides],
   );
 
