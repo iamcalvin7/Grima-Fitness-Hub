@@ -1342,7 +1342,7 @@ function ContentChecklist() {
    6b. THIRD-PARTY SERVICES
 ══════════════════════════════════════════════════════════════════════════════ */
 const THIRD_PARTY_SERVICES = [
-  { item: 'Mux — video streaming', cost: 'Pay-as-you-go · ~€0–50/mo early on', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Free during development. Live costs are pay-as-you-go with no monthly minimum: ~$0.015 per minute uploaded, ~$0.007 per GB stored/month, ~$0.00025 per viewer-minute watched — a small library with moderate viewing typically stays well under €50/mo.' },
+  { item: 'Mux — video streaming', cost: '~€20–40 / month live · €0 during development', note: 'Hosts, processes and streams every video in the platform — exercise demos, feed videos, educational content. Free during development. Live costs are pay-as-you-go with no monthly minimum: ~$0.015 per minute uploaded, ~$0.007 per GB stored/month, ~$0.00025 per viewer-minute watched — a small library with moderate viewing typically stays well under €50/mo.' },
   { item: 'Resend (or similar) — email', cost: 'Free tier · €0–20/mo', note: 'Sends verification, password-reset and notification emails. Free tier covers thousands of emails per month; paid tiers only as volume grows. Needs a one-time API key setup before launch.' },
   { item: 'Stripe — payments', cost: '~1.5–2.9% + €0.25 per transaction', note: 'Processes memberships, session payments and any digital products. No monthly fee — costs only exist when revenue exists.' },
   { item: 'Google Sign-In — authentication', cost: 'Free', note: 'One-tap sign-in with a Google account — already built and working in the app.' },
@@ -1384,12 +1384,6 @@ const LAUNCH_COSTS = [
     kind: 'Required for Play Store',
     note: 'One-time registration fee to publish the Android app on Google Play.',
   },
-  {
-    item: 'App store commission',
-    cost: '15–30% of in-app sales',
-    kind: 'Only on in-app purchases',
-    note: 'Apple and Google take a commission on digital subscriptions sold inside the apps (15% under the Small Business Program up to $1M/yr). Web payments avoid this.',
-  },
 ];
 
 const RUNNING_COSTS = [
@@ -1407,7 +1401,7 @@ const RUNNING_COSTS = [
   },
   {
     item: 'Video streaming (Mux)',
-    cost: '€0 now · usage-based live',
+    cost: '~€20–40 / month live · €0 now',
     kind: 'Scales with content',
     note: 'Free during development. Live costs depend on library size and viewing — typically well under €50/month early on. Detailed breakdown in the Brand & Content tab.',
   },
@@ -1564,7 +1558,7 @@ function Investment() {
       <InvestTable
         title="3 · Launch (One-off)"
         rows={LAUNCH_COSTS}
-        total={{ cost: '~€125 one-off', note: 'Apple $99/yr + Google $25. Store commission is percentage-based and applies only to in-app digital sales.' }}
+        total={{ cost: '~€125 one-off', note: 'Apple $99/yr + Google $25.' }}
       />
       <InvestTable
         title="4 · Running (Monthly)"
