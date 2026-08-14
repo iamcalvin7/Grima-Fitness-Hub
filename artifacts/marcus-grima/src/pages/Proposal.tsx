@@ -60,23 +60,25 @@ function Hero() {
         </p>
 
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-primary leading-[1.05] max-w-3xl mb-8">
-          Building the future of Marcus Grima Fitness.
+          More clients coached. Stronger retention. Revenue beyond selling hours.
         </h1>
 
         <p className="text-base md:text-lg text-white/55 font-medium leading-relaxed max-w-2xl mb-12">
-          Turning Marcus Grima Fitness into a scalable digital business with one connected
-          platform for members, coaching and growth.
+          One connected Marcus Grima Fitness platform that removes the ceiling on the
+          business — every client coached seven days a week, every operation in one place,
+          and a brand built to lead fitness in Malta.
         </p>
       </motion.div>
 
       {/* Stats row */}
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.15 }}
-        className="grid grid-cols-2 gap-4 max-w-lg"
+        className="grid grid-cols-3 gap-4 max-w-2xl"
       >
         {[
           { value: 'Oct 15, 2026', label: 'Soft Launch' },
           { value: 'Jan 3, 2027', label: 'Public Launch' },
+          { value: '0%', label: 'Store commission — web-first launch' },
         ].map((s) => (
           <div key={s.label} className="border border-white/8 bg-white/[0.03] px-4 py-5">
             <p className="text-2xl md:text-3xl font-black text-primary tracking-tight leading-none mb-1.5">{s.value}</p>
@@ -149,6 +151,7 @@ function Bullets({ items }: { items: string[] }) {
 }
 
 function SettingTheStage() {
+  const [showFull, setShowFull] = useState(false);
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Setting The Stage</SectionLabel>
@@ -184,8 +187,45 @@ function SettingTheStage() {
         </p>
       </div>
 
+      {/* The strategic promise — condensed; full narrative expands below */}
+      <div className="max-w-3xl mb-4">
+        <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-5">The Promise</h2>
+        <p className="text-base md:text-lg font-bold text-white leading-relaxed mb-5">
+          One platform that coaches every client seven days a week — and runs the business
+          behind them.
+        </p>
+        <p className="text-sm md:text-base text-white leading-relaxed mb-5">
+          Clients get one clear home for training, progress, nutrition, bookings and their
+          relationship with Marcus. Marcus gets the control centre behind it. The result:
+          more clients coached to a higher standard without more hours, stronger retention,
+          and a foundation for revenue that isn't tied to selling time. The Vision tab shows
+          exactly what this looks like on both sides.
+        </p>
+      </div>
+
       <AppMockups />
 
+      <button
+        type="button"
+        onClick={() => setShowFull((v) => !v)}
+        className="flex items-center gap-2 text-[11px] font-black tracking-[0.2em] uppercase text-primary hover:text-primary/80 transition-colors mb-10"
+      >
+        {showFull ? 'Hide the full narrative' : 'Read the full narrative'}
+        <motion.span animate={{ rotate: showFull ? 180 : 0 }} transition={{ duration: 0.2 }} className="inline-flex">
+          <CaretDown size={13} weight="bold" />
+        </motion.span>
+      </button>
+
+      <AnimatePresence initial={false}>
+      {showFull && (
+      <motion.div
+        key="full-narrative"
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="overflow-hidden"
+      >
       {/* The What */}
       <div className="max-w-3xl mb-14">
         <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-5">The What — The Client Experience</h2>
@@ -254,6 +294,9 @@ function SettingTheStage() {
           brand in Malta can become.
         </p>
       </div>
+      </motion.div>
+      )}
+      </AnimatePresence>
     </FadeSection>
   );
 }
@@ -489,7 +532,7 @@ function Vision() {
   const groups = side === 'client' ? CLIENT_SIDE_GROUPS : MARCUS_HQ_GROUPS;
   return (
     <FadeSection className="px-5 md:px-12">
-      <SectionLabel>The App — Core Vision</SectionLabel>
+      <SectionLabel>Product Vision — The Best Fitness App In Malta</SectionLabel>
 
       {/* Core vision */}
       <div className="max-w-3xl mb-12">
@@ -584,6 +627,35 @@ function Vision() {
             Replaces or reduces the need for <span className="font-black text-primary">{TOMORROW_REPLACES.length} categories of tools</span> —
             anything still running behind the scenes stays invisible to the client.
           </p>
+        </div>
+      </div>
+
+      {/* Paired summary — both sides at a glance, before the detailed toggle */}
+      <div className="max-w-5xl mb-10">
+        <h3 className="text-xl md:text-2xl font-black text-white tracking-tight mb-5">Two sides of one platform.</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="border border-white/8 bg-white/[0.02] p-6">
+            <p className="text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase mb-3">Members experience</p>
+            <ul className="space-y-2">
+              {[
+                'One app for training, progress, nutrition, bookings and Marcus',
+                'A personalised plan and a clear next action every day',
+                'Visible progress towards a forecast goal date',
+                'Coaching that continues between sessions',
+              ].map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
+            </ul>
+          </div>
+          <div className="border border-primary/20 bg-primary/[0.03] p-6">
+            <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase mb-3">Marcus gains</p>
+            <ul className="space-y-2">
+              {[
+                'Every client, programme, booking and payment in one control centre',
+                'Coaching more clients to a higher standard in fewer hours',
+                'Early-warning signals before a client drifts away',
+                'A business that earns beyond one-to-one hours',
+              ].map((i) => <VisionBullet key={i}>{i}</VisionBullet>)}
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -737,8 +809,10 @@ function Pillars() {
             className="overflow-hidden"
           >
             <p className="text-sm text-white mb-10 max-w-2xl">
-              46 features across 12 product pillars — each card expands into a full brief. This
-              catalogue doubles as both the sales pitch and a live delivery tracker as the build progresses.
+              46 features across 12 product pillars — each card expands into a full brief.
+              This is the supporting detail behind the pitch: a staff planning board used to
+              track delivery as the build progresses. The sales story lives in the Launch and
+              Roadmap tabs.
             </p>
             <FeatureCatalogue />
           </motion.div>
@@ -961,7 +1035,14 @@ function OnboardingScreen({ step: s }: { step: { n: number; title: string; desc:
   );
 }
 
+/* The five decisive onboarding moments shown in the main pitch. */
+const KEY_ONBOARDING_STEPS = [3, 9, 10, 12, 15];
+
 function OnboardingFlow() {
+  const [showAll, setShowAll] = useState(false);
+  const steps = showAll
+    ? ONBOARDING_STEPS
+    : ONBOARDING_STEPS.filter((s) => KEY_ONBOARDING_STEPS.includes(s.n));
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Onboarding Flow</SectionLabel>
@@ -971,7 +1052,8 @@ function OnboardingFlow() {
       <p className="text-sm text-white mb-4 max-w-2xl">
         Onboarding does more than collect information. It builds the client profile, understands
         their goals, assesses their starting point and immediately turns it into a clear plan and
-        a projected goal timeline.
+        a projected goal timeline. Five decisive moments tell the story — the goal, the weekly
+        reality, the baseline, the forecast and day one.
       </p>
       <p className="text-[11px] font-black tracking-[0.15em] text-primary uppercase mb-8">
         Understand the person → the goal → the starting point → build the plan → show the destination
@@ -983,16 +1065,37 @@ function OnboardingFlow() {
           className="flex gap-5 overflow-x-auto px-5 md:px-12 pb-4 snap-x snap-mandatory"
           style={{ scrollbarWidth: 'thin' }}
         >
-          {ONBOARDING_STEPS.map((s) => (
+          {steps.map((s) => (
             <PhoneFrame key={s.n} label={`${String(s.n).padStart(2, '0')} · ${s.title}`}>
               <OnboardingScreen step={s} />
             </PhoneFrame>
           ))}
         </div>
       </div>
-      <p className="text-[9px] font-bold tracking-[0.25em] text-white/25 uppercase mt-1 mb-8">
-        Swipe or scroll through the 15 screens → · Early concept mockups — final design follows the branding phase
-      </p>
+      <div className="flex items-center justify-between flex-wrap gap-3 mt-1 mb-4">
+        <p className="text-[9px] font-bold tracking-[0.25em] text-white/25 uppercase">
+          Early concept mockups — final design follows the branding phase
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] uppercase text-primary hover:text-primary/80 transition-colors"
+        >
+          {showAll ? 'Show the 5 key moments' : `Show all ${ONBOARDING_STEPS.length} screens`}
+          <CaretRight size={12} weight="bold" />
+        </button>
+      </div>
+
+      {/* Goal Forecast framing */}
+      <div className="border border-white/6 bg-white/[0.015] p-4 mb-8 max-w-3xl flex items-start gap-3">
+        <TrendUp size={15} weight="fill" className="text-primary shrink-0 mt-0.5" />
+        <p className="text-xs text-white/60 leading-relaxed">
+          <span className="text-white/85 font-semibold">The Goal Forecast is a coached estimate, not an automated promise.</span>{' '}
+          It is generated from the client's goal, starting point and availability, reviewed by
+          Marcus before the programme is assigned, and it updates as real progress and
+          consistency come in.
+        </p>
+      </div>
 
       {/* Marcus HQ during onboarding */}
       <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
@@ -1111,11 +1214,35 @@ function LaunchProduct() {
       <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         Personalised coaching membership.
       </h2>
-      <p className="text-sm text-white mb-10 max-w-2xl">
+      <p className="text-sm text-white mb-6 max-w-2xl">
         The launch proposition is focused: a premium one-to-one coaching relationship, fully
         delivered through the app. Members get a complete experience; Marcus gets everything
-        he needs to manage it.
+        he needs to manage it. This list is the authoritative launch scope — the roadmap
+        and investment point back to it, and the Feature Catalogue tracks the build order
+        behind it in more granular phases.
       </p>
+
+      {/* PWA-first recommendation */}
+      <div className="border border-primary/25 bg-primary/[0.04] p-6 mb-8 max-w-3xl">
+        <div className="flex items-center gap-2 mb-2">
+          <Rocket size={16} weight="fill" className="text-primary" />
+          <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase">Recommended launch approach — web app (PWA)</p>
+        </div>
+        <p className="text-xs md:text-sm text-white leading-relaxed mb-3">
+          Launch as a web app members add to their home screen. It looks and behaves like a
+          native app — icon, full screen, push notifications — with three business advantages:
+          no 15–30% store commission on memberships (Stripe takes ~2–3% instead), updates go
+          live instantly during the soft-launch feedback period, and most wearables connect
+          from day one.
+        </p>
+        <p className="text-xs md:text-sm text-white/60 leading-relaxed">
+          <span className="text-white/80 font-semibold">App Store &amp; Google Play — optional later expansion.</span>{' '}
+          A lightweight native app follows once the platform is proven, mainly to unlock Apple
+          Health and Health Connect syncing. Subscriptions stay on the web, so the store
+          commission never applies.
+        </p>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-6">
         <div className="border border-white/8 bg-white/[0.02] p-6">
           <p className="text-[9px] font-bold tracking-[0.25em] text-white/35 uppercase mb-4">Member experience</p>
@@ -1290,7 +1417,7 @@ const RUNNING_COSTS = [
     item: 'Video streaming (Mux)',
     cost: '€0 now · usage-based live',
     kind: 'Scales with content',
-    note: 'Free during development. Live costs depend on library size and viewing — typically well under €50/month early on. Detailed breakdown in the Brand & Content tab.',
+    note: 'Free during development. Live costs depend on library size and viewing — typically well under €50/month early on. Detailed breakdown in the Delivery Enablers tab.',
   },
   {
     item: 'Transactional email (Resend or similar)',
@@ -1306,7 +1433,8 @@ const RUNNING_COSTS = [
   },
 ];
 
-/* Simple table renderer: Item | Cost | Notes */
+/* Simple table renderer: Item | Cost | Notes.
+   Desktop: table. Mobile: stacked cards — no horizontal scrolling. */
 function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'] }: {
   title: string;
   rows: { item: string; cost: string; note: string }[];
@@ -1315,8 +1443,20 @@ function InvestTable({ title, rows, headers = ['Item', 'Cost', 'Notes'] }: {
   return (
     <div className="mb-10">
       <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-3">{title}</p>
-      <div className="border border-white/8 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[560px]">
+
+      {/* Mobile: stacked cards */}
+      <div className="md:hidden flex flex-col gap-3">
+        {rows.map((r) => (
+          <div key={r.item} className="border border-white/8 bg-white/[0.02] p-4">
+            <p className="text-sm font-bold text-primary mb-1">{r.item}</p>
+            <p className="text-base font-black text-white mb-2">{r.cost}</p>
+            <p className="text-xs text-white/70 leading-relaxed">{r.note}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block border border-white/8">
+        <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-white/[0.04] border-b border-white/8">
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[30%]">{headers[0]}</th>
@@ -1357,8 +1497,29 @@ function FeatureCostTable() {
   return (
     <div className="mb-10">
       <p className="text-[10px] font-bold tracking-[0.3em] text-white/35 uppercase mb-3">1b · Indicative cost per feature</p>
-      <div className="border border-white/8 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[640px]">
+
+      {/* Mobile: stacked cards */}
+      <div className="md:hidden flex flex-col gap-3">
+        {FEATURE_COST_ROWS.map((r) => (
+          <div key={r.item} className="border border-white/8 bg-white/[0.02] p-4">
+            <p className="text-sm font-bold text-primary mb-2">{r.item}</p>
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-white/35 uppercase mb-0.5">AI build</p>
+                <p className="text-sm font-black text-white">{r.ai}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-white/35 uppercase mb-0.5">Product owner</p>
+                <p className="text-sm font-black text-white">{r.owner}</p>
+              </div>
+            </div>
+            <p className="text-xs text-white/70 leading-relaxed">{r.note}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block border border-white/8">
+        <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-white/[0.04] border-b border-white/8">
               <th className="px-4 py-3 text-[9px] font-bold tracking-[0.25em] text-white/40 uppercase w-[20%]">Feature size</th>
@@ -1396,13 +1557,36 @@ function Investment() {
       <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
         Every cost, in one place.
       </h2>
-      <p className="text-sm text-white mb-10 max-w-2xl">
-        Three tables cover the entire financial picture: building the platform, getting it
-        launched, and keeping it running. No hidden fees — most costs only grow when the
-        business grows.
+      <p className="text-sm text-white mb-8 max-w-2xl">
+        One launch investment summary, then the detail behind it: the one-time build,
+        the branding and creative work, the small recurring platform costs, and the
+        optional costs that only apply if the native apps are added later.
       </p>
 
-      <InvestTable title="1 · Build" rows={BUILD_ROWS} />
+      {/* Launch investment summary */}
+      <div className="border border-primary/25 bg-primary/[0.04] p-6 mb-10 max-w-4xl">
+        <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase mb-4">Launch investment at a glance</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { value: '€4,000–8,000', label: 'One-time platform build', sub: 'Estimated from cost-per-feature tiers below' },
+            { value: '€8,487', label: 'Branding & creative direction', sub: 'At 50% introductory rates' },
+            { value: '€8,700–26,000', label: 'External content production', sub: 'Range — confirmed on shoot scope' },
+            { value: '€30–80 / mo', label: 'Recurring running costs', sub: 'Hosting, email, early video usage' },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="text-xl font-black text-primary tracking-tight">{s.value}</p>
+              <p className="text-[9px] font-bold tracking-[0.2em] text-white/60 uppercase mt-1.5">{s.label}</p>
+              <p className="text-[10px] text-white/35 mt-1">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-white/40 leading-relaxed mt-5">
+          Web-first launch means no app store fees and no store commission at launch — payment
+          costs are percentage-based and only exist when revenue exists.
+        </p>
+      </div>
+
+      <InvestTable title="1 · One-time build" rows={BUILD_ROWS} />
       <FeatureCostTable />
 
       <div className="border border-white/6 bg-white/[0.015] p-5 mb-10 -mt-6 flex items-start gap-3">
@@ -1421,31 +1605,18 @@ function Investment() {
         </div>
       </div>
 
-      <InvestTable title="2 · Branding & Content" rows={BRAND_CONTENT_ROWS} />
-      <InvestTable title="3 · Launch (One-off)" rows={LAUNCH_COSTS} />
-      <InvestTable title="4 · Running (Monthly)" rows={RUNNING_COSTS} />
-
-      {/* Summary strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        {[
-          { value: '~€125', label: 'One-off to launch on both stores', sub: 'Apple $99/yr + Google $25' },
-          { value: '€30–80', label: 'Typical monthly running cost', sub: 'Hosting, email, early video usage' },
-          { value: '% based', label: 'Payment & store fees', sub: 'Only charged when revenue comes in' },
-        ].map((s) => (
-          <div key={s.label} className="border border-primary/15 bg-primary/[0.03] p-5">
-            <p className="text-2xl font-black text-primary tracking-tight">{s.value}</p>
-            <p className="text-[9px] font-bold tracking-[0.22em] text-primary/70 uppercase mt-1.5">{s.label}</p>
-            <p className="text-[10px] text-white/30 mt-1">{s.sub}</p>
-          </div>
-        ))}
-      </div>
+      <InvestTable title="2 · Branding & Creative (One-time)" rows={BRAND_CONTENT_ROWS} />
+      <InvestTable title="3 · Recurring (Monthly)" rows={RUNNING_COSTS} />
+      <InvestTable title="4 · Optional — native app expansion (later)" rows={LAUNCH_COSTS} />
 
       <div className="border border-white/5 bg-white/[0.01] p-4 flex items-start gap-3">
         <Warning size={14} weight="fill" className="text-white/25 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-white/30 leading-relaxed">
-          Figures follow current public pricing (USD where noted) and are subject to change by the
-          providers. Store commissions apply only to digital products sold inside the mobile apps.
-          This page will be updated with real invoices once the platform is live.
+        <p className="text-[11px] text-white/40 leading-relaxed">
+          Table 4 applies only if and when the optional native apps are added — the recommended
+          web-first launch carries none of those costs. Figures follow current public pricing
+          (USD where noted) and are subject to change by the providers. Store commissions apply
+          only to digital products sold inside the mobile apps; web subscriptions avoid them
+          entirely. This page will be updated with real invoices once the platform is live.
         </p>
       </div>
     </FadeSection>
@@ -1469,11 +1640,56 @@ const ROADMAP = [
   { dates: '3 January 2027',        label: 'Public Launch',                           highlight: true  },
 ];
 
+const ROADMAP_WAVES = [
+  {
+    tag: 'Launch',
+    when: '15 October 2026',
+    accent: true,
+    items: ['The full coaching membership — onboarding, programmes, logging, check-ins, progress', 'Bookings and payments', 'Direct messaging', 'Marcus HQ — clients, programmes, calendar, reporting', 'Web app (PWA) with push notifications', 'First wearable connections'],
+  },
+  {
+    tag: 'Next',
+    when: 'Soft-launch period · Oct–Dec 2026',
+    accent: false,
+    items: ['Refinements from real member feedback', 'More wearable connections as members ask', 'Content library growth — exercise videos, education', 'Community feed and challenges', 'Referrals and offers'],
+  },
+  {
+    tag: 'Future',
+    when: '2027 onwards',
+    accent: false,
+    items: ['Lightweight native apps — Apple Health & Health Connect syncing', 'Digital products and group programmes', 'Deeper automation and business intelligence', 'New revenue streams beyond one-to-one coaching'],
+  },
+];
+
 function Roadmap() {
   return (
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Roadmap</SectionLabel>
-      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-10">Timeline to launch.</h2>
+      <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">Launch. Next. Future.</h2>
+      <p className="text-sm text-white mb-10 max-w-2xl">
+        The launch wave delivers the Recommended Launch Product — one authoritative scope.
+        Everything else earns its place after real members are using the platform.
+      </p>
+
+      {/* Curated waves */}
+      <div className="grid md:grid-cols-3 gap-4 mb-14 max-w-5xl">
+        {ROADMAP_WAVES.map((w) => (
+          <div key={w.tag} className={`border p-6 ${w.accent ? 'border-primary/30 bg-primary/[0.04]' : 'border-white/8 bg-white/[0.02]'}`}>
+            <p className={`text-[10px] font-bold tracking-[0.25em] uppercase mb-1 ${w.accent ? 'text-primary' : 'text-white/40'}`}>{w.tag}</p>
+            <p className="text-sm font-black text-white tracking-tight mb-4">{w.when}</p>
+            <ul className="space-y-2">
+              {w.items.map((i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-white/70 leading-relaxed">
+                  <span className={`mt-[6px] h-1 w-1 rounded-full shrink-0 ${w.accent ? 'bg-primary' : 'bg-white/25'}`} />
+                  <span>{i}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="text-xl md:text-2xl font-black text-white tracking-tight mb-8">Timeline to launch.</h3>
 
       <div className="relative">
         {/* Vertical line */}
@@ -1531,7 +1747,7 @@ const DECISION_LIST = [
   },
   {
     q: 'What is in the launch scope?',
-    d: 'Approve the launch feature set — the Launch wave in the Feature Catalogue defines exactly what ships on day one.',
+    d: 'Approve the Recommended Launch Product — the personalised coaching membership defined in the Launch tab. It is the single authoritative launch scope; the roadmap follows it and the catalogue tracks the detailed build order behind it.',
   },
   {
     q: 'What are the membership options and prices?',
@@ -1594,17 +1810,33 @@ function Decisions() {
 function FinalCTA({ onApprove, onReview }: { onApprove: () => void; onReview: () => void }) {
   return (
     <FadeSection className="px-5 md:px-12 pb-24">
-      <div className="max-w-2xl">
-        <SectionLabel>Proposal Summary</SectionLabel>
+      <div className="max-w-3xl">
+        <SectionLabel>Proposal Summary — Next Step</SectionLabel>
         <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-6">
           Launch focused. Scale with confidence.
         </h2>
-        <p className="text-sm md:text-base text-white leading-relaxed mb-10">
+        <p className="text-sm md:text-base text-white leading-relaxed mb-8">
           The recommendation is to launch Marcus Grima Fitness as a focused personalised coaching platform first —
           delivering a genuinely exceptional experience for the first cohort of members. Once the core experience
           is proven, the platform expands naturally into digital products, open community, and intelligent automation.
           Build the foundation right, and everything that follows is faster and better.
         </p>
+
+        {/* Recommended package recap */}
+        <div className="border border-white/8 bg-white/[0.02] divide-y divide-white/5 mb-10">
+          {[
+            ['Package', 'Personalised coaching membership — full member experience + Marcus HQ'],
+            ['Approach', 'Web app (PWA) first · native apps as optional later expansion'],
+            ['Timeline', 'Soft launch 15 October 2026 · public launch 3 January 2027'],
+            ['Investment', '€4,000–8,000 build (est.) + €8,487 branding & creative + production on scope · €30–80/mo running'],
+          ].map(([k, v]) => (
+            <div key={k} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-6 px-5 py-4">
+              <p className="text-[10px] font-bold tracking-[0.25em] text-primary uppercase sm:w-28 shrink-0 sm:mt-0.5">{k}</p>
+              <p className="text-sm text-white/80 leading-relaxed">{v}</p>
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -1703,12 +1935,14 @@ function ApprovalModal({ onClose }: { onClose: () => void }) {
 const TABS = [
   { id: 'overview',  label: 'Overview' },
   { id: 'vision',    label: 'Vision' },
-  { id: 'features',  label: 'Features' },
-  { id: 'brand',     label: 'Brand & Content' },
-  { id: 'services',  label: 'Third-Party' },
+  { id: 'launch',    label: 'Launch Product' },
+  { id: 'journey',   label: 'Member Journey' },
+  { id: 'roadmap',   label: 'Roadmap' },
   { id: 'investment', label: 'Investment' },
   { id: 'decisions', label: 'Decisions' },
-  { id: 'roadmap',   label: 'Roadmap' },
+  { id: 'approval',  label: 'Approval' },
+  { id: 'enablers',  label: 'Delivery Enablers' },
+  { id: 'catalogue', label: 'Feature Catalogue' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -1716,11 +1950,6 @@ type TabId = (typeof TABS)[number]['id'];
 export const Proposal = () => {
   const [showModal, setShowModal] = useState(false);
   const [tab, setTab] = useState<TabId>('overview');
-  const roadmapRef = useRef<HTMLDivElement>(null);
-
-  const scrollToRoadmap = () => {
-    roadmapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const selectTab = (id: TabId) => {
     setTab(id);
@@ -1777,26 +2006,17 @@ export const Proposal = () => {
           <Vision />
         )}
 
-        {tab === 'features' && (<>
-          <ProductPillars />
-          <Divider />
-          <Pillars />
-          <Divider />
+        {tab === 'launch' && (
+          <LaunchProduct />
+        )}
+
+        {tab === 'journey' && (
           <OnboardingFlow />
-          <Divider />
-          <WearableSupport />
-        </>)}
+        )}
 
-        {tab === 'brand' && (<>
-          <BrandingChecklist />
-          <Divider />
-          <ContentChecklist />
-        </>)}
-
-        {tab === 'services' && (<>
-          <ThirdPartyServices />
-          <Divider />
-        </>)}
+        {tab === 'roadmap' && (
+          <Roadmap />
+        )}
 
         {tab === 'investment' && (
           <Investment />
@@ -1806,11 +2026,28 @@ export const Proposal = () => {
           <Decisions />
         )}
 
-        {tab === 'roadmap' && (
-          <div ref={roadmapRef}>
-            <Roadmap />
-          </div>
+        {tab === 'approval' && (
+          <FinalCTA
+            onApprove={() => setShowModal(true)}
+            onReview={() => selectTab('roadmap')}
+          />
         )}
+
+        {tab === 'enablers' && (<>
+          <BrandingChecklist />
+          <Divider />
+          <ContentChecklist />
+          <Divider />
+          <ThirdPartyServices />
+          <Divider />
+          <WearableSupport />
+        </>)}
+
+        {tab === 'catalogue' && (<>
+          <ProductPillars />
+          <Divider />
+          <Pillars />
+        </>)}
         </div>
       </div>
 
