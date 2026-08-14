@@ -50,7 +50,7 @@ export const FEATURES: Feature[] = [
   // ── Account & Onboarding ──
   {
     id: 'auth-email', title: 'Email Registration & Verification', category: 'Account & Onboarding',
-    priority: 'Critical', phase: 1, status: 'In Progress',
+    priority: 'Critical', phase: 1, status: 'Delivered',
     tagline: 'Secure, verified accounts from day one.',
     what: 'Full email-based sign-up flow with account verification, duplicate detection, and secure credential storage using scrypt hashing.',
     memberBenefit: 'A trustworthy, familiar sign-up experience that protects their credentials from the start.',
@@ -78,7 +78,7 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'auth-oauth', title: 'Google & Apple Sign-In (OAuth)', category: 'Account & Onboarding',
-    priority: 'High', phase: 1, status: 'In Progress',
+    priority: 'High', phase: 1, status: 'Delivered',
     tagline: 'One tap to join — no password required.',
     what: 'OAuth 2.0 PKCE flow for Google. Accounts are linked intelligently — if an email already exists, the OAuth identity is attached rather than duplicating the account.',
     memberBenefit: 'Fastest possible sign-up and sign-in experience, especially on mobile.',
@@ -122,6 +122,16 @@ export const FEATURES: Feature[] = [
     costNotes: 'Delivered within Phase 1.',
   },
 
+  {
+    id: 'home-dashboard', title: 'Member Home Dashboard', category: 'Account & Onboarding',
+    priority: 'High', phase: 1, status: 'In Progress',
+    tagline: 'One screen that answers "what do I do today?"',
+    what: 'The member landing screen: today\'s session, active challenges, streaks and quick links into training, nutrition and progress. Live now as an interactive preview in the app with sample data — it becomes fully dynamic as each underlying feature connects to the backend.',
+    memberBenefit: 'A clear daily starting point — no hunting through menus to know what\'s next.',
+    businessBenefit: 'The dashboard drives daily engagement, which drives retention.',
+    scope: 'Today view, challenge and streak widgets, quick navigation cards.',
+  },
+
   // ── Coaching & Training ──
   {
     id: 'exercise-library', title: 'Exercise Library', category: 'Coaching & Training',
@@ -146,9 +156,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'programme-delivery', title: 'Programme Delivery (Member)', category: 'Coaching & Training',
-    priority: 'Critical', phase: 2, status: 'Planned',
+    priority: 'Critical', phase: 2, status: 'In Progress',
     tagline: 'Members follow their programme in real time, in the app.',
-    what: 'Members see their assigned programme, tap into today\'s session, and follow along set-by-set. Exercise videos play inline. Rest timers built in.',
+    what: 'Members see their assigned programme, tap into today\'s session, and follow along set-by-set. Exercise videos play inline. Rest timers built in. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'No more downloading PDFs or WhatsApp screenshots — a guided, interactive workout experience.',
     businessBenefit: 'Removes the friction of programme delivery entirely. Members are more likely to stick to structured programmes.',
     scope: 'Programme viewer, today\'s session card, exercise detail with video, set/rep tracker, rest timer.',
@@ -157,9 +167,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'workout-tracking', title: 'Workout Logging & Tracking', category: 'Coaching & Training',
-    priority: 'High', phase: 2, status: 'Planned',
+    priority: 'High', phase: 2, status: 'In Progress',
     tagline: 'Every session is recorded, every rep counted.',
-    what: 'Members log actual weights and reps as they complete each set. Data is stored per session and surfaced in progress charts over time. Marcus can view all client logs.',
+    what: 'Members log actual weights and reps as they complete each set. Data is stored per session and surfaced in progress charts over time. Marcus can view all client logs. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'They see their progress concretely — heavier weights, more reps, shorter rest times.',
     businessBenefit: 'Marcus has objective performance data for every client — no more relying on self-reported updates.',
     scope: 'Set logging UI, weight/reps input, session completion state, historical log view.',
@@ -220,9 +230,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'streaks', title: 'Streak & Habit Tracking', category: 'Progress & Accountability',
-    priority: 'Medium', phase: 3, status: 'Planned',
+    priority: 'Medium', phase: 3, status: 'In Progress',
     tagline: 'Small daily wins that build lasting habits.',
-    what: 'Daily habit completion tracking (workout done, water target hit, check-in submitted). Streak counters with visual celebration on milestones.',
+    what: 'Daily habit completion tracking (workout done, water target hit, check-in submitted). Streak counters with visual celebration on milestones. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Gamification that makes daily consistency feel rewarding, not clinical.',
     businessBenefit: 'Higher daily active usage. Streaks reduce churn — members don\'t want to break their streak.',
     future: 'Social streak sharing. Group habit challenges between members.',
@@ -231,18 +241,18 @@ export const FEATURES: Feature[] = [
   // ── Nutrition & Daily Habits ──
   {
     id: 'meal-plans', title: 'Personalised Meal Plans', category: 'Nutrition & Daily Habits',
-    priority: 'High', phase: 2, status: 'Planned',
+    priority: 'High', phase: 2, status: 'In Progress',
     tagline: 'Marcus\'s nutrition expertise, delivered digitally.',
-    what: 'Marcus creates structured meal plans per client (based on goals, dietary preferences, and calorie targets). Members view their plan day-by-day in the app.',
+    what: 'Marcus creates structured meal plans per client (based on goals, dietary preferences, and calorie targets). Members view their plan day-by-day in the app. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'No guesswork at mealtimes — a clear, coach-approved nutrition plan tailored to their goals.',
     businessBenefit: 'Extends Marcus\'s services beyond training into nutrition coaching — additional value and potential upsell.',
     scope: 'Meal plan builder (admin), day/meal/food structure, member plan view, macro display.',
   },
   {
     id: 'recipe-library', title: 'Recipe Library', category: 'Nutrition & Daily Habits',
-    priority: 'Medium', phase: 2, status: 'Planned',
+    priority: 'Medium', phase: 2, status: 'In Progress',
     tagline: 'Healthy eating made practical and accessible.',
-    what: 'A curated library of recipes with ingredients, macros, prep time, and photos. Marcus populates and maintains it. Recipes can be tagged to meal plans.',
+    what: 'A curated library of recipes with ingredients, macros, prep time, and photos. Marcus populates and maintains it. Recipes can be tagged to meal plans. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Real meal ideas that fit their nutritional targets — not generic internet recipes.',
     businessBenefit: 'Positions Marcus as a complete nutrition coach, not just a trainer. High perceived value.',
     future: 'Member-saved favourites. Shopping list generation from weekly meal plan.',
@@ -270,9 +280,9 @@ export const FEATURES: Feature[] = [
   // ── Bookings & Service Delivery ──
   {
     id: 'calendar', title: 'Session Calendar & Availability', category: 'Bookings & Service Delivery',
-    priority: 'Critical', phase: 2, status: 'Planned',
+    priority: 'Critical', phase: 2, status: 'In Progress',
     tagline: 'Marcus\'s availability, always up to date and bookable.',
-    what: 'Marcus sets his availability in a calendar interface. Members see open slots and request bookings. All session types configurable (1-on-1, group, online).',
+    what: 'Marcus sets his availability in a calendar interface. Members see open slots and request bookings. All session types configurable (1-on-1, group, online). Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Self-serve booking without needing to message Marcus and wait for a reply.',
     businessBenefit: 'Eliminates back-and-forth scheduling. Marcus controls his calendar — no double bookings.',
     scope: 'Availability editor (trainer), booking request (member), confirmation flow, Google Calendar sync option.',
@@ -308,9 +318,9 @@ export const FEATURES: Feature[] = [
   // ── Communication & Community ──
   {
     id: 'direct-messaging', title: 'Direct Messaging (Marcus ↔ Members)', category: 'Communication & Community',
-    priority: 'High', phase: 2, status: 'Planned',
+    priority: 'High', phase: 2, status: 'In Progress',
     tagline: 'Coaching conversations in the app, not WhatsApp.',
-    what: 'Real-time direct messaging between Marcus and individual members. Message threads per client. Media sharing (images, files). Read receipts.',
+    what: 'Real-time direct messaging between Marcus and individual members. Message threads per client. Media sharing (images, files). Read receipts. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Direct access to Marcus in a structured, professional environment — not buried in WhatsApp groups.',
     businessBenefit: 'All client communication is centralised and recorded. No more managing WhatsApp at all hours.',
     scope: 'Message threads, real-time updates (websocket or polling), media sharing, read receipts, notification on new message.',
@@ -327,9 +337,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'leaderboard', title: 'Group Challenges & Leaderboard', category: 'Communication & Community',
-    priority: 'Medium', phase: 3, status: 'Planned',
+    priority: 'Medium', phase: 3, status: 'In Progress',
     tagline: 'Friendly competition drives consistency.',
-    what: 'Opt-in weekly challenges (most workouts, most steps, most check-ins). Public leaderboard among participating members. Badges for winners.',
+    what: 'Opt-in weekly challenges (most workouts, most steps, most check-ins). Public leaderboard among participating members. Badges for winners. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Motivation through community — knowing others are working hard keeps them going.',
     businessBenefit: 'Community features increase retention and social proof. Members talk about the leaderboard.',
     future: 'Team-based challenges. Challenge creation by members.',
@@ -338,9 +348,9 @@ export const FEATURES: Feature[] = [
   // ── Payments & Revenue ──
   {
     id: 'memberships', title: 'Membership Packages & Pricing', category: 'Payments & Revenue',
-    priority: 'Critical', phase: 2, status: 'Planned',
+    priority: 'Critical', phase: 2, status: 'In Progress',
     tagline: 'Marcus\'s service packages, purchased in the app.',
-    what: 'Configurable membership tiers (e.g., Online Coaching, In-Person Monthly, Premium). Each tier unlocks specific features and session quotas. Marcus manages pricing in the admin panel.',
+    what: 'Configurable membership tiers (e.g., Online Coaching, In-Person Monthly, Premium). Each tier unlocks specific features and session quotas. Marcus manages pricing in the admin panel. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Clear, professional packages — they know exactly what they\'re getting.',
     businessBenefit: 'Recurring revenue that flows through the platform. No manual invoicing.',
     scope: 'Membership tier configuration, subscription creation, feature gating by tier.',
@@ -446,10 +456,19 @@ export const FEATURES: Feature[] = [
     dependencies: ['Content Admin CMS', 'Mux Video'],
   },
   {
+    id: 'team-profiles', title: 'Team & Coach Profiles', category: 'Content & Education',
+    priority: 'Medium', phase: 1, status: 'Delivered',
+    tagline: 'Put faces to the coaching.',
+    what: 'A dedicated team page introducing Marcus and the people behind the brand — photos, roles and bios, presented in the app\'s visual style.',
+    memberBenefit: 'Members know exactly who is coaching them — personal connection before the first session.',
+    businessBenefit: 'Builds trust and brand personality; doubles as a marketing surface for the wider team.',
+    scope: 'Team page with profile cards, live in the app today.',
+  },
+  {
     id: 'daily-challenges', title: 'Daily Challenges', category: 'Content & Education',
-    priority: 'Medium', phase: 2, status: 'Planned',
+    priority: 'Medium', phase: 2, status: 'In Progress',
     tagline: 'A daily reason to open the app.',
-    what: 'Marcus sets a short daily challenge: a movement, mindset prompt, or nutrition task. Members log completion and see who else completed it.',
+    what: 'Marcus sets a short daily challenge: a movement, mindset prompt, or nutrition task. Members log completion and see who else completed it. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Daily engagement and variety — the app feels alive, not static.',
     businessBenefit: 'Daily active usage metric. Low-effort community building for Marcus.',
     future: 'AI-generated challenge suggestions based on member programmes and recent activity.',
@@ -467,9 +486,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'partner-offers', title: 'Member Offers & Partner Discounts', category: 'Growth & Acquisition',
-    priority: 'Low', phase: 3, status: 'Planned',
+    priority: 'Low', phase: 3, status: 'In Progress',
     tagline: 'Membership perks beyond coaching.',
-    what: 'Exclusive discounts from partner brands (supplements, sportswear, equipment) available only to active members. Marcus curates the offers.',
+    what: 'Exclusive discounts from partner brands (supplements, sportswear, equipment) available only to active members. Marcus curates the offers. Live now as an interactive preview in the app with sample data — backend persistence is the remaining step.',
     memberBenefit: 'Real financial value from their membership, beyond the coaching itself.',
     businessBenefit: 'Potential affiliate revenue. Increases perceived value of membership. Retention tool.',
   },
