@@ -776,16 +776,33 @@ const MARCUS_ITEMS = [
 ];
 
 /* ── Onboarding Flow ── */
-const ONBOARDING_STEPS = [
-  { n: 1, title: 'Welcome & choice', desc: 'New members are greeted with the brand and choose their path: sign up with email, one tap with Google (Apple to follow), or sign in if they already have an account.' },
-  { n: 2, title: 'Name', desc: 'How Marcus greets them in the app — the experience is personal from the first screen.' },
-  { n: 3, title: 'Gender', desc: 'Helps Marcus tailor programme and nutrition guidance.' },
-  { n: 4, title: 'Age', desc: 'Used for safe, age-appropriate programming.' },
-  { n: 5, title: 'Current weight', desc: 'The starting point for progress tracking — updatable anytime in the profile.' },
-  { n: 6, title: 'Height', desc: 'Completes the basic physical profile.' },
-  { n: 7, title: 'Goal', desc: 'Build Muscle, Lose Weight, Get Fit, Increase Strength, or Improve Endurance — Marcus builds the programme around this.' },
-  { n: 8, title: 'Activity level', desc: 'Beginner, Intermediate, or Advanced — sets the right starting intensity.' },
-  { n: 9, title: 'Create login', desc: 'Email and password last, once they\u2019re already invested — then straight into the app.' },
+const ONBOARDING_STEPS: { n: number; title: string; desc: string; items?: string[] }[] = [
+  { n: 1, title: 'Welcome', desc: 'A short introduction from Marcus explaining what the app will help the client do — then one clear action: "Start my journey".', items: ['Train with a clear plan', 'Stay accountable', 'Track progress', 'Build better habits', 'Stay connected to Marcus'] },
+  { n: 2, title: 'About You', desc: 'The basics that build the client profile.', items: ['Name & date of birth', 'Gender (where relevant)', 'Height & current weight', 'Preferred units', 'Occupation', 'Daily activity level'] },
+  { n: 3, title: 'What Are You Working Towards?', desc: 'The client selects their primary goal, then answers "What would success look like for you?" — context beyond a generic fitness goal.', items: ['Lose body fat', 'Build muscle', 'Get stronger', 'Improve fitness or mobility', 'Build consistency', 'Sports performance & more'] },
+  { n: 4, title: 'Why Does It Matter?', desc: 'The motivation behind the goal — it becomes part of the client\u2019s motivation profile and later supports accountability.', items: ['Why achieve this now?', 'What would it change for you?', 'A specific date or event?'] },
+  { n: 5, title: 'Your Starting Point', desc: 'Current training experience and practical reality.', items: ['Beginner / Intermediate / Experienced', 'Training frequency & history', 'Current sports or activities', 'Gym access & equipment', 'Preferred days & session length'] },
+  { n: 6, title: 'Health & Safety', desc: 'Everything needed for safe programming — important flags are surfaced in Marcus HQ before a programme is assigned.', items: ['Injuries & current pain', 'Surgeries & medical conditions', 'Medication', 'Movement limitations', 'Pregnancy where applicable'] },
+  { n: 7, title: 'Lifestyle', desc: 'What the programme needs to fit around — so Marcus builds something realistic around the client\u2019s actual life.', items: ['Sleep, stress & recovery', 'Work schedule & travel', 'Daily activity & steps', 'Alcohol & smoking', 'Available training time'] },
+  { n: 8, title: 'Nutrition', desc: 'An initial picture of eating habits and the biggest challenge — from portion control to weekends to not knowing what to eat.', items: ['Main nutrition goal', 'Meals, preferences & allergies', 'Calorie tracking today', 'Water intake & supplements', 'Biggest nutrition challenge'] },
+  { n: 9, title: 'Your Weekly Routine', desc: 'For each day of the week: Preferred, Available or Not available — a practical starting point for programme design.' },
+  { n: 10, title: 'Baseline', desc: 'The starting point future progress is measured against.', items: ['Weight & measurements', 'Progress photos', 'Strength benchmarks', 'Fitness tests', 'Steps & resting heart rate', 'Personal bests'] },
+  { n: 11, title: 'Coaching Preferences', desc: 'How the client responds best to coaching — plus "When you\u2019re struggling, what helps you get back on track?"', items: ['Keep me accountable', 'Push me hard / encourage me', 'More detail or keep it simple', 'Explain the reasoning', 'Check in with me regularly'] },
+  { n: 12, title: 'Goal Forecast', desc: 'The key moment — the app turns everything collected into a realistic projected timeline, e.g. "Lose 8 kg · 16–20 weeks · projected 18 December 2026", plus a starting plan. Presented as an estimate that updates as progress and consistency change.' },
+  { n: 13, title: 'Review & Commit', desc: 'Everything summarised into one clear starting plan — goal, timeline, training, focus and projected date — with one action: "I\u2019m ready to start".' },
+  { n: 14, title: 'What Happens Next?', desc: 'The client sees exactly what follows: profile ✓, assessment ✓, forecast ✓, programme being prepared, first session pending — and can book, message Marcus or explore content.' },
+  { n: 15, title: 'First-Day Home Screen', desc: '"Good morning, Sarah. 94 days to your goal." — today\u2019s workout, water, steps and nutrition, connecting everyday behaviour directly to the long-term goal.' },
+];
+
+const HQ_ONBOARDING_VIEW = [
+  'Goal: Lose 8 kg',
+  'Training: 3x weekly',
+  'Experience: Intermediate',
+  'Injury flag: Knee discomfort',
+  'Nutrition challenge: Weekends',
+  'Coaching preference: High accountability',
+  'Projected goal date: 18 December',
+  'Programme: Not assigned',
 ];
 
 function OnboardingFlow() {
@@ -793,41 +810,81 @@ function OnboardingFlow() {
     <FadeSection className="px-5 md:px-12">
       <SectionLabel>Onboarding Flow</SectionLabel>
       <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tight mb-3">
-        From stranger to member in under two minutes.
+        More than a sign-up. The start of the coaching.
       </h2>
-      <p className="text-sm text-white mb-10 max-w-2xl">
-        Onboarding is a guided, one-question-per-screen journey with a progress bar — built to
-        feel effortless and to hand Marcus a complete coaching profile before the member even
-        lands in the app. Members joining with Google skip the account steps and only complete
-        their profile.
+      <p className="text-sm text-white mb-4 max-w-2xl">
+        Onboarding does more than collect information. It builds the client profile, understands
+        their goals, assesses their starting point and immediately turns it into a clear plan and
+        a projected goal timeline.
+      </p>
+      <p className="text-[11px] font-black tracking-[0.15em] text-primary uppercase mb-8">
+        Understand the person → the goal → the starting point → build the plan → show the destination
       </p>
 
-      <div className="relative max-w-2xl">
-        <div className="absolute left-[15px] top-3 bottom-3 w-px bg-white/8" />
-        <div className="flex flex-col">
+      {/* Scrollable step strip */}
+      <div className="relative -mx-5 md:-mx-12">
+        <div
+          className="flex gap-4 overflow-x-auto px-5 md:px-12 pb-4 snap-x snap-mandatory"
+          style={{ scrollbarWidth: 'thin' }}
+        >
           {ONBOARDING_STEPS.map((s) => (
-            <div key={s.n} className="relative flex items-start gap-5 pl-0 py-3">
-              <div className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0 text-primary text-[11px] font-black z-10 bg-[#0A0A0A]">
-                {s.n}
+            <div
+              key={s.n}
+              className="border border-white/8 bg-white/[0.02] p-5 w-[250px] sm:w-[270px] shrink-0 snap-start flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-primary text-[11px] font-black">
+                  {s.n}
+                </span>
+                <span className="text-[9px] font-black text-white/20 tracking-widest">{String(s.n).padStart(2, '0')} / {ONBOARDING_STEPS.length}</span>
               </div>
-              <div className="pt-1">
-                <p className="text-sm font-bold text-primary tracking-wide mb-0.5">{s.title}</p>
-                <p className="text-xs text-white leading-relaxed">{s.desc}</p>
-              </div>
+              <p className="text-sm font-bold text-primary tracking-wide mb-1.5 leading-snug">{s.title}</p>
+              <p className="text-xs text-white leading-relaxed mb-3">{s.desc}</p>
+              {s.items && (
+                <ul className="mt-auto space-y-1">
+                  {s.items.map((i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-white/60 leading-relaxed">
+                      <span className="mt-[6px] h-1 w-1 rounded-full bg-primary/60 shrink-0" />
+                      <span>{i}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
         </div>
       </div>
+      <p className="text-[9px] font-bold tracking-[0.25em] text-white/25 uppercase mt-1 mb-8">
+        Swipe or scroll through the 15 steps →
+      </p>
 
-      <div className="border border-white/6 bg-white/[0.015] p-5 mt-6 max-w-2xl">
-        <div className="flex items-start gap-3">
-          <CheckCircle size={16} weight="fill" className="text-primary shrink-0 mt-0.5" />
+      {/* Marcus HQ during onboarding */}
+      <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
+        <div className="border border-white/6 bg-white/[0.015] p-5">
+          <p className="text-[9px] font-bold tracking-[0.25em] text-primary uppercase mb-2">Marcus HQ during onboarding</p>
           <p className="text-xs text-white leading-relaxed">
-            <span className="text-white/80 font-semibold">Why it matters:</span> every answer feeds
-            directly into Marcus's coaching tools — the goal, activity level and stats arrive in the
-            client dashboard the moment a member finishes, so the first programme can be built
-            without a single intake form or back-and-forth message.
+            Marcus sees the same data from the coaching side — goal, motivation, fitness level,
+            availability, health flags, lifestyle, nutrition challenges, coaching preferences,
+            baseline and projected goal date. Onboarding immediately becomes part of the coaching
+            workflow, not stored questionnaire data.
           </p>
+        </div>
+        <div className="border border-primary/20 bg-primary/[0.03] p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-black text-white tracking-tight">Sarah Borg</p>
+            <span className="text-[9px] font-black tracking-widest text-primary uppercase">100% complete</span>
+          </div>
+          <ul className="space-y-1 mb-3">
+            {HQ_ONBOARDING_VIEW.map((line) => (
+              <li key={line} className="flex items-start gap-1.5 text-[11px] text-white/70 leading-relaxed">
+                <CheckCircle size={11} weight="fill" className="text-primary/70 shrink-0 mt-[3px]" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-black text-[9px] font-black tracking-widest uppercase">
+            Create Programme <ArrowRight size={10} weight="bold" />
+          </span>
         </div>
       </div>
     </FadeSection>

@@ -1,0 +1,329 @@
+Updated Onboarding Flow
+
+The onboarding will do more than collect information. It will build the client profile, understand their goals, assess their starting point and immediately turn that information into a clear plan and projected goal timeline.
+
+The principle is:
+
+Understand the person → understand the goal → understand the starting point → build the plan → show the destination.
+
+1. Welcome
+
+A short introduction from Marcus explaining what the app will help the client do:
+
+Train with a clear plan
+Stay accountable
+Track progress
+Build better habits
+Stay connected to Marcus
+
+Primary action:
+
+Start my journey
+
+2. About You
+
+Collect the basic information needed to build the client profile:
+
+Name
+Date of birth
+Gender, where relevant to coaching
+Height
+Current weight
+Preferred units
+Occupation
+Typical daily activity level
+3. What Are You Working Towards?
+
+Clients select their primary goal.
+
+Examples:
+
+Lose body fat
+Build muscle
+Get stronger
+Improve fitness
+Improve mobility
+Build consistency
+Improve sports performance
+Return to training
+Feel healthier
+Other
+
+Then ask:
+
+What would success look like for you?
+
+This gives Marcus context beyond a generic fitness goal.
+
+4. Why Does It Matter?
+
+The client explains the motivation behind the goal.
+
+Questions could include:
+
+Why do you want to achieve this now?
+What would achieving this change for you?
+Is there a specific date or event you are working towards?
+
+This information becomes part of the client’s motivation profile and can later support accountability and coaching.
+
+5. Your Starting Point
+
+Understand the client’s current training experience:
+
+Beginner / Intermediate / Experienced
+Current training frequency
+Previous training experience
+Current sports or activities
+Gym access
+Equipment available
+Preferred training days
+Typical session length
+6. Health & Safety
+
+Collect information relevant to safe programming:
+
+Injuries
+Current pain
+Previous surgeries
+Relevant medical conditions
+Relevant medication
+Movement limitations
+Pregnancy where applicable
+Anything else Marcus should know
+
+Any important health or injury information is clearly flagged in Marcus HQ before the programme is assigned.
+
+7. Lifestyle
+
+Understand what the programme needs to fit around:
+
+Sleep
+Stress
+Work schedule
+Daily activity
+Average steps
+Travel
+Recovery
+Alcohol
+Smoking
+Available training time
+
+This helps Marcus build something realistic around the client’s actual life.
+
+8. Nutrition
+
+Build an initial picture of the client’s eating habits and challenges:
+
+Main nutrition goal
+Typical number of meals
+Dietary preferences
+Allergies
+Foods avoided
+Current calorie tracking
+Water intake
+Supplements
+Biggest nutrition challenge
+
+Possible challenges:
+
+Portion control
+Snacking
+Weekends
+Eating out
+Meal preparation
+Protein intake
+Consistency
+Not knowing what to eat
+9. Your Weekly Routine
+
+Clients identify when training can realistically fit into their week.
+
+For each day:
+
+Preferred
+Available
+Not available
+
+This gives Marcus a practical starting point for programme design.
+
+10. Baseline
+
+Create the starting point for future progress.
+
+Depending on the coaching service, this can include:
+
+Weight
+Measurements
+Progress photos
+Strength benchmarks
+Fitness tests
+Daily step average
+Resting heart rate
+Personal bests
+
+This becomes the baseline against which future progress is measured.
+
+11. Coaching Preferences
+
+Understand how the client responds best to coaching.
+
+Examples:
+
+Keep me accountable
+Push me hard
+Encourage me
+Give me more detail
+Keep things simple
+Explain the reasoning
+Check in with me regularly
+
+Also ask:
+
+When you are struggling, what usually helps you get back on track?
+
+12. Goal Forecast
+
+This is the key moment in the onboarding journey.
+
+Using the information collected during onboarding, the app will calculate a realistic projected timeline for reaching the client’s goal.
+
+The forecast can use inputs such as:
+
+Starting point
+Target
+Training frequency
+Activity level
+Lifestyle
+Nutrition approach
+Previous experience
+Expected consistency
+
+The client immediately sees something like:
+
+Your Goal
+Lose 8 kg
+
+Estimated Timeline
+16–20 weeks
+
+Projected Goal Date
+18 December 2026
+
+Your Starting Plan
+3 training sessions per week
+8,000 daily steps
+Nutrition target
+Weekly check-in
+
+The forecast is presented as an estimate, not a guarantee.
+
+Your projected date will update as your progress, habits and consistency change.
+
+13. Review & Commit
+
+The app summarises the onboarding information into a clear starting plan.
+
+For example:
+
+Your goal
+Lose 8 kg and improve overall fitness
+
+Your timeline
+Approximately 16–20 weeks
+
+Your training
+3 sessions per week
+
+Your focus
+Strength, nutrition consistency and daily movement
+
+Your projected goal date
+18 December 2026
+
+Primary action:
+
+I’m ready to start
+
+This gives the onboarding a clear sense of commitment and completion.
+
+14. What Happens Next?
+
+The client sees exactly what happens after onboarding.
+
+For example:
+
+Marcus has everything he needs to get you started.
+
+Profile complete ✓
+Assessment complete ✓
+Goal forecast created ✓
+Programme being prepared
+First session pending
+
+From here, the client can:
+
+Book their first session
+Message Marcus
+Explore educational content
+Set up notifications
+Complete their first habit
+15. First-Day Home Screen
+
+The first home screen should immediately turn the onboarding into action.
+
+For example:
+
+Good morning, Sarah. Here’s your next step.
+
+94 days to your goal
+
+Today:
+
+Complete your workout
+Hit your water target
+Reach your step goal
+Log your nutrition
+Message Marcus if you need help
+
+Status: On Track
+
+This connects everyday behaviour directly to the client’s long-term goal.
+
+Marcus HQ During Onboarding
+
+Marcus sees the same onboarding data from the coaching side.
+
+For each client, Marcus can view:
+
+Goal
+Motivation
+Current fitness level
+Training availability
+Health flags
+Lifestyle factors
+Nutrition challenges
+Coaching preferences
+Baseline measurements
+Progress photos
+Projected goal date
+Onboarding completion status
+
+Example:
+
+Sarah Borg — 100% onboarding complete
+
+Goal: Lose 8 kg
+Training: 3x weekly
+Experience: Intermediate
+Injury flag: Knee discomfort
+Nutrition challenge: Weekends
+Coaching preference: High accountability
+Projected goal date: 18 December
+Programme: Not assigned
+
+Primary Marcus action:
+
+Create Programme
+
+The result is that onboarding immediately becomes part of the coaching workflow, rather than simply becoming stored questionnaire data.
