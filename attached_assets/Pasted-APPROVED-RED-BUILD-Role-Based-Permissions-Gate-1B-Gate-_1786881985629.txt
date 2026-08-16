@@ -1,0 +1,242 @@
+APPROVED RED BUILD — Role-Based Permissions Gate 1B
+
+Gate 1B is approved as one bounded, development-only execution envelope.
+
+Do not pause for further approval between stages when the preceding stage passes. Stop immediately if any listed stop condition occurs.
+
+After every progress update, provide:
+
+* A plain-English explanation of the impact
+* GATE 1B TASK COMPLETION: X/100 — X%
+* ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100
+
+Do not increase the feature score. The AI Director will rescore it after reviewing the final evidence.
+
+Intended impact
+
+Clients must be denied access to Marcus-only APIs and must not be able to render Content Admin by manipulating frontend state.
+
+Marcus is represented technically by role = "admin" and must retain access to approved coaching and administrative capabilities.
+
+The legacy technical role trainer is not an approved v1 product actor and must receive no Marcus capabilities.
+
+Server-side enforcement remains the security authority. Frontend guards are an additional UX safeguard only.
+
+Scope boundaries
+
+This envelope authorises:
+
+1. A read-only legacy-trainer preflight
+2. Capability middleware and unit tests
+3. One protected-route canary
+4. Conditional migration of matching privileged guards
+5. A Content Admin page-level Client guard
+6. Complete verification and one consolidated report
+
+It does not authorise:
+
+* Schema or migration changes
+* User-data mutations
+* Creating, promoting, or provisioning Marcus
+* Audit-log persistence
+* Session architecture changes
+* Authentication configuration changes
+* Environment-variable changes
+* Production database access
+* Deployment or publishing
+* New production dependencies
+* Unrelated refactors or formatting changes
+
+Stage 0 — Inspect and preflight — 10 points
+
+Before editing:
+
+1. Read the complete relevant files, including:
+    * artifacts/api-server/src/lib/capabilities.ts
+    * Authentication and role middleware
+    * Every route containing requireRole("admin", "trainer") or an equivalent privileged guard
+    * Existing permission and capability tests
+    * Client authentication state
+    * App.tsx
+    * Sidebar.tsx
+    * BurgerMenu.tsx
+    * Content Admin components and navigation
+2. Produce an exact inventory of:
+    * Privileged guard callsites
+    * Route and HTTP method
+    * Current allowed roles
+    * Required capability
+    * Relevant frontend access points
+3. Confirm that the connected database is a development database. Do not print credentials, connection strings, user records, emails, names, IDs, or other personal data.
+4. Run only a read-only aggregate count of users whose role is trainer.
+5. Report only:
+    * Confirmed environment type
+    * trainer count
+    * No personal information
+
+Stop before modifying code if:
+
+* The environment cannot be confirmed as development
+* The trainer count is greater than zero
+* The query would touch production
+* The current source materially differs from the approved architecture
+
+Stage 1 — Capability middleware — 25 points
+
+If Stage 0 passes:
+
+1. Add central capability middleware using the existing helpers in lib/capabilities.ts.
+2. Use the existing authenticated req.user; do not add a second authentication mechanism.
+3. Preserve existing authentication status codes and response shapes.
+4. Fail closed when:
+    * The user is absent
+    * The role is missing
+    * The role is unknown or invalid
+    * The required capability is absent
+5. admin must receive capabilities through the central mapping.
+6. client and legacy trainer must not receive Marcus capabilities.
+7. Do not use any, suppression comments, or unvalidated assertions.
+8. Do not modify any route yet.
+
+Add focused unit tests proving:
+
+* Missing user is denied
+* Missing role is denied
+* Unknown role is denied
+* Client is denied
+* Legacy trainer is denied
+* Admin is allowed for content:manage
+* Admin is allowed for proposal:manage
+* Middleware does not call the handler after denial
+* Existing requireAuth behaviour remains unchanged
+
+Run the focused tests and affected-package typecheck.
+
+Stop if any check fails.
+
+Stage 2 — One-route canary — 20 points
+
+After Stage 1 passes:
+
+1. Select one existing content-management endpoint currently guarded by requireRole("admin", "trainer").
+2. Report the exact canary route and method before changing it.
+3. Replace only that guard with requireCapability("content:manage").
+4. Preserve route logic, validation, responses, persistence, and error handling.
+5. Prove:
+    * Unauthenticated behaviour remains consistent
+    * Client receives 403
+    * Legacy trainer receives 403
+    * Admin reaches the route handler
+    * The handler does not execute after denial
+    * Existing successful admin behaviour is preserved
+
+Run focused tests and affected-package typecheck again.
+
+Do not begin fan-out unless every canary check passes.
+
+Stage 3 — Conditional fan-out — 20 points
+
+Only after the canary passes:
+
+1. Migrate remaining matching privileged guards:
+    * Content-management operations → content:manage
+    * Proposal-management operations → proposal:manage
+2. For any other privileged guard, map it only when an existing capability has an exact semantic match.
+3. Stop and report any ambiguous route rather than inventing a capability.
+4. Remove imports made unused by these exact changes.
+5. Do not delete or broadly refactor requireRole if it is still used elsewhere.
+6. Preserve route order, authentication, validation, handlers, response formats, and business behaviour.
+
+Return an exact route-to-capability migration table.
+
+Run the complete API permission and capability test suites after fan-out.
+
+Stage 4 — Content Admin Client guard — 10 points
+
+Add a minimal frontend guard without duplicating the server capability dictionary:
+
+1. Use the canonical authenticated user state already present in the client.
+2. Content Admin must not render for a Client, even if activePage or equivalent UI state is manually changed.
+3. Client navigation must not display the Content Admin entry.
+4. Missing, loading, or invalid role state must fail closed.
+5. Redirect or return the Client to the existing safe default page.
+6. Admin must retain normal Content Admin navigation and rendering.
+7. Do not introduce a routing refactor or another frontend authorisation framework.
+8. Server-side capability enforcement remains authoritative.
+
+Prove the manipulated-state Client case through the existing test framework if available. If no frontend test infrastructure exists, perform the strongest safe development smoke check available and report the automated-browser test as BLOCKED rather than pretending it passed.
+
+Do not create or promote a privileged user to perform this test.
+
+Stage 5 — Full verification — 15 points
+
+Run:
+
+* All existing API tests plus all new tests
+* All-package TypeScript checks
+* The production build
+* Available Client and Marcus development smoke checks
+* Working-tree scope and hygiene review
+* Schema and migration diff check
+* Dependency and lockfile check
+* Environment-variable change check
+* Temporary script, debug logging, credential, and secret check
+
+Expected baseline before new tests:
+
+* 89 passing tests from Gates 0 and 1A
+* 20 explicitly skipped pending tests
+
+Explain any difference precisely.
+
+Do not convert blocked tests into passing tests by weakening assertions, mocking away the permission boundary, or changing production behaviour outside scope.
+
+Stop conditions
+
+Stop immediately and report evidence if:
+
+* Legacy trainer count is above zero
+* The database is production or cannot be identified safely
+* A schema, migration, user-data, session, environment, or deployment change is required
+* The canary fails or behaves differently from the remaining callsites
+* A route cannot be mapped unambiguously
+* Existing Client denial or Marcus access regresses
+* Tests or typechecks fail
+* Secrets or personal data would need to be exposed
+* Scope expands beyond Gate 1B
+
+Do not publish or deploy.
+
+Completion rubric
+
+* Development preflight and legacy-trainer verification: 10/10
+* Capability middleware and focused tests: 25/25
+* Canary migration and proof: 20/20
+* Conditional route fan-out: 20/20
+* Content Admin Client guard: 10/10
+* Full verification and clean evidence report: 15/15
+
+Final report
+
+Return one consolidated report containing:
+
+1. Plain-English impact for the Client
+2. Plain-English impact for Marcus
+3. Development environment confirmation and trainer count
+4. Files created, modified, or deleted
+5. Capability middleware behaviour
+6. Canary route and evidence
+7. Full route-to-capability migration table
+8. Content Admin guard behaviour
+9. Tests passed, failed, skipped, or blocked
+10. Typecheck and production-build results
+11. Schema, migration, dependency, environment, and production-state confirmation
+12. Working-tree hygiene
+13. Remaining blockers
+14. Exact stop conditions encountered, if any
+
+End with:
+
+GATE 1B TASK COMPLETION: X/100 — X%
+
+ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100 — awaiting AI Director rescore

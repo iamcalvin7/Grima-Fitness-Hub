@@ -122,6 +122,16 @@ function FullApp() {
     }
   }, [authResolved, isAuthenticated, enteredApp]);
 
+  // Content Admin page guard: redirect any non-admin who somehow arrives on
+  // the content-admin page (e.g. via direct state manipulation) back to home.
+  // Server-side capability enforcement remains the security authority;
+  // this is an additional UX safeguard only.
+  useEffect(() => {
+    if (activePage === 'content-admin' && user?.role !== 'admin') {
+      setActivePage('home');
+    }
+  }, [activePage, user?.role]);
+
   const handleLogout = () => { void signOut(); };
 
   const goToSession = (id: number) => {
@@ -248,7 +258,7 @@ function FullApp() {
       {activePage === 'memberships' && <Memberships setPage={handleSetPage} />}
       {activePage === 'team'          && <Team />}
       {activePage === 'feed'          && <Feed />}
-      {activePage === 'content-admin' && <ContentAdmin />}
+      {activePage === 'content-admin' && user?.role === 'admin' && <ContentAdmin />}
     </Layout>
   );
 }

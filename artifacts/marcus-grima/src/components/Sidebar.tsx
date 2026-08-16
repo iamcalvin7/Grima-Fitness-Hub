@@ -24,8 +24,9 @@ const memberNavItems: { id: Page; label: string; icon: React.ReactNode; badge?: 
 export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
   const { user } = useAuth();
   const isStaff = user?.role === 'trainer' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
-  const navItems = isStaff
+  const navItems = isAdmin
     ? [
         ...memberNavItems,
         { id: 'content-admin' as Page, label: 'Content Admin', icon: <Folders size={18} weight="fill" />, badge: undefined as boolean | undefined },

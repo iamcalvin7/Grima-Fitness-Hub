@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, type Mock } from "vitest";
 import type { Request, Response, NextFunction } from "express";
 import type { User } from "@workspace/db";
+import type { Capability } from "../lib/capabilities.js";
 
 // ---------------------------------------------------------------------------
 // Helper: build minimal mock Express req/res/next
@@ -58,7 +59,7 @@ function makeUser(role: User["role"]): User {
 // Import middleware under test
 // ---------------------------------------------------------------------------
 // Dynamic import so mocks can be set up first if needed
-import { requireAuth, requireRole } from "../middlewares/auth.js";
+import { requireAuth, requireRole, requireCapability } from "../middlewares/auth.js";
 
 // ---------------------------------------------------------------------------
 // 1. requireAuth — unauthenticated request is denied
@@ -183,6 +184,194 @@ describe("requireRole — no req.user fails closed", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Stage 1B — requireCapability middleware
+// ---------------------------------------------------------------------------
+describe("requireCapability — fail closed: missing user", () => {
+  it("returns 401 when req.user is undefined", () => {
+    const req = mockReq({ user: undefined });
+    const { res, status, json } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith({ error: "Not authenticated" });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("does not call the handler after denial when user is absent", () => {
+    const req = mockReq({ user: undefined });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("requireCapability — fail closed: role missing / unknown", () => {
+  it("returns 403 when the user role is an unknown value", () => {
+    const req = mockReq({ user: { ...makeUser("client"), role: "hacker" as User["role"] } });
+    const { res, status, json } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(json).toHaveBeenCalledWith({ error: "Forbidden" });
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("requireCapability — client denied", () => {
+  it("returns 403 for a client requesting content:manage", () => {
+    const req = mockReq({ user: makeUser("client") });
+    const { res, status, json } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(json).toHaveBeenCalledWith({ error: "Forbidden" });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("does not call the handler after denying a client", () => {
+    const req = mockReq({ user: makeUser("client") });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("requireCapability — legacy trainer denied (v1 model)", () => {
+  it("returns 403 for a trainer requesting content:manage", () => {
+    const req = mockReq({ user: makeUser("trainer") });
+    const { res, status, json } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(json).toHaveBeenCalledWith({ error: "Forbidden" });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 for a trainer requesting proposal:manage", () => {
+    const req = mockReq({ user: makeUser("trainer") });
+    const { res, status, json } = mockRes();
+    const next = mockNext();
+
+    requireCapability("proposal:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(json).toHaveBeenCalledWith({ error: "Forbidden" });
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("requireCapability — admin (Marcus) allowed", () => {
+  it("calls next() for admin with content:manage", () => {
+    const req = mockReq({ user: makeUser("admin") });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it("calls next() for admin with proposal:manage", () => {
+    const req = mockReq({ user: makeUser("admin") });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireCapability("proposal:manage")(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+});
+
+describe("requireCapability — existingRequireAuth behaviour unchanged", () => {
+  it("requireAuth still returns 401 for missing user (Gate 0 regression check)", () => {
+    const req = mockReq({ user: undefined });
+    const { res, status, json } = mockRes();
+    const next = mockNext();
+
+    requireAuth(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith({ error: "Not authenticated" });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("requireAuth still calls next() for an authenticated user (Gate 0 regression check)", () => {
+    const req = mockReq({ user: makeUser("client") });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireAuth(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Gate 1 — previously-pending capability-map cases (now implementable)
+// ---------------------------------------------------------------------------
+describe("Gate 1 — legacy trainer receives no Marcus capabilities (now verified)", () => {
+  it("trainer cannot access content:manage via requireCapability", () => {
+    const req = mockReq({ user: makeUser("trainer") });
+    const { res, status } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("Gate 1 — missing / unknown role fails closed (now verified)", () => {
+  it("unknown role string is denied by requireCapability", () => {
+    const req = mockReq({ user: { ...makeUser("client"), role: "unknown_role" as User["role"] } });
+    const { res, status } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("Gate 1 — Marcus (admin) receives coaching and administrative capabilities (now verified)", () => {
+  it("admin reaches handler for content:manage", () => {
+    const req = mockReq({ user: makeUser("admin") });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireCapability("content:manage")(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it("admin reaches handler for proposal:manage", () => {
+    const req = mockReq({ user: makeUser("admin") });
+    const { res } = mockRes();
+    const next = mockNext();
+
+    requireCapability("proposal:manage")(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // PENDING — Integration tests requiring an isolated test database
 // These are marked skip and will be unblocked when a test DB is provisioned.
 // Do NOT run these against development or production databases.
@@ -202,13 +391,14 @@ describe.skip("BLOCKED — requires isolated test database", () => {
 });
 
 // ---------------------------------------------------------------------------
-// PENDING — RED-dependent: requires capability map (Gate 1+)
+// PENDING — Frontend integration test: requires a browser test runner
+// The guard is implemented in App.tsx (useEffect + render guard).
+// The automated coverage is BLOCKED until a frontend test framework is added.
 // ---------------------------------------------------------------------------
-describe.skip("PENDING — requires capability map (Gate 1)", () => {
-  it("legacy trainer role maps correctly under approved v1 capability model");
-  it("missing role value fails closed — not passed through as unknown");
-  it("Marcus receives both coaching and administrative capabilities");
-  it("client cannot access Content Admin page via direct UI state manipulation");
+describe.skip("BLOCKED — requires frontend test runner (Playwright or Vitest-browser)", () => {
+  it("client cannot access Content Admin by manually setting activePage to 'content-admin' in dev tools");
+  it("loading/null user state does not render Content Admin");
+  it("admin reaches Content Admin normally");
 });
 
 describe.skip("PENDING — requires session infrastructure in tests (Gate 1+)", () => {

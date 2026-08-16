@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import type { User } from "@workspace/db";
 import { SESSION_COOKIE, getSessionUser } from "../lib/sessions";
+import { hasCapability, type Capability } from "../lib/capabilities";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -48,6 +49,30 @@ export function requireAuth(
 export function requireRole(...roles: User["role"][]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    next();
+  };
+}
+
+/**
+ * Reject users whose role does not carry the required capability.
+ * Uses the central capability mapping from lib/capabilities.ts.
+ * Use after attachUser + requireAuth.
+ *
+ * Fail-closed behaviour:
+ *   - No user (unauthenticated)          → 401 Not authenticated
+ *   - User present, capability absent    → 403 Forbidden
+ *   - Unknown, missing or invalid role   → 403 Forbidden (no capability granted)
+ */
+export function requireCapability(capability: Capability) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    if (!hasCapability(req.user.role, capability)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db, contentPostsTable } from "@workspace/db";
-import { attachUser, requireAuth, requireRole } from "../middlewares/auth";
+import { attachUser, requireAuth, requireCapability } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -48,7 +48,7 @@ router.get("/content", async (req, res) => {
  */
 router.get(
   "/content/admin",
-  requireRole("admin", "trainer"),
+  requireCapability("content:manage"),
   async (req, res) => {
     try {
       const posts = await db
@@ -73,7 +73,7 @@ router.get(
  */
 router.post(
   "/content",
-  requireRole("admin", "trainer"),
+  requireCapability("content:manage"),
   async (req, res) => {
     const {
       title,
@@ -138,7 +138,7 @@ router.post(
  */
 router.patch(
   "/content/:id",
-  requireRole("admin", "trainer"),
+  requireCapability("content:manage"),
   async (req, res) => {
     const rawId = req.params.id;
     if (typeof rawId !== "string" || !rawId) {
@@ -217,7 +217,7 @@ router.patch(
  */
 router.delete(
   "/content/:id",
-  requireRole("admin", "trainer"),
+  requireCapability("content:manage"),
   async (req, res) => {
     const rawId = req.params.id;
     if (typeof rawId !== "string" || !rawId) {

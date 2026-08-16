@@ -6,7 +6,7 @@ import {
   proposalFeaturesTable,
   proposalSprintsTable,
 } from "@workspace/db";
-import { attachUser, requireAuth, requireRole } from "../middlewares/auth";
+import { attachUser, requireAuth, requireCapability } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -15,7 +15,7 @@ router.use(
   "/proposal-features",
   attachUser,
   requireAuth,
-  requireRole("admin", "trainer"),
+  requireCapability("proposal:manage"),
 );
 
 const VALID_CATEGORIES = [
@@ -318,7 +318,7 @@ router.use(
   "/proposal-decisions",
   attachUser,
   requireAuth,
-  requireRole("admin", "trainer"),
+  requireCapability("proposal:manage"),
 );
 
 /** GET /proposal-decisions — list custom decision questions. */

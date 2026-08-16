@@ -80,8 +80,9 @@ const MENU_ITEMS: {
 export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenuProps) {
   const { user } = useAuth();
   const isStaff = user?.role === 'trainer' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
-  const allItems = isStaff
+  const allItems = isAdmin
     ? [
         ...MENU_ITEMS,
         {
