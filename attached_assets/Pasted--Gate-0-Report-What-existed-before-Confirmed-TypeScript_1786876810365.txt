@@ -1,0 +1,101 @@
+---
+
+## Gate 0 Report
+
+### What existed before
+
+**Confirmed TypeScript errors (pre-fix):**
+1. `objectStorage.ts:270` — `Property 'signed_url' does not exist on type 'unknown'` — `response.json()` returns `unknown`; destructuring without a type guard fails strict check
+2. `content.ts:190` — `No overload matches this call` — `req.params.id` typed as `string | string[]`; `eq()` requires `string`
+3. `content.ts:223` — same as above, in the DELETE handler
+
+**Existing test setup:** None. Zero test files, no test runner, no test script in any package.
+
+**Relevant package scripts before:** `dev`, `build`, `start`, `typecheck` — no `test` script.
+
+---
+
+### What changed
+
+| File | Purpose | Behaviour preserved? |
+|---|---|---|
+| `artifacts/api-server/src/lib/objectStorage.ts` | Replaced `await response.json()` destructure with `as { signed_url: string }` narrow cast — no `any`, no suppression, no behaviour change | ✓ |
+| `artifacts/api-server/src/routes/content.ts` | Added explicit string-narrowing guard for `req.params.id` in both PATCH and DELETE handlers — returns 400 (matching existing pattern) if param is not a plain string; passes narrowed `id: string` to `eq()` | ✓ |
+| `artifacts/api-server/package.json` | Added `"test": "vitest run"` script; added `vitest ^3.0.0` to `devDependencies` | ✓ |
+| `pnpm-lock.yaml` | Updated by `pnpm install` after adding vitest | ✓ |
+| `artifacts/api-server/src/__tests__/permissions.test.ts` | New file — 9 implemented middleware unit tests + 20 explicitly skipped pending tests. No DB connection. No auth or permission behaviour changed. | N/A (new) |
+
+**Dependencies added:** `vitest@3.2.7` (devDependency, api-server only). No production dependencies changed.
+
+**Auth/middleware files changed:** None — `middlewares/auth.ts`, `requireAuth`, and `requireRole` are untouched.
+
+---
+
+### Verification Evidence
+
+| Check | Result |
+|---|---|
+| API server typecheck (`artifacts/api-server`) | **PASS** — zero errors |
+| Client typecheck (`artifacts/marcus-grima`) | **PASS** — zero errors |
+| DB lib typecheck (`lib/db`) | **PASS** — zero errors |
+| Production build (`node ./build.mjs`) | **PASS** — bundled in 361ms |
+| Implemented Gate 0 tests (9 tests) | **PASS** — 9 passed |
+| Pending RED-dependent tests (20 tests) | **BLOCKED** — correctly skipped; listed with exact names |
+| Schema/migration change | **PASS** — no schema files changed |
+| Auth/middleware change | **PASS** — `middlewares/auth.ts` untouched |
+| Environment variable change | **PASS** — none changed |
+| Temporary script check | **PASS** — no temporary scripts created |
+| Working-tree scope check | **PASS** — 4 modified files + 1 new test directory; all within Gate 0 scope |
+
+---
+
+### Implemented tests (9, all PASS)
+
+- `requireAuth` returns 401 when `req.user` is undefined
+- `requireAuth` calls `next()` when `req.user` is present
+- `requireRole("admin","trainer")` returns 403 for a client (content route guard)
+- `requireRole("admin","trainer")` returns 403 for a client (proposal route guard)
+- `requireRole("admin")` returns 403 for a client
+- `requireRole("admin","trainer")` returns 403 when `req.user` is undefined (fail closed)
+- `requireRole("admin","trainer")` allows `role=admin` through
+- `requireRole("admin","trainer")` allows `role=trainer` through
+- `requireRole("admin","trainer")` allows `role=admin` through proposal-route guard
+
+### Pending tests (20, all BLOCKED/PENDING)
+
+**BLOCKED — isolated test database required:**
+signup ignores role field · OAuth user cannot assign role · PUT /profile ignores role/tenantId · GET /profile uses auth user ID · session deletion verifies ownership · client → 403 on all Marcus routes · cross-tenant content isolation
+
+**PENDING — Gate 1 capability map:**
+trainer role under v1 model · missing role fails closed · Marcus coaching + admin capabilities · client cannot reach Content Admin via UI state manipulation
+
+**PENDING — Gate 1+ session infrastructure:**
+role change mid-session · cross-tenant integration
+
+**PENDING — Gate 2+ audit log:**
+sensitive action audit trail
+
+**PENDING — Gate 2+ provisioning:**
+Marcus provisioning · user-scoped upload paths
+
+---
+
+### Remaining blockers before 100/100
+
+1. **Capability abstraction** (Gate 1) — no central `ROLE_CAPABILITIES` map; `requireRole("admin","trainer")` scattered across 6 callsites
+2. **Content Admin page-level client guard** (Gate 1) — `activePage === 'content-admin'` branch in App.tsx has no role check; API is protected but UI is not
+3. **Marcus provisioning tool** (Gate 2) — no safe path to create a privileged account without direct DB SQL
+4. **Isolated test database** (Gate 1) — required for all integration-level permission tests
+5. **Audit logging** (Gate 2) — no `audit_logs` table or write on sensitive actions
+6. **Storage upload path scoping** (Gate 2) — signed URL not bound to requesting user
+
+---
+
+**GATE 0 TASK COMPLETION: 100/100 — 100%**
+
+- TypeScript errors fixed, all-package typecheck clean: **40/40**
+- Test runner, scripts, dependencies correctly configured: **30/30**
+- 9 implemented tests passing, 20 pending tests honestly recorded: **20/20**
+- Production build passes, diff clean, no release-hygiene issues: **10/10**
+
+**ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100**

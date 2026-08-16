@@ -1,0 +1,282 @@
+Implement the approved **Gate 1A: Capability Foundation** for Role-Based Permissions.
+
+## Purpose
+
+Create one tested, server-side source of truth describing which capabilities belong to Client and Marcus.
+
+This gate must not change current application behaviour. No existing route, page or user should use the new capability system yet.
+
+## Approved product model
+
+The v1 product has two actors:
+
+* **Client:** Uses only their own coaching experience and records.
+* **Marcus:** Sole operator with both coaching and administrative capabilities.
+
+The database currently contains three technical values:
+
+* `client`
+* `trainer`
+* `admin`
+
+For Gate 1A:
+
+* `client` maps to Client and receives no privileged capabilities.
+* `admin` represents Marcus and receives both capability groups.
+* `trainer` is a restricted legacy technical value and receives no new Marcus capability by default.
+* Do not remove or migrate any role value.
+* Do not change existing users.
+* Do not change current route behaviour.
+
+## Risk and scope
+
+Gate 1A is approved as a contained capability-foundation task.
+
+Stop immediately if implementation requires:
+
+* Changing authentication middleware.
+* Changing `requireAuth` or `requireRole`.
+* Replacing any route guard.
+* Changing database schemas or migrations.
+* Updating existing role data.
+* Provisioning Marcus.
+* Changing sessions or cookies.
+* Changing API responses.
+* Changing frontend navigation.
+* Changing Content Admin behaviour.
+* Changing environment variables.
+* Production SQL.
+* Publishing.
+
+Those actions belong to later RED gates.
+
+## Step 1: Inspect before creating
+
+Read fully:
+
+* The canonical user-role schema and exported role type.
+* Authentication middleware.
+* Existing server library structure.
+* TypeScript configuration and import aliases.
+* The new Vitest configuration and permission tests.
+* Package boundaries relevant to server-only permission policy.
+
+Confirm the correct location for a server-side capability module.
+
+Preferred location:
+
+`artifacts/api-server/src/lib/capabilities.ts`
+
+Use another location only if the current architecture proves this inappropriate. Explain the reason before proceeding.
+
+Do not put authorisation policy in frontend code.
+
+Do not move it into the database schema package merely to share it with the client. The server remains the security authority. A later gate can expose resolved capabilities to the client safely.
+
+## Step 2: Define capability groups
+
+Create explicit, readonly capability groups.
+
+### Coaching capabilities
+
+Include identifiers covering:
+
+* Client records and management.
+* Programmes and assignments.
+* Bookings and attendance.
+* Progress review.
+* Coaching messages and feedback.
+
+### Administrative capabilities
+
+Include identifiers covering:
+
+* Content management.
+* Proposal/project management.
+* Membership and credit management.
+* Payment and revenue management.
+* Offers management.
+* Product configuration.
+* Audit-log access.
+
+Use stable, namespaced capability identifiers such as:
+
+* `clients:read`
+* `clients:manage`
+* `programmes:manage`
+* `bookings:manage`
+* `progress:review`
+* `messages:manage`
+* `content:manage`
+* `proposal:manage`
+* `memberships:manage`
+* `payments:manage`
+* `offers:manage`
+* `configuration:manage`
+* `audit:read`
+
+These constants define permission vocabulary only. Do not build the features they describe.
+
+## Step 3: Define the role-to-capability mapping
+
+Create one exhaustive mapping covering every current database role value.
+
+Required result:
+
+* `client`: no privileged capabilities.
+* `trainer`: no privileged capabilities in approved v1.
+* `admin`: all coaching and administrative capabilities.
+
+Requirements:
+
+* Use the canonical role type from the database package.
+* Make the mapping exhaustive at compile time.
+* Use readonly values.
+* Prevent duplicate capability entries.
+* Do not use broad `any`.
+* Do not suppress TypeScript errors.
+* Do not fall back to granting access for unknown values.
+* Missing, malformed or unknown roles must resolve to zero privileged capabilities.
+
+Do not rename `admin` to `marcus` in the database or API during this gate.
+
+The product meaning is that the securely provisioned `admin` account will represent Marcus. Provisioning is not part of Gate 1A.
+
+## Step 4: Add pure helper functions
+
+Create pure, side-effect-free helpers for:
+
+* Resolving capabilities for a role.
+* Checking whether a role has one capability.
+* Checking whether a role has every capability in a required list.
+* Checking whether a role has at least one capability in a required list.
+
+Requirements:
+
+* Unknown or missing roles return false or an empty capability list.
+* Helpers must not access the database.
+* Helpers must not inspect sessions.
+* Helpers must not mutate arrays or mappings.
+* Helpers must not throw for an unknown runtime role.
+* No Express middleware should be created yet.
+* No existing middleware should be edited.
+
+## Step 5: Tests
+
+Create focused unit tests for the capability module.
+
+Required cases:
+
+1. Client receives no privileged capabilities.
+2. Legacy Trainer receives no Marcus capabilities.
+3. Admin receives every coaching capability.
+4. Admin receives every administrative capability.
+5. Admin therefore represents Marcus’s combined access.
+6. Unknown role receives no capabilities.
+7. Missing role receives no capabilities.
+8. Client fails every privileged capability check.
+9. Trainer fails every privileged capability check.
+10. Admin passes every defined capability check.
+11. “Has every capability” works correctly.
+12. “Has any capability” works correctly.
+13. Empty required-capability lists behave intentionally and are documented.
+14. Every canonical database role has an explicit mapping.
+15. Capability identifiers contain no duplicates.
+16. Returned capability collections cannot mutate the central mapping.
+17. The module has no database, environment, session or network side effects.
+
+Do not change the existing Gate 0 characterisation tests. They should continue documenting current `requireRole` behaviour until Gate 1B intentionally replaces it.
+
+## Step 6: Verification
+
+Run:
+
+1. Capability unit tests.
+2. All API tests.
+3. API package typecheck.
+4. Client package typecheck.
+5. Database-library typecheck.
+6. All-package typecheck.
+7. Production build.
+8. Working-tree diff review.
+
+Required results:
+
+* All implemented tests pass.
+* Zero TypeScript errors.
+* Production build passes.
+* Existing Gate 0 tests remain unchanged and pass.
+* No route imports the new capability module.
+* No middleware imports the new capability module.
+* No frontend file imports the new capability module.
+* No permission behaviour changes.
+* No schema, migration, user, environment or session changes.
+* No temporary scripts.
+* No unrelated edits.
+
+## One-file test rule
+
+The new capability module and its dedicated test file are the only expected source additions.
+
+Package configuration should not require changes because Vitest is already installed. If additional dependencies or configuration changes are required, stop and explain before proceeding.
+
+## Completion calculation
+
+Calculate Gate 1A task completion as:
+
+* 20%: Existing architecture and correct module location verified.
+* 40%: Complete, typed capability vocabulary and role mapping implemented.
+* 25%: All required capability tests implemented and passing.
+* 15%: All-package typecheck, production build and diff/hygiene checks pass.
+
+## Required report
+
+Return:
+
+### Architecture decision
+
+* Final module location.
+* Why it belongs there.
+* Confirmation that the server remains the security authority.
+
+### What changed
+
+* Every file created or modified.
+* Every capability defined.
+* Exact role-to-capability mapping.
+* Confirmation that behaviour did not change.
+
+### Test evidence
+
+Report PASS, BLOCKED or NOT APPLICABLE for:
+
+* Capability tests.
+* Existing Gate 0 tests.
+* API typecheck.
+* Client typecheck.
+* Database-library typecheck.
+* All-package typecheck.
+* Production build.
+* Route/middleware change check.
+* Frontend change check.
+* Schema/migration check.
+* User-data check.
+* Environment change check.
+* Temporary-script check.
+* Working-tree scope check.
+
+### Remaining blockers
+
+List what remains for Gate 1B, Gate 2 and final 100/100 verification.
+
+### Completion percentage
+
+End with exactly:
+
+**GATE 1A TASK COMPLETION: X/100 — X%**
+
+Also state:
+
+**ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100**
+
+Do not increase the feature score. ChatGPT will review the evidence and decide whether it changes.
