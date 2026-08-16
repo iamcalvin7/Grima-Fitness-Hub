@@ -1,0 +1,238 @@
+Implement the approved Gate 0 scope for Role-Based Permissions.
+
+## Current position
+
+Role-Based Permissions is currently scored **41/100**.
+
+The existing server enforcement is sound, but implementation of the new capability model is not approved yet.
+
+This task must only:
+
+1. Fix the three existing API TypeScript errors.
+2. Establish the permission-testing foundation.
+3. Verify the clean baseline.
+
+Do not implement capability mapping or change permission behaviour.
+
+## Risk classification
+
+Gate 0 is AMBER and has been approved by Calvin.
+
+Stop immediately if the work requires changing:
+
+* Authentication middleware.
+* `requireAuth` or `requireRole` behaviour.
+* Role values, role defaults or role types.
+* Database schemas or migrations.
+* Existing user data.
+* Session behaviour.
+* Cookies.
+* CORS.
+* Environment variables.
+* Privileged-account provisioning.
+* Production data.
+* Publishing or deployment.
+
+Any of those changes are RED and require separate approval.
+
+## Step 1: Verify the baseline
+
+Before editing:
+
+1. Reopen every affected file fully.
+2. Run typecheck across all packages.
+3. Confirm the exact current errors.
+4. Confirm whether the reported errors are still:
+
+   * `objectStorage.ts:270`: `signed_url` does not exist on type `unknown`.
+   * `content.ts:190`: invalid `eq()` call involving `string | string[]`.
+   * `content.ts:223`: invalid `eq()` call involving `string | string[]`.
+
+Treat these as hypotheses until the current source and typecheck confirm them.
+
+Report any additional error before modifying code.
+
+## Step 2: Fix only the proven TypeScript errors
+
+Apply the smallest safe fixes.
+
+### Object storage error
+
+Inspect the actual SDK response and its documented or inferred return type.
+
+Fix the `signed_url` typing without:
+
+* Using broad `any`.
+* Suppressing TypeScript errors.
+* Disabling strict mode.
+* Changing upload behaviour.
+* Changing storage permissions.
+* Changing environment variables.
+* Refactoring unrelated object-storage logic.
+
+Use a narrow type, validated response shape or appropriate type guard.
+
+### Content route errors
+
+Inspect how the relevant query or route values become `string | string[]`.
+
+Normalise or validate them before passing them to the database comparison.
+
+Do not:
+
+* Silently select an arbitrary array value.
+* Change filtering semantics.
+* Modify permissions.
+* Refactor unrelated content routes.
+* Change API response contracts.
+
+Malformed or unsupported values should follow the route’s existing error-handling pattern.
+
+After each fix, rerun the affected package typecheck before continuing.
+
+## Step 3: Establish test infrastructure
+
+Inspect the current monorepo and package manager before adding anything.
+
+Requirements:
+
+* Continue using the existing package manager.
+* Use the smallest suitable TypeScript test setup.
+* Prefer Vitest if it fits the current TypeScript/Vite architecture.
+* Add only required development dependencies.
+* Update the correct package and lock file.
+* Do not introduce another package manager.
+* Do not change production dependencies unless technically unavoidable and approved.
+* Do not connect tests to production data.
+* Do not run migrations or seeds.
+* Do not use the development database for destructive tests.
+
+If permission integration tests require an isolated test database and none exists, stop that part and mark it BLOCKED. Do not improvise by using an existing database.
+
+## Step 4: Add the initial permission test foundation
+
+Create focused tests for current, already-approved behaviour.
+
+Tests that can be proven without changing security middleware should cover:
+
+1. An unauthenticated request is denied by `requireAuth`.
+2. A Client is denied access to current privileged content routes.
+3. A Client is denied access to current privileged proposal routes.
+4. The privileged Marcus-compatible technical role is allowed through current privileged route guards.
+5. A signup request cannot assign a privileged role.
+6. OAuth-created users cannot assign themselves a privileged role.
+7. Profile updates ignore or reject role and tenant fields.
+8. Tenant identity comes from the authenticated user, not the request body.
+9. Existing profile access uses the authenticated user ID.
+10. Existing session deletion verifies ownership.
+
+Do not permanently encode `trainer` as equivalent to Marcus in new tests.
+
+Cases that require the future capability implementation should be added as clearly named pending or blocked tests, including:
+
+* Legacy `trainer` access under the approved v1 capability model.
+* Missing or unknown role fails closed.
+* Marcus receives both coaching and administrative capabilities.
+* Client cannot access Marcus HQ through direct UI state manipulation.
+* Role changes during active sessions.
+* Cross-tenant integration tests.
+* Audit-log creation.
+* Marcus provisioning.
+* User-scoped upload paths.
+
+Pending tests must be reported honestly. Do not call the complete permission suite passing while required cases remain pending.
+
+## Step 5: Verification
+
+Run:
+
+1. Typecheck across every package.
+2. Production build.
+3. The new test command.
+4. Existing checks that are relevant and safe.
+5. A working-tree diff review.
+
+Required results:
+
+* Zero TypeScript errors.
+* Production build passes.
+* Implemented Gate 0 tests pass.
+* Pending RED-dependent tests are listed separately.
+* No auth or permission behaviour changed.
+* No schema or migration files changed.
+* No environment variables changed.
+* No production action occurred.
+* No temporary test scripts remain.
+* No unrelated files changed.
+
+## Scope protection
+
+Do not:
+
+* Create the capability map yet.
+* Create `requireCapability` yet.
+* Replace `requireRole` callsites.
+* Change `admin`, `trainer` or `client`.
+* Provision Marcus.
+* Add an audit-log table.
+* Change Content Admin access behaviour.
+* Change storage authorisation.
+* Publish.
+
+These belong to later approved scopes.
+
+## Required report
+
+Return:
+
+### What existed before
+
+* Confirmed TypeScript errors.
+* Existing test setup.
+* Relevant package scripts.
+
+### What changed
+
+* Every file changed.
+* Purpose of each change.
+* Dependencies added.
+* Confirmation that behaviour was preserved.
+
+### Verification evidence
+
+Use only PASS, BLOCKED or NOT APPLICABLE for:
+
+* All-package typecheck.
+* API typecheck.
+* Client typecheck.
+* Production build.
+* New permission tests.
+* Pending RED-dependent tests.
+* Schema/migration change check.
+* Auth/middleware change check.
+* Environment change check.
+* Temporary-script check.
+* Working-tree scope check.
+
+### Remaining blockers
+
+List everything still preventing Role-Based Permissions from reaching 100/100.
+
+### Completion percentage
+
+Calculate Gate 0 task completion using:
+
+* 40%: All three verified TypeScript errors fixed and all-package typecheck passes.
+* 30%: Test runner, scripts and required development dependencies correctly configured.
+* 20%: Initial permission tests implemented and passing, with RED-dependent cases recorded honestly.
+* 10%: Production build, diff review and release-hygiene checks pass.
+
+End with exactly:
+
+**GATE 0 TASK COMPLETION: X/100 — X%**
+
+Also state:
+
+**ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100**
+
+Do not increase the feature score. ChatGPT will review the evidence and decide whether the score changes.

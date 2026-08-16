@@ -140,7 +140,12 @@ router.patch(
   "/content/:id",
   requireRole("admin", "trainer"),
   async (req, res) => {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    if (typeof rawId !== "string" || !rawId) {
+      res.status(400).json({ error: "Invalid post id" });
+      return;
+    }
+    const id: string = rawId;
 
     const allowed = [
       "title",
@@ -214,7 +219,12 @@ router.delete(
   "/content/:id",
   requireRole("admin", "trainer"),
   async (req, res) => {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    if (typeof rawId !== "string" || !rawId) {
+      res.status(400).json({ error: "Invalid post id" });
+      return;
+    }
+    const id: string = rawId;
     try {
       const [deleted] = await db
         .delete(contentPostsTable)
