@@ -1,0 +1,263 @@
+Perform a complete, read-only inspection of Role-Based Permissions in Grima Fitness Hub.
+
+## Approved v1 product scope
+
+The product has exactly two actors:
+
+1. **Client** — a member using the app for coaching, programmes, workouts, bookings, progress, nutrition, content and communication.
+2. **Marcus** — the sole operator. Marcus combines trainer and administrator responsibilities.
+
+There must be no separate Trainer or Admin product roles in v1.
+
+Internally, Marcus’s permissions should remain divided into two explicit capability groups:
+
+* **Coaching capabilities:** client management, programmes, assignments, bookings, attendance, progress, feedback and communication.
+* **Administrative capabilities:** content, memberships, payments, credits, offers, configuration and sensitive operational actions.
+
+Marcus receives both capability groups. This separation must be preserved so additional staff roles could be introduced later without rewriting the permission system.
+
+## Risk and authority
+
+This inspection is read-only.
+
+Do not:
+
+* Modify any file.
+* Change role values or defaults.
+* Change authentication or session behaviour.
+* Change middleware.
+* Change the database schema.
+* Create or run migrations.
+* Update seed data or user records.
+* Modify environment variables.
+* Install dependencies.
+* Publish or deploy.
+* Run production SQL.
+* Expose personal data, credentials or secrets.
+
+Any implementation affecting roles, authentication, sessions, schema or existing user data is RED and requires separate approval from Calvin after this report is reviewed.
+
+## Inspection requirements
+
+Inspect the actual current codebase and report the following.
+
+### 1. Current role model
+
+Identify:
+
+* Every role value, enum, union type and constant.
+* Database columns, defaults, constraints and indexes related to roles.
+* Whether the current values are `client`, `trainer` and `admin`, or something different.
+* Every duplicate role definition across packages.
+* Any role values stored in sessions, tokens, cached state or local storage.
+
+Support every finding with exact source evidence.
+
+### 2. Role assignment and provisioning
+
+Identify every path that can:
+
+* Create a user.
+* Select or assign a role.
+* Change a role.
+* Seed a privileged account.
+* Provision Marcus.
+* Promote a Client.
+* Create a Trainer or Admin.
+* Import or synchronise users from an external provider.
+
+Confirm whether any client-controlled form, request body, query parameter or API call could assign or elevate a privileged role.
+
+Do not expose actual user data.
+
+### 3. Authentication and sessions
+
+Explain:
+
+* How the authenticated user is attached to a request.
+* Whether the role is read from the database on every request or copied into the session.
+* Whether stale sessions could retain old permissions.
+* What happens when a role changes.
+* Whether sessions need to be revoked or refreshed after a permission change.
+* What happens when role configuration is missing, malformed or unknown.
+* Whether any path fails open instead of denying access.
+
+### 4. Server-side enforcement
+
+Find every:
+
+* Authentication middleware.
+* Role middleware.
+* Permission helper.
+* Ownership check.
+* Tenant filter.
+* Protected API route.
+* Operator-only route.
+* Admin-only route.
+* Trainer-only route.
+* Route accepting both Trainer and Admin.
+
+Create an endpoint matrix containing:
+
+| Method and endpoint | Current allowed roles | Ownership check | Tenant check | Intended v1 actor | Result |
+| ------------------- | --------------------- | --------------- | ------------ | ----------------- | ------ |
+
+Use PASS, BLOCKED or NOT APPLICABLE for the result.
+
+Do not assume that hiding a button or page is permission enforcement.
+
+### 5. Client data isolation
+
+Verify that a Client can access only:
+
+* Their own profile.
+* Their own sessions and bookings.
+* Their own programmes and workouts.
+* Their own progress and measurements.
+* Their own messages and conversations.
+* Their own membership, payments and credits.
+* Their own uploads and private files.
+
+Check for insecure direct-object-reference risks where a Client could change an ID and access another Client’s record.
+
+### 6. Marcus permissions
+
+Map every current Trainer and Admin permission to the approved Marcus actor.
+
+Create a capability matrix:
+
+| Capability | Client | Marcus | Current enforcement | Required change |
+| ---------- | ------ | ------ | ------------------- | --------------- |
+
+Marcus should receive both coaching and administrative capabilities, but permissions must still be centrally defined rather than implemented through scattered “Marcus can do everything” checks.
+
+### 7. Client-side behaviour
+
+Inspect:
+
+* Navigation guards.
+* Route guards.
+* Conditional buttons and menus.
+* Marcus HQ access.
+* Role-based redirects.
+* Client and operator layouts.
+* Authentication context and user types.
+* Loading and error behaviour when access is denied.
+
+Identify client-side checks that have no matching server enforcement.
+
+### 8. Sensitive actions and auditing
+
+Identify whether sensitive Marcus actions record:
+
+* Actor.
+* Action.
+* Target record.
+* Timestamp.
+* Previous and new value where relevant.
+
+Include role changes, account actions, membership/payment changes, content deletion and other sensitive operator operations.
+
+### 9. Tests
+
+Find every existing permission or role test.
+
+Report missing cases for:
+
+* Unauthenticated requests.
+* Client allowed access.
+* Client denied access.
+* Cross-client record access.
+* Marcus allowed coaching access.
+* Marcus allowed administrative access.
+* Unknown role.
+* Missing role.
+* Missing authentication configuration.
+* Tenant isolation.
+* Direct API access despite hidden UI.
+* Role or capability changes during an active session.
+
+Missing test infrastructure or missing required tests must be marked BLOCKED, not NOT APPLICABLE.
+
+### 10. Change and migration decision
+
+Determine whether moving to Client and Marcus requires:
+
+* No schema change.
+* Capability mapping only.
+* Type changes.
+* Database schema migration.
+* Existing-user data migration.
+* Seed/provisioning changes.
+* Session invalidation.
+* Authentication changes.
+* Frontend navigation changes.
+* API contract changes.
+
+Do not make any change.
+
+Present at least two safe implementation options and recommend one.
+
+The recommendation should favour:
+
+* Two product actors.
+* Central capability definitions.
+* Server-side enforcement.
+* Deny-by-default behaviour.
+* Minimal migration risk.
+* A future seam for additional staff roles.
+* No unnecessary architecture rewrite.
+
+### 11. Dependency and regression map
+
+List every affected:
+
+* Package.
+* File.
+* Database table.
+* API route.
+* Middleware.
+* Client page.
+* Marcus HQ page.
+* Session/auth flow.
+* Seed or provisioning path.
+* Test suite.
+* Integration.
+
+### 12. RED stop conditions
+
+State exactly when implementation must stop for Calvin’s approval, including:
+
+* Any schema migration.
+* Existing role-data transformation.
+* Production user changes.
+* Session invalidation.
+* Authentication configuration.
+* Privileged-account provisioning.
+* Security middleware changes.
+* Production SQL.
+* Publishing.
+
+## Required final report
+
+Return:
+
+1. Executive verdict.
+2. Current role architecture.
+3. Endpoint permission matrix.
+4. Client ownership and tenant-isolation verdict.
+5. Marcus capability matrix.
+6. Privilege-escalation findings.
+7. Session and role-change findings.
+8. Audit-log findings.
+9. Test coverage and missing cases.
+10. Affected files and dependencies.
+11. Migration decision.
+12. Safest recommended implementation plan.
+13. RED stop conditions.
+14. Exact evidence required for 100/100.
+15. Updated honest score out of 100.
+
+End every inspection area with PASS, BLOCKED or NOT APPLICABLE.
+
+Do not implement anything. Return the complete report for review by ChatGPT as AI Director.
