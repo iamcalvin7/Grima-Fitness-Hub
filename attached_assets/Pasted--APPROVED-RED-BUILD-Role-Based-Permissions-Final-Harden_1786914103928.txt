@@ -1,0 +1,263 @@
+# APPROVED RED BUILD — Role-Based Permissions Final Hardening Gate
+
+This is the final bounded development-only gate required to take Role-Based Permissions from 93/100 to 100/100.
+
+Proceed through all stages without requesting further approval when checks pass. Stop only when a defined stop condition occurs.
+
+Do not update documentation. ChatGPT will update it once the complete gate is verified.
+
+After each meaningful update, report:
+
+* Plain-English impact
+* `FINAL HARDENING GATE: X/100 — X%`
+* `ROLE-BASED PERMISSIONS: 93/100 — awaiting final acceptance`
+
+## Intended impact
+
+No user-facing feature should change.
+
+This gate must prove through real database-backed tests that:
+
+* Clients cannot assign or change roles
+* Clients cannot access another Client’s records
+* Clients cannot access Marcus routes
+* Tenant boundaries cannot be crossed
+* Role changes take effect on the next authenticated request
+* Session ownership is enforced
+* Provisioning and audit operations are transactionally safe
+
+## Explicit exclusions
+
+Do not:
+
+* Access production
+* Publish or deploy
+* Use the normal development schema for test records
+* Create persistent real users
+* Promote a real user
+* Change approved permission behaviour
+* Add product roles
+* Remove the legacy `trainer` enum
+* Change OAuth providers
+* Change production environment files
+* Update documentation
+* Begin another feature
+
+Development-only test dependencies and test configuration are approved when required.
+
+## Stage 0 — Inspect and classify remaining skips — 10 points
+
+Inspect all 19 skipped API tests and classify each as:
+
+* Permission-related and required by this gate
+* Unrelated infrastructure test
+* Obsolete because equivalent stronger coverage now exists
+
+Do not delete or silently unskip tests.
+
+Return a table containing:
+
+* Exact test name
+* Current reason for skip
+* Final disposition
+* Required infrastructure
+* Replacement test, if equivalent coverage already exists
+
+Inspect:
+
+* Database client creation
+* Migration runner
+* Test setup conventions
+* Authentication/session middleware
+* Signup and OAuth routes
+* Profile routes
+* Session-management routes
+* Content, Proposal and Audit routes
+* Tenant filters
+* Provisioning transactions
+
+## Stage 1 — Isolated test-database harness — 20 points
+
+Build an isolated database-backed integration-test harness.
+
+Preferred order:
+
+1. Dedicated `TEST_DATABASE_URL` that is positively identified as non-production and different from `DATABASE_URL`.
+2. If unavailable, a uniquely named temporary PostgreSQL schema inside the confirmed Replit development database.
+
+A temporary schema is acceptable only when:
+
+* Its name contains an unmistakable test prefix plus a random run identifier
+* The connection search path is restricted to that schema
+* Production/deployment indicators fail closed
+* Normal development tables cannot be read or written
+* All migrations run inside the isolated namespace
+* The namespace is removed after the suite, including after test failure
+* Cleanup is physically verified
+
+Mandatory safety guards:
+
+* Refuse when `REPLIT_DEPLOYMENT` is set
+* Refuse when the target equals a production or deployment database
+* Refuse an unscoped/default schema
+* Refuse `public`
+* Refuse a schema/database name without a test marker
+* Never print credentials or complete connection strings
+* Never reuse development users or records
+* Use deterministic fixtures created only inside the isolated environment
+
+Add tests for the harness safety guards and cleanup behaviour.
+
+Stop if safe isolation cannot be proven.
+
+## Stage 2 — Privilege-escalation and ownership integration tests — 30 points
+
+Using only isolated fixtures, implement real request/database tests proving:
+
+### Signup and identity creation
+
+* Signup ignores or rejects caller-supplied `role`
+* Signup ignores or rejects caller-supplied `tenantId`
+* New users receive the Client role
+* OAuth identity creation cannot assign `admin` or `trainer`
+* OAuth profile data cannot override role or tenant
+
+Do not call a live OAuth provider. Exercise the internal callback/user-creation boundary with deterministic fixtures.
+
+### Profile isolation
+
+* Profile update cannot change role
+* Profile update cannot change tenant
+* Profile read uses the authenticated user ID
+* Client A cannot read or update Client B
+* Caller-supplied user IDs are ignored or rejected
+
+### Session ownership
+
+* Client A cannot revoke Client B’s session
+* Client A can revoke their own permitted session
+* Missing authentication is denied
+* Unknown sessions fail safely
+
+### Marcus route denial
+
+Prove Client and legacy trainer receive 403 on every currently implemented Marcus-only route group:
+
+* Content administration
+* Proposal administration
+* Audit reads
+* Any additional capability-protected route discovered during inspection
+
+Marcus/admin must retain access.
+
+## Stage 3 — Cross-tenant and role-change tests — 25 points
+
+Create at least two isolated tenants with separate Clients and one Marcus fixture where permitted.
+
+Prove:
+
+* Tenant A cannot read Tenant B content
+* Tenant A cannot modify Tenant B content
+* Tenant A cannot read Tenant B audit records
+* Proposal data remains tenant-scoped where tenant context applies
+* Session and profile operations remain tenant-safe
+* Upload keys contain only the authenticated user/tenant scope
+* Caller-supplied tenant identifiers cannot cross the boundary
+
+### Role-change behaviour
+
+Using an authenticated session fixture:
+
+1. Begin with an admin/Marcus user.
+2. Confirm an approved capability request is allowed.
+3. Change the isolated fixture’s role to Client directly in the test database.
+4. Reuse the same session token.
+5. Confirm the next request is denied without requiring a new login.
+6. Change the role back to admin.
+7. Confirm the next request is allowed.
+8. Confirm no role is cached inside the session token.
+9. Confirm missing or invalid roles fail closed.
+
+No production session architecture change is expected. If the test exposes cached-role behaviour, stop and report before implementing a fix.
+
+## Stage 4 — Final verification and cleanup — 15 points
+
+Run:
+
+* Isolated integration suite
+* All API tests
+* All Client tests
+* All scripts tests
+* All-package TypeScript checks
+* API production build
+* Client production build using safe inline `PORT` and `BASE_PATH`
+* Migration/schema checks
+* Test-database cleanup verification
+* Normal development-data integrity check using aggregate metadata only
+* Working-tree scope review
+* Dependency and lockfile review
+* Environment-file change check
+* Secret, credential, debug and temporary-file checks
+
+Expected baseline before this gate:
+
+* 201 passing
+* 19 skipped
+* 0 failing
+
+Report the new exact totals and explain every remaining skip. Permission-related skips must be resolved or replaced by documented stronger coverage before the gate can reach 100%.
+
+## Stop conditions
+
+Stop immediately if:
+
+* Production or deployment is detected
+* Test isolation cannot be proven
+* Tests can access normal development records
+* Cleanup cannot be guaranteed
+* A destructive migration is required
+* A real user or session would be modified
+* Existing permission behaviour must change
+* A permission-related test remains blocked
+* Typechecks or builds regress
+* Secrets or personal data would be exposed
+* Scope expands beyond final permission hardening
+
+## Completion rubric
+
+* Skip inventory and disposition: 10/10
+* Isolated test-database harness and safety guards: 20/20
+* Privilege-escalation, ownership and Marcus-route tests: 30/30
+* Cross-tenant and role-change/session tests: 25/25
+* Full verification and cleanup: 15/15
+
+Every mandatory section must pass for 100/100.
+
+## Final report
+
+Return one consolidated report containing:
+
+1. Plain-English Client impact
+2. Plain-English Marcus impact
+3. Skip inventory and final disposition
+4. Isolation approach and safety guards
+5. Migration and fixture setup
+6. Privilege-escalation results
+7. Ownership results
+8. Marcus-route denial results
+9. Cross-tenant results
+10. Role-change/session results
+11. Cleanup proof
+12. Complete test totals
+13. Typecheck and build results
+14. Dependency and working-tree changes
+15. Remaining blockers
+16. Stop conditions encountered
+
+End with:
+
+`FINAL HARDENING GATE: X/100 — X%`
+
+`ROLE-BASED PERMISSIONS: 93/100 — awaiting final AI Director acceptance`
+
+Do not publish, begin another feature, or update documentation.
