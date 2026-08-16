@@ -12,7 +12,7 @@ import { Offers }             from '@/pages/Offers';
 import { Memberships }        from '@/pages/Memberships';
 import { Team }               from '@/pages/Team';
 import { Feed }               from '@/pages/Feed';
-import { ContentAdmin }       from '@/pages/ContentAdmin';
+import { ContentAdminGuard }  from '@/components/ContentAdminGuard';
 import { Proposal }           from '@/pages/Proposal';
 import { ClientLanding }      from '@/pages/ClientLanding';
 import { AccountSecurity }    from '@/pages/AccountSecurity';
@@ -122,15 +122,10 @@ function FullApp() {
     }
   }, [authResolved, isAuthenticated, enteredApp]);
 
-  // Content Admin page guard: redirect any non-admin who somehow arrives on
-  // the content-admin page (e.g. via direct state manipulation) back to home.
-  // Server-side capability enforcement remains the security authority;
-  // this is an additional UX safeguard only.
-  useEffect(() => {
-    if (activePage === 'content-admin' && user?.role !== 'admin') {
-      setActivePage('home');
-    }
-  }, [activePage, user?.role]);
+  // Content Admin guard is handled by <ContentAdminGuard> below — both the
+  // redirect useEffect and the conditional render live there so they can be
+  // unit-tested in isolation. Server-side capability enforcement remains the
+  // security authority; the guard is an additional UX safeguard only.
 
   const handleLogout = () => { void signOut(); };
 
@@ -258,7 +253,7 @@ function FullApp() {
       {activePage === 'memberships' && <Memberships setPage={handleSetPage} />}
       {activePage === 'team'          && <Team />}
       {activePage === 'feed'          && <Feed />}
-      {activePage === 'content-admin' && user?.role === 'admin' && <ContentAdmin />}
+      <ContentAdminGuard activePage={activePage} setActivePage={handleSetPage} user={user} />
     </Layout>
   );
 }

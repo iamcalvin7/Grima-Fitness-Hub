@@ -1,0 +1,102 @@
+# Gate 1B Final Runtime Verification — Approved
+
+Complete the remaining Content Admin runtime verification gap.
+
+## Plain-English impact
+
+This should not change how the app behaves. It adds automated proof that:
+
+* A Client cannot mount Content Admin
+* A missing or legacy-trainer role fails closed
+* Marcus/admin can mount Content Admin
+* Forced frontend state redirects a Client safely home
+
+No documentation work is included. ChatGPT will update all documentation once Gate 1B reaches 100%.
+
+## Approved scope
+
+1. Inspect the Client package and existing Content Admin guard implementation.
+2. Reuse existing frontend test infrastructure if available.
+3. If none exists, add only the minimum development-only test dependencies required for a jsdom React component test.
+4. Refactor the existing guard into a small testable component only if necessary.
+5. Preserve the existing redirect, render guard, navigation, authentication and API behaviour.
+6. Add runtime component tests.
+7. Run the complete verification suite.
+
+No new production dependencies are allowed.
+
+## Required runtime tests
+
+Prove through rendered component behaviour:
+
+* `client` with forced `activePage = "content-admin"`:
+
+  * Content Admin child does not mount
+  * Navigation resets to the existing safe home page
+* Missing/undefined role:
+
+  * Fails closed
+  * Content Admin does not mount
+* Legacy `trainer`:
+
+  * Content Admin does not mount
+* `admin`:
+
+  * Content Admin mounts
+  * No redirect occurs
+
+Also verify the existing Sidebar and Burger Menu admin checks remain unchanged. Add tests for their Content Admin visibility only if this can be done without broad application mocking.
+
+## Safeguards
+
+Do not:
+
+* Create or promote users
+* Modify database records
+* Change API permissions
+* Change authentication or sessions
+* Add schema or migrations
+* Change environment files
+* Touch production
+* Publish
+* Refactor unrelated frontend code
+* Update documentation
+
+Approved dependency changes are development-only test dependencies and the corresponding lockfile update.
+
+Stop if runtime testing requires production credentials, real user mutations, authentication changes or broader application refactoring.
+
+## Verification
+
+Run:
+
+* New Client runtime tests
+* Complete API test suite
+* Client and API typechecks
+* Database-library typecheck
+* API production build
+* Client production build using safe inline `PORT` and `BASE_PATH`
+* Working-tree scope check
+* Dependency and lockfile review
+* Schema and migration diff
+* Secret, debug and temporary-file check
+
+Return:
+
+1. Plain-English impact
+2. Test infrastructure added
+3. Files changed
+4. Exact runtime cases and results
+5. All test totals
+6. Typecheck and build results
+7. Dependency changes
+8. Scope and hygiene confirmation
+9. Remaining blockers
+
+End with:
+
+`GATE 1B TASK COMPLETION: X/100 — X%`
+
+`ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100 — awaiting final AI Director rescore`
+
+Do not begin Gate 2.
