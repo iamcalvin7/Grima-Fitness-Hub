@@ -9,10 +9,82 @@ import {
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
+// ---------------------------------------------------------------------------
+// Upload filename / content-type validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowlist of accepted MIME types for direct uploads.
+ * Adding a new type here is the only way to permit it — an absent type is
+ * always denied regardless of what the client sends.
+ */
+const ALLOWED_CONTENT_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+  "application/pdf",
+]);
+
+/**
+ * Return true when the filename is safe to store as display metadata.
+ *
+ * Rejects:
+ *   - empty / whitespace-only names
+ *   - path-traversal sequences (..)
+ *   - directory separators (/ and \)
+ *   - absolute paths (start with /)
+ *   - URL-encoded variants of the above (%2e%2e, %2f, %5c, %2F, %5C)
+ *
+ * Note: the filename does NOT affect the object key (which is entirely
+ * server-controlled). Validation protects downstream consumers that might
+ * use the metadata name for display, logging, or re-export.
+ */
+function isSafeFilename(name: string): boolean {
+  if (!name || !name.trim()) return false;
+
+  // URL-decode first so encoded traversal sequences are caught.
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(name);
+  } catch {
+    // Malformed percent-encoding — reject.
+    return false;
+  }
+
+  // Apply the same checks to both the raw and decoded forms.
+  for (const s of [name, decoded]) {
+    if (s.includes("..")) return false;
+    if (s.includes("/") || s.includes("\\")) return false;
+    if (s.startsWith("/")) return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
 /**
  * POST /storage/uploads/request-url
- * Request a presigned URL for uploading a file directly to GCS.
- * Client sends JSON metadata — NOT the file bytes.
+ * Request a presigned URL for uploading a file directly to object storage.
+ *
+ * The object key is entirely server-controlled:
+ *   <PRIVATE_OBJECT_DIR>/uploads/<userId>/<randomUUID>
+ *
+ * The client sends JSON metadata — NOT the file bytes. The returned
+ * uploadURL is for a direct PUT of the file bytes to object storage.
+ *
+ * Security:
+ *   - userId comes from the authenticated session, never from request body.
+ *   - Object key is server-generated; no path-traversal is possible.
+ *   - Filename (name) is validated but NOT used in the key — it is stored
+ *     as display metadata only.
+ *   - contentType must be in the allowlist.
  */
 router.post(
   "/storage/uploads/request-url",
@@ -25,6 +97,12 @@ router.post(
       res.status(400).json({ error: "Missing required field: name" });
       return;
     }
+    if (!isSafeFilename(name)) {
+      res
+        .status(400)
+        .json({ error: "Invalid filename: path traversal or unsafe characters detected" });
+      return;
+    }
     if (typeof size !== "number" || size <= 0) {
       res.status(400).json({ error: "Missing required field: size" });
       return;
@@ -33,9 +111,18 @@ router.post(
       res.status(400).json({ error: "Missing required field: contentType" });
       return;
     }
+    if (!ALLOWED_CONTENT_TYPES.has(contentType.toLowerCase())) {
+      res
+        .status(400)
+        .json({ error: `Unsupported content type: ${contentType}` });
+      return;
+    }
 
     try {
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      // userId is sourced from the session — req.user is guaranteed by requireAuth.
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL(
+        req.user!.id,
+      );
       const objectPath =
         objectStorageService.normalizeObjectEntityPath(uploadURL);
 
@@ -115,4 +202,5 @@ router.get(
   },
 );
 
+export { ALLOWED_CONTENT_TYPES, isSafeFilename };
 export default router;

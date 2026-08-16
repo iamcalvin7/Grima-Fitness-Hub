@@ -7,6 +7,7 @@ import {
   proposalSprintsTable,
 } from "@workspace/db";
 import { attachUser, requireAuth, requireCapability } from "../middlewares/auth";
+import { writeAuditLog } from "../lib/audit";
 
 const router: IRouter = Router();
 
@@ -126,31 +127,52 @@ router.put("/proposal-features/sprints", async (req, res) => {
     return;
   }
   try {
-    if (isUuid) {
-      const rows = await db
-        .select({ id: proposalFeaturesTable.id })
-        .from(proposalFeaturesTable)
-        .where(
-          and(
-            eq(proposalFeaturesTable.id, fid),
-            eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
-          ),
-        )
-        .limit(1);
-      if (!rows[0]) {
-        res.status(404).json({ error: "Feature not found" });
-        return;
+    await db.transaction(async (tx) => {
+      if (isUuid) {
+        const rows = await tx
+          .select({ id: proposalFeaturesTable.id })
+          .from(proposalFeaturesTable)
+          .where(
+            and(
+              eq(proposalFeaturesTable.id, fid),
+              eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
+            ),
+          )
+          .limit(1);
+        if (!rows[0]) {
+          // Signal to the outer handler that the feature was not found.
+          // Throwing rolls back the (empty) transaction safely.
+          throw Object.assign(new Error("Feature not found"), { code: "NOT_FOUND" });
+        }
       }
-    }
-    await db
-      .insert(proposalSprintsTable)
-      .values({ tenantId: req.user!.tenantId, featureId: fid, ...patch })
-      .onConflictDoUpdate({
-        target: [proposalSprintsTable.tenantId, proposalSprintsTable.featureId],
-        set: { ...patch, updatedAt: new Date() },
-      });
+      await tx
+        .insert(proposalSprintsTable)
+        .values({ tenantId: req.user!.tenantId, featureId: fid, ...patch })
+        .onConflictDoUpdate({
+          target: [proposalSprintsTable.tenantId, proposalSprintsTable.featureId],
+          set: { ...patch, updatedAt: new Date() },
+        });
+
+      await writeAuditLog(
+        {
+          tenantId: req.user!.tenantId,
+          actorType: "user",
+          actorId: req.user!.id,
+          action: "proposal_sprint:upsert",
+          targetType: "proposal_sprint",
+          targetId: fid,
+          metadata: { patch },
+        },
+        tx as Parameters<typeof writeAuditLog>[1],
+      );
+    });
+
     res.json({ ok: true });
   } catch (err) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "NOT_FOUND") {
+      res.status(404).json({ error: "Feature not found" });
+      return;
+    }
     req.log.error({ err }, "Failed to save proposal sprint");
     res.status(500).json({ error: "Failed to save sprint" });
   }
@@ -192,22 +214,40 @@ router.post("/proposal-features", async (req, res) => {
   }
 
   try {
-    const [feature] = await db
-      .insert(proposalFeaturesTable)
-      .values({
-        tenantId: req.user!.tenantId,
-        authorId: req.user!.id,
-        title: title.trim(),
-        category: category.trim(),
-        priority: (priority as string) ?? "Medium",
-        phase: phase !== undefined ? Number(phase) : 2,
-        status: (status as string) ?? "Planned",
-        tagline: typeof tagline === "string" ? tagline.trim() : "",
-        what: typeof what === "string" ? what.trim() : "",
-        memberBenefit: typeof memberBenefit === "string" ? memberBenefit.trim() : "",
-        businessBenefit: typeof businessBenefit === "string" ? businessBenefit.trim() : "",
-      })
-      .returning();
+    const feature = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(proposalFeaturesTable)
+        .values({
+          tenantId: req.user!.tenantId,
+          authorId: req.user!.id,
+          title: (title as string).trim(),
+          category: (category as string).trim(),
+          priority: (priority as string) ?? "Medium",
+          phase: phase !== undefined ? Number(phase) : 2,
+          status: (status as string) ?? "Planned",
+          tagline: typeof tagline === "string" ? tagline.trim() : "",
+          what: typeof what === "string" ? what.trim() : "",
+          memberBenefit: typeof memberBenefit === "string" ? memberBenefit.trim() : "",
+          businessBenefit: typeof businessBenefit === "string" ? businessBenefit.trim() : "",
+        })
+        .returning();
+
+      await writeAuditLog(
+        {
+          tenantId: req.user!.tenantId,
+          actorType: "user",
+          actorId: req.user!.id,
+          action: "proposal_feature:create",
+          targetType: "proposal_feature",
+          targetId: created.id,
+          metadata: { title: created.title, category: created.category },
+        },
+        tx as Parameters<typeof writeAuditLog>[1],
+      );
+
+      return created;
+    });
+
     res.status(201).json({ feature });
   } catch (err) {
     req.log.error({ err }, "Failed to create proposal feature");
@@ -267,16 +307,35 @@ router.patch("/proposal-features/:id", async (req, res) => {
   }
 
   try {
-    const [feature] = await db
-      .update(proposalFeaturesTable)
-      .set(updates)
-      .where(
-        and(
-          eq(proposalFeaturesTable.id, req.params.id),
-          eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
-        ),
-      )
-      .returning();
+    const feature = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(proposalFeaturesTable)
+        .set(updates)
+        .where(
+          and(
+            eq(proposalFeaturesTable.id, req.params.id),
+            eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .returning();
+
+      if (!updated) return null;
+
+      await writeAuditLog(
+        {
+          tenantId: req.user!.tenantId,
+          actorType: "user",
+          actorId: req.user!.id,
+          action: "proposal_feature:update",
+          targetType: "proposal_feature",
+          targetId: updated.id,
+          metadata: { fields: Object.keys(updates) },
+        },
+        tx as Parameters<typeof writeAuditLog>[1],
+      );
+
+      return updated;
+    });
 
     if (!feature) {
       res.status(404).json({ error: "Feature not found" });
@@ -292,15 +351,33 @@ router.patch("/proposal-features/:id", async (req, res) => {
 /** DELETE /proposal-features/:id — remove a custom catalogue feature. */
 router.delete("/proposal-features/:id", async (req, res) => {
   try {
-    const [deleted] = await db
-      .delete(proposalFeaturesTable)
-      .where(
-        and(
-          eq(proposalFeaturesTable.id, req.params.id),
-          eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
-        ),
-      )
-      .returning({ id: proposalFeaturesTable.id });
+    const deleted = await db.transaction(async (tx) => {
+      const [d] = await tx
+        .delete(proposalFeaturesTable)
+        .where(
+          and(
+            eq(proposalFeaturesTable.id, req.params.id),
+            eq(proposalFeaturesTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .returning({ id: proposalFeaturesTable.id });
+
+      if (!d) return null;
+
+      await writeAuditLog(
+        {
+          tenantId: req.user!.tenantId,
+          actorType: "user",
+          actorId: req.user!.id,
+          action: "proposal_feature:delete",
+          targetType: "proposal_feature",
+          targetId: d.id,
+        },
+        tx as Parameters<typeof writeAuditLog>[1],
+      );
+
+      return d;
+    });
 
     if (!deleted) {
       res.status(404).json({ error: "Feature not found" });
@@ -348,15 +425,32 @@ router.post("/proposal-decisions", async (req, res) => {
     return;
   }
   try {
-    const [decision] = await db
-      .insert(proposalDecisionsTable)
-      .values({
-        tenantId: req.user!.tenantId,
-        authorId: req.user!.id,
-        question: question.trim(),
-        detail: typeof detail === "string" ? detail.trim() : "",
-      })
-      .returning();
+    const decision = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(proposalDecisionsTable)
+        .values({
+          tenantId: req.user!.tenantId,
+          authorId: req.user!.id,
+          question: question.trim(),
+          detail: typeof detail === "string" ? detail.trim() : "",
+        })
+        .returning();
+
+      await writeAuditLog(
+        {
+          tenantId: req.user!.tenantId,
+          actorType: "user",
+          actorId: req.user!.id,
+          action: "proposal_decision:create",
+          targetType: "proposal_decision",
+          targetId: created.id,
+        },
+        tx as Parameters<typeof writeAuditLog>[1],
+      );
+
+      return created;
+    });
+
     res.status(201).json({ decision });
   } catch (err) {
     req.log.error({ err }, "Failed to create proposal decision");
@@ -367,15 +461,34 @@ router.post("/proposal-decisions", async (req, res) => {
 /** DELETE /proposal-decisions/:id — remove a custom decision question. */
 router.delete("/proposal-decisions/:id", async (req, res) => {
   try {
-    const [deleted] = await db
-      .delete(proposalDecisionsTable)
-      .where(
-        and(
-          eq(proposalDecisionsTable.id, req.params.id),
-          eq(proposalDecisionsTable.tenantId, req.user!.tenantId),
-        ),
-      )
-      .returning({ id: proposalDecisionsTable.id });
+    const deleted = await db.transaction(async (tx) => {
+      const [d] = await tx
+        .delete(proposalDecisionsTable)
+        .where(
+          and(
+            eq(proposalDecisionsTable.id, req.params.id),
+            eq(proposalDecisionsTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .returning({ id: proposalDecisionsTable.id });
+
+      if (!d) return null;
+
+      await writeAuditLog(
+        {
+          tenantId: req.user!.tenantId,
+          actorType: "user",
+          actorId: req.user!.id,
+          action: "proposal_decision:delete",
+          targetType: "proposal_decision",
+          targetId: d.id,
+        },
+        tx as Parameters<typeof writeAuditLog>[1],
+      );
+
+      return d;
+    });
+
     if (!deleted) {
       res.status(404).json({ error: "Decision not found" });
       return;

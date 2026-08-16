@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db, contentPostsTable } from "@workspace/db";
 import { attachUser, requireAuth, requireCapability } from "../middlewares/auth";
+import { writeAuditLog } from "../lib/audit";
 
 const router: IRouter = Router();
 
@@ -44,7 +45,7 @@ router.get("/content", async (req, res) => {
 
 /**
  * GET /content/admin
- * All posts (drafts + published) for trainer/admin.
+ * All posts (drafts + published) for admin.
  */
 router.get(
   "/content/admin",
@@ -69,7 +70,8 @@ router.get(
 
 /**
  * POST /content
- * Create a new post. Admin/trainer only.
+ * Create a new post. Admin only (content:manage capability).
+ * Business mutation and audit write are atomic within one transaction.
  */
 router.post(
   "/content",
@@ -106,23 +108,40 @@ router.post(
     }
 
     try {
-      const [post] = await db
-        .insert(contentPostsTable)
-        .values({
-          tenantId: req.user!.tenantId,
-          authorId: req.user!.id,
-          title: title.trim(),
-          description: description?.trim() || null,
-          body: body?.trim() || null,
-          type: type ?? "article",
-          category: category?.trim() || null,
-          status: status ?? "draft",
-          featured: featured === true,
-          publishDate: publishDate ? new Date(publishDate) : new Date(),
-          mediaUrl: mediaUrl || null,
-          thumbnailUrl: thumbnailUrl || null,
-        })
-        .returning();
+      const post = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(contentPostsTable)
+          .values({
+            tenantId: req.user!.tenantId,
+            authorId: req.user!.id,
+            title: title.trim(),
+            description: description?.trim() || null,
+            body: body?.trim() || null,
+            type: type ?? "article",
+            category: category?.trim() || null,
+            status: status ?? "draft",
+            featured: featured === true,
+            publishDate: publishDate ? new Date(publishDate) : new Date(),
+            mediaUrl: mediaUrl || null,
+            thumbnailUrl: thumbnailUrl || null,
+          })
+          .returning();
+
+        await writeAuditLog(
+          {
+            tenantId: req.user!.tenantId,
+            actorType: "user",
+            actorId: req.user!.id,
+            action: "content:create",
+            targetType: "content_post",
+            targetId: created.id,
+            metadata: { title: created.title, type: created.type, status: created.status },
+          },
+          tx as Parameters<typeof writeAuditLog>[1],
+        );
+
+        return created;
+      });
 
       res.status(201).json({ post });
     } catch (err) {
@@ -134,7 +153,8 @@ router.post(
 
 /**
  * PATCH /content/:id
- * Update a post. Admin/trainer only.
+ * Update a post. Admin only (content:manage capability).
+ * Business mutation and audit write are atomic within one transaction.
  */
 router.patch(
   "/content/:id",
@@ -187,16 +207,35 @@ router.patch(
     dbUpdates.updatedAt = new Date();
 
     try {
-      const [post] = await db
-        .update(contentPostsTable)
-        .set(dbUpdates)
-        .where(
-          and(
-            eq(contentPostsTable.id, id),
-            eq(contentPostsTable.tenantId, req.user!.tenantId),
-          ),
-        )
-        .returning();
+      const post = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(contentPostsTable)
+          .set(dbUpdates)
+          .where(
+            and(
+              eq(contentPostsTable.id, id),
+              eq(contentPostsTable.tenantId, req.user!.tenantId),
+            ),
+          )
+          .returning();
+
+        if (!updated) return null;
+
+        await writeAuditLog(
+          {
+            tenantId: req.user!.tenantId,
+            actorType: "user",
+            actorId: req.user!.id,
+            action: "content:update",
+            targetType: "content_post",
+            targetId: updated.id,
+            metadata: { fields: Object.keys(updates) },
+          },
+          tx as Parameters<typeof writeAuditLog>[1],
+        );
+
+        return updated;
+      });
 
       if (!post) {
         res.status(404).json({ error: "Post not found" });
@@ -213,7 +252,8 @@ router.patch(
 
 /**
  * DELETE /content/:id
- * Delete a post. Admin/trainer only.
+ * Delete a post. Admin only (content:manage capability).
+ * Business mutation and audit write are atomic within one transaction.
  */
 router.delete(
   "/content/:id",
@@ -226,15 +266,33 @@ router.delete(
     }
     const id: string = rawId;
     try {
-      const [deleted] = await db
-        .delete(contentPostsTable)
-        .where(
-          and(
-            eq(contentPostsTable.id, id),
-            eq(contentPostsTable.tenantId, req.user!.tenantId),
-          ),
-        )
-        .returning({ id: contentPostsTable.id });
+      const deleted = await db.transaction(async (tx) => {
+        const [d] = await tx
+          .delete(contentPostsTable)
+          .where(
+            and(
+              eq(contentPostsTable.id, id),
+              eq(contentPostsTable.tenantId, req.user!.tenantId),
+            ),
+          )
+          .returning({ id: contentPostsTable.id });
+
+        if (!d) return null;
+
+        await writeAuditLog(
+          {
+            tenantId: req.user!.tenantId,
+            actorType: "user",
+            actorId: req.user!.id,
+            action: "content:delete",
+            targetType: "content_post",
+            targetId: id,
+          },
+          tx as Parameters<typeof writeAuditLog>[1],
+        );
+
+        return d;
+      });
 
       if (!deleted) {
         res.status(404).json({ error: "Post not found" });

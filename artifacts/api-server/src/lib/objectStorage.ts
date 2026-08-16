@@ -111,7 +111,7 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(userId: string): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -120,8 +120,11 @@ export class ObjectStorageService {
       );
     }
 
+    // Key is fully server-controlled: <dir>/uploads/<userId>/<objectId>
+    // The userId comes from the authenticated session (req.user.id), never
+    // from caller-supplied input. The UUID is freshly generated server-side.
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    const fullPath = `${privateObjectDir}/uploads/${userId}/${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
