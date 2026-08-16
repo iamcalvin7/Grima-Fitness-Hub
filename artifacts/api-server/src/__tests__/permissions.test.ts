@@ -372,45 +372,23 @@ describe("Gate 1 — Marcus (admin) receives coaching and administrative capabil
 });
 
 // ---------------------------------------------------------------------------
-// PENDING — Integration tests requiring an isolated test database
-// These are marked skip and will be unblocked when a test DB is provisioned.
-// Do NOT run these against development or production databases.
+// All 19 tests that were previously skipped here now have active replacement
+// coverage in dedicated test files. No skips remain.
+//
+// Privilege escalation · profile isolation · session ownership ·
+// Marcus route denial · OAuth boundary · audit record canary:
+//   src/__tests__/integration/privilege-escalation.test.ts
+//   src/__tests__/integration/oauth-escalation.test.ts
+//
+// Cross-tenant isolation · role-change session propagation:
+//   src/__tests__/integration/cross-tenant-role-change.test.ts
+//
+// Frontend Content Admin guard (all render branches):
+//   artifacts/marcus-grima/src/__tests__/contentAdminGuard.test.tsx
+//
+// Provisioning atomicity (promote-admin):
+//   scripts/src/__tests__/promote-admin.test.ts
+//
+// User-scoped upload paths · content-type allowlist · path traversal:
+//   src/__tests__/storageScopedUpload.test.ts
 // ---------------------------------------------------------------------------
-describe.skip("BLOCKED — requires isolated test database", () => {
-  it("signup body with role field is ignored — user always created as client");
-  it("OAuth-created user cannot assign privileged role to themselves");
-  it("PUT /profile ignores role field in request body");
-  it("PUT /profile ignores tenantId field — tenant comes from authenticated user");
-  it("GET /profile uses authenticated user ID, not a body or query param");
-  it("DELETE /account/sessions/:id verifies session belongs to authenticated user");
-  it("client cannot reach GET /content/admin — 403 from server");
-  it("client cannot reach GET /proposal-features — 403 from server");
-  it("client cannot reach POST /content — 403 from server");
-  it("client cannot reach DELETE /proposal-decisions/:id — 403 from server");
-  it("tenant A cannot read tenant B content via tenantId manipulation");
-});
-
-// ---------------------------------------------------------------------------
-// PENDING — Frontend integration test: requires a browser test runner
-// The guard is implemented in App.tsx (useEffect + render guard).
-// The automated coverage is BLOCKED until a frontend test framework is added.
-// ---------------------------------------------------------------------------
-describe.skip("BLOCKED — requires frontend test runner (Playwright or Vitest-browser)", () => {
-  it("client cannot access Content Admin by manually setting activePage to 'content-admin' in dev tools");
-  it("loading/null user state does not render Content Admin");
-  it("admin reaches Content Admin normally");
-});
-
-describe.skip("PENDING — requires session infrastructure in tests (Gate 1+)", () => {
-  it("role change during active session takes effect on the next request");
-  it("cross-tenant record access is rejected at the API layer");
-});
-
-describe.skip("PENDING — requires audit-log table (Gate 2+)", () => {
-  it("sensitive Marcus action records actor, action, target, and timestamp");
-});
-
-describe.skip("PENDING — requires provisioning tool (Gate 2+)", () => {
-  it("Marcus provisioning script sets role=admin and creates an audit record");
-  it("user-scoped upload paths bind signed URL to the requesting user");
-});

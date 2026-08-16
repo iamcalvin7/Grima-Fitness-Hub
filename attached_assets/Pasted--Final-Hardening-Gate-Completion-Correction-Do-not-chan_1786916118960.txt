@@ -1,0 +1,89 @@
+# Final Hardening Gate — Completion Correction
+
+Do not change production behaviour or documentation.
+
+## 1. Strengthen OAuth escalation tests
+
+Exercise the actual internal OAuth user-creation boundary with malicious provider data containing:
+
+* `role: "admin"`
+* `role: "trainer"`
+* A different `tenantId`
+* Combined role and tenant injection
+
+Prove:
+
+* The injected role is ignored
+* The user receives `client`
+* The injected tenant cannot override the server-selected tenant
+* No privileged capability is granted
+
+A test that merely omits the role field is insufficient.
+
+## 2. Resolve the 19 obsolete skips
+
+The 19 historical skipped tests now have stronger replacement coverage.
+
+Remove them from the executable skipped-test count only after confirming every item still maps to an active replacement test.
+
+Preserve a short source comment in `permissions.test.ts` pointing to:
+
+* `privilege-escalation.test.ts`
+* `cross-tenant-role-change.test.ts`
+* `contentAdminGuard.test.tsx`
+* `promote-admin.test.ts`
+* `storageScopedUpload.test.ts`
+
+Do not delete any test that lacks equivalent active coverage.
+
+Expected final permission-related skipped count: **0**.
+
+## 3. Make integration tests repeatable
+
+Confirm package scripts include clear canonical commands for:
+
+* Unit tests
+* Integration tests
+* Complete API test suite including both
+
+The complete command must automatically execute isolated schema creation, migrations, tests, cleanup and cleanup verification.
+
+A future developer must not need to reconstruct the integration command manually.
+
+## 4. Complete final verification
+
+Run and report exact commands, exit codes and summaries for:
+
+* Complete API unit and integration tests
+* Client tests
+* Scripts tests
+* Database-library typecheck
+* API typecheck
+* Client typecheck
+* Scripts typecheck
+* API production build
+* Client production build using inline `PORT` and `BASE_PATH`
+* Isolated-schema cleanup verification
+* Working-tree scope
+* Dependency and lockfile changes
+* Schema and migration diff
+* Environment-file changes
+* Secret, debug and temporary-file checks
+
+Confirm:
+
+* No test schema remains
+* Normal development records were not changed
+* Production was not accessed
+* Nothing was published
+* All remaining skips, if any, are unrelated to permissions and individually explained
+
+## Final report
+
+Return only the correction evidence and finish with:
+
+`FINAL HARDENING GATE: X/100 — X%`
+
+`ROLE-BASED PERMISSIONS: 93/100 — awaiting final AI Director acceptance`
+
+Do not begin another feature or update documentation.

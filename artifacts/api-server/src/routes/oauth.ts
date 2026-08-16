@@ -273,3 +273,9 @@ async function resolveGoogleUser(info: GoogleUserInfo) {
 }
 
 export default router;
+
+// Exported for integration testing ONLY.
+// resolveGoogleUser is the internal boundary that must ignore any role/tenantId
+// fields a compromised OAuth provider might inject into the userinfo payload.
+export { resolveGoogleUser };
+export type { GoogleUserInfo };
