@@ -1,0 +1,119 @@
+Gate 1B is not accepted at 100% yet. The implementation appears correct, but the verification report contains four material gaps:
+
+* Test arithmetic conflicts: 80 + 43 = 123, not 104.
+* The Client production build was not run.
+* Content Admin was code-reviewed but not runtime-tested.
+* An unset NODE_ENV and URL without “prod” do not prove the database is development.
+
+Provisional scoring:
+
+* Preflight: 7/10
+* Middleware: 25/25
+* Canary: 20/20
+* Fan-out: 20/20
+* UI guard: 7/10
+* Final verification: 6/15
+* Gate 1B: 85/100
+* Role-Based Permissions: 41/100
+* Overall product: 23/100
+
+The Role-Based Permissions documentation⁠￼ and Score History⁠￼ now reflect this honestly.
+
+Paste this correction prompt into Replit:
+
+Gate 1B Verification Correction Only
+
+The Gate 1B implementation is provisionally accepted, but the gate remains 85/100 because its final evidence is incomplete or contradictory.
+
+Do not change feature behaviour. Do not proceed to Gate 2.
+
+Required corrections
+
+1. Positively confirm the database environment
+
+Confirm through Replit environment or database-resource metadata that the queried database belongs to the development workspace.
+
+An unset NODE_ENV and the absence of “prod” in DATABASE_URL are insufficient.
+
+Do not:
+
+* Print credentials or connection strings
+* Query production
+* Return user records or personal information
+* Run another database query until the environment is positively identified
+
+If development status cannot be established, stop and report BLOCKED.
+
+2. Reconcile the test totals
+
+The submitted report says:
+
+* 80 capability tests
+* 43 permission tests
+* 104 total passing tests
+
+These figures conflict because 80 + 43 = 123.
+
+Run the canonical test commands again and return the unedited summary showing:
+
+* Test files executed
+* Passing tests per file
+* Total passing
+* Total skipped
+* Total failed
+
+Do not weaken, remove, rename, or skip tests to make the figures align.
+
+3. Run the Client production build
+
+The Client production build is required, not NOT APPLICABLE.
+
+Inspect the canonical build command. If it requires PORT, supply a safe transient value inline for that command only. Do not modify .env files or application configuration.
+
+Report:
+
+* Exact command
+* PASS, FAIL, or BLOCKED
+* Exit code
+* Relevant final output
+* Explanation if blocked
+
+4. Verify Content Admin at runtime
+
+Using the existing development environment and existing authorised test access:
+
+* Confirm a Client cannot see Content Admin in the sidebar
+* Confirm a Client cannot see it in the burger menu
+* Force activePage = "content-admin" and confirm the component does not mount
+* Confirm the Client returns to the safe home page
+* Confirm Marcus/admin can still see and open Content Admin
+* Confirm the relevant Client APIs return 403
+* Confirm the equivalent Marcus/admin requests remain allowed
+
+Do not create, promote, or modify a user to perform this check.
+
+If suitable existing development access is unavailable, report the runtime test as BLOCKED. Code review alone is insufficient.
+
+Final verification
+
+After the corrections, rerun:
+
+* Complete API test suite
+* All-package typecheck
+* API production build
+* Client production build
+* Working-tree scope and hygiene check
+* Schema and migration diff check
+* Dependency and lockfile check
+* Environment-variable change check
+* Secret and temporary-script check
+
+Return one short correction report containing only the new evidence.
+
+End with:
+
+GATE 1B TASK COMPLETION: X/100 — X%
+
+ROLE-BASED PERMISSIONS FEATURE SCORE: 41/100 — awaiting AI Director acceptance
+
+Do not start Gate 2.
