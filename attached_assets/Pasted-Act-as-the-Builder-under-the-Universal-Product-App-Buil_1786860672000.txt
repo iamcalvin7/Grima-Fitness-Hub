@@ -1,0 +1,312 @@
+Act as the Builder under the Universal Product & App Build Operating System.
+
+Your task is to conduct a complete, evidence-based, read-only audit of the Grima Fitness Hub application and produce a progress report for every feature currently present in the codebase.
+
+This is an inspection task only.
+
+DO NOT:
+
+* Modify any source file.
+* Create or edit documentation files.
+* Change the database or schema.
+* Run migrations or seeds.
+* change authentication, middleware, CORS or security configuration.
+* Install, remove or update dependencies.
+* modify package or lock files.
+* Add environment variables or reveal secret values.
+* Publish or deploy the application.
+* Fix issues during the audit.
+* Mark assumptions as verified facts.
+
+You may run existing read-only checks such as typecheck, production build and tests, provided they do not require installing dependencies or changing configuration. If a check cannot run safely, mark it BLOCKED and explain why.
+
+## 1. Inspect the entire implementation
+
+Inspect the actual source of truth, including:
+
+* Workspace and package structure.
+* Package scripts and dependencies.
+* All application routes and navigation.
+* Every client-facing page and workflow.
+* Every trainer, admin or Marcus HQ surface.
+* Shared components and state management.
+* API routes, server code and contracts.
+* Database schema, models and existing migrations.
+* Authentication, roles and permission enforcement.
+* Persistent and non-persistent data flows.
+* Hard-coded, mocked, static and demo data.
+* External integrations and required environment variable names, without exposing values.
+* Upload and storage logic.
+* Payments and memberships.
+* Notifications and email pathways.
+* Analytics, monitoring and logging.
+* Empty, loading, success, error and retry states.
+* Responsive and accessibility implementation.
+* Existing tests, smoke tests and test coverage.
+* Public URLs, shared links and deep links.
+* Project documentation and known technical debt.
+
+Do not rely on old summaries. Verify everything against the current codebase.
+
+## 2. Create an exhaustive feature inventory
+
+Identify every user-visible and operator-facing capability that exists, including partial, hidden, simulated or unfinished features.
+
+At minimum, investigate these product areas:
+
+1. Account and authentication.
+2. User profile and account lifecycle.
+3. Onboarding.
+4. Goal Forecast.
+5. Client home and daily guidance.
+6. Training programmes.
+7. Workout details.
+8. Active workout and set logging.
+9. Exercise library and demonstrations.
+10. Body map.
+11. Workout history.
+12. Goals and accountability.
+13. Progress tracking.
+14. Progress photos.
+15. Measurements and body data.
+16. Check-ins.
+17. Nutrition targets.
+18. Meal plans.
+19. Recipes and food logging.
+20. Hydration and daily habits.
+21. Sessions and bookings.
+22. Availability and scheduling.
+23. Session credits and attendance.
+24. Messaging and trainer feedback.
+25. Notifications and reminders.
+26. Community, feed and stories.
+27. Challenges.
+28. Leaderboard.
+29. Educational content.
+30. Memberships and paywalls.
+31. Stripe or payment functionality.
+32. Strava, health and wearable integrations.
+33. AI food-photo logging or other AI functionality.
+34. Marcus HQ dashboard.
+35. Client management.
+36. Programme and workout builders.
+37. Exercise management.
+38. Assignment workflows.
+39. Progress and check-in review.
+40. Content publishing and segmentation.
+41. Booking and capacity management.
+42. Payment and revenue oversight.
+43. Business analytics and reporting.
+44. Admin, trainer and client permissions.
+45. Privacy, data export and account deletion.
+46. Uploads, storage, backup and recovery.
+47. Error monitoring and product analytics.
+
+Add every additional feature you discover. Do not limit the report to this list.
+
+Group related UI elements into logical product features, but do not hide separately functioning workflows inside broad categories.
+
+## 3. Trace both sides of every feature
+
+For each client-facing capability, verify whether the required Marcus HQ, trainer or admin counterpart exists.
+
+Trace the full loop where applicable:
+
+1. Operator creates or configures it.
+2. Data persists.
+3. The correct client receives it.
+4. The client uses or completes it.
+5. The result persists after refresh.
+6. Marcus can review the outcome.
+7. Notifications and analytics are triggered.
+8. Permissions are enforced server-side.
+9. Empty, loading, error and retry states are handled.
+10. Tests prove the workflow.
+
+A polished screen without this operational loop must not receive a production-ready score.
+
+## 4. Score every feature out of 100
+
+Score against world-class, production-ready quality, not visual completeness.
+
+Use these dimensions:
+
+* UX/UI quality and responsiveness: 15 points.
+* Frontend workflow completeness: 10 points.
+* Backend/API implementation: 15 points.
+* Persistence and data integrity: 15 points.
+* Marcus HQ/operator counterpart: 10 points.
+* Authentication, permissions, privacy and security: 10 points.
+* Empty, loading, error, retry and edge-case handling: 5 points.
+* Automated tests and verified workflows: 10 points.
+* Integrations and environment readiness: 5 points.
+* Documentation and dependency clarity: 5 points.
+
+If a dimension is genuinely not applicable, mark it N/A and normalise the score across the applicable dimensions. Explain every N/A.
+
+Use this interpretation:
+
+* 0–20: Concept or visual demo only.
+* 21–40: Partial implementation with major workflow or backend gaps.
+* 41–60: Core path exists, but operational, testing or edge-case gaps remain.
+* 61–80: Strong working feature requiring production hardening or depth.
+* 81–95: Production-ready or nearly ready.
+* 96–100: Verified world-class end-to-end implementation.
+
+Never inflate a score because the interface looks polished.
+
+## 5. Required report format
+
+Begin with:
+
+### Audit Coverage
+
+Report:
+
+* Packages inspected.
+* Total source files reviewed.
+* Routes discovered.
+* API endpoints discovered.
+* Database models/tables discovered.
+* Migration files discovered.
+* Test files discovered.
+* Features discovered.
+* Anything that could not be inspected and why.
+
+Then provide:
+
+### Executive Verdict
+
+Include:
+
+* Overall application completion score out of 100.
+* Client App score.
+* Marcus HQ score.
+* Backend and data score.
+* Production readiness score.
+* One direct paragraph describing the real current state.
+* The five strongest areas.
+* The five largest production blockers.
+
+The overall score must be weighted by product importance and production readiness. Do not use a misleading simple average of decorative or minor features.
+
+Then provide:
+
+### Feature Progress Report
+
+Use one entry for every feature:
+
+**Feature name:**
+**Product area:**
+**Primary role:** Client / Trainer / Admin / Shared
+**Current state:**
+**Score:** X/100
+**Score breakdown:** Show points for every applicable scoring dimension.
+**Evidence:** Name the relevant routes, components, API paths, models, tests or configuration inspected.
+**What genuinely works:**
+**What is simulated, static, hard-coded or incomplete:**
+**Client workflow status:**
+**Marcus HQ/operator workflow status:**
+**Persistence status:**
+**Permissions status:**
+**Testing status:** PASS / BLOCKED / NOT APPLICABLE
+**Dependencies:**
+**High-priority gaps:**
+**Medium-priority improvements:**
+**Future enhancements:**
+**Risk level for completing it:** GREEN / AMBER / RED
+**Recommended next action:**
+
+After all individual features, provide:
+
+### Cross-Cutting Technical Audit
+
+Assess and score:
+
+* Architecture and maintainability.
+* Shared component quality.
+* White-label and configuration readiness.
+* Authentication and authorisation.
+* Database and migration readiness.
+* API design.
+* Error handling.
+* Accessibility.
+* Mobile responsiveness.
+* Performance.
+* Security and privacy.
+* Testing.
+* Environment configuration.
+* Integrations.
+* Monitoring.
+* Backup and recovery.
+* Documentation.
+* Release readiness.
+
+### Validation Results
+
+Run and report, where safely possible:
+
+* Typecheck across all packages.
+* Production build.
+* Existing automated tests.
+* Existing smoke tests.
+* Working-tree or change check confirming the audit changed nothing.
+
+Only use PASS, BLOCKED or NOT APPLICABLE.
+
+Include the exact result of each check. Do not say “should pass,” “appears fine” or “mostly works.”
+
+### Recommended Vertical Build Order
+
+Recommend the next 10 build scopes in priority order.
+
+Each scope must complete a vertical product loop:
+
+* Client experience.
+* Marcus HQ/operator counterpart.
+* Backend and persistence.
+* Permissions.
+* Error states.
+* Tests.
+* Documentation.
+
+Explain why each scope belongs in that position and identify dependencies on earlier scopes.
+
+### Final Decision
+
+Conclude with:
+
+* What percentage is genuinely built.
+* What percentage is polished frontend only.
+* What percentage remains before a safe public launch.
+* Whether the app is currently DEMO READY, PILOT READY, PRODUCTION READY or WORLD-CLASS READY.
+* The single best next build scope.
+
+## 6. Known hypotheses to verify
+
+Treat these as unverified until the current source proves them:
+
+* The client-side experience is visually polished.
+* Some sessions, programmes, messaging, leaderboard, meal and recipe data may still be static or demo-driven.
+* Active workout interactions may work locally without complete persistence or history.
+* The programme paywall may be simulated.
+* Marcus HQ may be substantially less developed than the client experience.
+* Core data models and assignment workflows may remain incomplete.
+* Authentication and persistent user profiles may be stronger than the product feature data layer.
+* Google OAuth and production email may still require external credentials.
+* The project may be a React, Vite, TypeScript and Tailwind client with an incomplete or unused Express backend.
+
+Confirm, reject or update every hypothesis with evidence.
+
+Also verify that these protected implementation behaviours remain intact if they exist:
+
+* Correct use of `import.meta.env.BASE_URL`.
+* Existing `ThreadView()` rendering behaviour.
+* Both BodyMap views remaining mounted where required.
+* Zero TypeScript errors.
+* The approved near-black, metallic silver and green visual system.
+* No reintroduction of amber styling.
+
+Do not provide a brief summary. I need the full evidence-based audit of every implemented feature. If response limits prevent the complete report from fitting in one reply, divide it into clearly numbered parts and continue until every feature has been covered.
+
+Do not change anything in the application.
