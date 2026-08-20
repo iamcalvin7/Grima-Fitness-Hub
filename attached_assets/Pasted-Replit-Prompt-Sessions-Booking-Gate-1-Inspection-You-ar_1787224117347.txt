@@ -1,0 +1,209 @@
+Replit Prompt — Sessions & Booking Gate 1 Inspection
+
+You are the Builder for the Marcus Grima Fitness / Grima Fitness Hub project.
+
+Follow the Universal Product & App Build Operating System as the governing framework.
+
+Task
+
+Perform a full inspection only of the existing Sessions & Booking feature.
+
+Do not implement, modify, migrate, refactor, publish, or change production or development data.
+
+This is an AMBER inspection gate only.
+
+Objective
+
+Determine exactly what exists today, what is hard-coded or simulated, what persists, what depends on other systems, and what is missing before Sessions & Booking can become a production-ready vertical feature.
+
+The future architecture must support different pricing per individual client, without hard-coding client-specific prices directly into booking logic.
+
+Inspect the current implementation
+
+Report on:
+
+1. Client Sessions UI
+    * Existing screens and flows
+    * Session discovery
+    * Session detail
+    * Booking actions
+    * Cancellation/rescheduling
+    * Upcoming sessions
+    * Booking history
+    * Empty/loading/error states
+2. Data & Persistence
+    * Current session data source
+    * Hard-coded/demo data
+    * Database tables/models already relevant to sessions
+    * Booking records, if any
+    * Attendance records
+    * Capacity
+    * Availability
+    * Persistence after refresh
+3. API / Backend
+    * Existing session routes
+    * Existing booking routes
+    * Validation
+    * Ownership checks
+    * Capacity enforcement
+    * Double-booking protection
+    * Cancellation logic
+    * Transaction/concurrency protection
+4. Permissions
+    * Client permissions
+    * Trainer permissions
+    * Admin permissions
+    * Server-side enforcement
+    * Tenant isolation
+    * Any role assumptions
+5. Marcus HQ / Operator Side
+    * Existing admin/trainer session management
+    * Availability creation
+    * Session creation/editing
+    * Capacity management
+    * Booking review
+    * Client assignment
+    * Attendance
+    * Cancellation/rescheduling
+    * Operational gaps
+6. Pricing
+    Inspect every existing pricing assumption.
+    Specifically identify:
+    * Where price currently exists
+    * Whether price is attached to a session, programme, package, user, or nowhere
+    * Any fixed-price assumptions
+    * Any credit system
+    * Any membership/entitlement assumptions
+    * Any paywall logic
+    * Any existing payment references
+    Future requirement:
+    The architecture must eventually support:
+    * Default session/service price
+    * Client-specific price override
+    * Free/complimentary sessions
+    * Membership-included sessions
+    * Package/credit-based sessions
+    * Discounts or negotiated rates
+    * Historical price snapshot at booking time
+    Do not build this pricing system yet.
+7. Payments & Entitlements
+    * Existing Stripe/payment code
+    * Existing simulated payment logic
+    * Credits
+    * Memberships
+    * Packages
+    * Entitlements
+    * Dependencies between payment state and booking
+8. Notifications
+    * Booking confirmations
+    * Cancellation notifications
+    * Reminders
+    * Trainer/admin notifications
+    * Existing email/in-app infrastructure
+9. Testing
+    * Existing unit tests
+    * Integration tests
+    * Permission tests
+    * Booking workflow tests
+    * Missing critical coverage
+10. Dependencies
+    Map all upstream and downstream dependencies, including:
+    * Users
+    * Roles
+    * Trainers
+    * Programmes
+    * Payments
+    * Memberships
+    * Credits
+    * Notifications
+    * Calendar/timezone handling
+    * Client profiles
+    * Analytics
+
+Architecture principle
+
+Treat booking, pricing, and payment/entitlement as related but separate concerns.
+
+A booking should not permanently depend on a single fixed pricing model.
+
+The eventual system should be able to resolve the price/entitlement applicable to a specific client while preserving the price or entitlement state used at the time of booking.
+
+Do not design a full solution yet. Identify what the current codebase would require to support this safely.
+
+Required output
+
+Return a structured Gate 1 Inspection Report containing:
+
+A. Current State
+
+What is genuinely implemented today.
+
+B. Prototype / Hard-Coded Areas
+
+What only appears functional in the UI.
+
+C. Existing Data Model
+
+Relevant tables/models and their current role.
+
+D. Existing API & Permissions
+
+What exists and what is enforced server-side.
+
+E. Marcus HQ Status
+
+What the operator can and cannot currently manage.
+
+F. Pricing & Commercial Assumptions
+
+Every current pricing, credit, membership, package, payment, and entitlement assumption discovered.
+
+G. Dependency Map
+
+Inputs, upstream dependencies, outputs, downstream consumers, integrations, permissions, notifications and regression surface.
+
+H. Critical Gaps
+
+What prevents this feature from being production-ready.
+
+I. Recommended Vertical Build Sequence
+
+A proposed order only. Do not implement it.
+
+J. Risk Escalation
+
+Identify anything that would become RED, including:
+
+* migrations
+* production data
+* Stripe/payment changes
+* secrets
+* auth/security changes
+* publishing
+
+K. Evidence
+
+List the relevant implementation areas inspected and clearly distinguish:
+
+* PASS
+* PARTIAL
+* MISSING
+* BLOCKED / UNVERIFIED
+
+Non-negotiable rules
+
+* Do not change code.
+* Do not change schema.
+* Do not run migrations.
+* Do not alter environment variables.
+* Do not touch production.
+* Do not publish.
+* Do not silently broaden scope.
+* Do not assume old documentation is correct when the live code disagrees.
+* Do not claim completion without evidence.
+
+Finish with:
+
+GATE 1 VERDICT: READY FOR AI DIRECTOR REVIEW / BLOCKED
+
+and state the exact reason.
