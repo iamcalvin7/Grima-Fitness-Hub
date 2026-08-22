@@ -483,6 +483,58 @@ describe("weekly type-less slots", () => {
   });
 });
 
+describe("Marcus session overlap validation", () => {
+  const createTypeLessSlot = (startsAt: string, endsAt: string) =>
+    request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt, endsAt, capacity: 4 });
+
+  it("compares complete datetime ranges, preserves boundaries, and excludes the session being updated", async () => {
+    const base = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+    base.setUTCHours(10, 0, 0, 0);
+    const at = (daysFromBase: number, hour: number, minute = 0) => {
+      const value = new Date(base);
+      value.setUTCDate(value.getUTCDate() + daysFromBase);
+      value.setUTCHours(hour, minute, 0, 0);
+      return value.toISOString();
+    };
+    const dateKey = (daysFromBase: number) => at(daysFromBase, 12).slice(0, 10);
+
+    const existing = await createTypeLessSlot(at(0, 10), at(0, 11)).expect(201);
+    const existingId = existing.body.session.id;
+
+    await createTypeLessSlot(at(0, 10, 30), at(0, 11, 30)).expect(409); // partial overlap
+    await createTypeLessSlot(at(0, 10), at(0, 11)).expect(409); // exact same range
+    await createTypeLessSlot(at(0, 10, 15), at(0, 10, 45)).expect(409); // contained range
+    await createTypeLessSlot(at(0, 9, 30), at(0, 10, 30)).expect(409); // partial overlap from before
+
+    const earlier = await createTypeLessSlot(at(0, 8), at(0, 9)).expect(201);
+    await createTypeLessSlot(at(0, 12), at(0, 13)).expect(201);
+    await createTypeLessSlot(at(0, 11), at(0, 12)).expect(201); // back-to-back
+    await createTypeLessSlot(at(1, 10), at(1, 11)).expect(201); // same time, next day
+
+    const offsetStart = `${dateKey(2)}T23:30:00+02:00`;
+    const offsetEnd = `${dateKey(3)}T00:30:00+02:00`;
+    const nextOffsetStart = `${dateKey(3)}T00:45:00+02:00`;
+    const nextOffsetEnd = `${dateKey(3)}T01:45:00+02:00`;
+    await createTypeLessSlot(offsetStart, offsetEnd).expect(201);
+    await createTypeLessSlot(nextOffsetStart, nextOffsetEnd).expect(201);
+
+    await request(app)
+      .patch(`/api/admin/training-sessions/${existingId}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ startsAt: at(0, 10), endsAt: at(0, 11) })
+      .expect(200); // updating itself must not self-overlap
+
+    await request(app)
+      .patch(`/api/admin/training-sessions/${earlier.body.session.id}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ startsAt: at(0, 10, 15), endsAt: at(0, 10, 45) })
+      .expect(409); // updating into another session must overlap
+  });
+});
+
 describe("rescheduling and Marcus workflow", () => {
   let sourceBookingId: string;
   let rescheduledBookingId: string;

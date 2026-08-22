@@ -1,0 +1,211 @@
+# Marcus Sessions — False Overlap Error Inspection & Fix
+
+## Task
+
+Investigate and fix the error:
+
+**“This session overlaps another Marcus session”**
+
+The error is currently being returned even when the two sessions are scheduled on **different calendar days**.
+
+This is a behavioural/backend validation issue. Do not change the booking model or scheduling rules beyond fixing the proven cause.
+
+## Risk
+
+**AMBER**
+
+This affects session validation, persistent scheduling behaviour and potentially both Marcus HQ and client booking flows.
+
+Inspect first. Do not implement until the exact cause is identified.
+
+## Required Inspection
+
+Inspect the complete session-overlap path, including:
+
+* API route responsible for creating/updating Marcus sessions
+* overlap validation helper/query
+* database fields used for `startsAt` and `endsAt`
+* timezone/date parsing
+* frontend values submitted to the API
+* any shared session validation utilities
+* existing tests covering overlapping sessions
+
+Determine exactly how two sessions on different days are being classified as overlapping.
+
+## Correct Overlap Rule
+
+Two sessions overlap **only when their actual datetime ranges intersect**.
+
+For existing session:
+
+`existingStart → existingEnd`
+
+and proposed session:
+
+`newStart → newEnd`
+
+an overlap exists only when:
+
+`newStart < existingEnd && newEnd > existingStart`
+
+The comparison must use the **complete datetime**, including:
+
+* year
+* month
+* day
+* hour
+* minute
+* timezone/UTC representation
+
+Do **not** compare only:
+
+* hours
+* minutes
+* formatted time strings
+* day-of-week
+* separate time fields without the associated date
+
+### Example — Must Be Allowed
+
+Existing session:
+
+`Monday 24 August 2026, 10:00–11:00`
+
+New session:
+
+`Tuesday 25 August 2026, 10:00–11:00`
+
+Result:
+
+**NO OVERLAP**
+
+The identical clock time is irrelevant because the sessions occur on different dates.
+
+### Example — Must Be Rejected
+
+Existing session:
+
+`Monday 24 August 2026, 10:00–11:00`
+
+New session:
+
+`Monday 24 August 2026, 10:30–11:30`
+
+Result:
+
+**OVERLAP**
+
+### Boundary Behaviour
+
+Back-to-back sessions must remain valid.
+
+Existing:
+
+`10:00–11:00`
+
+New:
+
+`11:00–12:00`
+
+Result:
+
+**NO OVERLAP**
+
+Do not use `<=` / `>=` in a way that makes touching boundaries count as overlap unless the existing product specification explicitly requires a buffer.
+
+## Timezone Check
+
+Pay particular attention to UTC/local conversion.
+
+The application is being operated in Malta.
+
+Confirm that:
+
+* frontend datetime generation is correct
+* API receives the intended datetime
+* database values represent the intended instant
+* overlap comparison happens consistently in one timezone representation
+* converting to UTC does not accidentally alter the calendar-day logic
+
+Do not introduce timezone-specific hacks if the underlying timestamps are already valid UTC instants.
+
+## Update Behaviour
+
+If editing an existing session, ensure the overlap query excludes the session currently being edited.
+
+Example:
+
+When updating Session A, Session A must not be detected as overlapping itself.
+
+## Tests Required
+
+Add regression tests covering at minimum:
+
+1. Same date + overlapping times → rejected
+2. Same date + exact same times → rejected
+3. Same date + contained session → rejected
+4. Same date + partially overlapping → rejected
+5. Same date + earlier non-overlapping → allowed
+6. Same date + later non-overlapping → allowed
+7. Back-to-back sessions → allowed
+8. Same time on different dates → allowed
+9. Different days crossing UTC/local timezone boundaries → allowed when ranges do not intersect
+10. Updating a session does not collide with itself
+11. Updating a session into another session's actual datetime range → rejected
+
+Run the relevant existing scheduling/session tests as regression coverage.
+
+## Scope Protection
+
+Do not change:
+
+* session capacity logic
+* Session Type/type-less workflow
+* location rules
+* booking pricing
+* client credits
+* attendance
+* cancellation logic
+* general Weekly Schedule UI
+* unrelated datetime handling
+
+Only fix the proven overlap-validation defect and any directly required regression coverage.
+
+## Report Back Before Completion
+
+Provide:
+
+### Root Cause
+
+Exact reason sessions on different dates were considered overlapping.
+
+### Files Changed
+
+Exact files and purpose of each change.
+
+### Previous Logic
+
+Show the relevant previous overlap condition/query.
+
+### Corrected Logic
+
+Show the corrected condition/query.
+
+### Timezone Finding
+
+State whether timezone handling contributed to the bug.
+
+### Tests
+
+PASS / BLOCKED for each relevant test suite and the new regression cases.
+
+### Verification
+
+Give one concrete example proving:
+
+* Monday 10:00–11:00
+* Tuesday 10:00–11:00
+
+can coexist successfully.
+
+Do not publish or make production changes.
