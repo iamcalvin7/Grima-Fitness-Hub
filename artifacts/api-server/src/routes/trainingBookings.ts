@@ -94,6 +94,46 @@ function mondayValue(value: unknown): Date | null {
   return Number.isFinite(date.getTime()) && date.getUTCDay() === 1 ? date : null;
 }
 
+function sessionValidationFields(input: {
+  rawSessionTypeId: unknown;
+  sessionTypeId: string | null;
+  locationId: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  capacity: number | null;
+}) {
+  const fields: Record<string, string> = {};
+  if (
+    input.rawSessionTypeId !== undefined &&
+    input.rawSessionTypeId !== null &&
+    input.rawSessionTypeId !== "" &&
+    !input.sessionTypeId
+  ) {
+    fields.sessionTypeId = "Choose a valid session type.";
+  }
+  if (!input.locationId) fields.locationId = "Choose an active location.";
+  if (!input.startsAt) fields.startsAt = "Enter a valid start date and time.";
+  if (!input.endsAt) fields.endsAt = "Enter a valid end date and time.";
+  if (input.startsAt && input.endsAt && input.endsAt <= input.startsAt) {
+    fields.endsAt = "End time must be after the start time.";
+  }
+  if (input.startsAt && input.startsAt <= new Date()) {
+    fields.startsAt = "Start date and time must be in the future.";
+  }
+  if (
+    input.capacity !== null &&
+    (!Number.isInteger(input.capacity) ||
+      input.capacity <= 0 ||
+      input.capacity > 10000)
+  ) {
+    fields.capacity = "Maximum Clients must be a whole number from 1 to 10,000.";
+  }
+  if (!input.sessionTypeId && input.capacity === null) {
+    fields.capacity = "Enter Maximum Clients for a type-less slot.";
+  }
+  return fields;
+}
+
 function sendError(req: Request, res: Response, error: unknown, fallback: string) {
   if (error instanceof HttpError) {
     res.status(error.status).json({ error: error.message });
@@ -1339,20 +1379,24 @@ router.post("/admin/training-sessions", async (req, res) => {
   const endsAt = dateValue(req.body?.endsAt);
   const capacity =
     req.body?.capacity === undefined ? null : Number(req.body.capacity);
-  if (
-    (rawSessionTypeId !== undefined &&
-      rawSessionTypeId !== null &&
-      rawSessionTypeId !== "" &&
-      !sessionTypeId) ||
-    !locationId ||
-    !startsAt ||
-    !endsAt ||
-    endsAt <= startsAt ||
-    startsAt <= new Date() ||
-    (capacity !== null &&
-      (!Number.isInteger(capacity) || capacity <= 0 || capacity > 10000)) ||
-    (!sessionTypeId && capacity === null)
-  ) {
+  const validationFields = sessionValidationFields({
+    rawSessionTypeId,
+    sessionTypeId,
+    locationId,
+    startsAt,
+    endsAt,
+    capacity,
+  });
+  if (Object.keys(validationFields).length > 0) {
+    res.status(400).json({
+      error: "Invalid scheduled session fields",
+      fields: validationFields,
+    });
+    return;
+  }
+  // The field checks above guarantee these values exist before any database
+  // reference lookup or insert. Keep this explicit for the TypeScript boundary.
+  if (!locationId || !startsAt || !endsAt) {
     res.status(400).json({ error: "Invalid scheduled session fields" });
     return;
   }
@@ -1361,7 +1405,23 @@ router.post("/admin/training-sessions", async (req, res) => {
       !(await verifyAdminReference(req.user!.tenantId, trainingSessionTypesTable, sessionTypeId))) ||
     !(await verifyAdminReference(req.user!.tenantId, trainingLocationsTable, locationId))
   ) {
-    res.status(400).json({ error: "An active location and, when supplied, an active session type are required" });
+    const fields: Record<string, string> = {};
+    if (
+      locationId &&
+      !(await verifyAdminReference(req.user!.tenantId, trainingLocationsTable, locationId))
+    ) {
+      fields.locationId = "Choose an active location.";
+    }
+    if (
+      sessionTypeId &&
+      !(await verifyAdminReference(req.user!.tenantId, trainingSessionTypesTable, sessionTypeId))
+    ) {
+      fields.sessionTypeId = "Choose an active session type.";
+    }
+    res.status(400).json({
+      error: "Invalid scheduled session references",
+      fields,
+    });
     return;
   }
   try {

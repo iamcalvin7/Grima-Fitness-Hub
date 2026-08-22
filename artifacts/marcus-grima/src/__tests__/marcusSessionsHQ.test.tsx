@@ -46,8 +46,20 @@ async function openWeekSchedule() {
   await actEvent(() => fireEvent.change(screen.getByLabelText('Week starting'), { target: { value: '2026-08-17' } }));
 }
 
+function futureDateKey() {
+  const date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 describe('MarcusSessionsHQ weekly schedule', () => {
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
 
   it('keeps request approval available and does not fetch or expose recurrence controls', async () => {
     mockAdminData();
@@ -67,7 +79,7 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session')));
     expect(screen.queryByText('Session Type')).not.toBeInTheDocument();
     const dialog = screen.getByRole('dialog');
-    fireEvent.change(dialog.querySelector('input[type="date"]')!, { target: { value: '2026-08-19' } });
+    fireEvent.change(dialog.querySelector('input[type="date"]')!, { target: { value: futureDateKey() } });
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({
       method: 'POST',
@@ -77,6 +89,30 @@ describe('MarcusSessionsHQ weekly schedule', () => {
       path === '/admin/training-sessions' && (options as { method?: string } | undefined)?.method === 'POST',
     )!;
     expect((createCall[1] as { body: Record<string, unknown> }).body.sessionTypeId).toBeUndefined();
+  });
+
+  it('defaults a current-week slot to a future type-less time instead of a past Monday', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-22T13:57:41.385Z'));
+    mockAdminData();
+    render(<MarcusSessionsHQ />);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /schedule/i })));
+    await actEvent(() => fireEvent.change(screen.getByLabelText('Week starting'), { target: { value: '2026-08-17' } }));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
+
+    const createCall = apiRequest.mock.calls.find(([path, options]) =>
+      path === '/admin/training-sessions' && (options as { method?: string } | undefined)?.method === 'POST',
+    )!;
+    const body = (createCall[1] as { body: Record<string, unknown> }).body;
+    expect(body).toMatchObject({ locationId: 'location-1', capacity: 4 });
+    expect(body.sessionTypeId).toBeUndefined();
+    expect(new Date(body.startsAt as string).getTime()).toBeGreaterThan(new Date().getTime());
+    expect(new Date(body.endsAt as string).getTime()).toBeGreaterThan(new Date(body.startsAt as string).getTime());
   });
 
   it('locks booked rows in the weekly editor', async () => {
@@ -96,6 +132,7 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     await screen.findByText('Sliema Studio');
     await actEvent(() => fireEvent.click(screen.getByTestId('btn-duplicate-session-session-1')));
     expect(await screen.findByText('Duplicate slot')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('dialog').querySelector('input[type="date"]')!, { target: { value: futureDateKey() } });
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({ method: 'POST' })));
   });

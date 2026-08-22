@@ -35,6 +35,37 @@ function addDays(dateKey: string, days: number) {
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
+function defaultSlotDateTimes(weekStart: string) {
+  const weekEnd = addDays(weekStart, 6);
+  const now = new Date();
+  const today = localDateTime(now.toISOString()).slice(0, 10);
+  let date = weekStart;
+  let minutes = 10 * 60;
+
+  if (today >= weekStart && today <= weekEnd) {
+    date = today;
+    minutes = Math.max(
+      minutes,
+      Math.ceil((now.getHours() * 60 + now.getMinutes() + 30) / 30) * 30,
+    );
+    if (minutes + 60 > 24 * 60 && date < weekEnd) {
+      date = addDays(date, 1);
+      minutes = 10 * 60;
+    }
+  }
+
+  const formatTime = (value: number) => {
+    const hours = Math.floor(value / 60);
+    const remainder = value % 60;
+    return `${String(hours).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+  };
+  return {
+    date,
+    startsAt: formatTime(minutes),
+    endsAt: formatTime(minutes + 60),
+  };
+}
+
 function displayDay(iso: string, timezone?: string | null) {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone ?? 'Europe/Malta',
@@ -80,20 +111,49 @@ function SlotForm({
   onSave: (body: Record<string, unknown>) => Promise<void>;
 }) {
   const source = session ?? duplicate;
-  const start = source ? localDateTime(source.startsAt) : `${weekStart}T10:00`;
-  const end = source ? localDateTime(source.endsAt) : `${weekStart}T11:00`;
+  const defaults = source
+    ? { date: localDateTime(source.startsAt).slice(0, 10), startsAt: localDateTime(source.startsAt).slice(11, 16), endsAt: localDateTime(source.endsAt).slice(11, 16) }
+    : defaultSlotDateTimes(weekStart);
   const [form, setForm] = useState({
-    date: start.slice(0, 10),
-    startsAt: start.slice(11, 16),
-    endsAt: end.slice(11, 16),
+    date: defaults.date,
+    startsAt: defaults.startsAt,
+    endsAt: defaults.endsAt,
     locationId: source?.locationId ?? locations[0]?.id ?? '',
     capacity: String(source?.capacity ?? 4),
     marcusNotes: session?.marcusNotes ?? '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const nextErrors: Record<string, string> = {};
+    const startsAt = new Date(`${form.date}T${form.startsAt}`);
+    const endsAt = new Date(`${form.date}T${form.endsAt}`);
+    const capacity = Number(form.capacity);
+    if (!form.date || !Number.isFinite(startsAt.getTime())) {
+      nextErrors.date = 'Enter a valid date and start time.';
+    }
+    if (!form.locationId) nextErrors.locationId = 'Choose an active location.';
+    if (!form.startsAt || !Number.isFinite(startsAt.getTime())) {
+      nextErrors.startsAt = 'Enter a valid start time.';
+    } else if (startsAt <= new Date()) {
+      nextErrors.startsAt = 'Start time must be in the future.';
+    }
+    if (!form.endsAt || !Number.isFinite(endsAt.getTime())) {
+      nextErrors.endsAt = 'Enter a valid end time.';
+    } else if (Number.isFinite(startsAt.getTime()) && endsAt <= startsAt) {
+      nextErrors.endsAt = 'End time must be after the start time.';
+    }
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 10000) {
+      nextErrors.capacity = 'Maximum Clients must be a whole number from 1 to 10,000.';
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
   return <PlannerModal title={session ? 'Edit slot' : duplicate ? 'Duplicate slot' : 'Add bookable slot'} onClose={onClose}>
     <form className="space-y-5" onSubmit={(event) => {
       event.preventDefault();
+      if (!validate()) return;
       void onSave({
         locationId: form.locationId,
         startsAt: new Date(`${form.date}T${form.startsAt}`).toISOString(),
@@ -104,11 +164,11 @@ function SlotForm({
     }}>
       {duplicate && <p className="rounded border border-amber-400/25 bg-amber-400/10 p-3 text-xs text-amber-100">Choose a different date or time before saving the copy.</p>}
       <div className="grid grid-cols-2 gap-4">
-        <label className="text-xs font-bold uppercase tracking-wider text-white/60">Date<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /></label>
-        <label className="text-xs font-bold uppercase tracking-wider text-white/60">Location<select required value={form.locationId} onChange={(event) => setForm({ ...form, locationId: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white"><option value="" disabled>Select…</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
-        <label className="text-xs font-bold uppercase tracking-wider text-white/60">Start time<input required type="time" value={form.startsAt} onChange={(event) => setForm({ ...form, startsAt: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /></label>
-        <label className="text-xs font-bold uppercase tracking-wider text-white/60">End time<input required type="time" value={form.endsAt} onChange={(event) => setForm({ ...form, endsAt: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /></label>
-        <label className="col-span-2 text-xs font-bold uppercase tracking-wider text-white/60">Maximum Clients<input required min="1" max="10000" type="number" value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /></label>
+        <label className="text-xs font-bold uppercase tracking-wider text-white/60">Date<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" />{errors.date && <span className="mt-1 block normal-case tracking-normal text-red-300">{errors.date}</span>}</label>
+        <label className="text-xs font-bold uppercase tracking-wider text-white/60">Location<select required value={form.locationId} onChange={(event) => setForm({ ...form, locationId: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white"><option value="" disabled>Select…</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select>{errors.locationId && <span className="mt-1 block normal-case tracking-normal text-red-300">{errors.locationId}</span>}</label>
+        <label className="text-xs font-bold uppercase tracking-wider text-white/60">Start time<input required type="time" value={form.startsAt} onChange={(event) => setForm({ ...form, startsAt: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" />{errors.startsAt && <span className="mt-1 block normal-case tracking-normal text-red-300">{errors.startsAt}</span>}</label>
+        <label className="text-xs font-bold uppercase tracking-wider text-white/60">End time<input required type="time" value={form.endsAt} onChange={(event) => setForm({ ...form, endsAt: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" />{errors.endsAt && <span className="mt-1 block normal-case tracking-normal text-red-300">{errors.endsAt}</span>}</label>
+        <label className="col-span-2 text-xs font-bold uppercase tracking-wider text-white/60">Maximum Clients<input required min="1" max="10000" type="number" value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" />{errors.capacity && <span className="mt-1 block normal-case tracking-normal text-red-300">{errors.capacity}</span>}</label>
       </div>
       {session && <label className="block text-xs font-bold uppercase tracking-wider text-white/60">Internal notes<textarea value={form.marcusNotes} onChange={(event) => setForm({ ...form, marcusNotes: event.target.value })} rows={3} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /></label>}
       <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold text-white/60">Cancel</button><button type="submit" disabled={submitting} className="rounded bg-white px-4 py-2 text-xs font-bold text-black disabled:opacity-50" data-testid="btn-save-session">{submitting ? 'Saving…' : 'Save slot'}</button></div>

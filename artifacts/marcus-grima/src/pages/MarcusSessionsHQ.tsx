@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { apiRequest } from '@/lib/api';
+import { ApiError, apiRequest } from '@/lib/api';
 import { WeeklySchedulePlanner } from '@/components/WeeklySchedulePlanner';
 import { 
   CalendarBlank, MapPin, User, WarningCircle, CheckCircle, XCircle, 
@@ -1012,7 +1012,14 @@ export function MarcusSessionsHQ() {
       await data.reload(false);
       return true;
     } catch (err) {
-      setGlobalError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      if (err instanceof ApiError && err.fields) {
+        const details = Object.entries(err.fields)
+          .map(([field, message]) => `${field}: ${message}`)
+          .join(' ');
+        setGlobalError(`${err.message} ${details}`);
+      } else {
+        setGlobalError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      }
       await data.reload(false).catch(() => {});
       return false;
     } finally {

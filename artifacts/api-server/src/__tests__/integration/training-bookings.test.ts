@@ -360,6 +360,73 @@ describe("weekly type-less slots", () => {
       .expect(201);
   });
 
+  it("accepts the Weekly Schedule form's valid type-less payload and explains invalid fields", async () => {
+    const invalidPastStart = new Date(Date.now() - 60 * 60 * 1000);
+    const invalidPastEnd = new Date(invalidPastStart.getTime() + 60 * 60 * 1000);
+    const pastResponse = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({
+        locationId,
+        startsAt: invalidPastStart.toISOString(),
+        endsAt: invalidPastEnd.toISOString(),
+        capacity: 4,
+      })
+      .expect(400);
+    expect(pastResponse.body.fields.startsAt).toContain("future");
+
+    const startsAt = future(28, 15);
+    const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
+    const validResponse = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt, endsAt, capacity: 4 })
+      .expect(201);
+    expect(validResponse.body.session.sessionTypeId).toBeNull();
+    expect(validResponse.body.session.capacity).toBe(4);
+
+    const invalidLocation = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({
+        locationId: "00000000-0000-4000-8000-000000000099",
+        startsAt: future(29, 8),
+        endsAt: future(29, 9),
+        capacity: 4,
+      })
+      .expect(400);
+    expect(invalidLocation.body.fields.locationId).toContain("location");
+
+    const missingCapacity = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt: future(30, 8), endsAt: future(30, 9) })
+      .expect(400);
+    expect(missingCapacity.body.fields.capacity).toContain("Maximum Clients");
+
+    const invalidCapacity = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt: future(31, 8), endsAt: future(31, 9), capacity: 0 })
+      .expect(400);
+    expect(invalidCapacity.body.fields.capacity).toContain("whole number");
+
+    const invalidRange = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt: future(32, 10), endsAt: future(32, 9), capacity: 4 })
+      .expect(400);
+    expect(invalidRange.body.fields.endsAt).toContain("after");
+
+    const malformedDate = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt: "not-a-date", endsAt: "also-not-a-date", capacity: 4 })
+      .expect(400);
+    expect(malformedDate.body.fields.startsAt).toContain("valid");
+    expect(malformedDate.body.fields.endsAt).toContain("valid");
+  });
+
   it("locks every scheduling field and deletion once a slot has an active booking", async () => {
     const startsAt = future(19, 8);
     const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
