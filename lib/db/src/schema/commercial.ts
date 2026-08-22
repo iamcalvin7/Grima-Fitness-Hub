@@ -16,7 +16,7 @@ import {
 import { sql } from "drizzle-orm";
 import { tenantsTable } from "./tenants";
 import { usersTable } from "./users";
-import { bookingsTable } from "./training";
+import { bookingsTable, trainingSessionsTable } from "./training";
 
 export const pricingPlanKindEnum = pgEnum("pricing_plan_kind", [
   "default",
@@ -32,7 +32,13 @@ export const commercialHoldStatusEnum = pgEnum("commercial_hold_status", [
 
 export const commercialPricingRuleEnum = pgEnum("commercial_pricing_rule", [
   "actual_attendance_count",
+  "class_close_confirmed_count",
 ]);
+
+export const commercialClassCloseReasonEnum = pgEnum(
+  "commercial_class_close_reason",
+  ["full", "marcus_manual"],
+);
 
 export const trainingValueMovementTypeEnum = pgEnum(
   "training_value_movement_type",
@@ -224,6 +230,50 @@ export interface PricingRateSnapshot {
   [participantCount: string]: number;
 }
 
+export const commercialClassLocksTable = pgTable(
+  "commercial_class_locks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    trainingSessionId: uuid("training_session_id").notNull(),
+    closeReason: commercialClassCloseReasonEnum("close_reason").notNull(),
+    closedAt: timestamp("closed_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
+    closedByUserId: uuid("closed_by_user_id"),
+    confirmedParticipantCount: integer("confirmed_participant_count").notNull(),
+    pricingRule: commercialPricingRuleEnum("pricing_rule")
+      .notNull()
+      .default("class_close_confirmed_count"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.trainingSessionId],
+      foreignColumns: [trainingSessionsTable.tenantId, trainingSessionsTable.id],
+      name: "commercial_class_locks_tenant_session_fk",
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.closedByUserId],
+      foreignColumns: [usersTable.tenantId, usersTable.id],
+      name: "commercial_class_locks_tenant_closer_fk",
+    }),
+    unique("commercial_class_locks_tenant_id_unique").on(table.tenantId, table.id),
+    unique("commercial_class_locks_one_per_session").on(
+      table.tenantId,
+      table.trainingSessionId,
+    ),
+    check(
+      "commercial_class_locks_confirmed_participants_positive",
+      sql`${table.confirmedParticipantCount} > 0`,
+    ),
+  ],
+);
+
 export const bookingCommercialsTable = pgTable(
   "booking_commercials",
   {
@@ -242,6 +292,11 @@ export const bookingCommercialsTable = pgTable(
     currency: text("currency").notNull().default("EUR"),
     rateTable: jsonb("rate_table").$type<PricingRateSnapshot>().notNull(),
     maximumHeldAmountMinor: integer("maximum_held_amount_minor").notNull(),
+    heldAmountMinor: integer("held_amount_minor").notNull(),
+    classLockId: uuid("class_lock_id"),
+    lockedParticipantCount: integer("locked_participant_count"),
+    lockedAmountMinor: integer("locked_amount_minor"),
+    lockedAt: timestamp("locked_at", { withTimezone: true, mode: "date" }),
     holdStatus: commercialHoldStatusEnum("hold_status").notNull().default("active"),
     holdCreatedAt: timestamp("hold_created_at", {
       withTimezone: true,
@@ -277,6 +332,11 @@ export const bookingCommercialsTable = pgTable(
       foreignColumns: [pricingPlansTable.tenantId, pricingPlansTable.id],
       name: "booking_commercials_tenant_plan_fk",
     }),
+    foreignKey({
+      columns: [table.tenantId, table.classLockId],
+      foreignColumns: [commercialClassLocksTable.tenantId, commercialClassLocksTable.id],
+      name: "booking_commercials_tenant_class_lock_fk",
+    }),
     unique("booking_commercials_tenant_id_unique").on(table.tenantId, table.id),
     unique("booking_commercials_one_per_booking").on(
       table.tenantId,
@@ -290,6 +350,18 @@ export const bookingCommercialsTable = pgTable(
     check(
       "booking_commercials_maximum_held_non_negative",
       sql`${table.maximumHeldAmountMinor} >= 0`,
+    ),
+    check(
+      "booking_commercials_held_non_negative",
+      sql`${table.heldAmountMinor} >= 0`,
+    ),
+    check(
+      "booking_commercials_locked_amount_non_negative",
+      sql`${table.lockedAmountMinor} is null or ${table.lockedAmountMinor} >= 0`,
+    ),
+    check(
+      "booking_commercials_held_not_above_maximum",
+      sql`${table.heldAmountMinor} <= ${table.maximumHeldAmountMinor}`,
     ),
     check(
       "booking_commercials_plan_version_positive",
@@ -423,6 +495,7 @@ export type PricingRate = typeof pricingRatesTable.$inferSelect;
 export type ClientPricingAssignment =
   typeof clientPricingAssignmentsTable.$inferSelect;
 export type TrainingValueLedgerEntry = typeof trainingValueLedgerTable.$inferSelect;
+export type CommercialClassLock = typeof commercialClassLocksTable.$inferSelect;
 export type BookingCommercial = typeof bookingCommercialsTable.$inferSelect;
 export type CommercialSettlement = typeof commercialSettlementsTable.$inferSelect;
 export type CommercialNoShowDecision =

@@ -731,4 +731,118 @@ describe("rescheduling and Marcus workflow", () => {
       expect.objectContaining({ id: bookings[2], status: "no_show", attendanceAt: expect.any(String) }),
     ]));
   });
+
+  it("automatically locks full classes from confirmed participants and preserves that price after a cancellation", async () => {
+    const session = await createManagedSession(adminAToken, 2, future(50));
+    expect(session.status).toBe(201);
+    const sessionId = session.body.session.id as string;
+    const first = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientAToken))
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-auto-a" })
+      .expect(201);
+    const second = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientBToken))
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-auto-b" })
+      .expect(201);
+    await request(app)
+      .post(`/api/admin/bookings/${first.body.booking.id}/confirm`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/bookings/${second.body.booking.id}/confirm`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+
+    const summary = await request(app)
+      .get(`/api/admin/commercial/sessions/${sessionId}/pricing-summary`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(summary.body.classPricing).toMatchObject({
+      state: "closed",
+      closeReason: "full",
+      confirmedParticipantCount: 2,
+    });
+    expect(summary.body.classPricing.participants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          bookingId: first.body.booking.id,
+          maximumHeldAmountMinor: 9000,
+          heldAmountMinor: 6000,
+          lockedAmountMinor: 6000,
+          lockedParticipantCount: 2,
+        }),
+      ]),
+    );
+    await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientCToken))
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-auto-blocked" })
+      .expect(409);
+
+    await request(app)
+      .post(`/api/bookings/${second.body.booking.id}/cancel`)
+      .set("Cookie", sessionCookie(clientBToken))
+      .expect(200);
+    const firstBooking = await request(app)
+      .get(`/api/bookings/${first.body.booking.id}`)
+      .set("Cookie", sessionCookie(clientAToken))
+      .expect(200);
+    expect(firstBooking.body.booking.commercial).toMatchObject({
+      lockedAmountMinor: 6000,
+      lockedParticipantCount: 2,
+      heldAmountMinor: 6000,
+    });
+  });
+
+  it("manually locks an open class and limits no-show charges to the locked amount", async () => {
+    const session = await createManagedSession(adminAToken, 3, future(51));
+    expect(session.status).toBe(201);
+    const sessionId = session.body.session.id as string;
+    const first = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientAToken))
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-manual-a" })
+      .expect(201);
+    const second = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientBToken))
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-manual-b" })
+      .expect(201);
+    for (const bookingId of [first.body.booking.id, second.body.booking.id]) {
+      await request(app)
+        .post(`/api/admin/bookings/${bookingId}/confirm`)
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200);
+    }
+    await request(app)
+      .post(`/api/admin/commercial/sessions/${sessionId}/close`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(201);
+    await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientCToken))
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-manual-blocked" })
+      .expect(409);
+
+    await request(app)
+      .post(`/api/admin/bookings/${first.body.booking.id}/no-show`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/commercial/bookings/${first.body.booking.id}/no-show-decision`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ waived: false, selectedChargeAmountMinor: 6001 })
+      .expect(400);
+    const decision = await request(app)
+      .post(`/api/admin/commercial/bookings/${first.body.booking.id}/no-show-decision`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ waived: false, selectedChargeAmountMinor: 6000 })
+      .expect(201);
+    expect(decision.body.decision).toMatchObject({
+      heldAmountMinor: 6000,
+      selectedChargeAmountMinor: 6000,
+    });
+  });
 });

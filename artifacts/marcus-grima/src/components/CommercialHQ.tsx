@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { apiRequest } from '@/lib/api';
 import { ManagedSession } from '@/pages/MarcusSessionsHQ';
 import {
-  CheckCircle, CurrencyEur, Plus, Receipt, SpinnerGap, Tag, Users, WarningCircle, X,
+  CheckCircle, CurrencyEur, Lock, Plus, Receipt, SpinnerGap, Tag, Users, WarningCircle, X,
 } from '@phosphor-icons/react';
 
 export function formatEur(minorUnits: number | null | undefined) {
@@ -59,6 +59,25 @@ type SettlementPreview = {
   canSettle: boolean;
   rows: PreviewRow[];
 };
+type ClassPricingSummary = {
+  state: 'open' | 'closed';
+  closeReason: 'full' | 'marcus_manual' | null;
+  closedAt: string | null;
+  confirmedParticipantCount: number;
+  capacity: number;
+  canClose: boolean;
+  participants: {
+    bookingId: string;
+    clientName: string;
+    bookingStatus: string;
+    maximumHeldAmountMinor: number | null;
+    heldAmountMinor: number | null;
+    projectedLockedAmountMinor: number | null;
+    lockedAmountMinor: number | null;
+    lockedParticipantCount: number | null;
+    settled: boolean;
+  }[];
+};
 
 type AsyncAction = (id: string, promise: Promise<unknown>) => Promise<boolean>;
 
@@ -71,7 +90,7 @@ export function CommercialHQ({
   actionId: string | null;
   sessions: ManagedSession[];
 }) {
-  const [tab, setTab] = useState<'clients' | 'plans' | 'settlements'>('clients');
+  const [tab, setTab] = useState<'clients' | 'plans' | 'classes' | 'settlements'>('clients');
 
   return (
     <div className="flex h-full flex-col bg-[#0A0A0A]">
@@ -79,6 +98,7 @@ export function CommercialHQ({
         {([
           ['clients', 'Clients', Users],
           ['plans', 'Pricing plans', Tag],
+           ['classes', 'Class pricing', Lock],
           ['settlements', 'Settlements', Receipt],
         ] as const).map(([value, label, Icon]) => (
           <button
@@ -95,6 +115,7 @@ export function CommercialHQ({
       <AnimatePresence mode="wait">
         {tab === 'clients' && <ClientsView key="clients" execute={execute} actionId={actionId} />}
         {tab === 'plans' && <PlansView key="plans" execute={execute} actionId={actionId} />}
+        {tab === 'classes' && <ClassPricingView key="classes" execute={execute} actionId={actionId} sessions={sessions} />}
         {tab === 'settlements' && (
           <SettlementsView key="settlements" execute={execute} actionId={actionId} sessions={sessions} />
         )}
@@ -229,7 +250,7 @@ function PlansView({ execute, actionId }: { execute: AsyncAction; actionId: stri
   if (loading) return <LoadingBlock />;
   if (error) return <ErrorBlock message={error} retry={refresh} />;
   return <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-    <div className="flex items-center justify-between"><p className="text-sm text-white/45">Rates are based on actual attendance count, in EUR per client.</p><button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded bg-white px-4 py-2 text-xs font-bold text-black hover:bg-white/90"><Plus size={14} weight="bold" /> New plan</button></div>
+    <div className="flex items-center justify-between"><p className="text-sm text-white/45">Rates lock from the confirmed participant count when a class closes, in EUR per client.</p><button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded bg-white px-4 py-2 text-xs font-bold text-black hover:bg-white/90"><Plus size={14} weight="bold" /> New plan</button></div>
     {plans.length === 0 ? <EmptyBlock icon={<Tag size={30} weight="fill" />} label="Create an active default plan before clients can reserve sessions." /> : <div className="grid gap-4 md:grid-cols-2">
       {plans.map((plan) => <div key={plan.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-5">
         <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-white">{plan.name}</h3><p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/45">{plan.kind} · v{plan.version}</p></div><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${plan.isActive ? 'bg-primary/15 text-primary' : 'bg-white/10 text-white/40'}`}>{plan.isActive ? 'Active' : 'Archived'}</span></div>
@@ -256,9 +277,57 @@ function CreatePlanModal({ onClose, execute, actionId, onSuccess }: { onClose: (
     }} className="space-y-5">
       <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60">Plan name<input value={name} onChange={(event) => setName(event.target.value)} required maxLength={160} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30" /></label>
       <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60">Plan type<select value={kind} onChange={(event) => setKind(event.target.value as typeof kind)} className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"><option value="default">Tenant default</option><option value="tier">Tier</option><option value="custom">Client-specific</option></select></label>
-      <div><p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Per-client rates (EUR)</p><div className="mt-2 space-y-2">{rates.map((rate, index) => <div key={index} className="flex gap-2"><input type="number" min="1" value={rate.count} onChange={(event) => setRates(rates.map((item, current) => current === index ? { ...item, count: event.target.value } : item))} aria-label="Attendance count" className="w-28 rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /><input type="number" min="0" step="0.01" value={rate.amount} onChange={(event) => setRates(rates.map((item, current) => current === index ? { ...item, amount: event.target.value } : item))} aria-label="Rate in EUR" className="min-w-0 flex-1 rounded border border-white/10 bg-white/5 p-3 text-sm text-white" />{rates.length > 1 && <button type="button" onClick={() => setRates(rates.filter((_, current) => current !== index))} className="px-2 text-white/45 hover:text-white"><X size={16} /></button>}</div>)}</div><button type="button" onClick={() => setRates([...rates, { count: String(rates.length + 1), amount: '' }])} className="mt-3 text-xs font-bold text-primary hover:text-primary/80">Add attendance rate</button></div>
+      <div><p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Per-client rates (EUR)</p><div className="mt-2 space-y-2">{rates.map((rate, index) => <div key={index} className="flex gap-2"><input type="number" min="1" value={rate.count} onChange={(event) => setRates(rates.map((item, current) => current === index ? { ...item, count: event.target.value } : item))} aria-label="Confirmed participant count" className="w-28 rounded border border-white/10 bg-white/5 p-3 text-sm text-white" /><input type="number" min="0" step="0.01" value={rate.amount} onChange={(event) => setRates(rates.map((item, current) => current === index ? { ...item, amount: event.target.value } : item))} aria-label="Rate in EUR" className="min-w-0 flex-1 rounded border border-white/10 bg-white/5 p-3 text-sm text-white" />{rates.length > 1 && <button type="button" onClick={() => setRates(rates.filter((_, current) => current !== index))} className="px-2 text-white/45 hover:text-white"><X size={16} /></button>}</div>)}</div><button type="button" onClick={() => setRates([...rates, { count: String(rates.length + 1), amount: '' }])} className="mt-3 text-xs font-bold text-primary hover:text-primary/80">Add confirmed-count rate</button></div>
       <ModalActions onClose={onClose} busy={actionId === action} label="Create plan" />
     </form>
+  </Modal>;
+}
+
+function ClassPricingView({ execute, actionId, sessions }: { execute: AsyncAction; actionId: string | null; sessions: ManagedSession[] }) {
+  const [selected, setSelected] = useState<ManagedSession | null>(null);
+  const eligible = sessions
+    .filter((session) => session.status === 'scheduled' && new Date(session.startsAt) > new Date())
+    .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+  if (eligible.length === 0) {
+    return <EmptyBlock icon={<Lock size={30} weight="fill" />} label="No upcoming scheduled classes are available for pricing review." />;
+  }
+  return <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+    <p className="text-sm text-white/45">Only confirmed participants determine the price. Closing a class locks each value and releases any excess hold immediately.</p>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {eligible.map((session) => <div key={session.id} className="flex min-h-44 flex-col justify-between rounded-lg border border-white/10 bg-white/[0.02] p-5">
+        <div><p className="text-[10px] font-bold uppercase tracking-wider text-white/45">{new Date(session.startsAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</p><h3 className="mt-2 font-bold text-white">{session.sessionType?.name ?? 'Training session'}</h3><p className="mt-1 text-sm text-white/45">{session.reservedCapacity} reserved of {session.capacity} capacity</p></div>
+        <button onClick={() => setSelected(session)} className="mt-5 rounded bg-white/5 py-2 text-xs font-bold text-white hover:bg-white/10">Review class price</button>
+      </div>)}
+    </div>
+    {selected && <ClassPricingModal session={selected} onClose={() => setSelected(null)} execute={execute} actionId={actionId} />}
+  </motion.div>;
+}
+
+function ClassPricingModal({ session, onClose, execute, actionId }: { session: ManagedSession; onClose: () => void; execute: AsyncAction; actionId: string | null }) {
+  const [summary, setSummary] = useState<ClassPricingSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => {
+    setLoading(true); setError(null);
+    try {
+      const result = await apiRequest<{ classPricing: ClassPricingSummary }>(`/admin/commercial/sessions/${session.id}/pricing-summary`);
+      setSummary(result.classPricing);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to load class pricing.');
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { void refresh(); }, [session.id]);
+  return <Modal title="Class price lock" onClose={onClose} wide>
+    <p className="mb-5 text-sm text-white/45">{session.sessionType?.name ?? 'Training session'} · {new Date(session.startsAt).toLocaleString()}</p>
+    {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} retry={refresh} /> : summary && <div className="space-y-5">
+      <div className={`flex flex-wrap items-center justify-between gap-3 rounded border p-4 ${summary.state === 'closed' ? 'border-green-500/20 bg-green-500/10' : 'border-amber-500/20 bg-amber-500/10'}`}>
+        <div><p className="text-[10px] font-bold uppercase tracking-wider text-white/50">{summary.state === 'closed' ? 'Price locked' : 'Projected class price'}</p><p className="mt-1 text-sm font-bold text-white">{summary.confirmedParticipantCount} confirmed of {summary.capacity} capacity</p></div>
+        <span className={summary.state === 'closed' ? 'text-xs font-bold uppercase tracking-wider text-green-300' : 'text-xs font-bold uppercase tracking-wider text-amber-300'}>{summary.state === 'closed' ? `Closed ${summary.closeReason === 'full' ? 'at capacity' : 'by Marcus'}` : 'Open'}</span>
+      </div>
+      <div className="overflow-x-auto rounded border border-white/10"><table className="w-full min-w-[620px] text-left text-sm"><thead className="bg-white/5 text-[10px] font-bold uppercase tracking-wider text-white/45"><tr><th className="p-3">Client</th><th className="p-3 text-right">Maximum hold</th><th className="p-3 text-right">{summary.state === 'closed' ? 'Locked value' : 'Projected value'}</th><th className="p-3 text-right">Current hold</th></tr></thead><tbody className="divide-y divide-white/10">{summary.participants.map((participant) => <tr key={participant.bookingId}><td className="p-3 font-medium text-white">{participant.clientName}</td><td className="p-3 text-right text-white/55">{formatEur(participant.maximumHeldAmountMinor)}</td><td className="p-3 text-right font-bold text-primary">{formatEur(participant.lockedAmountMinor ?? participant.projectedLockedAmountMinor)}</td><td className="p-3 text-right text-amber-300">{formatEur(participant.heldAmountMinor)}</td></tr>)}{summary.participants.length === 0 && <tr><td colSpan={4} className="p-5 text-center text-sm text-white/40">No confirmed participants yet.</td></tr>}</tbody></table></div>
+      {summary.state === 'open' && <p className="text-xs leading-relaxed text-white/45">Closing is final for pricing: new bookings are blocked, the confirmed count is frozen, and any amount above the locked value is released to each client’s available balance.</p>}
+      <div className="flex justify-end gap-3"><button onClick={onClose} className="px-4 py-2 text-xs font-bold text-white/60 hover:text-white">Close</button>{summary.canClose && <button onClick={async () => { const ok = await execute(`close-class-${session.id}`, apiRequest(`/admin/commercial/sessions/${session.id}/close`, { method: 'POST' })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-white px-5 py-2 text-xs font-bold text-black disabled:opacity-40">Lock class price</button>}</div>
+    </div>}
   </Modal>;
 }
 
@@ -283,8 +352,8 @@ function SettlementModal({ session, onClose, execute, actionId }: { session: Man
     <p className="mb-5 text-sm text-white/45">{session.sessionType?.name ?? 'Training session'} · {new Date(session.startsAt).toLocaleString()}</p>
     {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} retry={refresh} /> : preview && <div className="space-y-5">
       {preview.unresolvedCount > 0 && <div className="flex gap-3 rounded border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200"><WarningCircle size={20} className="shrink-0" />{preview.unresolvedCount} active participant outcome{preview.unresolvedCount === 1 ? '' : 's'} must be resolved before settlement.</div>}
-      <div className="overflow-x-auto rounded border border-white/10"><table className="w-full min-w-[600px] text-left text-sm"><thead className="bg-white/5 text-[10px] font-bold uppercase tracking-wider text-white/45"><tr><th className="p-3">Client</th><th className="p-3">Outcome</th><th className="p-3 text-right">Held</th><th className="p-3 text-right">Final charge</th></tr></thead><tbody className="divide-y divide-white/10">{preview.rows.map((row) => <tr key={row.bookingId}><td className="p-3 font-medium text-white">{row.clientName}</td><td className="p-3"><span className={row.outcome === 'attended' ? 'text-green-400' : 'text-red-400'}>{row.outcome === 'attended' ? 'Attended' : 'No-show'}</span>{row.noShowDecisionRequired && <div className="mt-2 flex items-center gap-2"><input aria-label={`No-show charge for ${row.clientName}`} type="number" min="0" max={(row.heldAmountMinor ?? 0) / 100} step="0.01" value={charges[row.bookingId] ?? ''} onChange={(event) => setCharges({ ...charges, [row.bookingId]: event.target.value })} className="w-24 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white" /><button onClick={async () => { const amount = parseEur(charges[row.bookingId] ?? ''); if (amount === null) return; const ok = await execute(`noshow-${row.bookingId}`, apiRequest(`/admin/commercial/bookings/${row.bookingId}/no-show-decision`, { method: 'POST', body: { waived: false, selectedChargeAmountMinor: amount } })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">Charge</button><button onClick={async () => { const ok = await execute(`noshow-${row.bookingId}`, apiRequest(`/admin/commercial/bookings/${row.bookingId}/no-show-decision`, { method: 'POST', body: { waived: true } })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-white/10 px-2 py-1 text-[10px] font-bold text-white/70">Waive</button></div>}</td><td className="p-3 text-right text-amber-300">{formatEur(row.heldAmountMinor)}</td><td className="p-3 text-right font-bold text-white">{formatEur(row.finalChargeAmountMinor)}</td></tr>)}{preview.rows.length === 0 && <tr><td colSpan={4} className="p-5 text-center text-sm text-white/40">No commercial booking records are ready to settle.</td></tr>}</tbody></table></div>
-      <div className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-4"><span className="text-xs font-bold uppercase tracking-wider text-white/50">Actual attendance</span><span className="font-bold text-white">{preview.attendanceCount}</span></div>
+      <div className="overflow-x-auto rounded border border-white/10"><table className="w-full min-w-[600px] text-left text-sm"><thead className="bg-white/5 text-[10px] font-bold uppercase tracking-wider text-white/45"><tr><th className="p-3">Client</th><th className="p-3">Outcome</th><th className="p-3 text-right">Locked hold</th><th className="p-3 text-right">Final charge</th></tr></thead><tbody className="divide-y divide-white/10">{preview.rows.map((row) => <tr key={row.bookingId}><td className="p-3 font-medium text-white">{row.clientName}</td><td className="p-3"><span className={row.outcome === 'attended' ? 'text-green-400' : 'text-red-400'}>{row.outcome === 'attended' ? 'Attended' : 'No-show'}</span>{row.noShowDecisionRequired && <div className="mt-2 flex items-center gap-2"><input aria-label={`No-show charge for ${row.clientName}`} type="number" min="0" max={(row.heldAmountMinor ?? 0) / 100} step="0.01" value={charges[row.bookingId] ?? ''} onChange={(event) => setCharges({ ...charges, [row.bookingId]: event.target.value })} className="w-24 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white" /><button onClick={async () => { const amount = parseEur(charges[row.bookingId] ?? ''); if (amount === null) return; const ok = await execute(`noshow-${row.bookingId}`, apiRequest(`/admin/commercial/bookings/${row.bookingId}/no-show-decision`, { method: 'POST', body: { waived: false, selectedChargeAmountMinor: amount } })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">Charge</button><button onClick={async () => { const ok = await execute(`noshow-${row.bookingId}`, apiRequest(`/admin/commercial/bookings/${row.bookingId}/no-show-decision`, { method: 'POST', body: { waived: true } })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-white/10 px-2 py-1 text-[10px] font-bold text-white/70">Waive</button></div>}</td><td className="p-3 text-right text-amber-300">{formatEur(row.heldAmountMinor)}</td><td className="p-3 text-right font-bold text-white">{formatEur(row.finalChargeAmountMinor)}</td></tr>)}{preview.rows.length === 0 && <tr><td colSpan={4} className="p-5 text-center text-sm text-white/40">No commercial booking records are ready to settle.</td></tr>}</tbody></table></div>
+      <div className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-4"><span className="text-xs font-bold uppercase tracking-wider text-white/50">Attendance recorded</span><span className="font-bold text-white">{preview.attendanceCount}</span></div>
       <div className="flex justify-end gap-3"><button onClick={onClose} className="px-4 py-2 text-xs font-bold text-white/60 hover:text-white">Close</button><button onClick={async () => { const ok = await execute(`settle-${session.id}`, apiRequest(`/admin/commercial/sessions/${session.id}/settle`, { method: 'POST' })); if (ok) onClose(); }} disabled={!preview.canSettle || actionId !== null} className="rounded bg-white px-5 py-2 text-xs font-bold text-black disabled:opacity-40">Finalize settlement</button></div>
     </div>}
   </Modal>;

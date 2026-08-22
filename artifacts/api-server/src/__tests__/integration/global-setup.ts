@@ -78,7 +78,8 @@ CREATE TYPE availability_exception_kind AS ENUM ('unavailable', 'override', 'add
 CREATE TYPE availability_occurrence_resolution AS ENUM ('generated', 'suppressed', 'dst_skipped', 'conflict');
 CREATE TYPE pricing_plan_kind AS ENUM ('default', 'tier', 'custom');
 CREATE TYPE commercial_hold_status AS ENUM ('active', 'released', 'settled');
-CREATE TYPE commercial_pricing_rule AS ENUM ('actual_attendance_count');
+CREATE TYPE commercial_pricing_rule AS ENUM ('actual_attendance_count', 'class_close_confirmed_count');
+CREATE TYPE commercial_class_close_reason AS ENUM ('full', 'marcus_manual');
 CREATE TYPE training_value_movement_type AS ENUM (
   'manual_grant',
   'manual_adjustment',
@@ -375,6 +376,22 @@ CREATE UNIQUE INDEX training_value_ledger_actor_idempotency_unique
   ON training_value_ledger(tenant_id, actor_user_id, idempotency_key)
   WHERE idempotency_key IS NOT NULL;
 
+CREATE TABLE commercial_class_locks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  training_session_id UUID NOT NULL,
+  close_reason commercial_class_close_reason NOT NULL,
+  closed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  closed_by_user_id UUID,
+  confirmed_participant_count INTEGER NOT NULL CHECK (confirmed_participant_count > 0),
+  pricing_rule commercial_pricing_rule NOT NULL DEFAULT 'class_close_confirmed_count',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, training_session_id),
+  FOREIGN KEY (tenant_id, training_session_id) REFERENCES training_sessions(tenant_id, id),
+  FOREIGN KEY (tenant_id, closed_by_user_id) REFERENCES users(tenant_id, id)
+);
+
 CREATE TABLE booking_commercials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -383,10 +400,15 @@ CREATE TABLE booking_commercials (
   pricing_plan_id UUID,
   pricing_plan_name TEXT NOT NULL,
   pricing_plan_version INTEGER NOT NULL CHECK (pricing_plan_version > 0),
-  pricing_rule commercial_pricing_rule NOT NULL DEFAULT 'actual_attendance_count',
+  pricing_rule commercial_pricing_rule NOT NULL DEFAULT 'class_close_confirmed_count',
   currency TEXT NOT NULL DEFAULT 'EUR',
   rate_table JSONB NOT NULL,
   maximum_held_amount_minor INTEGER NOT NULL CHECK (maximum_held_amount_minor >= 0),
+  held_amount_minor INTEGER NOT NULL CHECK (held_amount_minor >= 0),
+  class_lock_id UUID,
+  locked_participant_count INTEGER,
+  locked_amount_minor INTEGER CHECK (locked_amount_minor IS NULL OR locked_amount_minor >= 0),
+  locked_at TIMESTAMPTZ,
   hold_status commercial_hold_status NOT NULL DEFAULT 'active',
   hold_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   hold_released_at TIMESTAMPTZ,
@@ -395,12 +417,16 @@ CREATE TABLE booking_commercials (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (tenant_id, id),
   UNIQUE (tenant_id, booking_id),
+  CHECK (held_amount_minor <= maximum_held_amount_minor),
   FOREIGN KEY (tenant_id, booking_id) REFERENCES bookings(tenant_id, id),
   FOREIGN KEY (tenant_id, client_user_id) REFERENCES users(tenant_id, id),
-  FOREIGN KEY (tenant_id, pricing_plan_id) REFERENCES pricing_plans(tenant_id, id)
+  FOREIGN KEY (tenant_id, pricing_plan_id) REFERENCES pricing_plans(tenant_id, id),
+  FOREIGN KEY (tenant_id, class_lock_id) REFERENCES commercial_class_locks(tenant_id, id)
 );
 CREATE INDEX booking_commercials_client_hold_idx
   ON booking_commercials(tenant_id, client_user_id, hold_status);
+CREATE INDEX booking_commercials_class_lock_idx
+  ON booking_commercials(tenant_id, class_lock_id);
 
 CREATE TABLE commercial_settlements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

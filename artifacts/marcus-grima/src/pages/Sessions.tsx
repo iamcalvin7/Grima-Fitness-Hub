@@ -11,6 +11,7 @@ import { apiRequest, ApiError } from '@/lib/api';
 interface SessionsProps {
   setPage: (page: Page) => void;
   openSessionId?: string | number;
+  onBookingIntentResolved?: () => void;
 }
 
 type BookingStatus =
@@ -77,6 +78,10 @@ interface Booking {
     currency: string;
     rateTable: Record<string, number>;
     maximumHeldAmountMinor: number;
+    heldAmountMinor: number;
+    lockedParticipantCount: number | null;
+    lockedAmountMinor: number | null;
+    lockedAt: string | null;
     holdStatus: string;
     settlement?: {
       attendanceCount: number;
@@ -352,10 +357,18 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
                 <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-1">Pricing Plan</p>
                 <p className="text-sm font-bold">{booking.commercial.planName}</p>
               </div>
-              {booking.commercial.holdStatus === 'active' && booking.commercial.maximumHeldAmountMinor > 0 && (
+              {booking.commercial.holdStatus === 'active' && booking.commercial.lockedAmountMinor !== null && (
                 <div>
-                  <p className="text-[9px] font-bold tracking-[0.2em] text-amber-500/50 uppercase mb-1">Value Held</p>
-                  <p className="text-sm font-bold text-amber-400">{formatEur(booking.commercial.maximumHeldAmountMinor)}</p>
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-primary/60 uppercase mb-1">Locked session value</p>
+                  <p className="text-sm font-bold text-primary">{formatEur(booking.commercial.lockedAmountMinor)}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/45">Locked when {booking.commercial.lockedParticipantCount} confirmed participant{booking.commercial.lockedParticipantCount === 1 ? '' : 's'} were in the class. This value will not change.</p>
+                </div>
+              )}
+              {booking.commercial.holdStatus === 'active' && booking.commercial.lockedAmountMinor === null && booking.commercial.heldAmountMinor > 0 && (
+                <div>
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-amber-500/50 uppercase mb-1">Maximum value held</p>
+                  <p className="text-sm font-bold text-amber-400">{formatEur(booking.commercial.heldAmountMinor)}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/45">Your final value is set when Marcus closes the class with confirmed participants. Any excess hold becomes available immediately.</p>
                 </div>
               )}
               {booking.commercial.settlement && booking.commercial.settlement.finalChargeAmountMinor > 0 && (

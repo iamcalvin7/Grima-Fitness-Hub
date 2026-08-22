@@ -19,6 +19,7 @@ import {
 import {
   db,
   bookingCommercialsTable,
+  commercialClassLocksTable,
   commercialSettlementsTable,
   bookingsTable,
   trainingLocationsTable,
@@ -47,6 +48,7 @@ import {
 } from "../lib/availability";
 import {
   CommercialError,
+  closeClassCommercial,
   createBookingCommercial,
   releaseBookingHold,
   transferBookingCommercial,
@@ -486,6 +488,11 @@ async function getBooking(
       commercialRateTable: bookingCommercialsTable.rateTable,
       commercialMaximumHeldAmountMinor:
         bookingCommercialsTable.maximumHeldAmountMinor,
+       commercialHeldAmountMinor: bookingCommercialsTable.heldAmountMinor,
+       commercialLockedParticipantCount:
+         bookingCommercialsTable.lockedParticipantCount,
+       commercialLockedAmountMinor: bookingCommercialsTable.lockedAmountMinor,
+       commercialLockedAt: bookingCommercialsTable.lockedAt,
       commercialHoldStatus: bookingCommercialsTable.holdStatus,
       commercialSettlementId: commercialSettlementsTable.id,
       commercialFinalChargeAmountMinor:
@@ -566,6 +573,10 @@ function bookingOutput(row: Awaited<ReturnType<typeof getBooking>>) {
           currency: row.commercialCurrency,
           rateTable: row.commercialRateTable,
           maximumHeldAmountMinor: row.commercialMaximumHeldAmountMinor,
+           heldAmountMinor: row.commercialHeldAmountMinor,
+           lockedParticipantCount: row.commercialLockedParticipantCount,
+           lockedAmountMinor: row.commercialLockedAmountMinor,
+           lockedAt: row.commercialLockedAt,
           holdStatus: row.commercialHoldStatus,
           settlement: row.commercialSettlementId
             ? {
@@ -828,6 +839,19 @@ router.post("/bookings", async (req, res) => {
         session.startsAt > window.horizon
       ) {
         throw new HttpError(409, "Training session is not bookable");
+      }
+      const [classLock] = await tx
+        .select({ id: commercialClassLocksTable.id })
+        .from(commercialClassLocksTable)
+        .where(
+          and(
+            eq(commercialClassLocksTable.tenantId, tenantId),
+            eq(commercialClassLocksTable.trainingSessionId, trainingSessionId),
+          ),
+        )
+        .limit(1);
+      if (classLock) {
+        throw new HttpError(409, "Training session is closed for new bookings");
       }
       const reserved = await activeReservationCount(tx, tenantId, trainingSessionId);
       if (reserved >= session.capacity) {
@@ -2175,6 +2199,23 @@ async function transitionBooking(
               reason: "booking_rejected",
             })
           : null;
+      const classClose =
+        nextStatus === "confirmed"
+          ? await closeClassCommercial(tx, {
+              tenantId: req.user!.tenantId,
+              trainingSessionId: locked.trainingSessionId,
+              reason: "full",
+              actorUserId: null,
+            }).catch((error) => {
+              if (
+                error instanceof CommercialError &&
+                error.message === "The class has not reached capacity."
+              ) {
+                return null;
+              }
+              throw error;
+            })
+          : null;
       await writeAuditLog(
         auditParams(req, action, "booking", id, {
           ...(reason ? { reason } : {}),
@@ -2190,6 +2231,27 @@ async function transitionBooking(
           }),
           tx,
         );
+      }
+      if (classClose && !classClose.replayed) {
+        await writeAuditLog(
+          auditParams(req, "class:auto_closed", "training_session", locked.trainingSessionId, {
+            confirmedParticipantCount: classClose.lock.confirmedParticipantCount,
+            closeReason: "full",
+          }),
+          tx,
+        );
+        for (const participant of classClose.participants) {
+          await writeAuditLog(
+            auditParams(req, "class_price:locked", "booking", participant.bookingId, {
+              classLockId: classClose.lock.id,
+              confirmedParticipantCount: classClose.lock.confirmedParticipantCount,
+              maximumHeldAmountMinor: participant.maximumHeldAmountMinor,
+              lockedAmountMinor: participant.lockedAmountMinor,
+              releasedAmountMinor: participant.releasedAmountMinor,
+            }),
+            tx,
+          );
+        }
       }
       const transitioned = await getBooking(tx, req.user!.tenantId, id);
       if (!transitioned) throw new HttpError(404, "Booking not found");

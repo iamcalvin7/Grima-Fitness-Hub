@@ -8,6 +8,7 @@ import {
   bookingCommercialsTable,
   bookingsTable,
   clientPricingAssignmentsTable,
+  commercialClassLocksTable,
   commercialNoShowDecisionsTable,
   commercialSettlementsTable,
   db,
@@ -172,7 +173,7 @@ export async function getCommercialSummary(
     );
   const [holds] = await executor
     .select({
-      total: sql<number>`coalesce(sum(${bookingCommercialsTable.maximumHeldAmountMinor}), 0)::int`,
+      total: sql<number>`coalesce(sum(${bookingCommercialsTable.heldAmountMinor}), 0)::int`,
     })
     .from(bookingCommercialsTable)
     .where(
@@ -232,10 +233,11 @@ export async function createBookingCommercial(
     pricingPlanId: pricing.planId,
     pricingPlanName: pricing.planName,
     pricingPlanVersion: pricing.planVersion,
-    pricingRule: "actual_attendance_count",
+    pricingRule: "class_close_confirmed_count",
     currency: "EUR",
     rateTable: pricing.rateTable,
     maximumHeldAmountMinor: pricing.maximumHoldAmountMinor,
+    heldAmountMinor: pricing.maximumHoldAmountMinor,
     holdStatus: "active",
   });
   return pricing;
@@ -262,7 +264,7 @@ export async function releaseBookingHold(
   if (!commercial) return null;
   await lockClient(tx, input.tenantId, commercial.clientUserId);
   if (commercial.holdStatus !== "active") {
-    return commercial.maximumHeldAmountMinor;
+    return commercial.heldAmountMinor;
   }
   await tx
     .update(bookingCommercialsTable)
@@ -273,7 +275,7 @@ export async function releaseBookingHold(
       updatedAt: new Date(),
     })
     .where(eq(bookingCommercialsTable.id, commercial.id));
-  return commercial.maximumHeldAmountMinor;
+  return commercial.heldAmountMinor;
 }
 
 export async function transferBookingCommercial(
@@ -323,21 +325,149 @@ export async function transferBookingCommercial(
         eq(bookingCommercialsTable.tenantId, input.tenantId),
       ),
     );
-  await tx.insert(bookingCommercialsTable).values({
+  const replacementPricing = await createBookingCommercial(tx, {
     tenantId: input.tenantId,
     bookingId: input.replacementBookingId,
     clientUserId: commercial.clientUserId,
-    pricingPlanId: commercial.pricingPlanId,
-    pricingPlanName: commercial.pricingPlanName,
-    pricingPlanVersion: commercial.pricingPlanVersion,
-    pricingRule: commercial.pricingRule,
-    currency: commercial.currency,
-    rateTable: commercial.rateTable,
-    maximumHeldAmountMinor: commercial.maximumHeldAmountMinor,
-    holdStatus: "active",
-    holdCreatedAt: commercial.holdCreatedAt,
   });
-  return commercial.maximumHeldAmountMinor;
+  return replacementPricing.maximumHoldAmountMinor;
+}
+
+export type ClassCloseReason = "full" | "marcus_manual";
+
+export async function closeClassCommercial(
+  tx: Transaction,
+  input: {
+    tenantId: string;
+    trainingSessionId: string;
+    reason: ClassCloseReason;
+    actorUserId: string | null;
+  },
+) {
+  const lockedSession = await tx.execute(
+    sql`SELECT id, status, starts_at, capacity
+        FROM training_sessions
+        WHERE tenant_id = ${input.tenantId} AND id = ${input.trainingSessionId}
+        FOR UPDATE`,
+  );
+  const session = lockedSession.rows[0] as
+    | { id: string; status: string; starts_at: Date | string; capacity: number }
+    | undefined;
+  if (!session) throw new CommercialError(404, "Training session not found");
+  if (session.status !== "scheduled") {
+    throw new CommercialError(409, "Only scheduled sessions can be closed for pricing.");
+  }
+  if (
+    input.reason === "marcus_manual" &&
+    new Date(session.starts_at).getTime() <= Date.now()
+  ) {
+    throw new CommercialError(409, "A class can only be closed before it starts.");
+  }
+
+  const [existing] = await tx
+    .select()
+    .from(commercialClassLocksTable)
+    .where(
+      and(
+        eq(commercialClassLocksTable.tenantId, input.tenantId),
+        eq(commercialClassLocksTable.trainingSessionId, input.trainingSessionId),
+      ),
+    )
+    .limit(1);
+  if (existing) return { lock: existing, participants: [], replayed: true };
+
+  const confirmed = await tx
+    .select({
+      bookingId: bookingsTable.id,
+      clientUserId: bookingsTable.clientUserId,
+      commercialId: bookingCommercialsTable.id,
+      rateTable: bookingCommercialsTable.rateTable,
+      maximumHeldAmountMinor: bookingCommercialsTable.maximumHeldAmountMinor,
+      heldAmountMinor: bookingCommercialsTable.heldAmountMinor,
+      holdStatus: bookingCommercialsTable.holdStatus,
+    })
+    .from(bookingsTable)
+    .innerJoin(
+      bookingCommercialsTable,
+      and(
+        eq(bookingCommercialsTable.tenantId, bookingsTable.tenantId),
+        eq(bookingCommercialsTable.bookingId, bookingsTable.id),
+      ),
+    )
+    .where(
+      and(
+        eq(bookingsTable.tenantId, input.tenantId),
+        eq(bookingsTable.trainingSessionId, input.trainingSessionId),
+        eq(bookingsTable.status, "confirmed"),
+      ),
+    )
+    .orderBy(asc(bookingsTable.createdAt));
+  if (confirmed.length === 0) {
+    throw new CommercialError(409, "A class needs at least one confirmed participant to close.");
+  }
+  if (input.reason === "full" && confirmed.length < Number(session.capacity)) {
+    throw new CommercialError(409, "The class has not reached capacity.");
+  }
+
+  const participantCount = confirmed.length;
+  const participants = confirmed.map((participant) => {
+    const lockedAmountMinor = participant.rateTable[String(participantCount)];
+    if (
+      participant.holdStatus !== "active" ||
+      !Number.isInteger(lockedAmountMinor) ||
+      lockedAmountMinor < 0 ||
+      lockedAmountMinor > participant.maximumHeldAmountMinor
+    ) {
+      throw new CommercialError(
+        409,
+        "Every confirmed participant needs an active rate snapshot for this class size.",
+      );
+    }
+    return {
+      ...participant,
+      lockedAmountMinor,
+      releasedAmountMinor: participant.heldAmountMinor - lockedAmountMinor,
+    };
+  });
+
+  for (const participant of [...participants].sort((a, b) =>
+    a.clientUserId.localeCompare(b.clientUserId),
+  )) {
+    await lockClient(tx, input.tenantId, participant.clientUserId);
+  }
+  const [lock] = await tx
+    .insert(commercialClassLocksTable)
+    .values({
+      tenantId: input.tenantId,
+      trainingSessionId: input.trainingSessionId,
+      closeReason: input.reason,
+      closedByUserId: input.actorUserId,
+      confirmedParticipantCount: participantCount,
+      pricingRule: "class_close_confirmed_count",
+    })
+    .returning();
+  if (!lock) throw new Error("Failed to lock class pricing");
+
+  for (const participant of participants) {
+    await tx
+      .update(bookingCommercialsTable)
+      .set({
+        heldAmountMinor: participant.lockedAmountMinor,
+        classLockId: lock.id,
+        lockedParticipantCount: participantCount,
+        lockedAmountMinor: participant.lockedAmountMinor,
+        lockedAt: lock.closedAt,
+        pricingRule: "class_close_confirmed_count",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(bookingCommercialsTable.tenantId, input.tenantId),
+          eq(bookingCommercialsTable.id, participant.commercialId),
+        ),
+      );
+  }
+  return { lock, participants, replayed: false };
 }
 
 export async function recordNoShowDecision(
@@ -372,13 +502,14 @@ export async function recordNoShowDecision(
     throw new CommercialError(409, "This booking hold is no longer active.");
   }
   if (
+    commercial.lockedAmountMinor === null ||
     !Number.isInteger(input.selectedChargeAmountMinor) ||
     input.selectedChargeAmountMinor < 0 ||
-    input.selectedChargeAmountMinor > commercial.maximumHeldAmountMinor
+    input.selectedChargeAmountMinor > commercial.lockedAmountMinor
   ) {
     throw new CommercialError(
       400,
-      "No-show charge must be between zero and the original hold.",
+      "No-show charge must be between zero and the locked class value.",
     );
   }
   const [existing] = await tx
@@ -410,10 +541,10 @@ export async function recordNoShowDecision(
       tenantId: input.tenantId,
       bookingId: input.bookingId,
       clientUserId: commercial.clientUserId,
-      heldAmountMinor: commercial.maximumHeldAmountMinor,
+      heldAmountMinor: commercial.lockedAmountMinor,
       selectedChargeAmountMinor: input.selectedChargeAmountMinor,
       releasedAmountMinor:
-        commercial.maximumHeldAmountMinor - input.selectedChargeAmountMinor,
+        commercial.lockedAmountMinor - input.selectedChargeAmountMinor,
       waived: input.waived,
       actorUserId: input.actorUserId,
       note: input.note,
@@ -432,10 +563,17 @@ type SessionCommercialRow = {
   commercialId: string | null;
   pricingPlanName: string | null;
   pricingPlanVersion: number | null;
-  pricingRule: "actual_attendance_count" | null;
+  pricingRule:
+    | "actual_attendance_count"
+    | "class_close_confirmed_count"
+    | null;
   currency: string | null;
   rateTable: PricingRateSnapshot | null;
   maximumHeldAmountMinor: number | null;
+  heldAmountMinor: number | null;
+  classLockId: string | null;
+  lockedParticipantCount: number | null;
+  lockedAmountMinor: number | null;
   holdStatus: "active" | "released" | "settled" | null;
   settlementId: string | null;
   finalChargeAmountMinor: number | null;
@@ -465,6 +603,10 @@ export async function getSessionCommercialRows(
       currency: bookingCommercialsTable.currency,
       rateTable: bookingCommercialsTable.rateTable,
       maximumHeldAmountMinor: bookingCommercialsTable.maximumHeldAmountMinor,
+      heldAmountMinor: bookingCommercialsTable.heldAmountMinor,
+      classLockId: bookingCommercialsTable.classLockId,
+      lockedParticipantCount: bookingCommercialsTable.lockedParticipantCount,
+      lockedAmountMinor: bookingCommercialsTable.lockedAmountMinor,
       holdStatus: bookingCommercialsTable.holdStatus,
       settlementId: commercialSettlementsTable.id,
       finalChargeAmountMinor: commercialSettlementsTable.finalChargeAmountMinor,
@@ -513,6 +655,71 @@ export async function getSessionCommercialRows(
     .orderBy(asc(bookingsTable.createdAt));
 }
 
+export async function getClassPricingSummary(
+  executor: Executor,
+  tenantId: string,
+  trainingSessionId: string,
+) {
+  const [session] = await executor
+    .select({
+      status: trainingSessionsTable.status,
+      startsAt: trainingSessionsTable.startsAt,
+      capacity: trainingSessionsTable.capacity,
+    })
+    .from(trainingSessionsTable)
+    .where(
+      and(
+        eq(trainingSessionsTable.tenantId, tenantId),
+        eq(trainingSessionsTable.id, trainingSessionId),
+      ),
+    )
+    .limit(1);
+  if (!session) throw new CommercialError(404, "Training session not found");
+  const [classLock] = await executor
+    .select()
+    .from(commercialClassLocksTable)
+    .where(
+      and(
+        eq(commercialClassLocksTable.tenantId, tenantId),
+        eq(commercialClassLocksTable.trainingSessionId, trainingSessionId),
+      ),
+    )
+    .limit(1);
+  const rows = await getSessionCommercialRows(executor, tenantId, trainingSessionId);
+  const confirmed = rows.filter((row) => row.bookingStatus === "confirmed");
+  const participantCount =
+    classLock?.confirmedParticipantCount ?? confirmed.length;
+  return {
+    state: classLock ? "closed" : "open",
+    closeReason: classLock?.closeReason ?? null,
+    closedAt: classLock?.closedAt ?? null,
+    closedByUserId: classLock?.closedByUserId ?? null,
+    confirmedParticipantCount: participantCount,
+    capacity: session.capacity,
+    canClose:
+      !classLock &&
+      session.status === "scheduled" &&
+      session.startsAt > new Date() &&
+      participantCount > 0,
+    participants: rows
+      .filter((row) => row.bookingStatus === "confirmed" || row.classLockId)
+      .map((row) => ({
+        bookingId: row.bookingId,
+        clientName: `${row.clientFirstName} ${row.clientLastName}`,
+        bookingStatus: row.bookingStatus,
+        maximumHeldAmountMinor: row.maximumHeldAmountMinor,
+        heldAmountMinor: row.heldAmountMinor,
+        projectedLockedAmountMinor:
+          classLock
+            ? row.lockedAmountMinor
+            : row.rateTable?.[String(participantCount)] ?? null,
+        lockedAmountMinor: row.lockedAmountMinor,
+        lockedParticipantCount: row.lockedParticipantCount,
+        settled: Boolean(row.settlementId),
+      })),
+  };
+}
+
 export async function settleSessionCommercial(
   tx: Transaction,
   input: {
@@ -541,6 +748,22 @@ export async function settleSessionCommercial(
     throw new CommercialError(
       409,
       "Complete the training session before settling its commercial value.",
+    );
+  }
+  const [classLock] = await tx
+    .select({ id: commercialClassLocksTable.id })
+    .from(commercialClassLocksTable)
+    .where(
+      and(
+        eq(commercialClassLocksTable.tenantId, input.tenantId),
+        eq(commercialClassLocksTable.trainingSessionId, input.trainingSessionId),
+      ),
+    )
+    .limit(1);
+  if (!classLock) {
+    throw new CommercialError(
+      409,
+      "Close and lock the class price before settling attendance.",
     );
   }
   const rows = await getSessionCommercialRows(
@@ -596,10 +819,10 @@ export async function settleSessionCommercial(
 
   const settledRows = [];
   for (const row of participants) {
-    const heldAmountMinor = row.maximumHeldAmountMinor!;
+    const heldAmountMinor = row.heldAmountMinor!;
     const finalChargeAmountMinor =
       row.bookingStatus === "attended"
-        ? row.rateTable?.[String(attendanceCount)]
+        ? row.lockedAmountMinor
         : row.noShowChargeAmountMinor;
     if (
       !Number.isInteger(finalChargeAmountMinor) ||
@@ -639,7 +862,7 @@ export async function settleSessionCommercial(
         finalChargeAmountMinor: finalChargeAmountMinor!,
         releasedAmountMinor,
         currency: row.currency ?? "EUR",
-        pricingRule: "actual_attendance_count",
+        pricingRule: "class_close_confirmed_count",
         settledByUserId: input.actorUserId,
       })
       .returning();

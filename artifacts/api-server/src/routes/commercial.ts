@@ -13,6 +13,8 @@ import { attachUser, requireAuth, requireCapability, requireRole } from "../midd
 import { writeAuditLog } from "../lib/audit";
 import {
   CommercialError,
+  closeClassCommercial,
+  getClassPricingSummary,
   getCommercialSummary,
   getSessionCommercialRows,
   recordNoShowDecision,
@@ -531,6 +533,68 @@ router.post("/admin/commercial/clients/:id/value", async (req, res) => {
   }
 });
 
+router.get("/admin/commercial/sessions/:id/pricing-summary", async (req, res) => {
+  const trainingSessionId = uuidValue(req.params.id);
+  if (!trainingSessionId) {
+    res.status(400).json({ error: "Invalid training session id" });
+    return;
+  }
+  try {
+    res.json({
+      classPricing: await getClassPricingSummary(
+        db,
+        req.user!.tenantId,
+        trainingSessionId,
+      ),
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to load class pricing summary");
+  }
+});
+
+router.post("/admin/commercial/sessions/:id/close", async (req, res) => {
+  const trainingSessionId = uuidValue(req.params.id);
+  if (!trainingSessionId) {
+    res.status(400).json({ error: "Invalid training session id" });
+    return;
+  }
+  try {
+    const result = await db.transaction(async (tx) => {
+      const close = await closeClassCommercial(tx, {
+        tenantId: req.user!.tenantId,
+        trainingSessionId,
+        reason: "marcus_manual",
+        actorUserId: req.user!.id,
+      });
+      if (!close.replayed) {
+        await writeAuditLog(
+          auditParams(req, "class:manually_closed", "training_session", trainingSessionId, {
+            confirmedParticipantCount: close.lock.confirmedParticipantCount,
+            closeReason: close.lock.closeReason,
+          }),
+          tx,
+        );
+        for (const participant of close.participants) {
+          await writeAuditLog(
+            auditParams(req, "class_price:locked", "booking", participant.bookingId, {
+              classLockId: close.lock.id,
+              confirmedParticipantCount: close.lock.confirmedParticipantCount,
+              maximumHeldAmountMinor: participant.maximumHeldAmountMinor,
+              lockedAmountMinor: participant.lockedAmountMinor,
+              releasedAmountMinor: participant.releasedAmountMinor,
+            }),
+            tx,
+          );
+        }
+      }
+      return close;
+    });
+    res.status(result.replayed ? 200 : 201).json({ classClose: result });
+  } catch (error) {
+    sendError(res, error, "Failed to close class pricing");
+  }
+});
+
 router.get("/admin/commercial/sessions/:id/settlement-preview", async (req, res) => {
   const trainingSessionId = uuidValue(req.params.id);
   if (!trainingSessionId) {
@@ -539,6 +603,11 @@ router.get("/admin/commercial/sessions/:id/settlement-preview", async (req, res)
   }
   try {
     const rows = await getSessionCommercialRows(
+      db,
+      req.user!.tenantId,
+      trainingSessionId,
+    );
+    const classPricing = await getClassPricingSummary(
       db,
       req.user!.tenantId,
       trainingSessionId,
@@ -556,9 +625,9 @@ router.get("/admin/commercial/sessions/:id/settlement-preview", async (req, res)
           row.settlementId
             ? row.finalChargeAmountMinor
             : row.bookingStatus === "attended"
-              ? row.rateTable?.[String(attendanceCount)] ?? null
+              ? row.lockedAmountMinor
               : row.noShowChargeAmountMinor;
-        const heldAmountMinor = row.maximumHeldAmountMinor;
+        const heldAmountMinor = row.heldAmountMinor;
         return {
           bookingId: row.bookingId,
           clientName: `${row.clientFirstName} ${row.clientLastName}`,
@@ -579,8 +648,10 @@ router.get("/admin/commercial/sessions/:id/settlement-preview", async (req, res)
     ).length;
     res.json({
       attendanceCount,
+      classPricing,
       unresolvedCount,
       canSettle:
+        classPricing.state === "closed" &&
         unresolvedCount === 0 &&
         preview.length > 0 &&
         preview.every(
