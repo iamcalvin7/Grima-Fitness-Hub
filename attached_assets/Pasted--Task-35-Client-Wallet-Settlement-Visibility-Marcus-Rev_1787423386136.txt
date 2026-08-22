@@ -1,0 +1,938 @@
+# Task #35 — Client Wallet Settlement Visibility + Marcus Revenue Dashboard
+
+## Objective
+
+Expose the already-built commercial engine clearly to both sides of the product.
+
+The system already supports:
+
+* training-value holds
+* class-close price locking
+* hold reduction and release
+* attendance settlement
+* no-show charge/waive
+* immutable commercial history
+
+This task should make those outcomes visible and useful.
+
+Do **not** introduce new pricing logic, payment providers, top-ups, refunds, subscriptions or revenue calculations independent from the existing ledger.
+
+The core principle is:
+
+```text
+Client settlement
+→ wallet deduction visible
+
+Same settled movement
+→ Marcus revenue visible
+```
+
+Revenue must come from the same settled commercial source of truth.
+
+---
+
+## Risk
+
+**AMBER**
+
+This touches commercial reporting and client wallet presentation.
+
+Inspect the existing ledger and settlement implementation before building.
+
+If the existing data model does not provide a reliable settled-value source, stop and report before inventing a parallel revenue model.
+
+No production migration unless separately approved.
+
+---
+
+# 1. Revenue Definition
+
+For this task:
+
+> Revenue = settled training value actually consumed from a client booking.
+
+Count as revenue:
+
+### Attended booking
+
+```text
+locked value = €25
+attended
+→ €25 consumed
+→ €25 revenue
+```
+
+### Charged no-show
+
+```text
+locked value = €25
+no-show
+Marcus chooses charge
+→ €25 consumed
+→ €25 revenue
+```
+
+Do **not** count:
+
+* pending holds
+* confirmed booking holds
+* maximum holds
+* released hold value
+* waived no-shows
+* rejected bookings
+* cancelled bookings where value was released
+* complimentary value merely granted to a wallet
+* unsettled commercial reservations
+
+Do not treat booked value as earned revenue.
+
+---
+
+# 2. Single Source of Truth
+
+Do not add a separately maintained mutable field such as:
+
+```text
+revenueTotal
+```
+
+if it can drift from the commercial ledger.
+
+Marcus revenue should be derived from the authoritative settled/consumed ledger movements or equivalent existing immutable settlement records.
+
+Required invariant:
+
+```text
+Client settled deduction
+=
+Marcus recognised session revenue
+```
+
+for the same booking.
+
+---
+
+# 3. Inspect Existing Ledger First
+
+Before implementation, identify exactly:
+
+* movement types representing holds
+* hold reduction/release
+* attendance consumption
+* no-show charge
+* no-show waiver
+* manual adjustments
+* grants
+* commercial settlement references
+* booking/session linkage
+* timestamps used for settlement
+
+Report which movement(s) will be treated as revenue-bearing.
+
+Do not infer revenue from booking status alone if the ledger already records the actual settled amount.
+
+---
+
+# 4. Client — Training Wallet Summary
+
+Add or refine a clear **Training Wallet** summary in the appropriate existing client experience.
+
+At minimum show:
+
+```text
+Available
+Held
+```
+
+Example:
+
+```text
+TRAINING WALLET
+
+€75 available
+€25 held
+```
+
+If useful and already supported by the ledger, optionally show:
+
+```text
+Used
+```
+
+but do not clutter the primary view.
+
+The client should immediately understand how much value can still be used for new bookings.
+
+---
+
+# 5. Client — Before Settlement
+
+For an active booking before class close:
+
+```text
+Maximum value held: €40
+```
+
+After class close:
+
+```text
+Locked session value: €25
+```
+
+After attendance/no-show settlement:
+
+```text
+Final value used: €25
+```
+
+Preserve the distinction between:
+
+* maximum hold
+* locked amount
+* final consumed value
+
+---
+
+# 6. Client — Wallet Activity
+
+Add a simple transaction/activity history backed by the actual commercial ledger.
+
+Examples:
+
+```text
+Training value added                 +€100
+Booking hold                         €40 held
+Class price locked                   €15 released
+Session with Marcus                  -€25
+No-show waived                       €25 released
+```
+
+Use clear client language.
+
+Do not expose raw internal ledger terminology unless it is already user-friendly.
+
+---
+
+# 7. Client Activity Categories
+
+Map the relevant internal movements into understandable categories such as:
+
+* Training value added
+* Booking hold
+* Hold released
+* Session value used
+* No-show charged
+* No-show waived
+* Manual adjustment
+
+Each item should show:
+
+* description
+* amount
+* date/time
+* linked session where applicable
+
+---
+
+# 8. Client Session Detail
+
+For completed sessions, show the actual settled commercial result.
+
+### Attended
+
+```text
+Session value used
+€25
+```
+
+### No-show charged
+
+```text
+No-show charge
+€25
+```
+
+### No-show waived
+
+```text
+No-show charge
+Waived
+```
+
+Do not display a fictional deduction where none occurred.
+
+---
+
+# 9. Marcus HQ — Revenue Overview
+
+Add a **Revenue** view/card within the existing Marcus HQ / Commercial workspace.
+
+Initial scope:
+
+```text
+Today
+This week
+This month
+```
+
+Optionally:
+
+```text
+All time
+```
+
+if inexpensive and useful.
+
+Example:
+
+```text
+REVENUE
+
+Today        €75
+This week    €420
+This month   €1,840
+```
+
+Use settled revenue only.
+
+---
+
+# 10. Revenue Date Basis
+
+Revenue should be recognised using the timestamp of the actual settlement/consumption movement.
+
+Do not use:
+
+* booking-created date
+* booking-confirmed date
+* class-close date
+
+unless the commercial engine actually settles at that moment.
+
+For the approved model, settlement occurs after attendance/no-show decision, so the settled movement timestamp is the correct reporting basis.
+
+---
+
+# 11. Revenue Timezone
+
+Use the existing Europe/Malta display/reporting conventions.
+
+For period boundaries such as:
+
+* Today
+* This week
+* This month
+
+calculate periods consistently.
+
+Do not accidentally classify a late-night settlement into the wrong local day because the stored timestamp is UTC.
+
+---
+
+# 12. Marcus — Session Revenue
+
+Within session detail / Class pricing / Commercial detail, show revenue per participant.
+
+Example:
+
+| Client   | Outcome           | Settled value |
+| -------- | ----------------- | ------------: |
+| Client A | Attended          |           €25 |
+| Client B | Attended          |           €25 |
+| Client C | No-show · Charged |           €25 |
+| Client D | No-show · Waived  |            €0 |
+
+Then:
+
+```text
+Session revenue: €75
+```
+
+Revenue should come from actual settled amounts, not the class rate multiplied blindly by participant count.
+
+---
+
+# 13. Partially Settled Classes
+
+If some participants are still unresolved:
+
+```text
+A — attended → €25 settled
+B — attended → €25 settled
+C — no-show → awaiting Marcus decision
+```
+
+Display:
+
+```text
+Settled revenue: €50
+Pending settlement: 1 client
+```
+
+Do not count the unresolved no-show as revenue yet.
+
+---
+
+# 14. Marcus — Revenue Detail
+
+Provide a lightweight revenue transaction list.
+
+Example:
+
+```text
+22 Aug · Client A · Session attended       +€25
+22 Aug · Client B · Session attended       +€25
+22 Aug · Client C · No-show charged        +€25
+```
+
+Useful fields:
+
+* settlement date
+* client
+* session
+* outcome
+* amount
+
+Do not build accounting software.
+
+---
+
+# 15. Filters
+
+Initial filters should remain simple.
+
+Useful:
+
+* Today
+* This week
+* This month
+
+Optionally:
+
+* custom date range
+
+Do not add complex financial analytics yet.
+
+---
+
+# 16. Revenue vs Wallet Top-Ups
+
+Important:
+
+**Wallet top-ups are not session revenue in this dashboard.**
+
+A future client purchase of €200 adds training value/liability but does not mean Marcus has delivered €200 of training.
+
+Task #35 revenue specifically represents:
+
+```text
+training value consumed through settled sessions
+```
+
+Keep this distinction explicit so the future payment integration does not corrupt revenue reporting.
+
+---
+
+# 17. Complimentary / Marcus-Granted Value
+
+Inspect how manually granted training value should appear in revenue.
+
+For this initial operational dashboard, if a client consumes €25 of complimentary training value, determine whether the existing ledger tracks source provenance.
+
+Do not silently treat it as cash revenue if it was not cash-backed.
+
+If source provenance is not yet available, report this limitation.
+
+Preferred future distinction:
+
+```text
+Session value consumed
+Cash-backed revenue
+Complimentary value used
+```
+
+but do not over-engineer it in this task unless the existing data supports it cleanly.
+
+---
+
+# 18. Refunds / Withdrawals
+
+Out of scope.
+
+Do not implement:
+
+* wallet withdrawal
+* partial payment refunds
+* Revolut refund API
+* client cash-out
+* refundable balance calculation
+
+Task #35 is visibility/reporting only.
+
+---
+
+# 19. Client Permissions
+
+Client can view only:
+
+* their wallet
+* their ledger/activity
+* their session commercial outcomes
+
+They cannot query another client's wallet or transaction history.
+
+Server-side enforcement required.
+
+---
+
+# 20. Marcus Permissions
+
+Only authorised Marcus/admin capabilities may access:
+
+* aggregate revenue
+* other clients' settlement values
+* wallet adjustments/history where already authorised
+
+Follow the existing capability system.
+
+---
+
+# 21. API Design
+
+Prefer dedicated read APIs derived from existing authoritative data.
+
+Conceptually:
+
+```text
+GET /api/wallet
+GET /api/wallet/activity
+```
+
+and operator:
+
+```text
+GET /api/admin/revenue/summary
+GET /api/admin/revenue/activity
+GET /api/admin/training-sessions/:id/commercial-summary
+```
+
+Use existing route conventions rather than these exact paths if different.
+
+Do not make frontend components calculate commercial truth from raw unrelated records.
+
+---
+
+# 22. Performance
+
+Aggregate queries for:
+
+* today
+* week
+* month
+
+should be database-side where practical.
+
+Do not fetch the entire ledger to the browser and calculate revenue client-side.
+
+Add indexes only if inspection shows they are required.
+
+If schema/index changes are needed, development migration only.
+
+---
+
+# 23. Empty States
+
+### Client wallet
+
+If no activity:
+
+```text
+No wallet activity yet.
+```
+
+### Marcus revenue
+
+If no settled sessions:
+
+```text
+No settled session revenue yet.
+```
+
+Do not show errors or €0 as if something failed.
+
+---
+
+# 24. Loading / Error States
+
+Both sides must support:
+
+* loading
+* empty
+* success
+* API error
+* retry
+
+Revenue/wallet failures must not interfere with Sessions booking functionality.
+
+---
+
+# 25. Responsive Behaviour
+
+Verify:
+
+* desktop
+* 390px mobile
+
+Client wallet activity should not require horizontal scrolling.
+
+Marcus revenue summary should stack cleanly on mobile.
+
+Session revenue rows may become compact cards if required.
+
+---
+
+# 26. Core Test Scenario
+
+Use the existing dynamic pricing example:
+
+```text
+Rate card:
+1 = €40
+2 = €30
+3 = €25
+4 = €20
+```
+
+Three clients confirmed.
+
+Marcus manually closes class:
+
+```text
+locked value = €25 each
+```
+
+Outcomes:
+
+```text
+Client A = attended
+Client B = attended
+Client C = no-show charged
+```
+
+Expected client results:
+
+```text
+A wallet deduction = €25
+B wallet deduction = €25
+C wallet deduction = €25
+```
+
+Expected Marcus result:
+
+```text
+session revenue = €75
+```
+
+---
+
+# 27. No-Show Waive Scenario
+
+Same €25 locked rate.
+
+Outcomes:
+
+```text
+A attended
+B attended
+C no-show waived
+```
+
+Expected:
+
+```text
+A settled = €25
+B settled = €25
+C settled = €0
+
+Marcus session revenue = €50
+```
+
+C's locked value should return to available wallet balance according to the existing engine.
+
+---
+
+# 28. Held Value Must Not Count
+
+Before attendance:
+
+```text
+3 clients
+€25 locked each
+€75 held total
+```
+
+Expected Marcus revenue:
+
+```text
+€0 settled revenue
+```
+
+After A settles:
+
+```text
+€25
+```
+
+After B settles:
+
+```text
+€50
+```
+
+After charged C settles:
+
+```text
+€75
+```
+
+This must be explicitly tested.
+
+---
+
+# 29. Client Deduction Test
+
+For one client:
+
+```text
+Initial available = €100
+Max hold = €40
+Class locks = €25
+```
+
+After lock:
+
+```text
+available = €75
+held = €25
+```
+
+After attended settlement:
+
+```text
+available = €75
+held = €0
+session value used = €25
+```
+
+Wallet activity must show the settlement accurately.
+
+---
+
+# 30. Revenue Period Tests
+
+Create controlled settlements across different dates.
+
+Verify:
+
+* Today contains only today's settled movements
+* This week uses correct week boundaries
+* This month uses correct month boundaries
+
+Use deterministic timestamps.
+
+---
+
+# 31. Idempotency
+
+Repeated attendance/no-show settlement retries must not increase revenue twice.
+
+Example:
+
+```text
+€25 attended settlement
+retry
+retry
+```
+
+Expected:
+
+```text
+Marcus revenue = €25
+```
+
+not €50/€75.
+
+---
+
+# 32. Audit / Traceability
+
+For any revenue entry, it should be possible internally to trace:
+
+```text
+revenue amount
+→ ledger movement
+→ booking
+→ session
+→ client
+```
+
+Do not create untraceable aggregate-only numbers.
+
+---
+
+# 33. Browser Verification
+
+Run the real development app.
+
+### Client
+
+Verify:
+
+```text
+Wallet before booking
+→ maximum hold
+→ class closes
+→ reduced locked amount
+→ attendance
+→ held disappears
+→ final deduction/activity visible
+```
+
+### Marcus
+
+Verify:
+
+```text
+Before settlement
+→ €0 revenue
+
+A attended
+→ revenue increases by A's locked amount
+
+B attended
+→ increases again
+
+C no-show charged
+→ increases again
+```
+
+Also verify the waived no-show scenario produces €0 from that booking.
+
+---
+
+# 34. Required Tests
+
+Run:
+
+* shared DB typecheck
+* API typecheck
+* API integration suite
+* frontend typecheck
+* frontend tests
+* frontend production build
+
+Existing booking, class pricing, notifications, reminders and attendance coverage must remain green.
+
+---
+
+# 35. Scope Protection
+
+Do not add:
+
+* Revolut
+* Stripe
+* Apple Pay
+* card checkout
+* wallet top-up
+* withdrawals
+* cash refunds
+* subscriptions
+* invoices
+* VAT
+* tax reporting
+* accounting export
+* forecasting
+* advanced charts
+* payroll
+
+This task surfaces the existing commercial truth only.
+
+---
+
+# 36. Required Report
+
+Return:
+
+## Revenue Source of Truth
+
+Exact ledger/settlement movement used.
+
+## Client Wallet
+
+What is displayed and where.
+
+## Client Activity
+
+Which movement types are shown.
+
+## Marcus Revenue
+
+What summary periods are supported.
+
+## Session Revenue
+
+How per-client settlement rolls up.
+
+## Complimentary Value Limitation
+
+State whether revenue currently distinguishes cash-backed from complimentary training value.
+
+## Files Changed
+
+Exact files and purpose.
+
+## Database
+
+Any schema/index changes.
+
+## Core Scenario
+
+Show:
+
+```text
+3 × €25 charged
+→ €75 session revenue
+```
+
+## Waiver Scenario
+
+Show:
+
+```text
+2 × €25 + €0 waived
+→ €50 session revenue
+```
+
+## Held vs Revenue
+
+Explicitly prove held value does not count as revenue.
+
+## Browser Verification
+
+Client deduction + Marcus revenue result.
+
+## Tests
+
+PASS / BLOCKED only.
+
+## Production
+
+Confirm:
+
+* no payment provider
+* no real money movement
+* no wallet top-up
+* no withdrawal
+* no production migration
+* no deployment
+* no publishing
