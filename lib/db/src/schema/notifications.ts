@@ -1,6 +1,6 @@
 import {
-  index,
   foreignKey,
+  index,
   pgEnum,
   pgTable,
   text,
@@ -10,9 +10,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { tenantsTable } from "./tenants";
 import { usersTable } from "./users";
-import { bookingsTable } from "./training";
+import { bookingsTable, trainingSessionsTable } from "./training";
 
 export const notificationTypeEnum = pgEnum("notification_type", [
+  "booking_requested",
   "booking_created",
   "booking_confirmed",
   "booking_rejected",
@@ -23,11 +24,11 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "session_reminder_24h",
   "session_reminder_2h",
 ]);
-export const notificationDeliveryStatusEnum = pgEnum("notification_delivery_status", [
-  "pending",
-  "delivered",
-  "cancelled",
-]);
+
+export const notificationDeliveryStatusEnum = pgEnum(
+  "notification_delivery_status",
+  ["pending", "delivered", "cancelled"],
+);
 
 export const notificationsTable = pgTable(
   "notifications",
@@ -39,10 +40,13 @@ export const notificationsTable = pgTable(
     recipientUserId: uuid("recipient_user_id").notNull(),
     type: notificationTypeEnum("type").notNull(),
     eventKey: text("event_key").notNull(),
-    bookingId: uuid("booking_id"),
     title: text("title").notNull(),
     body: text("body").notNull(),
-    deliveryStatus: notificationDeliveryStatusEnum("delivery_status").notNull().default("delivered"),
+    bookingId: uuid("booking_id").notNull(),
+    trainingSessionId: uuid("training_session_id"),
+    deliveryStatus: notificationDeliveryStatusEnum("delivery_status")
+      .notNull()
+      .default("delivered"),
     scheduledFor: timestamp("scheduled_for", { withTimezone: true, mode: "date" }),
     readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
@@ -60,13 +64,20 @@ export const notificationsTable = pgTable(
       foreignColumns: [bookingsTable.tenantId, bookingsTable.id],
       name: "notifications_tenant_booking_fk",
     }),
+    foreignKey({
+      columns: [table.tenantId, table.trainingSessionId],
+      foreignColumns: [trainingSessionsTable.tenantId, trainingSessionsTable.id],
+      name: "notifications_tenant_session_fk",
+    }),
     unique("notifications_event_key_unique").on(table.eventKey),
     unique("notifications_tenant_id_unique").on(table.tenantId, table.id),
     index("notifications_recipient_created_idx").on(
+      table.tenantId,
       table.recipientUserId,
       table.createdAt,
     ),
     index("notifications_recipient_unread_idx").on(
+      table.tenantId,
       table.recipientUserId,
       table.readAt,
     ),
@@ -78,3 +89,4 @@ export const notificationsTable = pgTable(
 export type Notification = typeof notificationsTable.$inferSelect;
 export type NewNotification = typeof notificationsTable.$inferInsert;
 export type NotificationType = Notification["type"];
+export type NotificationEventType = NotificationType;

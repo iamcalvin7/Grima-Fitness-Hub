@@ -172,6 +172,7 @@ export const bookingsTable = pgTable(
       foreignColumns: [usersTable.tenantId, usersTable.id],
       name: "bookings_tenant_client_fk",
     }),
+    unique("bookings_tenant_id_unique").on(table.tenantId, table.id),
     foreignKey({
       columns: [table.rescheduledFromBookingId],
       foreignColumns: [table.id],

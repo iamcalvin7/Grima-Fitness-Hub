@@ -32,7 +32,8 @@ export function useAuthProviders(): AuthProviders | null {
 
 /** Start the Google OAuth flow (full-page redirect through the API). */
 export function startGoogleSignIn() {
-  window.location.href = `${import.meta.env.BASE_URL}api/auth/google`;
+  const returnTo = `${window.location.pathname}${window.location.search}`;
+  window.location.href = `${import.meta.env.BASE_URL}api/auth/google?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

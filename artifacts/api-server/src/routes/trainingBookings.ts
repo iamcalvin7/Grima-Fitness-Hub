@@ -37,8 +37,7 @@ import {
 import { writeAuditLog } from "../lib/audit";
 import {
   cancelPendingBookingReminders,
-  notifyActiveAdmins,
-  notifyBookingEvent,
+  createBookingNotifications,
   scheduleBookingReminders,
 } from "../lib/notifications";
 import {
@@ -850,28 +849,6 @@ router.post("/bookings", async (req, res) => {
         bookingId: created.id,
         clientUserId,
       });
-      const createdBooking = await getBooking(tx, tenantId, created.id);
-      await notifyBookingEvent(tx, {
-        tenantId,
-        bookingId: created.id,
-        event: "booking_created",
-        audience: "client",
-        recipientUserIds: [clientUserId],
-        sessionStartsAt: createdBooking?.sessionStartsAt,
-        sessionTypeName: createdBooking?.sessionTypeName,
-        locationName: createdBooking?.locationName,
-      });
-      await notifyActiveAdmins(tx, {
-        tenantId,
-        bookingId: created.id,
-        event: "booking_created",
-        clientName: createdBooking
-          ? `${createdBooking.clientFirstName} ${createdBooking.clientLastName}`
-          : undefined,
-        sessionStartsAt: createdBooking?.sessionStartsAt,
-        sessionTypeName: createdBooking?.sessionTypeName,
-        locationName: createdBooking?.locationName,
-      });
       await writeAuditLog(
         auditParams(req, "booking:create", "booking", created.id, {
           trainingSessionId,
@@ -887,6 +864,16 @@ router.post("/bookings", async (req, res) => {
         }),
         tx,
       );
+      await createBookingNotifications(tx, {
+        tenantId,
+        bookingId: created.id,
+        trainingSessionId,
+        clientUserId,
+        clientName: `${req.user!.firstName} ${req.user!.lastName}`.trim(),
+        sessionLabel: session.sessionTypeName ?? "training session",
+        startsAt: session.startsAt,
+        eventType: "booking_requested",
+      });
       return { id: created.id, replayed: false };
     });
     const booking = await getBooking(db, tenantId, result.id);
@@ -983,29 +970,16 @@ router.post("/bookings/:id/cancel", async (req, res) => {
           tx,
         );
       }
-      const cancelledBooking = await getBooking(tx, req.user!.tenantId, bookingId);
-      await notifyBookingEvent(tx, {
+      await createBookingNotifications(tx, {
         tenantId: req.user!.tenantId,
         bookingId,
-        event: "booking_cancelled",
-        audience: "client",
-        recipientUserIds: [req.user!.id],
-        sessionStartsAt: cancelledBooking?.sessionStartsAt,
-        sessionTypeName: cancelledBooking?.sessionTypeName,
-        locationName: cancelledBooking?.locationName,
-        reason,
-      });
-      await notifyActiveAdmins(tx, {
-        tenantId: req.user!.tenantId,
-        bookingId,
-        event: "booking_cancelled",
-        clientName: cancelledBooking
-          ? `${cancelledBooking.clientFirstName} ${cancelledBooking.clientLastName}`
-          : undefined,
-        sessionStartsAt: cancelledBooking?.sessionStartsAt,
-        sessionTypeName: cancelledBooking?.sessionTypeName,
-        locationName: cancelledBooking?.locationName,
-        reason,
+        trainingSessionId: locked.trainingSessionId,
+        clientUserId: locked.clientUserId,
+        clientName: `${locked.clientFirstName} ${locked.clientLastName}`.trim(),
+        sessionLabel: locked.sessionTypeName ?? "training session",
+        startsAt: locked.sessionStartsAt,
+        eventType: "booking_cancelled",
+        includeClient: false,
       });
       return {
         booking: await getBooking(tx, req.user!.tenantId, bookingId),
@@ -1145,27 +1119,16 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
           tx,
         );
       }
-      const replacementBooking = await getBooking(tx, tenantId, created.id);
-      await notifyBookingEvent(tx, {
+      await createBookingNotifications(tx, {
         tenantId,
         bookingId: created.id,
-        event: "booking_rescheduled",
-        audience: "client",
-        recipientUserIds: [clientUserId],
-        sessionStartsAt: replacementBooking?.sessionStartsAt,
-        sessionTypeName: replacementBooking?.sessionTypeName,
-        locationName: replacementBooking?.locationName,
-      });
-      await notifyActiveAdmins(tx, {
-        tenantId,
-        bookingId: created.id,
-        event: "booking_rescheduled",
-        clientName: replacementBooking
-          ? `${replacementBooking.clientFirstName} ${replacementBooking.clientLastName}`
-          : undefined,
-        sessionStartsAt: replacementBooking?.sessionStartsAt,
-        sessionTypeName: replacementBooking?.sessionTypeName,
-        locationName: replacementBooking?.locationName,
+        trainingSessionId: replacementId,
+        clientUserId,
+        clientName: `${original.clientFirstName} ${original.clientLastName}`.trim(),
+        sessionLabel: replacement.sessionTypeName ?? "training session",
+        startsAt: replacement.startsAt,
+        eventType: "booking_rescheduled",
+        resultingStatus: "pending",
       });
       return { id: created.id, replayed: false };
     });
@@ -1841,18 +1804,6 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
         )
         .returning();
       if (!updated) throw new HttpError(404, "Training session not found");
-      const sessionBookings = await tx
-        .select({ id: bookingsTable.id })
-        .from(bookingsTable)
-        .where(
-          and(
-            eq(bookingsTable.tenantId, req.user!.tenantId),
-            eq(bookingsTable.trainingSessionId, id),
-          ),
-        );
-      for (const booking of sessionBookings) {
-        await cancelPendingBookingReminders(tx, req.user!.tenantId, booking.id);
-      }
       await writeAuditLog(
         auditParams(req, "training_session:update", "training_session", id, {
           fields: Object.keys(updates),
@@ -2072,10 +2023,7 @@ async function transitionSession(
         .returning();
       if (!updated) throw new HttpError(404, "Training session not found");
       await writeAuditLog(
-        auditParams(req, action, "training_session", id, {
-          previousStatus: current.status,
-          resultingStatus: nextStatus,
-        }),
+        auditParams(req, action, "training_session", id),
         tx,
       );
       return updated;
@@ -2199,18 +2147,6 @@ async function transitionBooking(
       if (nextStatus === "confirmed" && locked.sessionStartsAt <= new Date()) {
         throw new HttpError(409, "A past booking cannot be confirmed");
       }
-      if (nextStatus === "confirmed") {
-        await scheduleBookingReminders(tx, {
-          tenantId: req.user!.tenantId,
-          bookingId: id,
-          recipientUserIds: [locked.clientUserId],
-          sessionStartsAt: locked.sessionStartsAt,
-          sessionTypeName: locked.sessionTypeName,
-          locationName: locked.locationName,
-        });
-      } else if (nextStatus === "attended" || nextStatus === "no_show") {
-        await cancelPendingBookingReminders(tx, req.user!.tenantId, id);
-      }
       const [updated] = await tx
         .update(bookingsTable)
         .set({
@@ -2242,11 +2178,7 @@ async function transitionBooking(
       await writeAuditLog(
         auditParams(req, action, "booking", id, {
           ...(reason ? { reason } : {}),
-          previousStatus: locked.status,
-          resultingStatus: nextStatus,
-          ...(nextStatus === "attended" || nextStatus === "no_show"
-            ? { attendanceRecordedAt: new Date().toISOString() }
-            : {}),
+          status: nextStatus,
         }),
         tx,
       );
@@ -2259,25 +2191,37 @@ async function transitionBooking(
           tx,
         );
       }
-      const updatedBooking = await getBooking(tx, req.user!.tenantId, id);
-      const eventByStatus = {
-        confirmed: "booking_confirmed",
-        rejected: "booking_rejected",
-        attended: "booking_attended",
-        no_show: "booking_no_show",
-      } as const;
-      await notifyBookingEvent(tx, {
-        tenantId: req.user!.tenantId,
-        bookingId: id,
-        event: eventByStatus[nextStatus],
-        recipientUserIds: [locked.clientUserId],
-        audience: "client",
-        sessionStartsAt: updatedBooking?.sessionStartsAt,
-        sessionTypeName: updatedBooking?.sessionTypeName,
-        locationName: updatedBooking?.locationName,
-        reason,
-      });
-      return updatedBooking;
+      const transitioned = await getBooking(tx, req.user!.tenantId, id);
+      if (!transitioned) throw new HttpError(404, "Booking not found");
+      if (nextStatus === "confirmed" || nextStatus === "rejected") {
+        await createBookingNotifications(tx, {
+          tenantId: req.user!.tenantId,
+          bookingId: transitioned.id,
+          trainingSessionId: transitioned.trainingSessionId,
+          clientUserId: transitioned.clientUserId,
+          clientName: `${transitioned.clientFirstName} ${transitioned.clientLastName}`.trim(),
+          sessionLabel: transitioned.sessionTypeName ?? "training session",
+          startsAt: transitioned.sessionStartsAt,
+          eventType:
+            nextStatus === "confirmed"
+              ? "booking_confirmed"
+              : "booking_rejected",
+          rejectionReason: nextStatus === "rejected" ? reason ?? null : null,
+        });
+        if (nextStatus === "confirmed") {
+          await scheduleBookingReminders(tx, {
+            tenantId: req.user!.tenantId,
+            bookingId: transitioned.id,
+            trainingSessionId: transitioned.trainingSessionId,
+            clientUserId: transitioned.clientUserId,
+            sessionLabel: transitioned.sessionTypeName ?? "training session",
+            startsAt: transitioned.sessionStartsAt,
+          });
+        }
+      } else if (nextStatus === "attended" || nextStatus === "no_show") {
+        await cancelPendingBookingReminders(tx, req.user!.tenantId, transitioned.id);
+      }
+      return transitioned;
     });
     res.json({ booking: bookingOutput(booking) });
   } catch (error) {

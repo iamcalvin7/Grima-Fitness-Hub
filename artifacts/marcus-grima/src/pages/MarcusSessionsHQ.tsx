@@ -219,25 +219,38 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 }
 
 // -- Requests View
-function RequestsView({ bookings, execute, actionId, openBookingId }: { bookings: ManagedBooking[], execute: (id: string, p: Promise<any>) => Promise<boolean>, actionId: string | null, openBookingId?: string }) {
+function RequestsView({ bookings, execute, actionId, openBookingId, loading, onBookingIntentResolved }: { bookings: ManagedBooking[], execute: (id: string, p: Promise<any>) => Promise<boolean>, actionId: string | null, openBookingId?: string, loading: boolean, onBookingIntentResolved?: () => void }) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'rescheduled' | 'attended' | 'no_show'>('pending');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<ManagedBooking | null>(null);
   const [reason, setReason] = useState('');
+  const [unavailableNotice, setUnavailableNotice] = useState(false);
   useEffect(() => {
     if (!openBookingId) return;
-    const booking = bookings.find((item) => item.id === openBookingId);
+    const booking = bookings.find((candidate) => candidate.id === openBookingId);
     if (booking) {
-      setStatusFilter('all');
+      setStatusFilter('pending');
       setSelectedBooking(booking);
+      onBookingIntentResolved?.();
+    } else if (!loading) {
+      onBookingIntentResolved?.();
+      setSelectedBooking(null);
+      setUnavailableNotice(true);
     }
-  }, [bookings, openBookingId]);
+  }, [bookings, loading, openBookingId, onBookingIntentResolved]);
   const visibleBookings = statusFilter === 'all'
     ? bookings
     : bookings.filter((booking) => booking.status === statusFilter);
 
   return (
     <div className="space-y-4">
+      {unavailableNotice && (
+        <div className="flex items-start gap-3 border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70" role="status" data-testid="status-booking-unavailable">
+          <WarningCircle size={18} className="mt-0.5 shrink-0 text-white/50" />
+          <p>This booking is no longer available. No booking details were shown.</p>
+          <button type="button" onClick={() => setUnavailableNotice(false)} className="ml-auto shrink-0 text-xs font-bold uppercase tracking-wider text-white/45 hover:text-white" data-testid="button-dismiss-booking-unavailable">Dismiss</button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-bold tracking-[0.16em] uppercase text-white/45">Booking requests</p>
         <label className="text-xs text-white/45">
@@ -467,7 +480,7 @@ function ScheduleView({ sessions, bookings, locations, sessionTypes, execute, ac
                                       <tr key={b.id} className="group/booking">
                                         <td className="py-3 font-medium text-white">{b.client?.firstName} {b.client?.lastName}</td>
                                         <td className="py-3">
-                                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${b.status === 'confirmed' ? 'bg-primary/20 text-primary' : b.status === 'attended' ? 'bg-green-500/20 text-green-400' : b.status === 'no_show' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/10 text-white/50'}`}>{b.status === 'no_show' ? 'NO-SHOW' : b.status.toUpperCase()}</span>
+                                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${b.status === 'confirmed' ? 'bg-primary/20 text-primary' : b.status === 'attended' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/50'}`}>{b.status}</span>
                                         </td>
                                         <td className="py-3 text-right flex justify-end gap-3">
                                           {b.status === 'confirmed' && b.session.status === 'scheduled' && new Date(b.session.endsAt).getTime() <= Date.now() && (
@@ -1017,12 +1030,11 @@ function SessionTypeModal({ type, onClose, onSave, submitting }: { type: Session
 
 // --- Main Page Component ---
 
-export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) {
+export function MarcusSessionsHQ({ openBookingId, onBookingIntentResolved }: { openBookingId?: string, onBookingIntentResolved?: () => void }) {
   const data = useAdminData();
   const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability' | 'commercial'>('requests');
   const [actionId, setActionId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
-
   useEffect(() => {
     if (openBookingId) setActiveTab('requests');
   }, [openBookingId]);
@@ -1126,7 +1138,7 @@ export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) 
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
             >
-            {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} openBookingId={openBookingId} />}
+              {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} openBookingId={openBookingId} loading={data.loading} onBookingIntentResolved={onBookingIntentResolved} />}
               {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'availability' && <AvailabilityView rules={data.rules} exceptions={data.exceptions} occurrences={data.occurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'commercial' && <CommercialHQ execute={execute} actionId={actionId} sessions={data.sessions} />}

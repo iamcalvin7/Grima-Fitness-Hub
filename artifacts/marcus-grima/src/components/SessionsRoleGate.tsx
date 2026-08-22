@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Page } from '@/App';
 import { MarcusSessionsHQ } from '@/pages/MarcusSessionsHQ';
 import { Sessions } from '@/pages/Sessions';
@@ -7,15 +7,23 @@ interface SessionsRoleGateProps {
   role: string | null | undefined;
   setPage: (page: Page) => void;
   openSessionId?: string | number;
+  openPendingBookingId?: string;
+  onBookingIntentResolved?: () => void;
 }
 
-export function SessionsRoleGate({ role, setPage, openSessionId }: SessionsRoleGateProps) {
+export function SessionsRoleGate({ role, setPage, openSessionId, openPendingBookingId, onBookingIntentResolved }: SessionsRoleGateProps) {
+  useEffect(() => {
+    if (role && role !== 'client' && role !== 'admin' && (openPendingBookingId || openSessionId)) {
+      onBookingIntentResolved?.();
+    }
+  }, [role, openPendingBookingId, openSessionId, onBookingIntentResolved]);
+
   if (role === 'client') {
-    return <Sessions setPage={setPage} openSessionId={openSessionId} />;
+    return <Sessions setPage={setPage} openSessionId={openSessionId} onBookingIntentResolved={onBookingIntentResolved} />;
   }
 
   if (role === 'admin') {
-    return <MarcusSessionsHQ openBookingId={typeof openSessionId === 'string' ? openSessionId : undefined} />;
+    return <MarcusSessionsHQ openBookingId={openPendingBookingId} onBookingIntentResolved={onBookingIntentResolved} />;
   }
 
   return (

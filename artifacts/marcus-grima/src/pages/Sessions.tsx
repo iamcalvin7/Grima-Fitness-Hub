@@ -758,7 +758,7 @@ const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transiti
 const itemVariants = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 26 } } };
 
 /* ── Main page ─────────────────────────────────────────────────────────────── */
-export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
+export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: SessionsProps) => {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -771,10 +771,14 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
   const [confirmingCancel, setConfirmingCancel] = useState<Booking | null>(null);
   const [mutating, setMutating] = useState<string | null>(null);
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
+  const [bookingIntentNotice, setBookingIntentNotice] = useState(false);
+  const [bookingListResolved, setBookingListResolved] = useState(false);
   const cancellationInFlight = useRef(false);
+  const resolvedIntentId = useRef<string | null>(null);
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
     setLoadError(null);
+    setBookingListResolved(false);
     try {
       const from = new Date();
       const to = new Date(from.getTime() + DISCOVERY_DAYS * 24 * 60 * 60 * 1000);
@@ -786,6 +790,7 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
       setSessions(Array.isArray(sessionResponse.sessions) ? sessionResponse.sessions : []);
       setBookings(Array.isArray(bookingResponse.bookings) ? bookingResponse.bookings : []);
       setBalance(balanceResponse);
+      setBookingListResolved(true);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       setLoadError(apiErrorMessage(error, 'load your sessions'));
@@ -802,9 +807,17 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
 
   useEffect(() => {
     if (typeof openSessionId !== 'string') return;
+    if (loading || !bookingListResolved) return;
+    if (resolvedIntentId.current === openSessionId) return;
+    resolvedIntentId.current = openSessionId;
     const matched = bookings.find((booking) => booking.id === openSessionId);
-    if (matched) setDetailBooking(matched);
-  }, [bookings, openSessionId]);
+    if (matched) {
+      setDetailBooking(matched);
+    } else {
+      setBookingIntentNotice(true);
+    }
+    onBookingIntentResolved?.();
+  }, [bookings, loading, bookingListResolved, openSessionId, onBookingIntentResolved]);
 
   const refreshData = async () => {
     setLoading(true);
@@ -958,6 +971,13 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
       </header>
 
       {actionError && <ActionError message={actionError} onDismiss={() => setActionError(null)} />}
+      {bookingIntentNotice && (
+        <div className="mx-5 mt-5 flex items-start gap-3 border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70" role="status" data-testid="status-booking-unavailable">
+          <WarningCircle size={18} className="mt-0.5 shrink-0 text-white/50" />
+          <p>This booking is no longer available. Your account and other bookings are unchanged.</p>
+          <button type="button" onClick={() => setBookingIntentNotice(false)} className="ml-auto shrink-0 text-xs font-bold uppercase tracking-wider text-white/45 hover:text-white" data-testid="button-dismiss-booking-unavailable">Dismiss</button>
+        </div>
+      )}
 
       <div className="px-5 md:px-8 pt-6">
         {loading ? <LoadingState /> : loadError ? <ErrorState message={loadError} onRetry={refreshData} /> : (

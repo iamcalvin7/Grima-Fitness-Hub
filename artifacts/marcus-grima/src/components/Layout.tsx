@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Sidebar }    from '@/components/Sidebar';
 import { BottomNav }  from '@/components/BottomNav';
 import { BurgerMenu } from '@/components/BurgerMenu';
-import { NotificationsBell } from '@/components/NotificationsBell';
 import type { Page }  from '@/App';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface LayoutProps {
   activePage: Page;
@@ -70,11 +70,13 @@ export const Layout = ({ activePage, setPage, onOpenBooking, children }: LayoutP
       {/* Desktop sidebar */}
       <Sidebar activePage={activePage} onNavigate={setPage} />
 
+      {/* Booking updates remain accessible without changing the primary nav. */}
+      <div className="fixed right-4 top-4 z-50 md:right-6 md:top-6">
+        <NotificationBell onOpenBooking={onOpenBooking} />
+      </div>
+
       {/* Main content */}
       <main className="md:ml-60 min-h-screen">
-        <div className="fixed right-4 top-4 z-40 md:right-7 md:top-6">
-          <NotificationsBell onNavigate={setPage} onOpenBooking={onOpenBooking} />
-        </div>
         {children}
       </main>
 

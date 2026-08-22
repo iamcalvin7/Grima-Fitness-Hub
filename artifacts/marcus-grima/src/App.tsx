@@ -46,6 +46,10 @@ type Modal =
   | { kind: 'oauth';  outcome: 'success' | 'error' }
   | null;
 
+type BookingIntent = { bookingId: string };
+const BOOKING_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function readModal(): Modal {
   const params = new URLSearchParams(window.location.search);
   const reset  = params.get('reset');
@@ -59,6 +63,14 @@ function readModal(): Modal {
   return null;
 }
 
+function readBookingIntent(): BookingIntent | null {
+  const params = new URLSearchParams(window.location.search);
+  const bookingId = params.get('booking');
+  return params.get('intent') === 'booking' && bookingId && BOOKING_ID_RE.test(bookingId)
+    ? { bookingId }
+    : null;
+}
+
 function isJoinEntry(): boolean {
   return (
     new URLSearchParams(window.location.search).has('join') ||
@@ -66,8 +78,19 @@ function isJoinEntry(): boolean {
   );
 }
 
-function clearQueryParams() {
-  window.history.replaceState({}, '', window.location.pathname);
+function clearModalQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  ['reset', 'verify', 'oauth', 'oauth_error'].forEach((key) => params.delete(key));
+  const query = params.toString();
+  window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+}
+
+function clearBookingIntent() {
+  const params = new URLSearchParams(window.location.search);
+  params.delete('intent');
+  params.delete('booking');
+  const query = params.toString();
+  window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
 }
 
 function App() {
@@ -82,9 +105,8 @@ function FullApp() {
   const { isLoading, isAuthenticated, isProfileLoading, profile, user, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
   const [activePage,    setActivePage]    = useState<Page>('home');
-  const [sessionFocus,  setSessionFocus]  = useState<string | number | undefined>(
-    () => new URLSearchParams(window.location.search).get('booking') ?? undefined,
-  );
+  const [sessionFocus,  setSessionFocus]  = useState<string | number | undefined>(undefined);
+  const [bookingIntent, setBookingIntent] = useState<BookingIntent | null>(() => readBookingIntent());
 
   /**
    * `enteredApp` gates the onboarding flow: an already-authenticated user
@@ -106,7 +128,7 @@ function FullApp() {
   // Read query params once on mount, before any auth state is known.
   useEffect(() => {
     const m = readModal();
-    if (m) { setModal(m); clearQueryParams(); }
+    if (m) { setModal(m); clearModalQueryParams(); }
   }, []);
 
   useEffect(() => {
@@ -124,6 +146,14 @@ function FullApp() {
     }
   }, [authResolved, isAuthenticated, enteredApp]);
 
+  // A notification link is intentionally held through auth/onboarding, then
+  // consumed only when the normal role-gated Sessions surface is available.
+  useEffect(() => {
+    if (!bookingIntent || !isAuthenticated || !profile?.onboardingCompleted) return;
+    setSessionFocus(bookingIntent.bookingId);
+    setActivePage('sessions');
+  }, [bookingIntent, isAuthenticated, profile?.onboardingCompleted]);
+
   // Content Admin guard is handled by <ContentAdminGuard> below — both the
   // redirect useEffect and the conditional render live there so they can be
   // unit-tested in isolation. Server-side capability enforcement remains the
@@ -136,27 +166,28 @@ function FullApp() {
     setActivePage('sessions');
   };
 
-  const openBookingNotification = (bookingId: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('booking', bookingId);
-    window.history.replaceState({}, '', `${url.pathname}${url.search}`);
-    setSessionFocus(bookingId);
-    setActivePage('sessions');
-  };
-
   const handleSetPage = (page: Page) => {
     if (page !== 'sessions') {
       setSessionFocus(undefined);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('booking');
-      window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+      if (bookingIntent) resolveBookingIntent();
     }
     setActivePage(page);
   };
 
-  useEffect(() => {
-    if (isAuthenticated && enteredApp && sessionFocus) setActivePage('sessions');
-  }, [enteredApp, isAuthenticated, sessionFocus]);
+  const handleNotificationOpen = (bookingId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('intent', 'booking');
+    params.set('booking', bookingId);
+    window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+    setBookingIntent({ bookingId });
+    setSessionFocus(bookingId);
+    setActivePage('sessions');
+  };
+
+  const resolveBookingIntent = () => {
+    setBookingIntent(null);
+    clearBookingIntent();
+  };
 
   /* Keep splash up until session + profile resolve. */
   if (!isLead && (showSplash || isLoading || (isAuthenticated && isProfileLoading))) {
@@ -260,13 +291,15 @@ function FullApp() {
   }
 
   return (
-    <Layout activePage={activePage} setPage={handleSetPage} onOpenBooking={openBookingNotification}>
+    <Layout activePage={activePage} setPage={handleSetPage} onOpenBooking={handleNotificationOpen}>
       {activePage === 'home'        && <Home     setPage={handleSetPage} goToSession={goToSession} />}
       {activePage === 'sessions'    && (
         <SessionsRoleGate
           role={user?.role}
           setPage={handleSetPage}
           openSessionId={sessionFocus}
+          openPendingBookingId={typeof sessionFocus === 'string' ? sessionFocus : undefined}
+          onBookingIntentResolved={resolveBookingIntent}
         />
       )}
       {activePage === 'workouts'    && <Workouts />}

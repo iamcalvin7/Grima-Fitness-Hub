@@ -41,7 +41,10 @@ function b64url(buf: Buffer): string {
 }
 
 /** Signed-ish state cookie payload: state + PKCE verifier, short-lived. */
-function setStateCookie(res: Response, payload: { state: string; verifier: string }) {
+function setStateCookie(
+  res: Response,
+  payload: { state: string; verifier: string; returnTo: string | null },
+) {
   res.cookie(OAUTH_STATE_COOKIE, JSON.stringify(payload), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -51,13 +54,42 @@ function setStateCookie(res: Response, payload: { state: string; verifier: strin
   });
 }
 
-function readStateCookie(req: Request): { state: string; verifier: string } | null {
+function readStateCookie(
+  req: Request,
+): { state: string; verifier: string; returnTo: string | null } | null {
   try {
     const raw = (req.cookies as Record<string, string>)[OAUTH_STATE_COOKIE];
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { state?: unknown; verifier?: unknown };
+    const parsed = JSON.parse(raw) as {
+      state?: unknown;
+      verifier?: unknown;
+      returnTo?: unknown;
+    };
     if (typeof parsed.state !== "string" || typeof parsed.verifier !== "string") return null;
-    return { state: parsed.state, verifier: parsed.verifier };
+    return {
+      state: parsed.state,
+      verifier: parsed.verifier,
+      returnTo: typeof parsed.returnTo === "string" ? parsed.returnTo : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function safeReturnTo(value: unknown): string | null {
+  if (
+    typeof value !== "string" ||
+    value.length > 1_000 ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
+    return null;
+  }
+  try {
+    const base = new URL(appBaseUrl());
+    const target = new URL(value, base);
+    return target.origin === base.origin ? `${target.pathname}${target.search}` : null;
   } catch {
     return null;
   }
@@ -90,7 +122,7 @@ router.get(
     const state = b64url(randomBytes(16));
     const verifier = b64url(randomBytes(32));
     const challenge = b64url(createHash("sha256").update(verifier).digest());
-    setStateCookie(res, { state, verifier });
+    setStateCookie(res, { state, verifier, returnTo: safeReturnTo(req.query.returnTo) });
 
     const params = new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
@@ -175,7 +207,12 @@ router.get("/auth/google/callback", async (req, res) => {
     const { token } = await createSession(user.id, requestMeta(req));
     setSessionCookie(res, token);
     res.clearCookie(OAUTH_STATE_COOKIE, { path: "/api/auth/google" });
-    res.redirect(`${appBaseUrl()}/?oauth=success`);
+    const destination = new URL(
+      stored.returnTo ?? "/",
+      appBaseUrl(),
+    );
+    destination.searchParams.set("oauth", "success");
+    res.redirect(destination.toString());
   } catch (err) {
     logger.error({ err }, "google oauth callback failed");
     return fail("exception");

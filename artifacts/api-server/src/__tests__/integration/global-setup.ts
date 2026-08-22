@@ -584,6 +584,7 @@ CREATE INDEX audit_logs_created_at_idx  ON audit_logs(created_at);
 
 -- ── notifications ─────────────────────────────────────────────────────────
 CREATE TYPE notification_type AS ENUM (
+  'booking_requested',
   'booking_created',
   'booking_confirmed',
   'booking_rejected',
@@ -596,26 +597,29 @@ CREATE TYPE notification_type AS ENUM (
 );
 CREATE TYPE notification_delivery_status AS ENUM ('pending', 'delivered', 'cancelled');
 CREATE TABLE notifications (
-  id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  tenant_id         UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  recipient_user_id UUID NOT NULL,
-  type              notification_type NOT NULL,
-  event_key         TEXT NOT NULL UNIQUE,
-  booking_id        UUID,
-  title             TEXT NOT NULL,
-  body              TEXT NOT NULL,
-  delivery_status   notification_delivery_status NOT NULL DEFAULT 'delivered',
-  scheduled_for     TIMESTAMPTZ,
-  read_at           TIMESTAMPTZ,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  recipient_user_id   UUID NOT NULL,
+  type                notification_type NOT NULL,
+  event_key           TEXT NOT NULL UNIQUE,
+  booking_id          UUID,
+  training_session_id UUID,
+  title               TEXT NOT NULL,
+  body                TEXT NOT NULL,
+  delivery_status     notification_delivery_status NOT NULL DEFAULT 'delivered',
+  scheduled_for       TIMESTAMPTZ,
+  read_at             TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT notifications_tenant_id_unique UNIQUE (tenant_id, id),
   CONSTRAINT notifications_tenant_recipient_fk
     FOREIGN KEY (tenant_id, recipient_user_id) REFERENCES users(tenant_id, id) ON DELETE CASCADE,
   CONSTRAINT notifications_tenant_booking_fk
-    FOREIGN KEY (tenant_id, booking_id) REFERENCES bookings(tenant_id, id) ON DELETE CASCADE
+    FOREIGN KEY (tenant_id, booking_id) REFERENCES bookings(tenant_id, id) ON DELETE CASCADE,
+  CONSTRAINT notifications_tenant_training_session_fk
+    FOREIGN KEY (tenant_id, training_session_id) REFERENCES training_sessions(tenant_id, id) ON DELETE CASCADE
 );
-CREATE INDEX notifications_recipient_created_idx ON notifications(recipient_user_id, created_at);
-CREATE INDEX notifications_recipient_unread_idx ON notifications(recipient_user_id, read_at);
+CREATE INDEX notifications_recipient_created_idx ON notifications(tenant_id, recipient_user_id, created_at);
+CREATE INDEX notifications_recipient_unread_idx ON notifications(tenant_id, recipient_user_id, read_at);
 CREATE INDEX notifications_booking_idx ON notifications(booking_id);
 CREATE INDEX notifications_due_idx ON notifications(delivery_status, scheduled_for);
 `;
