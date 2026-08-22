@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarBlank, Timer, MapPin, CaretRight, Plus,
   CheckCircle, XCircle, CaretLeft, X, Check, Barbell,
-  ArrowClockwise, WarningCircle, SpinnerGap, ArrowsClockwise,
+  ArrowClockwise, WarningCircle, SpinnerGap, ArrowsClockwise, Wallet,
 } from '@phosphor-icons/react';
 import type { Page } from '@/App';
 import { apiRequest, ApiError } from '@/lib/api';
@@ -99,6 +99,21 @@ interface BalanceResponse {
     planName: string;
     version: number;
   } | null;
+}
+
+interface WalletActivityItem {
+  id: string;
+  kind: 'training_value_added' | 'manual_adjustment' | 'booking_hold' | 'hold_released' | 'session_value_used' | 'no_show_charged' | 'no_show_waived';
+  description: string;
+  amountMinor: number;
+  createdAt: string;
+  bookingId: string | null;
+  session: { id: string; name: string; startsAt: string } | null;
+}
+
+interface BalanceApiResponse {
+  balance: BalanceResponse;
+  activity?: WalletActivityItem[];
 }
 
 interface SessionsResponse {
@@ -198,6 +213,16 @@ function formatTime(value: string, timezone = DEFAULT_TIMEZONE): string {
   }).format(new Date(value)).replace(' am', ' AM').replace(' pm', ' PM');
 }
 
+function formatActivityDate(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: DEFAULT_TIMEZONE,
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 function formatDuration(minutes?: number | null, fallbackStart?: string, fallbackEnd?: string): string {
   if (typeof minutes === 'number' && minutes > 0) return `${minutes} MIN`;
   if (fallbackStart && fallbackEnd) {
@@ -293,6 +318,78 @@ function ActionError({ message, onDismiss }: { message: string; onDismiss: () =>
   );
 }
 
+function TrainingWallet({
+  balance,
+  activity,
+  loading,
+  error,
+  onRetry,
+}: {
+  balance: BalanceResponse | null;
+  activity: WalletActivityItem[];
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className="mb-6 border border-white/8 bg-[#111111] p-5" data-testid="training-wallet">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Wallet size={18} className="text-primary" weight="duotone" />
+          <div>
+            <h2 className="text-xs font-bold tracking-[0.18em] uppercase">Training wallet</h2>
+            <p className="mt-1 text-xs text-foreground/40">Training value available for new bookings.</p>
+          </div>
+        </div>
+        {balance?.pricing && <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{balance.pricing.planName}</span>}
+      </div>
+      {loading ? (
+        <div className="py-8 text-center text-xs text-foreground/40">Loading wallet…</div>
+      ) : error ? (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-red-500/20 bg-red-500/[0.05] p-4 text-sm text-red-100/80">
+          <span>{error}</span>
+          <button onClick={onRetry} className="text-xs font-bold uppercase tracking-wider text-red-200 underline">Retry</button>
+        </div>
+      ) : balance ? (
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="border border-primary/20 bg-primary/[0.06] p-4">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary/70">Available</p>
+              <p className="mt-2 text-xl font-black text-primary">{formatEur(balance.availableValueMinor)}</p>
+            </div>
+            <div className="border border-amber-500/15 bg-amber-500/[0.04] p-4">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400/70">Held</p>
+              <p className="mt-2 text-xl font-black text-amber-300">{formatEur(balance.heldValueMinor)}</p>
+            </div>
+          </div>
+          <div className="mt-6 border-t border-white/8 pt-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/40">Wallet activity</p>
+            {activity.length === 0 ? (
+              <p className="py-6 text-center text-sm text-foreground/40">No wallet activity yet.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-white/7">
+                {activity.slice(0, 12).map((item) => (
+                  <li key={item.id} className="flex items-start justify-between gap-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{item.description}</p>
+                      <p className="mt-1 truncate text-xs text-foreground/40">
+                        {item.session ? `${item.session.name} · ` : ''}{formatActivityDate(item.createdAt)}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-sm font-bold ${item.amountMinor > 0 ? 'text-primary' : item.kind === 'booking_hold' ? 'text-amber-300' : 'text-foreground'}`}>
+                      {item.amountMinor > 0 ? '+' : ''}{formatEur(item.amountMinor)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 /* ── Session detail panel ──────────────────────────────────────────────────── */
 function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => void }) {
   const timezone = booking.session.location?.timezone ?? DEFAULT_TIMEZONE;
@@ -371,10 +468,20 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
                   <p className="mt-1 text-xs leading-relaxed text-foreground/45">Your final value is set when Marcus closes the class with confirmed participants. Any excess hold becomes available immediately.</p>
                 </div>
               )}
-              {booking.commercial.settlement && booking.commercial.settlement.finalChargeAmountMinor > 0 && (
+              {booking.commercial.settlement && booking.status === 'attended' && (
                 <div>
-                  <p className="text-[9px] font-bold tracking-[0.2em] text-green-500/50 uppercase mb-1">Value Charged</p>
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-green-500/50 uppercase mb-1">Final value used</p>
                   <p className="text-sm font-bold text-green-400">{formatEur(booking.commercial.settlement.finalChargeAmountMinor)}</p>
+                </div>
+              )}
+              {booking.commercial.settlement && booking.status === 'no_show' && (
+                <div>
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/40 uppercase mb-1">No-show charge</p>
+                  <p className={`text-sm font-bold ${booking.commercial.settlement.finalChargeAmountMinor > 0 ? 'text-red-300' : 'text-primary'}`}>
+                    {booking.commercial.settlement.finalChargeAmountMinor > 0
+                      ? formatEur(booking.commercial.settlement.finalChargeAmountMinor)
+                      : 'Waived'}
+                  </p>
                 </div>
               )}
             </div>
@@ -776,6 +883,9 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [balance, setBalance] = useState<BalanceResponse | null>(null);
+  const [walletActivity, setWalletActivity] = useState<WalletActivityItem[]>([]);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [walletError, setWalletError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -795,14 +905,12 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
     try {
       const from = new Date();
       const to = new Date(from.getTime() + DISCOVERY_DAYS * 24 * 60 * 60 * 1000);
-      const [sessionResponse, bookingResponse, balanceResponse] = await Promise.all([
+      const [sessionResponse, bookingResponse] = await Promise.all([
         apiRequest<SessionsResponse>(`/training-sessions?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`, { signal }),
         apiRequest<BookingsResponse>('/bookings', { signal }),
-        apiRequest<BalanceResponse>('/commercial/balance', { signal }).catch(() => null),
       ]);
       setSessions(Array.isArray(sessionResponse.sessions) ? sessionResponse.sessions : []);
       setBookings(Array.isArray(bookingResponse.bookings) ? bookingResponse.bookings : []);
-      setBalance(balanceResponse);
       setBookingListResolved(true);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -817,6 +925,27 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
     void loadData(controller.signal);
     return () => controller.abort();
   }, [loadData]);
+
+  const loadWallet = useCallback(async (signal?: AbortSignal) => {
+    setWalletLoading(true);
+    setWalletError(null);
+    try {
+      const result = await apiRequest<BalanceApiResponse>('/commercial/balance', { signal });
+      setBalance(result.balance);
+      setWalletActivity(Array.isArray(result.activity) ? result.activity : []);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setWalletError(apiErrorMessage(error, 'load your training wallet'));
+    } finally {
+      if (!signal?.aborted) setWalletLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadWallet(controller.signal);
+    return () => controller.abort();
+  }, [loadWallet]);
 
   useEffect(() => {
     if (typeof openSessionId !== 'string') return;
@@ -834,7 +963,7 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
 
   const refreshData = async () => {
     setLoading(true);
-    await loadData();
+    await Promise.all([loadData(), loadWallet()]);
   };
   const reconcileRejectedMutation = async (message: string) => {
     setActionError(message);
@@ -993,6 +1122,13 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
       )}
 
       <div className="px-5 md:px-8 pt-6">
+        <TrainingWallet
+          balance={balance}
+          activity={walletActivity}
+          loading={walletLoading}
+          error={walletError}
+          onRetry={() => void loadWallet()}
+        />
         {loading ? <LoadingState /> : loadError ? <ErrorState message={loadError} onRetry={refreshData} /> : (
           <AnimatePresence mode="wait">
             {tab === 'upcoming' ? (

@@ -59,6 +59,34 @@ type SettlementPreview = {
   canSettle: boolean;
   rows: PreviewRow[];
 };
+type RevenuePeriod = 'today' | 'week' | 'month';
+type RevenueSummary = Record<RevenuePeriod, { amountMinor: number; settlementCount: number }>;
+type RevenueActivityItem = {
+  id: string;
+  bookingId: string;
+  clientUserId: string;
+  clientName: string;
+  sessionId: string;
+  sessionName: string;
+  sessionStartsAt: string;
+  outcome: 'attended' | 'no_show';
+  amountMinor: number;
+  settledAt: string;
+};
+type SessionRevenue = {
+  settledRevenueMinor: number;
+  settledCount: number;
+  pendingSettlementCount: number;
+  rows: {
+    bookingId: string;
+    clientUserId: string;
+    clientName: string;
+    outcome: 'attended' | 'no_show_charged' | 'no_show_waived' | 'no_show_pending';
+    amountMinor: number;
+    settledAt: string | null;
+    settled: boolean;
+  }[];
+};
 type ClassPricingSummary = {
   state: 'open' | 'closed';
   closeReason: 'full' | 'marcus_manual' | null;
@@ -90,7 +118,7 @@ export function CommercialHQ({
   actionId: string | null;
   sessions: ManagedSession[];
 }) {
-  const [tab, setTab] = useState<'clients' | 'plans' | 'classes' | 'settlements'>('clients');
+  const [tab, setTab] = useState<'clients' | 'plans' | 'classes' | 'settlements' | 'revenue'>('clients');
 
   return (
     <div className="flex h-full flex-col bg-[#0A0A0A]">
@@ -100,6 +128,7 @@ export function CommercialHQ({
           ['plans', 'Pricing plans', Tag],
            ['classes', 'Class pricing', Lock],
           ['settlements', 'Settlements', Receipt],
+           ['revenue', 'Revenue', CurrencyEur],
         ] as const).map(([value, label, Icon]) => (
           <button
             key={value}
@@ -119,6 +148,7 @@ export function CommercialHQ({
         {tab === 'settlements' && (
           <SettlementsView key="settlements" execute={execute} actionId={actionId} sessions={sessions} />
         )}
+        {tab === 'revenue' && <RevenueView key="revenue" />}
       </AnimatePresence>
     </div>
   );
@@ -283,6 +313,67 @@ function CreatePlanModal({ onClose, execute, actionId, onSuccess }: { onClose: (
   </Modal>;
 }
 
+function RevenueView() {
+  const [period, setPeriod] = useState<RevenuePeriod>('month');
+  const [summary, setSummary] = useState<RevenueSummary | null>(null);
+  const [activity, setActivity] = useState<RevenueActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const refresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryResult, activityResult] = await Promise.all([
+        apiRequest<{ revenue: RevenueSummary }>('/admin/commercial/revenue/summary'),
+        apiRequest<{ activity: RevenueActivityItem[] }>(`/admin/commercial/revenue/activity?period=${period}`),
+      ]);
+      setSummary(summaryResult.revenue);
+      setActivity(activityResult.activity);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to load settled revenue.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { void refresh(); }, [period]);
+  if (loading) return <LoadingBlock />;
+  if (error) return <ErrorBlock message={error} retry={refresh} />;
+  const periods: Array<[RevenuePeriod, string]> = [['today', 'Today'], ['week', 'This week'], ['month', 'This month']];
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+      <div>
+        <h3 className="text-base font-bold text-white">Settled session revenue</h3>
+        <p className="mt-1 text-sm text-white/45">Recognised only when a client’s booking is settled. Holds, grants, and waived no-shows are excluded.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {periods.map(([key, label]) => <button key={key} onClick={() => setPeriod(key)} className={`rounded-lg border p-4 text-left transition-colors ${period === key ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'}`}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">{label}</p>
+          <p className="mt-2 text-2xl font-black text-white">{formatEur(summary?.[key]?.amountMinor ?? 0)}</p>
+          <p className="mt-1 text-xs text-white/40">{summary?.[key]?.settlementCount ?? 0} settled booking{summary?.[key]?.settlementCount === 1 ? '' : 's'}</p>
+        </button>)}
+      </div>
+      <div className="rounded-lg border border-white/10 bg-white/[0.02]">
+        <div className="border-b border-white/10 p-4">
+          <p className="text-xs font-bold uppercase tracking-wider text-white/60">{period === 'today' ? 'Today’s' : period === 'week' ? 'This week’s' : 'This month’s'} revenue activity</p>
+        </div>
+        {activity.length === 0 ? (
+          <p className="p-8 text-center text-sm text-white/40">No settled session revenue yet.</p>
+        ) : (
+          <div className="divide-y divide-white/8">
+            {activity.map((item) => <div key={item.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="font-bold text-white">{item.clientName} <span className="font-normal text-white/45">· {item.outcome === 'attended' ? 'Session attended' : 'No-show charged'}</span></p>
+                <p className="mt-1 truncate text-xs text-white/40">{new Date(item.settledAt).toLocaleString('en-GB', { timeZone: 'Europe/Malta', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} · {item.sessionName}</p>
+              </div>
+              <p className="shrink-0 font-bold text-primary">+{formatEur(item.amountMinor)}</p>
+            </div>)}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function ClassPricingView({ execute, actionId, sessions }: { execute: AsyncAction; actionId: string | null; sessions: ManagedSession[] }) {
   const [selected, setSelected] = useState<ManagedSession | null>(null);
   const eligible = sessions
@@ -343,16 +434,18 @@ function SettlementsView({ execute, actionId, sessions }: { execute: AsyncAction
 
 function SettlementModal({ session, onClose, execute, actionId }: { session: ManagedSession; onClose: () => void; execute: AsyncAction; actionId: string | null }) {
   const [preview, setPreview] = useState<SettlementPreview | null>(null);
+  const [revenue, setRevenue] = useState<SessionRevenue | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [charges, setCharges] = useState<Record<string, string>>({});
-  const refresh = async () => { setLoading(true); setError(null); try { const result = await apiRequest<SettlementPreview>(`/admin/commercial/sessions/${session.id}/settlement-preview`); setPreview(result); setCharges(Object.fromEntries(result.rows.filter((row) => row.noShowDecisionRequired).map((row) => [row.bookingId, String((row.heldAmountMinor ?? 0) / 100)]))); } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to load settlement preview.'); } finally { setLoading(false); } };
+  const refresh = async () => { setLoading(true); setError(null); try { const [result, revenueResult] = await Promise.all([apiRequest<SettlementPreview>(`/admin/commercial/sessions/${session.id}/settlement-preview`), apiRequest<{ revenue: SessionRevenue }>(`/admin/commercial/sessions/${session.id}/revenue`)]); setPreview(result); setRevenue(revenueResult.revenue); setCharges(Object.fromEntries(result.rows.filter((row) => row.noShowDecisionRequired).map((row) => [row.bookingId, String((row.heldAmountMinor ?? 0) / 100)]))); } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to load settlement preview.'); } finally { setLoading(false); } };
   useEffect(() => { void refresh(); }, [session.id]);
   return <Modal title="Settlement preview" onClose={onClose} wide>
     <p className="mb-5 text-sm text-white/45">{session.sessionType?.name ?? 'Training session'} · {new Date(session.startsAt).toLocaleString()}</p>
     {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} retry={refresh} /> : preview && <div className="space-y-5">
       {preview.unresolvedCount > 0 && <div className="flex gap-3 rounded border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200"><WarningCircle size={20} className="shrink-0" />{preview.unresolvedCount} active participant outcome{preview.unresolvedCount === 1 ? '' : 's'} must be resolved before settlement.</div>}
       <div className="overflow-x-auto rounded border border-white/10"><table className="w-full min-w-[600px] text-left text-sm"><thead className="bg-white/5 text-[10px] font-bold uppercase tracking-wider text-white/45"><tr><th className="p-3">Client</th><th className="p-3">Outcome</th><th className="p-3 text-right">Locked hold</th><th className="p-3 text-right">Final charge</th></tr></thead><tbody className="divide-y divide-white/10">{preview.rows.map((row) => <tr key={row.bookingId}><td className="p-3 font-medium text-white">{row.clientName}</td><td className="p-3"><span className={row.outcome === 'attended' ? 'text-green-400' : 'text-red-400'}>{row.outcome === 'attended' ? 'Attended' : 'No-show'}</span>{row.noShowDecisionRequired && <div className="mt-2 flex items-center gap-2"><input aria-label={`No-show charge for ${row.clientName}`} type="number" min="0" max={(row.heldAmountMinor ?? 0) / 100} step="0.01" value={charges[row.bookingId] ?? ''} onChange={(event) => setCharges({ ...charges, [row.bookingId]: event.target.value })} className="w-24 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white" /><button onClick={async () => { const amount = parseEur(charges[row.bookingId] ?? ''); if (amount === null) return; const ok = await execute(`noshow-${row.bookingId}`, apiRequest(`/admin/commercial/bookings/${row.bookingId}/no-show-decision`, { method: 'POST', body: { waived: false, selectedChargeAmountMinor: amount } })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">Charge</button><button onClick={async () => { const ok = await execute(`noshow-${row.bookingId}`, apiRequest(`/admin/commercial/bookings/${row.bookingId}/no-show-decision`, { method: 'POST', body: { waived: true } })); if (ok) await refresh(); }} disabled={actionId !== null} className="rounded bg-white/10 px-2 py-1 text-[10px] font-bold text-white/70">Waive</button></div>}</td><td className="p-3 text-right text-amber-300">{formatEur(row.heldAmountMinor)}</td><td className="p-3 text-right font-bold text-white">{formatEur(row.finalChargeAmountMinor)}</td></tr>)}{preview.rows.length === 0 && <tr><td colSpan={4} className="p-5 text-center text-sm text-white/40">No commercial booking records are ready to settle.</td></tr>}</tbody></table></div>
+      {revenue && <div className="rounded border border-primary/20 bg-primary/[0.06] p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Settled session revenue</p><p className="mt-1 text-2xl font-black text-primary">{formatEur(revenue.settledRevenueMinor)}</p></div><p className="text-xs text-white/55">{revenue.pendingSettlementCount > 0 ? `${revenue.pendingSettlementCount} client${revenue.pendingSettlementCount === 1 ? '' : 's'} pending settlement` : `${revenue.settledCount} settled client${revenue.settledCount === 1 ? '' : 's'}`}</p></div><div className="mt-4 divide-y divide-white/10 border-t border-white/10">{revenue.rows.map((row) => <div key={row.bookingId} className="flex items-center justify-between gap-4 py-2 text-sm"><span className="text-white/70">{row.clientName} · {row.outcome === 'attended' ? 'Attended' : row.outcome === 'no_show_charged' ? 'No-show charged' : row.outcome === 'no_show_waived' ? 'No-show waived' : 'No-show awaiting decision'}</span><span className="font-bold text-white">{row.settled ? formatEur(row.amountMinor) : 'Pending'}</span></div>)}</div></div>}
       <div className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-4"><span className="text-xs font-bold uppercase tracking-wider text-white/50">Attendance recorded</span><span className="font-bold text-white">{preview.attendanceCount}</span></div>
       <div className="flex justify-end gap-3"><button onClick={onClose} className="px-4 py-2 text-xs font-bold text-white/60 hover:text-white">Close</button><button onClick={async () => { const ok = await execute(`settle-${session.id}`, apiRequest(`/admin/commercial/sessions/${session.id}/settle`, { method: 'POST' })); if (ok) onClose(); }} disabled={!preview.canSettle || actionId !== null} className="rounded bg-white px-5 py-2 text-xs font-bold text-black disabled:opacity-40">Finalize settlement</button></div>
     </div>}

@@ -141,6 +141,43 @@ describe('Sessions booking integration', () => {
     expect(screen.queryByText('Request Sent!')).not.toBeInTheDocument();
   });
 
+  it('shows the client wallet balance and settled session activity', async () => {
+    const liveSession = makeSession();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response({ sessions: [liveSession] }))
+      .mockResolvedValueOnce(response({ bookings: [] }))
+      .mockResolvedValueOnce(response({
+        balance: {
+          currency: 'EUR',
+          totalValueMinor: 10000,
+          heldValueMinor: 4500,
+          availableValueMinor: 5500,
+          pricing: null,
+        },
+        activity: [{
+          id: 'wallet-activity-1',
+          kind: 'session_value_used',
+          description: 'Final value used for Strength Coaching',
+          amountMinor: -4500,
+          createdAt: new Date().toISOString(),
+          bookingId,
+          session: {
+            id: liveSession.id,
+            name: liveSession.sessionType.name,
+            startsAt: liveSession.startsAt,
+          },
+        }],
+      }));
+
+    renderSessions();
+    await waitFor(() => expect(screen.getByTestId('training-wallet')).toBeInTheDocument());
+
+    expect(screen.getByText('Training wallet')).toBeInTheDocument();
+    expect(screen.getAllByText('€55.00')).not.toHaveLength(0);
+    expect(screen.getAllByText('€45.00')).not.toHaveLength(0);
+    expect(screen.getByText('Final value used for Strength Coaching')).toBeInTheDocument();
+  });
+
   it('uses the session location timezone to make a date selectable', async () => {
     const locationTimezone = 'America/Los_Angeles';
     const liveSession = {

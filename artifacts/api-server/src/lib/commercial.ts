@@ -429,6 +429,10 @@ export type RevenueActivityItem = {
   settledAt: Date;
 };
 
+function eligibleRevenueBookingSql() {
+  return sql`(${bookingsTable.status} = 'attended' OR ${bookingsTable.status} = 'no_show')`;
+}
+
 export async function getRevenueActivity(
   executor: Executor,
   tenantId: string,
@@ -481,6 +485,7 @@ export async function getRevenueActivity(
       and(
         eq(commercialSettlementsTable.tenantId, tenantId),
         sql`${commercialSettlementsTable.finalChargeAmountMinor} > 0`,
+        eligibleRevenueBookingSql(),
         options.since
           ? sql`${commercialSettlementsTable.settledAt} >= ${options.since}`
           : options.period
@@ -524,10 +529,18 @@ export async function getRevenueSummary(executor: Executor, tenantId: string) {
           count: sql<number>`count(*)::int`,
         })
         .from(commercialSettlementsTable)
+        .innerJoin(
+          bookingsTable,
+          and(
+            eq(bookingsTable.id, commercialSettlementsTable.bookingId),
+            eq(bookingsTable.tenantId, commercialSettlementsTable.tenantId),
+          ),
+        )
         .where(
           and(
             eq(commercialSettlementsTable.tenantId, tenantId),
             sql`${commercialSettlementsTable.finalChargeAmountMinor} > 0`,
+            eligibleRevenueBookingSql(),
             localPeriodSql(period),
           ),
         );
@@ -550,7 +563,11 @@ export async function getSessionRevenueSummary(
   const participants = rows.filter(
     (row) => row.bookingStatus === "attended" || row.bookingStatus === "no_show",
   );
-  const settled = participants.filter((row) => row.settlementId);
+  const settled = participants.filter(
+    (row) =>
+      row.settlementId &&
+      (row.finalChargeAmountMinor ?? 0) > 0,
+  );
   return {
     sessionId: trainingSessionId,
     settledRevenueMinor: settled.reduce(
@@ -961,6 +978,7 @@ type SessionCommercialRow = {
   settlementId: string | null;
   finalChargeAmountMinor: number | null;
   releasedAmountMinor: number | null;
+  settledAt: Date | null;
   settlementAttendanceCount: number | null;
   noShowDecisionId: string | null;
   noShowChargeAmountMinor: number | null;
@@ -994,6 +1012,7 @@ export async function getSessionCommercialRows(
       settlementId: commercialSettlementsTable.id,
       finalChargeAmountMinor: commercialSettlementsTable.finalChargeAmountMinor,
       releasedAmountMinor: commercialSettlementsTable.releasedAmountMinor,
+      settledAt: commercialSettlementsTable.settledAt,
       settlementAttendanceCount: commercialSettlementsTable.attendanceCount,
       noShowDecisionId: commercialNoShowDecisionsTable.id,
       noShowChargeAmountMinor:

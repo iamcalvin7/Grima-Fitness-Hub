@@ -15,7 +15,11 @@ import {
   CommercialError,
   closeClassCommercial,
   getClassPricingSummary,
+  getClientWalletActivity,
   getCommercialSummary,
+  getRevenueActivity,
+  getRevenueSummary,
+  getSessionRevenueSummary,
   getSessionCommercialRows,
   recordNoShowDecision,
   settleSessionCommercial,
@@ -135,9 +139,52 @@ router.get(
         req.user!.tenantId,
         req.user!.id,
       );
-      res.json({ balance });
+      const activity = await getClientWalletActivity(
+        db,
+        req.user!.tenantId,
+        req.user!.id,
+      );
+      res.json({ balance, activity });
     } catch (error) {
       sendError(res, error, "Failed to load training balance");
+    }
+  },
+);
+
+router.get(
+  "/commercial/wallet",
+  attachUser,
+  requireAuth,
+  requireRole("client"),
+  async (req, res) => {
+    try {
+      const balance = await getCommercialSummary(
+        db,
+        req.user!.tenantId,
+        req.user!.id,
+      );
+      res.json({ wallet: balance });
+    } catch (error) {
+      sendError(res, error, "Failed to load training wallet");
+    }
+  },
+);
+
+router.get(
+  "/commercial/wallet/activity",
+  attachUser,
+  requireAuth,
+  requireRole("client"),
+  async (req, res) => {
+    try {
+      const activity = await getClientWalletActivity(
+        db,
+        req.user!.tenantId,
+        req.user!.id,
+      );
+      res.json({ activity });
+    } catch (error) {
+      sendError(res, error, "Failed to load wallet activity");
     }
   },
 );
@@ -549,6 +596,49 @@ router.get("/admin/commercial/sessions/:id/pricing-summary", async (req, res) =>
     });
   } catch (error) {
     sendError(res, error, "Failed to load class pricing summary");
+  }
+});
+
+router.get("/admin/commercial/revenue/summary", async (req, res) => {
+  try {
+    res.json({ revenue: await getRevenueSummary(db, req.user!.tenantId) });
+  } catch (error) {
+    sendError(res, error, "Failed to load revenue summary");
+  }
+});
+
+router.get("/admin/commercial/revenue/activity", async (req, res) => {
+  const period =
+    req.query.period === "today" ||
+    req.query.period === "week" ||
+    req.query.period === "month"
+      ? req.query.period
+      : undefined;
+  try {
+    res.json({
+      activity: await getRevenueActivity(db, req.user!.tenantId, { period }),
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to load revenue activity");
+  }
+});
+
+router.get("/admin/commercial/sessions/:id/revenue", async (req, res) => {
+  const trainingSessionId = uuidValue(req.params.id);
+  if (!trainingSessionId) {
+    res.status(400).json({ error: "Invalid training session id" });
+    return;
+  }
+  try {
+    res.json({
+      revenue: await getSessionRevenueSummary(
+        db,
+        req.user!.tenantId,
+        trainingSessionId,
+      ),
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to load session revenue");
   }
 });
 

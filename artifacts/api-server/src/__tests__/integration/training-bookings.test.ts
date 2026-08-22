@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { and, eq } from "drizzle-orm";
-import { bookingsTable, db } from "@workspace/db";
+import { bookingsTable, db, trainingSessionsTable } from "@workspace/db";
 import {
   app,
   countAuditLogs,
@@ -844,5 +844,186 @@ describe("rescheduling and Marcus workflow", () => {
       heldAmountMinor: 6000,
       selectedChargeAmountMinor: 6000,
     });
+  });
+
+  it("derives wallet activity and revenue only from settled locked session value", async () => {
+    const session = await createManagedSession(adminAToken, 3, future(56));
+    const sessionId = session.body.session.id as string;
+    const clients = [
+      [clientAToken, "wallet-revenue-a"],
+      [clientBToken, "wallet-revenue-b"],
+      [clientCToken, "wallet-revenue-c"],
+    ] as const;
+    const bookingIds: string[] = [];
+    for (const [token, idempotencyKey] of clients) {
+      const booking = await request(app)
+        .post("/api/bookings")
+        .set("Cookie", sessionCookie(token))
+        .send({ trainingSessionId: sessionId, idempotencyKey })
+        .expect(201);
+      bookingIds.push(booking.body.booking.id);
+      await request(app)
+        .post(`/api/admin/bookings/${booking.body.booking.id}/confirm`)
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200);
+    }
+    await request(app)
+      .post(`/api/admin/commercial/sessions/${sessionId}/close`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+
+    const [revenueBefore, walletBefore] = await Promise.all([
+      request(app)
+        .get("/api/admin/commercial/revenue/summary")
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200),
+      request(app)
+        .get("/api/commercial/balance")
+        .set("Cookie", sessionCookie(clientAToken))
+        .expect(200),
+    ]);
+    expect(walletBefore.body.balance.heldValueMinor).toBeGreaterThanOrEqual(4500);
+    const walletBeforeSettlement = walletBefore.body.balance;
+    const beforeRevenue = revenueBefore.body.revenue.month.amountMinor;
+
+    await request(app)
+      .post(`/api/admin/bookings/${bookingIds[0]}/attended`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/bookings/${bookingIds[1]}/attended`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/bookings/${bookingIds[2]}/no-show`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/commercial/bookings/${bookingIds[2]}/no-show-decision`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ waived: false, selectedChargeAmountMinor: 4500 })
+      .expect(201);
+    const completedEndsAt = new Date(Date.now() - 60 * 60 * 1000);
+    await db
+      .update(trainingSessionsTable)
+      .set({
+        startsAt: new Date(completedEndsAt.getTime() - 60 * 60 * 1000),
+        endsAt: completedEndsAt,
+      })
+      .where(
+        and(
+          eq(trainingSessionsTable.tenantId, tenantA.id),
+          eq(trainingSessionsTable.id, sessionId),
+        ),
+      );
+    await request(app)
+      .post(`/api/admin/training-sessions/${sessionId}/complete`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/commercial/sessions/${sessionId}/settle`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+
+    const [revenueAfter, sessionRevenue, walletAfter] = await Promise.all([
+      request(app)
+        .get("/api/admin/commercial/revenue/summary")
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200),
+      request(app)
+        .get(`/api/admin/commercial/sessions/${sessionId}/revenue`)
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200),
+      request(app)
+        .get("/api/commercial/balance")
+        .set("Cookie", sessionCookie(clientAToken))
+        .expect(200),
+    ]);
+    expect(revenueAfter.body.revenue.month.amountMinor).toBe(beforeRevenue + 13500);
+    expect(sessionRevenue.body.revenue).toMatchObject({
+      settledRevenueMinor: 13500,
+      settledCount: 3,
+      pendingSettlementCount: 0,
+    });
+    expect(walletAfter.body.balance).toMatchObject({
+      totalValueMinor: walletBeforeSettlement.totalValueMinor - 4500,
+      heldValueMinor: walletBeforeSettlement.heldValueMinor - 4500,
+      availableValueMinor: walletBeforeSettlement.availableValueMinor,
+    });
+    expect(walletAfter.body.activity).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "booking_hold", amountMinor: -9000 }),
+      expect.objectContaining({ kind: "hold_released", amountMinor: 4500 }),
+      expect.objectContaining({ kind: "session_value_used", amountMinor: -4500 }),
+    ]));
+
+    const waivedSession = await createManagedSession(adminAToken, 1, future(57));
+    const waivedSessionId = waivedSession.body.session.id as string;
+    const waivedBooking = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientAToken))
+      .send({
+        trainingSessionId: waivedSessionId,
+        idempotencyKey: "wallet-revenue-waived-no-show",
+      })
+      .expect(201);
+    await request(app)
+      .post(`/api/admin/bookings/${waivedBooking.body.booking.id}/confirm`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/bookings/${waivedBooking.body.booking.id}/no-show`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/commercial/bookings/${waivedBooking.body.booking.id}/no-show-decision`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ waived: true })
+      .expect(201);
+    await db
+      .update(trainingSessionsTable)
+      .set({
+        startsAt: new Date(completedEndsAt.getTime() - 60 * 60 * 1000),
+        endsAt: completedEndsAt,
+      })
+      .where(
+        and(
+          eq(trainingSessionsTable.tenantId, tenantA.id),
+          eq(trainingSessionsTable.id, waivedSessionId),
+        ),
+      );
+    await request(app)
+      .post(`/api/admin/training-sessions/${waivedSessionId}/complete`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    await request(app)
+      .post(`/api/admin/commercial/sessions/${waivedSessionId}/settle`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    const [revenueAfterWaiver, waivedRevenue] = await Promise.all([
+      request(app)
+        .get("/api/admin/commercial/revenue/summary")
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200),
+      request(app)
+        .get(`/api/admin/commercial/sessions/${waivedSessionId}/revenue`)
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200),
+    ]);
+    expect(revenueAfterWaiver.body.revenue.month.amountMinor).toBe(beforeRevenue + 13500);
+    expect(waivedRevenue.body.revenue).toMatchObject({
+      settledRevenueMinor: 0,
+      settledCount: 0,
+      pendingSettlementCount: 0,
+    });
+
+    await request(app)
+      .post(`/api/admin/commercial/sessions/${sessionId}/settle`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    const revenueAfterReplay = await request(app)
+      .get("/api/admin/commercial/revenue/summary")
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(revenueAfterReplay.body.revenue.month.amountMinor).toBe(beforeRevenue + 13500);
   });
 });
