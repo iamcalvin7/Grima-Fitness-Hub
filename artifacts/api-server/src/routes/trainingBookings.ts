@@ -33,7 +33,12 @@ import {
   requireRole,
 } from "../middlewares/auth";
 import { writeAuditLog } from "../lib/audit";
-import { notifyActiveAdmins, notifyBookingEvent } from "../lib/notifications";
+import {
+  cancelPendingBookingReminders,
+  notifyActiveAdmins,
+  notifyBookingEvent,
+  scheduleBookingReminders,
+} from "../lib/notifications";
 import {
   BOOKING_HORIZON_DAYS,
   MINIMUM_LEAD_MINUTES,
@@ -892,6 +897,7 @@ router.post("/bookings/:id/cancel", async (req, res) => {
             eq(bookingsTable.tenantId, req.user!.tenantId),
           ),
         );
+      await cancelPendingBookingReminders(tx, req.user!.tenantId, bookingId);
       await writeAuditLog(
         auditParams(req, "booking:cancel", "booking", bookingId, {
           reason: reason ?? undefined,
@@ -1038,6 +1044,7 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
             eq(bookingsTable.tenantId, tenantId),
           ),
         );
+      await cancelPendingBookingReminders(tx, tenantId, originalId);
       await writeAuditLog(
         auditParams(req, "booking:reschedule", "booking", created.id, {
           originalBookingId: originalId,
@@ -1741,6 +1748,18 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
         )
         .returning();
       if (!updated) throw new HttpError(404, "Training session not found");
+      const sessionBookings = await tx
+        .select({ id: bookingsTable.id })
+        .from(bookingsTable)
+        .where(
+          and(
+            eq(bookingsTable.tenantId, req.user!.tenantId),
+            eq(bookingsTable.trainingSessionId, id),
+          ),
+        );
+      for (const booking of sessionBookings) {
+        await cancelPendingBookingReminders(tx, req.user!.tenantId, booking.id);
+      }
       await writeAuditLog(
         auditParams(req, "training_session:update", "training_session", id, {
           fields: Object.keys(updates),
@@ -2086,6 +2105,18 @@ async function transitionBooking(
       }
       if (nextStatus === "confirmed" && locked.sessionStartsAt <= new Date()) {
         throw new HttpError(409, "A past booking cannot be confirmed");
+      }
+      if (nextStatus === "confirmed") {
+        await scheduleBookingReminders(tx, {
+          tenantId: req.user!.tenantId,
+          bookingId: id,
+          recipientUserIds: [locked.clientUserId],
+          sessionStartsAt: locked.sessionStartsAt,
+          sessionTypeName: locked.sessionTypeName,
+          locationName: locked.locationName,
+        });
+      } else if (nextStatus === "attended" || nextStatus === "no_show") {
+        await cancelPendingBookingReminders(tx, req.user!.tenantId, id);
       }
       const [updated] = await tx
         .update(bookingsTable)

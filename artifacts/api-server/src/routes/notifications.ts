@@ -43,6 +43,7 @@ router.get("/notifications", async (req, res) => {
         and(
           eq(notificationsTable.tenantId, tenantId),
           eq(notificationsTable.recipientUserId, recipientUserId),
+          eq(notificationsTable.deliveryStatus, "delivered"),
           isNull(notificationsTable.readAt),
         ),
       );
@@ -65,6 +66,7 @@ router.post("/notifications/read-all", async (req, res) => {
         and(
           eq(notificationsTable.tenantId, req.user!.tenantId),
           eq(notificationsTable.recipientUserId, req.user!.id),
+          eq(notificationsTable.deliveryStatus, "delivered"),
           isNull(notificationsTable.readAt),
         ),
       );
@@ -85,6 +87,7 @@ router.post("/notifications/:id/read", async (req, res) => {
           eq(notificationsTable.id, req.params.id),
           eq(notificationsTable.tenantId, req.user!.tenantId),
           eq(notificationsTable.recipientUserId, req.user!.id),
+          eq(notificationsTable.deliveryStatus, "delivered"),
         ),
       )
       .returning();

@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startDevelopmentAvailabilityScheduler } from "./lib/availabilityScheduler";
+import { startDevelopmentSessionReminderScheduler } from "./lib/sessionReminderScheduler";
 
 const rawPort = process.env["PORT"];
 
@@ -24,4 +25,5 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   startDevelopmentAvailabilityScheduler();
+  startDevelopmentSessionReminderScheduler();
 });

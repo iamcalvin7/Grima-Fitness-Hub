@@ -438,8 +438,11 @@ CREATE TYPE notification_type AS ENUM (
   'booking_cancelled',
   'booking_rescheduled',
   'booking_attended',
-  'booking_no_show'
+  'booking_no_show',
+  'session_reminder_24h',
+  'session_reminder_2h'
 );
+CREATE TYPE notification_delivery_status AS ENUM ('pending', 'delivered', 'cancelled');
 CREATE TABLE notifications (
   id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id         UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -449,6 +452,8 @@ CREATE TABLE notifications (
   booking_id        UUID,
   title             TEXT NOT NULL,
   body              TEXT NOT NULL,
+  delivery_status   notification_delivery_status NOT NULL DEFAULT 'delivered',
+  scheduled_for     TIMESTAMPTZ,
   read_at           TIMESTAMPTZ,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT notifications_tenant_id_unique UNIQUE (tenant_id, id),
@@ -460,6 +465,7 @@ CREATE TABLE notifications (
 CREATE INDEX notifications_recipient_created_idx ON notifications(recipient_user_id, created_at);
 CREATE INDEX notifications_recipient_unread_idx ON notifications(recipient_user_id, read_at);
 CREATE INDEX notifications_booking_idx ON notifications(booking_id);
+CREATE INDEX notifications_due_idx ON notifications(delivery_status, scheduled_for);
 `;
 }
 
