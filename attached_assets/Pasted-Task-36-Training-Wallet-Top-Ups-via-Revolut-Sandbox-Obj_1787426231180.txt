@@ -1,0 +1,955 @@
+Task #36 — Training Wallet Top-Ups via Revolut Sandbox
+
+Objective
+
+Add real payment infrastructure to the existing Training Wallet using Revolut Merchant Sandbox.
+
+The client journey should become:
+
+Training Wallet
+→ Add Training Value
+→ choose amount
+→ Revolut checkout
+→ Apple Pay / Revolut Pay / card where supported
+→ verified successful payment
+→ cash-backed Training Value credited
+
+This task is sandbox development only.
+
+No live Revolut merchant account, live credentials, production deployment or real-money transactions are authorised.
+
+⸻
+
+Risk
+
+AMBER for sandbox implementation
+
+Escalate to RED before:
+
+* live Revolut credentials
+* real payment capture
+* production webhook configuration
+* production migration
+* deployment
+* real refunds/withdrawals
+
+Do not cross that boundary in this task.
+
+⸻
+
+1. Inspect Before Implementation
+
+Inspect:
+
+* current Training Wallet ledger
+* client wallet APIs
+* Marcus commercial reporting
+* immutable settlement implementation
+* existing environment-variable conventions
+* authentication/capability patterns
+* existing database transaction patterns
+* current booking/wallet provenance support
+* current routing/deep-link patterns
+
+Also inspect the current official Revolut Merchant API documentation for:
+
+* sandbox setup
+* order/payment creation
+* checkout integration
+* Revolut Pay
+* Apple Pay
+* card checkout
+* webhook signatures
+* payment lifecycle/statuses
+* idempotency
+* refunds
+* sandbox limitations
+
+Use current official Revolut documentation rather than assumptions.
+
+Report any material provider limitation before changing the approved product flow.
+
+⸻
+
+2. Commercial Principle
+
+A wallet top-up is different from session revenue.
+
+Example:
+
+Client pays €100
+→ €100 cash-backed Training Value added
+This is NOT €100 session revenue.
+
+Session revenue continues to be recognised only when wallet value is consumed through settled sessions.
+
+Do not change Task #35 revenue logic.
+
+⸻
+
+3. Cash-Backed Wallet Value
+
+Purchased Training Value must be distinguishable from:
+
+* Marcus grants
+* complimentary value
+* promotional value
+* manual adjustments
+
+We need this provenance because only genuine purchased value may later become eligible for client withdrawal/refund.
+
+Conceptually:
+
+Purchased through Revolut      → cash-backed
+Marcus complimentary grant     → non-cash-backed
+Promotion                      → non-cash-backed
+
+Do not implement withdrawals yet.
+
+But the data model created now must preserve enough provenance to support them safely later.
+
+⸻
+
+4. Payment Record
+
+Create a persistent payment/top-up record before redirecting/opening checkout.
+
+Conceptually support:
+
+id
+tenantId
+clientUserId
+amountCents
+currency
+provider
+providerOrderId
+providerPaymentId
+status
+creditedAt
+failedAt
+createdAt
+updatedAt
+
+Follow existing schema conventions rather than blindly using these fields.
+
+Required payment states should map clearly to Revolut’s actual lifecycle.
+
+Internally we need to distinguish at minimum:
+
+created
+pending
+paid
+failed
+cancelled
+
+Do not invent provider statuses if Revolut uses different terminology; map them explicitly.
+
+⸻
+
+5. Client Top-Up UX
+
+Add to the existing Training Wallet:
+
+Add Training Value
+
+Clicking opens a simple top-up flow.
+
+Preferred first version:
+
+Add Training Value
+€50
+€100
+€200
+
+If the app already has a better configuration pattern, use tenant-configurable preset amounts.
+
+Do not add arbitrary custom amounts unless trivial and clearly safe.
+
+The selected amount must be displayed clearly before checkout.
+
+⸻
+
+6. Payment Methods
+
+Use Revolut Checkout / Merchant infrastructure.
+
+Where supported by the Revolut Sandbox/account configuration, expose:
+
+* Revolut Pay
+* Apple Pay
+* card
+* Google Pay if it comes automatically with the same supported checkout
+
+Do not build separate payment integrations for each method.
+
+They should all resolve into the same backend payment/top-up record.
+
+If Apple Pay cannot be fully exercised in Revolut Sandbox, do not fake verification. Report the limitation and prove the underlying Revolut checkout/payment lifecycle instead.
+
+⸻
+
+7. Server Creates Payment
+
+The frontend must not construct provider payment truth.
+
+Expected flow:
+
+Client chooses €100
+↓
+POST top-up request to Marcus backend
+↓
+Backend validates authenticated client
+↓
+Backend creates internal payment record
+↓
+Backend creates Revolut Sandbox order/payment
+↓
+Backend stores provider reference
+↓
+Frontend receives checkout information
+
+Do not expose Revolut secret credentials to the client application.
+
+⸻
+
+8. Wallet Must Not Credit From Frontend Success
+
+Critical rule:
+
+checkout success page
+≠
+wallet credited
+
+The wallet may only be credited after the backend has verified authoritative payment success.
+
+Preferred source:
+
+verified Revolut webhook
+
+If Revolut’s current recommended architecture requires an additional provider-status verification step, follow it.
+
+Never trust:
+
+* query parameters
+* browser redirect state
+* frontend callback alone
+* client-provided “paid” status
+
+⸻
+
+9. Verified Payment → Wallet Credit
+
+When a top-up becomes authoritatively paid:
+
+Transactionally:
+
+payment marked paid
++
+cash-backed wallet ledger movement created
++
+payment linked to ledger movement
++
+creditedAt recorded
+
+Example:
+
+Revolut payment: €100 paid
+→ wallet +€100 cash-backed value
+
+This must be idempotent.
+
+⸻
+
+10. Webhook Idempotency
+
+Revolut may retry webhook delivery.
+
+The same payment event arriving:
+
+1 time
+5 times
+20 times
+
+must still produce:
+
+one €100 wallet credit
+
+Use both:
+
+* provider/payment identity
+* database uniqueness/idempotency protection
+
+where appropriate.
+
+Do not rely solely on in-memory deduplication.
+
+⸻
+
+11. Payment Retry Behaviour
+
+A user may:
+
+* close checkout
+* reload
+* return later
+* retry payment
+
+Do not create duplicate wallet credits.
+
+Clarify whether a retry:
+
+* reuses an unpaid Revolut order, or
+* creates a new provider order linked to a new attempt
+
+according to Revolut’s recommended implementation.
+
+Internal history must remain understandable.
+
+⸻
+
+12. Failed / Cancelled Payments
+
+If payment:
+
+* fails
+* is cancelled
+* expires
+
+then:
+
+wallet credit = €0
+
+Payment history should show the outcome where useful.
+
+A failed provider attempt must never affect booking/wallet availability.
+
+⸻
+
+13. Cash-Backed Provenance
+
+Every wallet credit created from a real/sandbox payment must retain traceability:
+
+wallet movement
+→ payment/top-up
+→ provider transaction/order
+
+The system should eventually be able to answer:
+
+How much of this client’s available wallet balance originated from actual purchased funds?
+
+Do not attempt to calculate withdrawable balance using only the current total balance.
+
+⸻
+
+14. Spending Cash-Backed Value
+
+Do not rewrite the existing booking engine.
+
+Cash-backed value should enter the same wallet available balance used by:
+
+booking maximum hold
+→ class-close locked value
+→ settlement
+
+The booking engine should not care whether the value came from:
+
+* payment
+* Marcus grant
+* promotion
+
+unless future withdrawal provenance requires allocation tracking.
+
+Inspect whether the ledger already supports source-aware consumption.
+
+If additional allocation/provenance logic is required to preserve future cash-out correctness, report it before implementing a simplistic model that loses provenance.
+
+⸻
+
+15. Client Wallet UI
+
+After successful verified top-up:
+
+Training Wallet
+€135 available
+€25 held
+
+Activity:
+
+Training value purchased          +€100
+
+Where useful:
+
+Paid via Revolut
+
+Do not expose unnecessary provider IDs.
+
+⸻
+
+16. Payment Pending UX
+
+Immediately after returning from checkout, the client may briefly see:
+
+Payment processing
+
+until authoritative confirmation arrives.
+
+Then:
+
+Training value added
+€100
+
+Do not show a false successful balance before backend confirmation.
+
+⸻
+
+17. Client Payment History
+
+Keep this lightweight.
+
+Useful states:
+
+€100   Completed
+€50    Failed
+€200   Cancelled
+
+Do not build invoicing/accounting features.
+
+⸻
+
+18. Marcus HQ
+
+Add a simple top-up/payment view inside the existing Commercial workspace.
+
+Marcus should be able to see:
+
+* client
+* amount
+* date
+* status
+* provider
+* whether wallet credit was created
+
+Example:
+
+Client	Top-up	Status	Wallet
+Client A	€100	Paid	Credited
+Client B	€50	Failed	Not credited
+
+Do not allow Marcus to manually mark a Revolut payment as paid.
+
+⸻
+
+19. Manual Marcus Grants Remain Separate
+
+Existing manual wallet adjustments should remain clearly separate.
+
+Example:
+
+Revolut top-up
+€100
+Cash-backed
+Marcus complimentary adjustment
+€20
+Non-cash-backed
+
+Do not convert existing grants into fake payments.
+
+⸻
+
+20. Security
+
+Required:
+
+* provider secret server-side only
+* webhook signature verification
+* authenticated top-up creation
+* client may create top-up only for themselves
+* tenant scoping
+* amount validated server-side against allowed options
+* currency validated server-side
+* provider references cannot be overwritten by client
+* no raw payment credentials stored
+* no card details handled by Marcus application servers if hosted checkout avoids this
+
+Follow Revolut’s current security requirements.
+
+⸻
+
+21. Currency
+
+Initial product currency:
+
+EUR
+
+Do not add multi-currency wallet behaviour in Task #36.
+
+Store values in integer cents.
+
+Example:
+
+€100.00 = 10000
+
+⸻
+
+22. Sandbox Environment Variables
+
+Use explicit development-only configuration according to current Revolut requirements.
+
+Conceptually:
+
+REVOLUT_MERCHANT_API_KEY
+REVOLUT_WEBHOOK_SECRET
+REVOLUT_ENVIRONMENT=sandbox
+APP_BASE_URL
+
+Use the actual names/patterns supported by the project and current provider documentation.
+
+Do not hard-code secrets.
+
+Do not modify production secrets.
+
+⸻
+
+23. Webhook Endpoint
+
+Create a dedicated provider webhook endpoint.
+
+Required:
+
+Revolut
+→ webhook
+→ verify signature
+→ resolve internal payment
+→ inspect event/payment state
+→ idempotently credit wallet if authoritative paid state
+
+Do not require client authentication on provider webhook routes.
+
+Authenticate the provider event using Revolut’s supported verification mechanism.
+
+⸻
+
+24. Unknown Webhook Events
+
+Unknown/irrelevant provider events must:
+
+* not crash the service
+* not credit wallet
+* be safely acknowledged/logged according to provider retry expectations
+
+Do not silently reinterpret unknown statuses as successful.
+
+⸻
+
+25. Reconciliation
+
+Add enough architecture for future reconciliation.
+
+At minimum Marcus/backend should be able to compare:
+
+internal payment status
+vs
+Revolut provider status
+
+A manual/admin read-only reconciliation action is acceptable if inexpensive.
+
+Do not build a sophisticated finance reconciliation platform.
+
+⸻
+
+26. Future Withdrawal Requirement
+
+Do not build withdrawals now.
+
+But explicitly verify that the model can later support:
+
+Top up €200 cash-backed
+Spend €150
+Unused eligible amount €50
+→ client may request withdrawal
+→ Revolut partial refund against original purchase/payment
+
+The model must distinguish this from:
+
+Marcus grants €50 complimentary
+→ not withdrawable as cash
+
+If the implemented provenance cannot support this correctly, Task #36 is not complete.
+
+⸻
+
+27. Important Withdrawal Complexity
+
+Inspect and document how cash-backed value will be allocated when a wallet contains mixed sources.
+
+Example:
+
+€100 cash-backed
+€40 complimentary
+Client spends €60
+
+Before future withdrawals can be implemented, the system needs a deterministic rule for which value was consumed first.
+
+Possible models include:
+
+* cash-backed first
+* complimentary first
+* FIFO by ledger source
+
+Do not make this policy silently.
+
+For Task #36:
+
+* identify the architecture requirement;
+* preserve provenance;
+* surface the future Product Owner decision if necessary.
+
+⸻
+
+28. Core Sandbox Scenario
+
+Client starts:
+
+Available: €20
+Held: €0
+
+Client chooses:
+
+€100 top-up
+
+Expected:
+
+internal payment created
+→ Revolut Sandbox checkout
+→ payment verified
+→ one cash-backed ledger credit +€100
+
+Final:
+
+Available: €120
+Held: €0
+
+Client activity:
+
+Training value purchased +€100
+
+⸻
+
+29. Failed Payment Scenario
+
+Client chooses €100.
+
+Provider returns/records failed payment.
+
+Expected:
+
+Available remains €20
+No wallet credit
+Payment status = failed
+
+⸻
+
+30. Cancelled Checkout Scenario
+
+Client starts but abandons/cancels payment.
+
+Expected:
+
+wallet unchanged
+
+Do not count checkout creation as financial value.
+
+⸻
+
+31. Duplicate Webhook Scenario
+
+Send the same successful provider event multiple times.
+
+Expected:
+
+payment = €100
+wallet increase = exactly €100
+
+not €200/€300.
+
+This is a mandatory test.
+
+⸻
+
+32. Booking Integration Scenario
+
+After successful €100 top-up:
+
+Use that value in the existing Sessions flow:
+
+Top up €100
+↓
+Book class with max hold €40
+↓
+Available €60
+Held €40
+↓
+Class closes at €25
+↓
+Available €75
+Held €25
+↓
+Attended
+↓
+Available €75
+Held €0
+
+This proves purchased wallet value integrates with the existing commercial engine.
+
+⸻
+
+33. Reporting Protection
+
+Task #35 Marcus session revenue must remain:
+
+€0
+
+immediately after a €100 top-up.
+
+Only later session settlement creates session revenue.
+
+Explicitly regression-test this.
+
+⸻
+
+34. Tests Required
+
+Payment creation
+
+* authenticated client can create allowed top-up
+* amount validated server-side
+* EUR enforced
+* correct internal payment created
+* correct provider sandbox request
+
+Webhook
+
+* valid signature accepted
+* invalid signature rejected
+* paid event credits wallet
+* duplicate paid event does not double-credit
+* failed event does not credit
+* cancelled event does not credit
+* unknown event does not credit
+
+Wallet
+
+* cash-backed provenance stored
+* balance changes only after verified success
+* activity displays purchased value
+* held balance unaffected by top-up unless booking subsequently occurs
+
+Permissions
+
+* client cannot top up another client’s wallet
+* client cannot alter payment status
+* cross-tenant access blocked
+* Marcus read access follows capability model
+
+Reporting
+
+* top-up does not increase session revenue
+
+Regression
+
+Existing:
+
+* dynamic pricing
+* class close
+* wallet
+* revenue
+* notifications
+* reminders
+* attendance
+* Sessions
+
+must remain green.
+
+⸻
+
+35. Browser Verification
+
+Using Revolut Sandbox:
+
+Client
+→ Training Wallet
+→ Add Training Value
+→ select amount
+→ open Revolut checkout
+→ complete sandbox payment
+→ return to app
+→ processing if webhook pending
+→ wallet increases after verified success
+→ activity shows top-up
+
+Then use some of that value to book an actual development session.
+
+Verify desktop and 390px mobile.
+
+If a specific payment method such as Apple Pay cannot be exercised in Sandbox, mark that provider-method verification separately rather than faking it.
+
+⸻
+
+36. Observability
+
+Record safe structured payment events such as:
+
+payment_created
+payment_provider_confirmed
+payment_failed
+wallet_credit_created
+duplicate_webhook_ignored
+
+Useful identifiers:
+
+* internal payment ID
+* provider order/payment ID
+* tenant
+* client user ID
+* amount
+* status
+
+Do not log:
+
+* secrets
+* card details
+* tokens
+* sensitive provider payloads unnecessarily
+
+⸻
+
+37. Database / Migration
+
+If payment/top-up persistence or wallet provenance requires schema additions:
+
+* additive migration only
+* development database only
+* verify physical schema
+* indexes/uniqueness constraints
+* migration ledger green
+* restart tests
+
+Production migration remains separately RED.
+
+⸻
+
+38. Scope Protection
+
+Do not implement:
+
+* live Revolut
+* real money
+* client withdrawals
+* partial refunds
+* automatic refunds
+* Stripe
+* subscriptions
+* recurring payments
+* invoices
+* VAT
+* tax
+* bank transfer top-ups
+* promo codes
+* loyalty bonuses
+* multi-currency
+* advanced payment analytics
+
+⸻
+
+39. Required Report
+
+Return:
+
+Revolut Architecture
+
+Exact provider flow selected from current official documentation.
+
+Payment Model
+
+Tables/fields/status mapping.
+
+Cash-Backed Provenance
+
+How purchased value remains distinguishable from complimentary value.
+
+Wallet Credit Rule
+
+Prove:
+
+verified payment
+→ exactly one wallet credit
+
+Client UX
+
+Top-up and payment-status experience.
+
+Marcus UX
+
+Payment/top-up visibility.
+
+Sandbox Payment Methods
+
+State which were actually verified:
+
+* Revolut Pay
+* Apple Pay
+* card
+* Google Pay
+
+Use PASS / BLOCKED / NOT AVAILABLE IN SANDBOX.
+
+Failed/Cancelled Payment
+
+Evidence wallet remains unchanged.
+
+Duplicate Webhook
+
+Evidence no double-credit occurs.
+
+Booking Integration
+
+Show payment-funded value flowing through:
+
+top-up
+→ booking hold
+→ class lock
+→ settlement
+
+Revenue Regression
+
+Confirm top-up does not count as session revenue.
+
+Future Withdrawal Readiness
+
+Explain whether the architecture can trace unused cash-backed value back to genuine purchases.
+
+State any unresolved source-allocation decision.
+
+Files Changed
+
+Exact files and purpose.
+
+Database
+
+Development migration details.
+
+Tests
+
+PASS / BLOCKED only.
+
+Production
+
+Confirm:
+
+* sandbox only
+* no live Revolut credentials
+* no real money
+* no production webhook
+* no production migration
+* no deployment
+* no publishing
