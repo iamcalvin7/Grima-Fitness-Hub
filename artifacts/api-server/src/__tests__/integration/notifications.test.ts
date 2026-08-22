@@ -34,7 +34,11 @@ function future(days: number): string {
 }
 
 async function createBookableSession(days: number) {
-  const startsAt = future(days);
+  return createBookableSessionAt(new Date(future(days)));
+}
+
+async function createBookableSessionAt(start: Date) {
+  const startsAt = start.toISOString();
   const response = await request(app)
     .post("/api/admin/training-sessions")
     .set("Cookie", sessionCookie(adminToken))
@@ -47,6 +51,27 @@ async function createBookableSession(days: number) {
     })
     .expect(201);
   return response.body.session.id as string;
+}
+
+async function createConfirmedBooking(days: number, key: string, startsAt?: Date) {
+  const sessionId = startsAt
+    ? await createBookableSessionAt(startsAt)
+    : await createBookableSession(days);
+  const created = await request(app)
+    .post("/api/bookings")
+    .set("Cookie", sessionCookie(clientToken))
+    .send({ trainingSessionId: sessionId, idempotencyKey: key })
+    .expect(201);
+  const id = created.body.booking.id as string;
+  await request(app)
+    .post(`/api/admin/bookings/${id}/confirm`)
+    .set("Cookie", sessionCookie(adminToken))
+    .expect(200);
+  const [session] = await db
+    .select({ startsAt: trainingSessionsTable.startsAt })
+    .from(trainingSessionsTable)
+    .where(eq(trainingSessionsTable.id, sessionId));
+  return { id, sessionId, startsAt: session!.startsAt };
 }
 
 beforeAll(async () => {
@@ -308,5 +333,82 @@ describe("in-app booking notifications", () => {
       .expect(200);
     expect(delivered.body.notifications.filter((item: { type: string; bookingId: string }) =>
       item.type === "session_reminder_24h" && item.bookingId === bookingId)).toHaveLength(1);
+  });
+
+  it("delivers a due 2-hour reminder exactly once", async () => {
+    const fixture = await createConfirmedBooking(0, "notification-2h", new Date(Date.now() + 13 * 60 * 60 * 1000));
+    const [reminder] = await db
+      .select()
+      .from(notificationsTable)
+      .where(and(
+        eq(notificationsTable.bookingId, fixture.id),
+        eq(notificationsTable.type, "session_reminder_2h"),
+      ));
+    expect(reminder).toMatchObject({ deliveryStatus: "pending", bookingId: fixture.id });
+    const before = await request(app)
+      .get("/api/notifications")
+      .set("Cookie", sessionCookie(clientToken))
+      .expect(200);
+    const beforeUnread = before.body.unreadCount;
+    expect(before.body.notifications.some((item: { id: string }) => item.id === reminder!.id)).toBe(false);
+    expect(await processDueSessionReminders(new Date(fixture.startsAt.getTime() - 2 * 60 * 60 * 1000 - 1))).toBe(0);
+    expect(await processDueSessionReminders(new Date(fixture.startsAt.getTime() - 2 * 60 * 60 * 1000 + 1))).toBe(1);
+    expect(await processDueSessionReminders(new Date(fixture.startsAt.getTime() - 2 * 60 * 60 * 1000 + 2))).toBe(0);
+    const after = await request(app)
+      .get("/api/notifications")
+      .set("Cookie", sessionCookie(clientToken))
+      .expect(200);
+    expect(after.body.unreadCount).toBe(beforeUnread + 1);
+    expect(after.body.notifications.filter((item: { id: string }) => item.id === reminder!.id)).toHaveLength(1);
+  });
+
+  it("suppresses reminders after cancellation and rescheduling", async () => {
+    const cancelled = await createConfirmedBooking(14, "notification-reminder-cancel");
+    const [cancelledReminder] = await db.select().from(notificationsTable).where(and(
+      eq(notificationsTable.bookingId, cancelled.id),
+      eq(notificationsTable.type, "session_reminder_24h"),
+    ));
+    await request(app)
+      .post(`/api/bookings/${cancelled.id}/cancel`)
+      .set("Cookie", sessionCookie(clientToken))
+      .expect(200);
+    expect((await db.select().from(notificationsTable).where(eq(notificationsTable.id, cancelledReminder!.id)))[0]!.deliveryStatus).toBe("cancelled");
+    expect(await processDueSessionReminders(new Date(cancelled.startsAt.getTime() - 24 * 60 * 60 * 1000 + 1))).toBe(0);
+
+    const original = await createConfirmedBooking(15, "notification-reminder-reschedule");
+    const replacementSessionId = await createBookableSession(16);
+    await request(app)
+      .post(`/api/bookings/${original.id}/reschedule`)
+      .set("Cookie", sessionCookie(clientToken))
+      .send({ replacementTrainingSessionId: replacementSessionId, idempotencyKey: "notification-reminder-replacement" })
+      .expect(201);
+    const [oldReminder] = await db.select().from(notificationsTable).where(and(
+      eq(notificationsTable.bookingId, original.id),
+      eq(notificationsTable.type, "session_reminder_24h"),
+    ));
+    expect(oldReminder!.deliveryStatus).toBe("cancelled");
+    const [replacementBooking] = await db.select({ id: bookingsTable.id })
+      .from(bookingsTable)
+      .where(and(eq(bookingsTable.trainingSessionId, replacementSessionId), eq(bookingsTable.clientUserId, client.id)));
+    expect((await db.select().from(notificationsTable).where(eq(notificationsTable.bookingId, replacementBooking!.id))).filter((item) =>
+      item.type.startsWith("session_reminder_"))).toHaveLength(0);
+    await request(app)
+      .post(`/api/admin/bookings/${replacementBooking!.id}/confirm`)
+      .set("Cookie", sessionCookie(adminToken))
+      .expect(200);
+    expect((await db.select().from(notificationsTable).where(eq(notificationsTable.bookingId, replacementBooking!.id))).filter((item) =>
+      item.type.startsWith("session_reminder_")).length).toBeGreaterThan(0);
+  });
+
+  it("delivers timed reminders only to the intended client", async () => {
+    const fixture = await createConfirmedBooking(17, "notification-reminder-isolation");
+    const due = new Date(fixture.startsAt.getTime() - 2 * 60 * 60 * 1000 + 1);
+    expect(await processDueSessionReminders(due)).toBeGreaterThanOrEqual(1);
+    const other = await request(app).get("/api/notifications").set("Cookie", sessionCookie(otherClientToken)).expect(200);
+    const adminView = await request(app).get("/api/notifications").set("Cookie", sessionCookie(adminToken)).expect(200);
+    expect(other.body.notifications.some((item: { type: string; bookingId: string }) =>
+      item.type === "session_reminder_2h" && item.bookingId === fixture.id)).toBe(false);
+    expect(adminView.body.notifications.some((item: { type: string; bookingId: string }) =>
+      item.type.startsWith("session_reminder_") && item.bookingId === fixture.id)).toBe(false);
   });
 });

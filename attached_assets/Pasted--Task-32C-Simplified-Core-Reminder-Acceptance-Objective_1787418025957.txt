@@ -1,0 +1,298 @@
+# Task #32C — Simplified Core Reminder Acceptance
+
+## Objective
+
+Finish Task #32 using a simplified product-focused acceptance check.
+
+Do not expand the reminder system.
+
+Do not add new behavior unless one of these core checks exposes a real defect.
+
+Task #32 can be considered complete when the following product outcomes are proven:
+
+1. 24-hour reminder works.
+2. 2-hour reminder works.
+3. Cancelled booking does not produce a stale reminder.
+4. Rescheduled booking does not produce the old reminder.
+5. Reminder is visible only to the correct client.
+6. Reminder opens the correct session.
+
+The 24-hour reminder and deep-link/browser flow are already proven. Focus on the remaining gaps.
+
+---
+
+## Current Proven Behaviour
+
+Already PASS:
+
+* 24-hour reminder delivery
+* pending reminder hidden until delivered
+* unread badge increases after delivery
+* repeated processing does not duplicate the reminder
+* notification panel displays the reminder
+* reminder click opens the correct booking/session
+* refresh preserves booking focus
+* desktop browser flow
+* 390px mobile flow
+
+Do not retest these extensively unless needed for regression.
+
+---
+
+# 1. Two-Hour Reminder
+
+Add one deterministic test using the same pattern as the existing successful 24-hour test.
+
+Create a confirmed booking with a future session.
+
+Verify:
+
+```text
+session_reminder_2h
+```
+
+is created as pending.
+
+Before due:
+
+```text
+visible = false
+unread count = unchanged
+```
+
+At controlled due time:
+
+```text
+status = delivered
+visible = true
+unread count = +1
+```
+
+Run the processor again.
+
+Expected:
+
+```text
+exactly one delivered 2h reminder
+```
+
+### PASS condition
+
+One correct 2-hour reminder is delivered exactly once to the intended client.
+
+---
+
+# 2. Cancellation Suppression
+
+Create a confirmed booking with pending reminders.
+
+Cancel the booking before the reminder becomes due.
+
+Run the reminder processor at/after the original due time.
+
+Verify:
+
+```text
+no reminder becomes visible
+unread count does not increase
+```
+
+The reminder may be marked `cancelled` or otherwise invalidated according to the existing architecture.
+
+### PASS condition
+
+A cancelled booking never produces a later session reminder.
+
+---
+
+# 3. Reschedule Suppression
+
+Create and confirm a booking for:
+
+```text
+Monday 17:00
+```
+
+Verify reminder scheduling exists.
+
+Reschedule it to:
+
+```text
+Tuesday 10:00
+```
+
+Follow the actual existing booking state model.
+
+Verify:
+
+* reminders tied to Monday 17:00 cannot deliver;
+* if rescheduling returns the booking to pending, no new confirmed-session reminders are active until Marcus confirms;
+* after the replacement booking is confirmed, reminder scheduling corresponds to Tuesday 10:00;
+* notification/deep-link context references the replacement booking/session.
+
+### PASS condition
+
+The client never receives a reminder for the old session time after rescheduling.
+
+---
+
+# 4. Correct Client / Recipient Isolation
+
+Create:
+
+* Client A
+* Client B
+* Marcus
+
+Confirm a session for Client A and deliver a timed reminder.
+
+Verify:
+
+### Client A
+
+Can see the reminder.
+
+### Client B
+
+Cannot see the reminder and their unread count is unaffected.
+
+### Marcus
+
+Does not receive the client timed reminder.
+
+Also verify tenant scoping remains intact using existing notification permission tests where possible.
+
+### PASS condition
+
+The reminder is visible only to its intended client.
+
+---
+
+# 5. Existing Deep-Link Check
+
+Do not rebuild the browser scenario.
+
+Use the already-proven result unless the tests above change routing behaviour.
+
+Confirmed requirement:
+
+```text
+reminder
+→ click
+→ exact booking/session
+```
+
+If rescheduling is tested, additionally confirm the rescheduled reminder points to the replacement session rather than the old occurrence.
+
+---
+
+# 6. Regression Checks
+
+After the four focused checks, run:
+
+* API integration suite
+* frontend notification/Sessions tests
+* API typecheck
+* frontend typecheck
+* frontend production build
+
+Do not add unrelated test cases.
+
+---
+
+# 7. Completion Rule
+
+Task #32 should be marked:
+
+```text
+COMPLETE IN DEVELOPMENT
+```
+
+if all of these are PASS:
+
+| Core product requirement | Required |
+| ------------------------ | -------- |
+| 24h reminder             | PASS     |
+| 2h reminder              | PASS     |
+| Cancellation suppression | PASS     |
+| Reschedule suppression   | PASS     |
+| Correct client only      | PASS     |
+| Correct deep link        | PASS     |
+
+The following should **not block Task #32 completion** at this stage if the core product behaviour above is proven:
+
+* dedicated DST-boundary test
+* separate Malta summer/winter acceptance tests
+* 10h/90m late-confirmation permutations
+* dedicated process-restart acceptance scenario
+* every attendance/no-show/session-completion permutation
+
+These can remain as later hardening coverage because the implementation already contains the relevant eligibility checks.
+
+Do not remove existing protections or tests.
+
+---
+
+# 8. Report Back
+
+Return only:
+
+## Core Acceptance
+
+| Requirement              | Result |
+| ------------------------ | ------ |
+| 24h reminder             |        |
+| 2h reminder              |        |
+| Cancellation suppression |        |
+| Reschedule suppression   |        |
+| Correct recipient        |        |
+| Deep link                |        |
+
+## Defects Found
+
+If a test fails, provide:
+
+* exact symptom
+* proven cause
+* smallest fix
+* regression test
+
+If none:
+
+```text
+No core reminder defects found.
+```
+
+## Regression
+
+* API tests
+* Frontend tests
+* API typecheck
+* Frontend typecheck
+* Production build
+
+## Task #32 Verdict
+
+Use one:
+
+```text
+COMPLETE IN DEVELOPMENT
+```
+
+or:
+
+```text
+BLOCKED
+```
+
+## Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+* no email
+* no SMS
+* no push
