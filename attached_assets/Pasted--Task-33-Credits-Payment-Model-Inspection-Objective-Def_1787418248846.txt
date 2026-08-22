@@ -1,0 +1,648 @@
+# Task #33 — Credits & Payment Model Inspection
+
+## Objective
+
+Define the commercial model for Sessions & Booking before implementing credits, payments, deductions, refunds, or entitlement rules.
+
+Do **not** build payment or credit behaviour yet.
+
+The goal of this task is to inspect the live codebase, identify what already exists, map the booking lifecycle against commercial consequences, and return a clear product decision model for approval.
+
+The Sessions flow is now substantially complete in development:
+
+```text
+Marcus creates availability
+→ Client requests booking
+→ Marcus confirms/rejects
+→ In-app notifications
+→ 24h / 2h reminders
+→ Session takes place
+→ Marcus records attended / no-show
+→ Client history updates
+```
+
+The missing commercial layer is:
+
+```text
+What does a session cost?
+When is the client charged?
+What happens to credits when bookings change?
+```
+
+---
+
+## Risk
+
+**AMBER — Read-only inspection**
+
+No schema changes.
+
+No payment-provider connection.
+
+No migration.
+
+No credit deductions.
+
+No refunds.
+
+No production access.
+
+---
+
+# 1. Inspect Existing Commercial Code
+
+Inspect the entire current codebase for anything related to:
+
+* credits
+* balances
+* entitlements
+* memberships
+* packages
+* subscriptions
+* payments
+* Stripe
+* session pricing
+* booking price
+* payment status
+* refunds
+* cancellation fees
+* no-show fees
+* trainer/session revenue
+* invoices
+* checkout
+* simulated paywall/payment behaviour
+
+Report what is:
+
+* real and persistent
+* partially implemented
+* frontend-only
+* hard-coded
+* prototype/demo
+* completely absent
+
+Do not infer functionality from UI labels alone.
+
+---
+
+# 2. Inspect Current Booking Data
+
+Document the current persisted models for:
+
+* training sessions
+* bookings
+* users/clients
+* memberships if any
+* payment-related tables if any
+
+Specifically determine whether a booking currently stores anything equivalent to:
+
+```text
+price
+amount
+currency
+creditsUsed
+paymentStatus
+entitlementId
+packageId
+```
+
+If not, state that clearly.
+
+---
+
+# 3. Inspect Existing Pricing Logic
+
+The intended Marcus product has previously discussed attendance-based session pricing.
+
+Inspect whether any of this exists in live code.
+
+Potential model previously considered:
+
+```text
+1 participant → €40
+2 participants → €30 each
+3 participants → lower price
+```
+
+with the important historical rule:
+
+> Price should not increase after the booking is locked.
+
+Do not treat this as approved current behaviour unless it is actually represented in the live product/specification.
+
+Report:
+
+* whether dynamic group pricing exists
+* where it exists
+* whether it is persisted or calculated
+* whether capacity affects price
+* whether price changes as participants join
+* whether any price lock exists
+* whether clients currently see prices
+
+---
+
+# 4. Inspect Client Experience
+
+Determine what a client currently sees during:
+
+### Booking request
+
+* price?
+* credits required?
+* remaining balance?
+* free booking?
+* no commercial information?
+
+### Pending request
+
+* any reservation/charge state?
+
+### Confirmation
+
+* any payment state?
+
+### Cancellation
+
+* any refund/restoration language?
+
+### Attendance / no-show
+
+* any commercial consequence displayed?
+
+Document the actual behaviour.
+
+---
+
+# 5. Inspect Marcus HQ
+
+Determine whether Marcus currently has any interface for:
+
+* setting session price
+* setting package pricing
+* assigning credits
+* adjusting balances
+* granting free sessions
+* issuing refunds
+* viewing payment state
+* viewing client balances
+* seeing revenue
+* overriding commercial rules
+
+If absent, state so.
+
+---
+
+# 6. Inspect Membership / Package Concepts
+
+Search for any existing concepts such as:
+
+```text
+membership
+plan
+package
+session pack
+credits
+PT package
+subscription
+drop-in
+```
+
+For each, determine:
+
+* schema support
+* API support
+* frontend support
+* real persistence
+* current usability
+
+Do not propose a new model until existing structures are understood.
+
+---
+
+# 7. Inspect Payment Infrastructure
+
+Determine whether the codebase currently contains:
+
+* Stripe SDK/package
+* payment routes
+* webhooks
+* checkout sessions
+* customer IDs
+* payment intents
+* subscriptions
+* invoices
+* payment environment variables
+* test-mode credentials
+* mock/simulated checkout
+
+Also inspect whether Stripe is merely mentioned in future-product documentation versus actually integrated.
+
+No external connection should be made during this task.
+
+---
+
+# 8. Map Booking Lifecycle to Commercial Decision Points
+
+For the current booking lifecycle, identify where a commercial consequence **could** occur.
+
+Map:
+
+```text
+Client requests
+↓
+Pending
+
+Marcus confirms
+↓
+Confirmed
+
+Client cancels
+↓
+Cancelled
+
+Client reschedules
+↓
+Pending/Confirmed according to current rules
+
+Marcus marks attended
+↓
+Attended
+
+Marcus marks no-show
+↓
+No-show
+```
+
+For each transition, answer:
+
+### Existing behaviour
+
+What happens financially today?
+
+### Possible decision required
+
+What product policy must eventually be defined?
+
+Example:
+
+| Transition      | Current commercial behaviour | Decision needed              |
+| --------------- | ---------------------------- | ---------------------------- |
+| Request created | None                         | Reserve credit or not?       |
+| Marcus confirms | None                         | Deduct credit here?          |
+| Client cancels  | None                         | Restore credit?              |
+| Attended        | None                         | Consume credit here instead? |
+| No-show         | None                         | Lose credit?                 |
+
+Use actual inspected behaviour for the current-state column.
+
+---
+
+# 9. Identify Product Decisions We Need to Make
+
+Do not make these decisions for the Product Owner.
+
+Return the minimum set of decisions needed before implementation.
+
+Likely areas may include:
+
+### Payment model
+
+Should clients use:
+
+* session credits
+* direct payment per booking
+* memberships
+* packages
+* combination model
+
+### Credit timing
+
+If credits exist, when is one committed/consumed?
+
+Potential points:
+
+* request
+* confirmation
+* session start
+* attendance
+
+### Cancellation
+
+Need policy for:
+
+* client cancellation
+* Marcus cancellation
+* late cancellation
+* early cancellation
+
+### No-show
+
+Does a no-show:
+
+* consume the session/credit
+* restore it
+* require manual Marcus decision
+
+### Reschedule
+
+Does the original entitlement move automatically to the new booking?
+
+### Rejection
+
+A rejected request must not leave the client commercially worse off.
+
+### Group pricing
+
+If price depends on attendance/capacity:
+
+* when is price calculated?
+* when does it lock?
+* can it decrease?
+* can it increase?
+* how are already-booked clients treated?
+
+Only list decisions that are actually relevant to the product.
+
+---
+
+# 10. Product-Safety Principle
+
+The commercial system must eventually guarantee:
+
+```text
+A booking state transition cannot accidentally double-charge,
+double-deduct,
+double-refund,
+or lose a client's entitlement.
+```
+
+Identify where idempotency and transaction boundaries will be required.
+
+Do not implement them yet.
+
+---
+
+# 11. Dynamic Group Pricing Analysis
+
+If group pricing remains a desired product direction, analyse it separately.
+
+Example conceptual model:
+
+```text
+1 booked participant → €40
+2 booked participants → €30 each
+3 booked participants → €X each
+4 booked participants → €Y each
+```
+
+Questions to answer:
+
+* Is price based on booked clients or attended clients?
+* Does the client's price lock when Marcus confirms?
+* Can price reduce if more people subsequently join?
+* Can it ever increase after confirmation?
+* If someone cancels, does everyone else's price change?
+* Is there a minimum guaranteed price?
+* Does Marcus manually control these tiers?
+
+Do not implement or assume answers.
+
+Return these as explicit Product Owner decisions if applicable.
+
+---
+
+# 12. Recommended Architecture
+
+After inspection, propose the smallest robust architecture supporting the likely commercial model.
+
+Separate:
+
+### Entitlement
+
+Example:
+
+```text
+Client owns 5 PT sessions
+```
+
+from:
+
+### Booking
+
+```text
+One entitlement is reserved against Booking A
+```
+
+from:
+
+### Payment
+
+```text
+How the entitlement/package was purchased
+```
+
+Do not collapse all three into a single booking status.
+
+Explain whether this separation is appropriate for the existing codebase.
+
+---
+
+# 13. Ledger Principle
+
+If credits are recommended, evaluate whether a ledger-style model is preferable to a mutable integer such as:
+
+```text
+credits = 4
+```
+
+A robust model may instead record movements such as:
+
+```text
++10 package purchase
+-1 session consumed
++1 cancellation restoration
+-1 no-show
+```
+
+The purpose is auditability and protection against balance corruption.
+
+Do not build this yet.
+
+Report whether a ledger is justified for Marcus's current product scale.
+
+---
+
+# 14. Marcus Override Requirement
+
+Assess whether Marcus should eventually be able to:
+
+* grant a session
+* restore a session
+* adjust entitlement
+* waive a no-show
+* comp a booking
+
+Any override must eventually be:
+
+* permission-controlled
+* auditable
+* reasoned
+
+Do not implement it now.
+
+---
+
+# 15. Required Output
+
+Return a concise inspection report with:
+
+## A. Current Commercial State
+
+Use:
+
+```text
+REAL
+PARTIAL
+PROTOTYPE
+ABSENT
+```
+
+for:
+
+| Area                       | State |
+| -------------------------- | ----- |
+| Credits                    |       |
+| Memberships/packages       |       |
+| Session pricing            |       |
+| Group pricing              |       |
+| Payment processing         |       |
+| Refunds                    |       |
+| Client balance             |       |
+| Marcus commercial controls |       |
+| Revenue reporting          |       |
+
+---
+
+## B. Existing Data Model
+
+List relevant tables/fields and what they currently represent.
+
+---
+
+## C. Existing User Experience
+
+Explain what clients and Marcus currently see regarding money/credits.
+
+---
+
+## D. Booking Lifecycle Commercial Map
+
+Provide:
+
+| Booking event | What happens today | Product decision required |
+| ------------- | ------------------ | ------------------------- |
+
+---
+
+## E. Existing Payment Infrastructure
+
+State whether Stripe/payment infrastructure is:
+
+```text
+IMPLEMENTED
+PARTIAL
+PROTOTYPE
+ABSENT
+```
+
+with evidence.
+
+---
+
+## F. Product Decisions Required
+
+Give only the decisions Calvin needs to make before implementation.
+
+Phrase them as simple questions.
+
+For example:
+
+```text
+1. Do clients buy session credits or pay for each booking?
+2. When is a credit consumed?
+3. What happens when a client cancels?
+```
+
+Do not bury decisions inside technical detail.
+
+---
+
+## G. Recommended Model
+
+Propose the simplest model appropriate for Marcus Fitness.
+
+Separate:
+
+* purchase/payment
+* entitlement/credits
+* booking reservation
+* consumption
+* refund/restoration
+
+---
+
+## H. Dynamic Pricing Recommendation
+
+If relevant, explain how the previously discussed group pricing model could safely work without increasing a client's locked price.
+
+Do not implement it.
+
+---
+
+## I. Implementation Sequence
+
+Recommend the safest order after Product Owner decisions.
+
+Potential structure:
+
+```text
+Domain model
+→ entitlement ledger
+→ Marcus package controls
+→ client balance
+→ booking reservation/consumption
+→ cancellation/no-show policy
+→ payments
+→ revenue reporting
+```
+
+Adjust this based on actual inspection.
+
+---
+
+## J. Risk
+
+Identify which future steps are:
+
+* AMBER
+* RED
+
+Payment-provider connection, production migrations and real money movement must remain separately controlled.
+
+---
+
+## Production
+
+Confirm:
+
+* no code changes
+* no schema changes
+* no migration
+* no payment-provider connection
+* no production access
+* no deployment
+* no real financial transaction
+
+This inspection should give us the few actual commercial decisions you need to make before we build anything involving money or credits.
