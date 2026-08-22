@@ -31,6 +31,11 @@ import {
   requireRole,
 } from "../middlewares/auth";
 import { writeAuditLog } from "../lib/audit";
+import {
+  BOOKING_HORIZON_DAYS,
+  MINIMUM_LEAD_MINUTES,
+  validateTimezone,
+} from "../lib/availability";
 
 const router: IRouter = Router();
 const UUID_RE =
@@ -103,6 +108,42 @@ async function lockTrainingSessions(
     ORDER BY id
     FOR UPDATE
   `);
+}
+
+async function assertMarcusTimeAvailable(
+  tx: Transaction,
+  tenantId: string,
+  ownerUserId: string,
+  startsAt: Date,
+  endsAt: Date,
+  excludeSessionId?: string,
+): Promise<void> {
+  await tx.execute(sql`
+    SELECT pg_advisory_xact_lock(
+      hashtextextended(${`${tenantId}:${ownerUserId}`}, 0)
+    )
+  `);
+  const rows = await tx.execute(sql`
+    SELECT id
+    FROM training_sessions
+    WHERE tenant_id = ${tenantId}
+      AND created_by_user_id = ${ownerUserId}::uuid
+      AND status <> 'cancelled'
+      AND starts_at < ${endsAt}
+      AND ends_at > ${startsAt}
+      ${excludeSessionId ? sql`AND id <> ${excludeSessionId}::uuid` : sql``}
+    LIMIT 1
+  `);
+  if (rows.rows.length > 0) {
+    throw new HttpError(409, "This session overlaps another Marcus session");
+  }
+}
+
+function bookingWindow(now = new Date()): { lead: Date; horizon: Date } {
+  return {
+    lead: new Date(now.getTime() + MINIMUM_LEAD_MINUTES * 60 * 1000),
+    horizon: new Date(now.getTime() + BOOKING_HORIZON_DAYS * 24 * 60 * 60 * 1000),
+  };
 }
 
 async function activeReservationCount(
@@ -414,13 +455,20 @@ router.use(
 router.use("/bookings", attachUser, requireAuth, requireRole("client"));
 
 router.get("/training-sessions", async (req, res) => {
-  const from = req.query.from === undefined ? new Date() : dateValue(req.query.from);
+  const requestedFrom = req.query.from === undefined ? new Date() : dateValue(req.query.from);
   const to =
     req.query.to === undefined
-      ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+      ? new Date(Date.now() + BOOKING_HORIZON_DAYS * 24 * 60 * 60 * 1000)
       : dateValue(req.query.to);
-  if (!from || !to || from >= to) {
+  if (!requestedFrom || !to || requestedFrom >= to) {
     res.status(400).json({ error: "from and to must be valid dates with from before to" });
+    return;
+  }
+  const window = bookingWindow();
+  const from = requestedFrom > window.lead ? requestedFrom : window.lead;
+  const cappedTo = to < window.horizon ? to : window.horizon;
+  if (from >= cappedTo) {
+    res.json({ sessions: [], from, to: cappedTo });
     return;
   }
 
@@ -449,7 +497,7 @@ router.get("/training-sessions", async (req, res) => {
           eq(trainingSessionsTable.tenantId, req.user!.tenantId),
           eq(trainingSessionsTable.status, "scheduled"),
           gte(trainingSessionsTable.startsAt, from),
-          lte(trainingSessionsTable.startsAt, to),
+          lte(trainingSessionsTable.startsAt, cappedTo),
         ),
       )
       .orderBy(asc(trainingSessionsTable.startsAt));
@@ -462,7 +510,7 @@ router.get("/training-sessions", async (req, res) => {
         sessionOutput(row, counts.get(row.id) ?? 0),
       ),
       from,
-      to,
+      to: cappedTo,
     });
   } catch (error) {
     sendError(req, res, error, "Failed to fetch training sessions");
@@ -477,7 +525,13 @@ router.get("/training-sessions/:id", async (req, res) => {
   }
   try {
     const row = await getSession(db, req.user!.tenantId, id, true);
-    if (!row || row.status !== "scheduled" || row.startsAt <= new Date()) {
+    const window = bookingWindow();
+    if (
+      !row ||
+      row.status !== "scheduled" ||
+      row.startsAt < window.lead ||
+      row.startsAt > window.horizon
+    ) {
       res.status(404).json({ error: "Training session not found" });
       return;
     }
@@ -579,7 +633,13 @@ router.post("/bookings", async (req, res) => {
       if (replay[0]) return { id: replay[0].id, replayed: true };
 
       const session = await getSession(tx, tenantId, trainingSessionId, true);
-      if (!session || session.status !== "scheduled" || session.startsAt <= new Date()) {
+      const window = bookingWindow();
+      if (
+        !session ||
+        session.status !== "scheduled" ||
+        session.startsAt < window.lead ||
+        session.startsAt > window.horizon
+      ) {
         throw new HttpError(409, "Training session is not bookable");
       }
       const reserved = await activeReservationCount(tx, tenantId, trainingSessionId);
@@ -758,8 +818,10 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
       if (!original || original.clientUserId !== clientUserId) {
         throw new HttpError(404, "Booking not found");
       }
+      const window = bookingWindow();
       if (
-        original.sessionStartsAt <= new Date() ||
+        original.sessionStartsAt < window.lead ||
+        original.sessionStartsAt > window.horizon ||
         original.sessionStatus !== "scheduled" ||
         !ACTIVE_BOOKING_STATUSES.includes(original.status)
       ) {
@@ -769,7 +831,8 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
       if (
         !replacement ||
         replacement.status !== "scheduled" ||
-        replacement.startsAt <= new Date()
+        replacement.startsAt < window.lead ||
+        replacement.startsAt > window.horizon
       ) {
         throw new HttpError(409, "Replacement session is not bookable");
       }
@@ -868,7 +931,12 @@ router.post("/admin/training-locations", async (req, res) => {
     req.body?.addressDetails === undefined
       ? null
       : stringValue(req.body.addressDetails, 1000);
-  if (!name || !timezone || (req.body?.addressDetails !== undefined && !addressDetails)) {
+  if (
+    !name ||
+    !timezone ||
+    !validateTimezone(timezone) ||
+    (req.body?.addressDetails !== undefined && !addressDetails)
+  ) {
     res.status(400).json({ error: "name and valid location details are required" });
     return;
   }
@@ -907,7 +975,7 @@ router.patch("/admin/training-locations/:id", async (req, res) => {
   const updates: Record<string, unknown> = {};
   if (req.body?.name !== undefined) {
     const value = stringValue(req.body.name, MAX_NAME_LENGTH);
-    if (!value) {
+    if (!value || !validateTimezone(value)) {
       res.status(400).json({ error: "Invalid name" });
       return;
     }
@@ -1268,6 +1336,13 @@ router.post("/admin/training-sessions", async (req, res) => {
         )
         .limit(1);
       if (!type) throw new HttpError(400, "Active session type is required");
+      await assertMarcusTimeAvailable(
+        tx,
+        req.user!.tenantId,
+        req.user!.id,
+        startsAt,
+        endsAt,
+      );
       const [created] = await tx
         .insert(trainingSessionsTable)
         .values({
@@ -1377,6 +1452,14 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
       if (nextStartsAt <= new Date()) {
         throw new HttpError(400, "Scheduled sessions must be in the future");
       }
+      await assertMarcusTimeAvailable(
+        tx,
+        req.user!.tenantId,
+        current.createdByUserId,
+        nextStartsAt,
+        nextEndsAt,
+        id,
+      );
       if (updates.sessionTypeId !== undefined &&
         !(await verifyAdminReference(req.user!.tenantId, trainingSessionTypesTable, updates.sessionTypeId as string))) {
         throw new HttpError(400, "Active session type is required");

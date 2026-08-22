@@ -78,6 +78,9 @@ function mockAdminData(
     if (path === '/admin/bookings') return Promise.resolve({ bookings });
     if (path === '/admin/training-locations') return Promise.resolve({ locations: resources.locations ?? [] });
     if (path === '/admin/session-types') return Promise.resolve({ sessionTypes: resources.sessionTypes ?? [] });
+    if (path === '/admin/availability/rules') return Promise.resolve({ rules: [] });
+    if (path === '/admin/availability/exceptions') return Promise.resolve({ exceptions: [] });
+    if (path === '/admin/availability/preview') return Promise.resolve({ occurrences: [] });
     if (path === '/admin/bookings/booking-1/confirm') {
       return confirmFails
         ? Promise.reject(new Error('Booking can no longer be confirmed.'))
@@ -177,6 +180,21 @@ describe('MarcusSessionsHQ', () => {
     await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /session types/i })));
     expect(await screen.findByText('No session types configured.')).toBeInTheDocument();
     expect(screen.getByTestId('btn-create-type')).toBeInTheDocument();
+  });
+
+  it('loads the protected availability section with its empty state and manual refresh control', async () => {
+    mockAdminData([], false, { locations: [managedLocation], sessionTypes: [managedType] });
+    render(<MarcusSessionsHQ />);
+
+    await screen.findByText('No pending bookings right now.');
+    await actEvent(() => fireEvent.click(screen.getByTestId('tab-availability')));
+
+    expect(await screen.findByText('No recurring availability rules yet. One-off sessions remain available from Schedule.')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-create-availability-rule')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-refresh-availability')).toBeInTheDocument();
+    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/rules');
+    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/exceptions');
+    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/preview');
   });
 
   it('covers session create/edit, completion, cancellation, and duplicate-submit protection', async () => {

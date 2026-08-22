@@ -60,6 +60,52 @@ export interface SessionType {
   isActive: boolean;
 }
 
+export interface AvailabilityRule {
+  id: string;
+  ownerUserId: string;
+  locationId: string;
+  sessionTypeId: string;
+  weekday: number;
+  startsLocalTime: string;
+  endsLocalTime: string;
+  slotIntervalMinutes: number | null;
+  capacityOverride: number | null;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+  isActive: boolean;
+  locationName: string;
+  timezone: string;
+  sessionTypeName: string;
+  durationMinutes: number;
+}
+
+export interface AvailabilityException {
+  id: string;
+  availabilityRuleId: string | null;
+  locationId: string;
+  sessionTypeId: string;
+  exceptionDate: string;
+  kind: 'unavailable' | 'override' | 'additional';
+  startsLocalTime: string | null;
+  endsLocalTime: string | null;
+  capacityOverride: number | null;
+  reason: string | null;
+}
+
+export interface AvailabilityOccurrence {
+  id: string;
+  ruleId: string;
+  localDate: string;
+  localStartTime: string;
+  timezone: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  sessionId: string | null;
+  resolution: 'generated' | 'suppressed' | 'dst_skipped' | 'conflict';
+  locationName: string;
+  sessionTypeName: string;
+}
+
 // --- Helpers ---
 
 function formatDateTime(iso: string | undefined, tz = 'Europe/Malta') {
@@ -94,6 +140,9 @@ function useAdminData() {
   const [bookings, setBookings] = useState<ManagedBooking[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
+  const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
+  const [availabilityExceptions, setAvailabilityExceptions] = useState<AvailabilityException[]>([]);
+  const [availabilityOccurrences, setAvailabilityOccurrences] = useState<AvailabilityOccurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloading, setReloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,16 +153,22 @@ function useAdminData() {
     setError(null);
 
     try {
-      const [sessRes, bookRes, locRes, typeRes] = await Promise.all([
+      const [sessRes, bookRes, locRes, typeRes, ruleRes, exceptionRes, previewRes] = await Promise.all([
         apiRequest<{ sessions: ManagedSession[] }>('/admin/training-sessions'),
         apiRequest<{ bookings: ManagedBooking[] }>('/admin/bookings'),
         apiRequest<{ locations: Location[] }>('/admin/training-locations'),
         apiRequest<{ sessionTypes: SessionType[] }>('/admin/session-types'),
+        apiRequest<{ rules: AvailabilityRule[] }>('/admin/availability/rules'),
+        apiRequest<{ exceptions: AvailabilityException[] }>('/admin/availability/exceptions'),
+        apiRequest<{ occurrences: AvailabilityOccurrence[] }>('/admin/availability/preview'),
       ]);
       setSessions(sessRes.sessions);
       setBookings(bookRes.bookings);
       setLocations(locRes.locations);
       setSessionTypes(typeRes.sessionTypes);
+      setAvailabilityRules(ruleRes.rules);
+      setAvailabilityExceptions(exceptionRes.exceptions);
+      setAvailabilityOccurrences(previewRes.occurrences);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load HQ data';
       if (isInitial) setError(msg);
@@ -128,7 +183,10 @@ function useAdminData() {
     fetchAll(true).catch(() => {});
   }, [fetchAll]);
 
-  return { sessions, bookings, locations, sessionTypes, loading, reloading, error, reload: fetchAll };
+  return {
+    sessions, bookings, locations, sessionTypes, availabilityRules, availabilityExceptions,
+    availabilityOccurrences, loading, reloading, error, reload: fetchAll
+  };
 }
 
 // --- Components ---
@@ -536,6 +594,197 @@ function SessionModal({ session, locations, sessionTypes, onClose, onSave, submi
   );
 }
 
+// -- Availability View
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function AvailabilityView({
+  rules, exceptions, occurrences, locations, sessionTypes, execute, actionId
+}: {
+  rules: AvailabilityRule[];
+  exceptions: AvailabilityException[];
+  occurrences: AvailabilityOccurrence[];
+  locations: Location[];
+  sessionTypes: SessionType[];
+  execute: (id: string, p: Promise<any>) => Promise<boolean>;
+  actionId: string | null;
+}) {
+  const [editingRule, setEditingRule] = useState<AvailabilityRule | null>(null);
+  const [showRuleForm, setShowRuleForm] = useState(false);
+  const [showExceptionForm, setShowExceptionForm] = useState(false);
+  const [impactMessage, setImpactMessage] = useState<string | null>(null);
+  const activeLocations = locations.filter((location) => location.isActive);
+  const activeTypes = sessionTypes.filter((type) => type.isActive);
+
+  const toggleRule = async (rule: AvailabilityRule) => {
+    const impact = await apiRequest<{ impact: { booked: unknown[]; unbookedSessionIds: string[] } }>(`/admin/availability/rules/${rule.id}/impact`);
+    if (impact.impact.booked.length > 0) {
+      setImpactMessage(`${impact.impact.booked.length} upcoming session${impact.impact.booked.length === 1 ? '' : 's'} has active bookings. Resolve those sessions from Schedule before changing this rule.`);
+      return;
+    }
+    const confirmed = window.confirm(
+      impact.impact.unbookedSessionIds.length
+        ? `This will regenerate ${impact.impact.unbookedSessionIds.length} unbooked future session${impact.impact.unbookedSessionIds.length === 1 ? '' : 's'}. Continue?`
+        : ` ${rule.isActive ? 'Deactivate' : 'Activate'} this rule?`,
+    );
+    if (!confirmed) return;
+    const succeeded = await execute(
+      `toggle-rule-${rule.id}`,
+      apiRequest(`/admin/availability/rules/${rule.id}`, {
+        method: 'PATCH',
+        body: { isActive: !rule.isActive, confirmImpact: true },
+      }),
+    );
+    if (succeeded) setImpactMessage(null);
+  };
+
+  return (
+    <div className="space-y-8">
+      {impactMessage && (
+        <div role="alert" className="border border-amber-400/25 bg-amber-400/10 rounded-lg p-4 text-sm text-amber-100 flex gap-3">
+          <WarningCircle size={20} className="shrink-0 text-amber-300" weight="fill" />
+          <div className="flex-1">{impactMessage}</div>
+          <button type="button" onClick={() => setImpactMessage(null)} aria-label="Dismiss impact notice" className="text-amber-200 hover:text-white"><X size={16} /></button>
+        </div>
+      )}
+      <section aria-labelledby="availability-rules-heading">
+        <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">Weekly availability</p>
+            <h3 id="availability-rules-heading" className="mt-1 text-lg font-bold text-white">Materialized 120 days ahead</h3>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => void execute('availability-refresh', apiRequest('/admin/availability/refresh', { method: 'POST' }))}
+              disabled={actionId !== null}
+              className="px-3 py-2 rounded border border-white/15 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-50"
+              data-testid="btn-refresh-availability"
+            >
+              {actionId === 'availability-refresh' ? 'Refreshing…' : 'Refresh slots'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditingRule(null); setShowRuleForm(true); }}
+              disabled={!activeLocations.length || !activeTypes.length}
+              className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded font-bold text-xs hover:bg-white/90 disabled:opacity-50"
+              data-testid="btn-create-availability-rule"
+            >
+              <Plus size={14} weight="bold" /> New rule
+            </button>
+          </div>
+        </div>
+        {!activeLocations.length || !activeTypes.length ? (
+          <p className="border border-white/10 rounded-lg p-4 text-sm text-white/50">Create an active location and session type before adding availability.</p>
+        ) : rules.length === 0 ? (
+          <p className="border border-white/10 rounded-lg p-8 text-center text-sm text-white/45">No recurring availability rules yet. One-off sessions remain available from Schedule.</p>
+        ) : (
+          <div className="border border-white/10 rounded-lg overflow-x-auto">
+            <table className="w-full min-w-[800px] text-left text-sm">
+              <thead className="bg-white/5 text-white/45 text-[10px] uppercase tracking-wider">
+                <tr><th className="p-4">Day & hours</th><th className="p-4">Session</th><th className="p-4">Location</th><th className="p-4">Effective dates</th><th className="p-4">Status</th><th className="p-4 text-right">Actions</th></tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {rules.map((rule) => (
+                  <tr key={rule.id} className="hover:bg-white/[0.03]">
+                    <td className="p-4 font-medium text-white">{WEEKDAYS[rule.weekday - 1]}<span className="block text-xs text-white/45 mt-1">{rule.startsLocalTime}–{rule.endsLocalTime} · every {rule.slotIntervalMinutes ?? rule.durationMinutes} min</span></td>
+                    <td className="p-4 text-white/75">{rule.sessionTypeName}<span className="block text-xs text-white/45 mt-1">{rule.capacityOverride ? `${rule.capacityOverride} places` : 'Type capacity'}</span></td>
+                    <td className="p-4 text-white/75">{rule.locationName}<span className="block text-xs text-white/45 mt-1">{rule.timezone}</span></td>
+                    <td className="p-4 text-white/60">{rule.effectiveFrom}<span className="block text-xs text-white/45 mt-1">{rule.effectiveUntil ?? 'No end date'}</span></td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${rule.isActive ? 'bg-green-500/15 text-green-300' : 'bg-white/10 text-white/45'}`}>{rule.isActive ? 'Active' : 'Paused'}</span></td>
+                    <td className="p-4 text-right whitespace-nowrap">
+                      <button type="button" onClick={() => { setEditingRule(rule); setShowRuleForm(true); }} disabled={actionId !== null} className="p-2 text-white/45 hover:text-white" aria-label={`Edit ${WEEKDAYS[rule.weekday - 1]} availability`}><PencilSimple size={16} /></button>
+                      <button type="button" onClick={() => void toggleRule(rule)} disabled={actionId !== null} className="px-3 py-1.5 rounded text-xs font-bold text-white/65 hover:text-white hover:bg-white/10 disabled:opacity-40">{rule.isActive ? 'Pause' : 'Activate'}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="availability-exceptions-heading">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">Exceptions</p>
+            <h3 id="availability-exceptions-heading" className="mt-1 text-lg font-bold text-white">Unavailable, override & additional hours</h3>
+          </div>
+          <button type="button" onClick={() => setShowExceptionForm(true)} disabled={!rules.length} className="flex items-center gap-2 border border-white/15 px-4 py-2 rounded text-xs font-bold text-white hover:bg-white/10 disabled:opacity-50"><Plus size={14} /> Add exception</button>
+        </div>
+        {exceptions.length === 0 ? <p className="border border-white/10 rounded-lg p-5 text-sm text-white/45">No exceptions scheduled.</p> : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {exceptions.slice(0, 12).map((exception) => (
+              <div key={exception.id} className="border border-white/10 rounded-lg p-4 bg-white/[0.01]">
+                <div className="flex justify-between gap-3"><strong className="text-sm text-white capitalize">{exception.kind.replace('_', ' ')}</strong><span className="text-xs text-white/45">{exception.exceptionDate}</span></div>
+                <p className="text-xs text-white/55 mt-2">{exception.startsLocalTime && exception.endsLocalTime ? `${exception.startsLocalTime}–${exception.endsLocalTime}` : 'All day'}{exception.reason ? ` · ${exception.reason}` : ''}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="generated-slots-heading">
+        <div className="mb-4"><p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">Preview</p><h3 id="generated-slots-heading" className="mt-1 text-lg font-bold text-white">Generated sessions</h3></div>
+        {occurrences.length === 0 ? <p className="border border-white/10 rounded-lg p-5 text-sm text-white/45">Refresh availability after creating a rule to preview slots.</p> : (
+          <div className="border border-white/10 rounded-lg overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-white/5 text-white/45 text-[10px] uppercase tracking-wider"><tr><th className="p-4">Local date & time</th><th className="p-4">Session</th><th className="p-4">Location</th><th className="p-4">Result</th></tr></thead><tbody className="divide-y divide-white/10">{occurrences.slice(0, 30).map((item) => <tr key={item.id}><td className="p-4 text-white">{item.localDate} <span className="text-white/45">{item.localStartTime}</span></td><td className="p-4 text-white/70">{item.sessionTypeName}</td><td className="p-4 text-white/70">{item.locationName}</td><td className="p-4"><span className="text-xs text-white/55 capitalize">{item.resolution.replace('_', ' ')}</span></td></tr>)}</tbody></table></div>
+        )}
+      </section>
+
+      {showRuleForm && <AvailabilityRuleModal rule={editingRule} locations={activeLocations} sessionTypes={activeTypes} onClose={() => { setShowRuleForm(false); setEditingRule(null); }} submitting={actionId === 'save-availability-rule'} onSave={async (body) => {
+        if (editingRule) {
+          const impact = await apiRequest<{ impact: { booked: unknown[]; unbookedSessionIds: string[] } }>(`/admin/availability/rules/${editingRule.id}/impact`);
+          if (impact.impact.booked.length) { setImpactMessage('This rule has booked sessions. Resolve those sessions individually in Schedule before editing it.'); return; }
+          if (impact.impact.unbookedSessionIds.length && !window.confirm(`Regenerate ${impact.impact.unbookedSessionIds.length} unbooked future sessions using this update?`)) return;
+          const succeeded = await execute('save-availability-rule', apiRequest(`/admin/availability/rules/${editingRule.id}`, { method: 'PATCH', body: { ...(body as Record<string, unknown>), confirmImpact: true } }));
+          if (succeeded) { setShowRuleForm(false); setEditingRule(null); }
+        } else {
+          const succeeded = await execute('save-availability-rule', apiRequest('/admin/availability/rules', { method: 'POST', body }));
+          if (succeeded) setShowRuleForm(false);
+        }
+      }} />}
+      {showExceptionForm && <AvailabilityExceptionModal rules={rules} onClose={() => setShowExceptionForm(false)} submitting={actionId === 'save-availability-exception'} onSave={async (body) => {
+        const succeeded = await execute('save-availability-exception', apiRequest('/admin/availability/exceptions', { method: 'POST', body }));
+        if (succeeded) setShowExceptionForm(false);
+      }} />}
+    </div>
+  );
+}
+
+function AvailabilityRuleModal({ rule, locations, sessionTypes, onClose, onSave, submitting }: { rule: AvailabilityRule | null; locations: Location[]; sessionTypes: SessionType[]; onClose: () => void; onSave: (body: unknown) => Promise<void>; submitting: boolean }) {
+  const [form, setForm] = useState({
+    locationId: rule?.locationId ?? locations[0]?.id ?? '',
+    sessionTypeId: rule?.sessionTypeId ?? sessionTypes[0]?.id ?? '',
+    weekday: String(rule?.weekday ?? 1),
+    startsLocalTime: rule?.startsLocalTime ?? '09:00',
+    endsLocalTime: rule?.endsLocalTime ?? '17:00',
+    slotIntervalMinutes: String(rule?.slotIntervalMinutes ?? ''),
+    capacityOverride: String(rule?.capacityOverride ?? ''),
+    effectiveFrom: rule?.effectiveFrom ?? new Date().toISOString().slice(0, 10),
+    effectiveUntil: rule?.effectiveUntil ?? '',
+  });
+  return <Modal title={rule ? 'Edit weekly availability' : 'New weekly availability'} isOpen={true} onClose={onClose}><form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void onSave({ ...form, weekday: Number(form.weekday), slotIntervalMinutes: form.slotIntervalMinutes ? Number(form.slotIntervalMinutes) : undefined, capacityOverride: form.capacityOverride ? Number(form.capacityOverride) : null, effectiveUntil: form.effectiveUntil || null }); }}>
+    <div className="grid grid-cols-2 gap-4"><label className="text-xs text-white/60">Day<select value={form.weekday} onChange={(event) => setForm({ ...form, weekday: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white">{WEEKDAYS.map((day, index) => <option key={day} value={index + 1}>{day}</option>)}</select></label><label className="text-xs text-white/60">Location<select value={form.locationId} onChange={(event) => setForm({ ...form, locationId: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white">{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label><label className="text-xs text-white/60">Session type<select value={form.sessionTypeId} onChange={(event) => setForm({ ...form, sessionTypeId: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white">{sessionTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select></label><label className="text-xs text-white/60">Slot spacing (minutes)<input type="number" min="1" value={form.slotIntervalMinutes} onChange={(event) => setForm({ ...form, slotIntervalMinutes: event.target.value })} placeholder="Uses session duration" className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label><label className="text-xs text-white/60">Start<input required type="time" value={form.startsLocalTime} onChange={(event) => setForm({ ...form, startsLocalTime: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label><label className="text-xs text-white/60">End<input required type="time" value={form.endsLocalTime} onChange={(event) => setForm({ ...form, endsLocalTime: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label><label className="text-xs text-white/60">Effective from<input required type="date" value={form.effectiveFrom} onChange={(event) => setForm({ ...form, effectiveFrom: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label><label className="text-xs text-white/60">Effective until<input type="date" value={form.effectiveUntil} onChange={(event) => setForm({ ...form, effectiveUntil: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label></div>
+    <label className="block text-xs text-white/60">Capacity override (optional)<input type="number" min="1" value={form.capacityOverride} onChange={(event) => setForm({ ...form, capacityOverride: event.target.value })} placeholder="Uses session type capacity" className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label>
+    <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold text-white/60">Cancel</button><button type="submit" disabled={submitting} className="px-4 py-2 bg-white text-black text-xs font-bold rounded disabled:opacity-50">{submitting ? 'Saving…' : 'Save rule'}</button></div>
+  </form></Modal>;
+}
+
+function AvailabilityExceptionModal({ rules, onClose, onSave, submitting }: { rules: AvailabilityRule[]; onClose: () => void; onSave: (body: unknown) => Promise<void>; submitting: boolean }) {
+  const initial = rules[0];
+  const [form, setForm] = useState({ ruleId: initial?.id ?? '', kind: 'unavailable', exceptionDate: new Date().toISOString().slice(0, 10), startsLocalTime: '', endsLocalTime: '', capacityOverride: '', reason: '' });
+  const selected = rules.find((rule) => rule.id === form.ruleId) ?? initial;
+  if (!selected) return null;
+  const timesRequired = form.kind === 'additional';
+  return <Modal title="Add availability exception" isOpen={true} onClose={onClose}><form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void onSave({ availabilityRuleId: selected.id, locationId: selected.locationId, sessionTypeId: selected.sessionTypeId, kind: form.kind, exceptionDate: form.exceptionDate, startsLocalTime: form.startsLocalTime || null, endsLocalTime: form.endsLocalTime || null, capacityOverride: form.capacityOverride ? Number(form.capacityOverride) : null, reason: form.reason || null, confirmImpact: true }); }}>
+    <label className="block text-xs text-white/60">Rule<select value={form.ruleId} onChange={(event) => setForm({ ...form, ruleId: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white">{rules.map((rule) => <option key={rule.id} value={rule.id}>{WEEKDAYS[rule.weekday - 1]} · {rule.sessionTypeName} · {rule.locationName}</option>)}</select></label>
+    <div className="grid grid-cols-2 gap-4"><label className="text-xs text-white/60">Kind<select value={form.kind} onChange={(event) => setForm({ ...form, kind: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white"><option value="unavailable">Unavailable</option><option value="override">Override capacity</option><option value="additional">Additional hours</option></select></label><label className="text-xs text-white/60">Date<input required type="date" value={form.exceptionDate} onChange={(event) => setForm({ ...form, exceptionDate: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label><label className="text-xs text-white/60">Start<input required={timesRequired} type="time" value={form.startsLocalTime} onChange={(event) => setForm({ ...form, startsLocalTime: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label><label className="text-xs text-white/60">End<input required={timesRequired} type="time" value={form.endsLocalTime} onChange={(event) => setForm({ ...form, endsLocalTime: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label></div>
+    {form.kind === 'override' && <label className="block text-xs text-white/60">Capacity override<input required type="number" min="1" value={form.capacityOverride} onChange={(event) => setForm({ ...form, capacityOverride: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label>}
+    <label className="block text-xs text-white/60">Internal reason (optional)<input value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} className="mt-2 w-full bg-white/5 border border-white/10 rounded p-3 text-sm text-white" /></label>
+    <p className="text-xs text-white/40">Booked sessions are never changed automatically. Resolve any booked conflict from Schedule.</p>
+    <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold text-white/60">Cancel</button><button type="submit" disabled={submitting} className="px-4 py-2 bg-white text-black text-xs font-bold rounded disabled:opacity-50">{submitting ? 'Saving…' : 'Save exception'}</button></div>
+  </form></Modal>;
+}
+
 // -- Locations View
 function LocationsView({ locations, execute, actionId }: { locations: Location[], execute: (id: string, p: Promise<any>) => Promise<boolean>, actionId: string | null }) {
   const [isCreating, setIsCreating] = useState(false);
@@ -760,7 +1009,7 @@ function SessionTypeModal({ type, onClose, onSave, submitting }: { type: Session
 
 export function MarcusSessionsHQ() {
   const data = useAdminData();
-  const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'locations' | 'types'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability' | 'locations' | 'types'>('requests');
   const [actionId, setActionId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
@@ -815,6 +1064,9 @@ export function MarcusSessionsHQ() {
           <button onClick={() => setActiveTab('schedule')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'schedule' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
             <span className="flex items-center gap-3"><CalendarBlank size={16} weight={activeTab === 'schedule' ? 'bold' : 'regular'} /> Schedule</span>
           </button>
+          <button onClick={() => setActiveTab('availability')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'availability' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`} data-testid="tab-availability">
+            <span className="flex items-center gap-3"><CalendarBlank size={16} weight={activeTab === 'availability' ? 'bold' : 'regular'} /> Availability</span>
+          </button>
           
           <div className="hidden md:block pt-8 pb-3">
             <p className="px-4 text-[9px] font-bold tracking-[0.25em] text-white/20 uppercase">Configuration</p>
@@ -832,7 +1084,7 @@ export function MarcusSessionsHQ() {
       <main className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
         <header className="h-16 md:h-20 border-b border-white/10 flex items-center justify-between px-4 md:px-10 shrink-0">
           <h2 className="text-xl font-bold tracking-tight text-white">
-            {activeTab === 'types' ? 'Session Types' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            {activeTab === 'types' ? 'Session Types' : activeTab === 'availability' ? 'Availability' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           </h2>
           <div className="flex items-center gap-4">
             <button onClick={() => data.reload(false)} disabled={data.loading || data.reloading} className="p-2.5 text-white/30 hover:text-white rounded-full hover:bg-white/10 disabled:opacity-50 transition-colors" title="Sync with Server">
@@ -862,6 +1114,7 @@ export function MarcusSessionsHQ() {
             >
               {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} />}
               {activeTab === 'schedule' && <ScheduleView sessions={data.sessions} bookings={data.bookings} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
+               {activeTab === 'availability' && <AvailabilityView rules={data.availabilityRules} exceptions={data.availabilityExceptions} occurrences={data.availabilityOccurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'locations' && <LocationsView locations={data.locations} execute={execute} actionId={actionId} />}
               {activeTab === 'types' && <SessionTypesView types={data.sessionTypes} execute={execute} actionId={actionId} />}
             </motion.div>

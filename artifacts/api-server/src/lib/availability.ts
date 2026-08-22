@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import {
   availabilityExceptionsTable,
   availabilityOccurrencesTable,
@@ -284,13 +284,34 @@ export async function generateAvailability(
 
   for (const { rule, timezone, durationMinutes, defaultCapacity } of rules) {
     const slots = generateLocalSlots(rule, durationMinutes, fromDate, toDate);
+    for (const exception of exceptions) {
+      if (
+        exception.kind !== "additional" ||
+        exception.locationId !== rule.locationId ||
+        exception.sessionTypeId !== rule.sessionTypeId ||
+        exception.ownerUserId !== rule.ownerUserId ||
+        (exception.availabilityRuleId && exception.availabilityRuleId !== rule.id) ||
+        !exception.startsLocalTime ||
+        !exception.endsLocalTime
+      ) {
+        continue;
+      }
+      for (
+        let minute = parseLocalTime(exception.startsLocalTime);
+        minute + durationMinutes <= parseLocalTime(exception.endsLocalTime);
+        minute += rule.slotIntervalMinutes ?? durationMinutes
+      ) {
+        const time = `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
+        if (!slots.some((slot) => slot.date === exception.exceptionDate && slot.time === time)) {
+          slots.push({ date: exception.exceptionDate, time });
+        }
+      }
+    }
     for (const slot of slots) {
       const applicable = exceptions.filter((exception) =>
         exceptionApplies(exception, rule, slot.date, slot.time, durationMinutes),
       );
       const unavailable = applicable.find((exception) => exception.kind === "unavailable");
-      const additionalOnly = applicable.length > 0 && !unavailable && !slots.length;
-      if (additionalOnly) continue;
       const resolution = unavailable ? "suppressed" : "generated";
       const resolvedStart = resolveLocalDateTime(slot.date, slot.time, timezone);
       if (!resolvedStart && !unavailable) {
@@ -327,22 +348,11 @@ export async function generateAvailability(
       if (!resolvedStart) continue;
       const resolvedEnd = new Date(resolvedStart.getTime() + durationMinutes * 60 * 1000);
       const result = await db.transaction(async (tx) => {
-        const inserted = await tx
-          .insert(availabilityOccurrencesTable)
-          .values({
-            tenantId,
-            availabilityRuleId: rule.id,
-            localDate: slot.date,
-            localStartTime: slot.time,
-            timezone,
-            resolvedStartsAt: resolvedStart,
-            resolvedEndsAt: resolvedEnd,
-            resolution: "generated",
-            exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
-          })
-          .onConflictDoNothing()
-          .returning({ id: availabilityOccurrencesTable.id });
-        if (!inserted[0]) return "duplicate" as const;
+        await tx.execute(sql`
+          SELECT pg_advisory_xact_lock(
+            hashtextextended(${`${tenantId}:${rule.ownerUserId}`}, 0)
+          )
+        `);
         const capacity =
           applicable.find((exception) => exception.kind === "override")?.capacityOverride ??
           rule.capacityOverride ??
@@ -361,6 +371,22 @@ export async function generateAvailability(
           )
           .limit(1);
         if (conflict[0]) return "conflict" as const;
+        const inserted = await tx
+          .insert(availabilityOccurrencesTable)
+          .values({
+            tenantId,
+            availabilityRuleId: rule.id,
+            localDate: slot.date,
+            localStartTime: slot.time,
+            timezone,
+            resolvedStartsAt: resolvedStart,
+            resolvedEndsAt: resolvedEnd,
+            resolution: "generated",
+            exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
+          })
+          .onConflictDoNothing()
+          .returning({ id: availabilityOccurrencesTable.id });
+        if (!inserted[0]) return "duplicate" as const;
         const [session] = await tx
           .insert(trainingSessionsTable)
           .values({

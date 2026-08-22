@@ -74,6 +74,8 @@ CREATE TYPE content_type AS ENUM ('video', 'image', 'article');
 CREATE TYPE content_status AS ENUM ('draft', 'published');
 CREATE TYPE training_session_status AS ENUM ('scheduled', 'cancelled', 'completed');
 CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'rejected', 'cancelled', 'rescheduled', 'attended', 'no_show');
+CREATE TYPE availability_exception_kind AS ENUM ('unavailable', 'override', 'additional');
+CREATE TYPE availability_occurrence_resolution AS ENUM ('generated', 'suppressed', 'dst_skipped', 'conflict');
 
 -- ── tenants ────────────────────────────────────────────────────────────────
 CREATE TABLE tenants (
@@ -287,6 +289,81 @@ CREATE UNIQUE INDEX bookings_tenant_client_idempotency_unique
 CREATE UNIQUE INDEX bookings_active_client_session_unique
   ON bookings(tenant_id, client_user_id, training_session_id)
   WHERE status IN ('pending', 'confirmed');
+
+-- ── recurring availability ────────────────────────────────────────────────
+CREATE TABLE recurring_availability_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  owner_user_id UUID NOT NULL,
+  location_id UUID NOT NULL,
+  session_type_id UUID NOT NULL,
+  weekday INTEGER NOT NULL CHECK (weekday BETWEEN 1 AND 7),
+  starts_local_time TEXT NOT NULL,
+  ends_local_time TEXT NOT NULL,
+  slot_interval_minutes INTEGER CHECK (slot_interval_minutes IS NULL OR slot_interval_minutes > 0),
+  capacity_override INTEGER CHECK (capacity_override IS NULL OR capacity_override > 0),
+  effective_from TEXT NOT NULL,
+  effective_until TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by_user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id),
+  FOREIGN KEY (tenant_id, owner_user_id) REFERENCES users(tenant_id, id),
+  FOREIGN KEY (tenant_id, location_id) REFERENCES training_locations(tenant_id, id),
+  FOREIGN KEY (tenant_id, session_type_id) REFERENCES training_session_types(tenant_id, id),
+  FOREIGN KEY (tenant_id, created_by_user_id) REFERENCES users(tenant_id, id)
+);
+CREATE INDEX recurring_availability_rules_tenant_active_idx ON recurring_availability_rules(tenant_id, is_active);
+CREATE INDEX recurring_availability_rules_owner_idx ON recurring_availability_rules(tenant_id, owner_user_id, weekday);
+
+CREATE TABLE availability_exceptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  availability_rule_id UUID,
+  owner_user_id UUID NOT NULL,
+  location_id UUID NOT NULL,
+  session_type_id UUID NOT NULL,
+  exception_date TEXT NOT NULL,
+  kind availability_exception_kind NOT NULL,
+  starts_local_time TEXT,
+  ends_local_time TEXT,
+  capacity_override INTEGER CHECK (capacity_override IS NULL OR capacity_override > 0),
+  reason TEXT,
+  created_by_user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id),
+  FOREIGN KEY (tenant_id, availability_rule_id) REFERENCES recurring_availability_rules(tenant_id, id),
+  FOREIGN KEY (tenant_id, owner_user_id) REFERENCES users(tenant_id, id),
+  FOREIGN KEY (tenant_id, location_id) REFERENCES training_locations(tenant_id, id),
+  FOREIGN KEY (tenant_id, session_type_id) REFERENCES training_session_types(tenant_id, id),
+  FOREIGN KEY (tenant_id, created_by_user_id) REFERENCES users(tenant_id, id)
+);
+CREATE INDEX availability_exceptions_tenant_date_idx ON availability_exceptions(tenant_id, exception_date);
+
+CREATE TABLE availability_occurrences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  availability_rule_id UUID NOT NULL,
+  local_date TEXT NOT NULL,
+  local_start_time TEXT NOT NULL,
+  timezone TEXT NOT NULL,
+  resolved_starts_at TIMESTAMPTZ,
+  resolved_ends_at TIMESTAMPTZ,
+  training_session_id UUID,
+  exception_id UUID,
+  resolution availability_occurrence_resolution NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, availability_rule_id, local_date, local_start_time),
+  UNIQUE (tenant_id, training_session_id),
+  FOREIGN KEY (tenant_id, availability_rule_id) REFERENCES recurring_availability_rules(tenant_id, id),
+  FOREIGN KEY (tenant_id, training_session_id) REFERENCES training_sessions(tenant_id, id),
+  FOREIGN KEY (tenant_id, exception_id) REFERENCES availability_exceptions(tenant_id, id)
+);
+CREATE INDEX availability_occurrences_tenant_date_idx ON availability_occurrences(tenant_id, local_date);
 
 -- ── proposal_features ─────────────────────────────────────────────────────
 CREATE TABLE proposal_features (
