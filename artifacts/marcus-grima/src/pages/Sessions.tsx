@@ -175,8 +175,8 @@ function formatDuration(minutes?: number | null, fallbackStart?: string, fallbac
 }
 
 function readableStatus(status: BookingStatus): string {
-  if (status === 'no_show') return 'NO-SHOW';
-  if (status === 'attended') return 'ATTENDED';
+  if (status === 'no_show') return 'COMPLETED · NO-SHOW';
+  if (status === 'attended') return 'COMPLETED · ATTENDED';
   if (status === 'rescheduled') return 'RESCHEDULED';
   return status.replace(/_/g, ' ').toUpperCase();
 }

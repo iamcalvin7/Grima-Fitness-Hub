@@ -649,5 +649,59 @@ describe("rescheduling and Marcus workflow", () => {
       .set("Cookie", sessionCookie(adminAToken))
       .expect(200);
     expect(attended.body.booking.status).toBe("attended");
+    expect(attended.body.booking.attendanceAt).toBeTruthy();
+    const repeated = await request(app)
+      .post(`/api/admin/bookings/${rescheduledBookingId}/attended`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(409);
+    expect(repeated.body.error).toMatch(/Invalid booking status transition/);
+  });
+
+  it("records independent no-show outcomes for group participants and preserves the session completion flow", async () => {
+    const groupSession = await createManagedSession(adminAToken, 3, future(2));
+    const groupSessionId = groupSession.body.session.id;
+    const clientTokens = [clientAToken, clientBToken, clientCToken];
+    const bookings = [];
+    for (const [index, token] of clientTokens.entries()) {
+      const created = await request(app)
+        .post("/api/bookings")
+        .set("Cookie", sessionCookie(token))
+        .send({ trainingSessionId: groupSessionId, idempotencyKey: `group-attendance-${index}` })
+        .expect(201);
+      bookings.push(created.body.booking.id as string);
+      await request(app)
+        .post(`/api/admin/bookings/${created.body.booking.id}/confirm`)
+        .set("Cookie", sessionCookie(adminAToken))
+        .expect(200);
+    }
+
+    const attended = await request(app)
+      .post(`/api/admin/bookings/${bookings[0]}/attended`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    const noShow = await request(app)
+      .post(`/api/admin/bookings/${bookings[2]}/no-show`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(attended.body.booking.status).toBe("attended");
+    expect(noShow.body.booking.status).toBe("no_show");
+
+    const managed = await request(app)
+      .get(`/api/admin/bookings?trainingSessionId=${groupSessionId}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(managed.body.bookings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: bookings[0], status: "attended" }),
+      expect.objectContaining({ id: bookings[1], status: "confirmed" }),
+      expect.objectContaining({ id: bookings[2], status: "no_show" }),
+    ]));
+
+    const clientHistory = await request(app)
+      .get("/api/bookings")
+      .set("Cookie", sessionCookie(clientCToken))
+      .expect(200);
+    expect(clientHistory.body.bookings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: bookings[2], status: "no_show", attendanceAt: expect.any(String) }),
+    ]));
   });
 });

@@ -1960,7 +1960,10 @@ async function transitionSession(
         .returning();
       if (!updated) throw new HttpError(404, "Training session not found");
       await writeAuditLog(
-        auditParams(req, action, "training_session", id),
+        auditParams(req, action, "training_session", id, {
+          previousStatus: current.status,
+          resultingStatus: nextStatus,
+        }),
         tx,
       );
       return updated;
@@ -2107,7 +2110,11 @@ async function transitionBooking(
       await writeAuditLog(
         auditParams(req, action, "booking", id, {
           ...(reason ? { reason } : {}),
-          status: nextStatus,
+          previousStatus: locked.status,
+          resultingStatus: nextStatus,
+          ...(nextStatus === "attended" || nextStatus === "no_show"
+            ? { attendanceRecordedAt: new Date().toISOString() }
+            : {}),
         }),
         tx,
       );

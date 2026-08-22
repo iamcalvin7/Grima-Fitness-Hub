@@ -1,0 +1,592 @@
+# Task #31 — Attendance, No-Show & Session Completion Flow
+
+## Objective
+
+Complete the next Sessions & Booking vertical slice:
+
+```text
+Marcus delivers session
+→ records attendance outcome
+→ booking/session state updates correctly
+→ client history reflects completion
+→ Marcus can see the outcome
+→ in-app notification is created where appropriate
+```
+
+Do not add timed reminders yet.
+
+The goal is to complete the operational service-delivery loop before adding 24-hour / 2-hour reminders.
+
+---
+
+## Risk
+
+**AMBER**
+
+This task affects booking/session state transitions, attendance records, client history, credits/session usage where already supported, and in-app notifications.
+
+Inspect the existing implementation before changing behaviour.
+
+If inspection reveals that attendance/completion requires a schema or migration change, stop and report before implementing that migration.
+
+No production migration.
+
+---
+
+# 1. Inspect First
+
+Before implementation, inspect and report:
+
+* current attendance/no-show endpoints
+* current booking/session statuses
+* whether completion is stored on:
+
+  * booking
+  * training session
+  * attendance record
+  * another domain model
+* how completed sessions currently appear in Client Sessions history
+* whether client session credits/entitlements are already decremented or consumed
+* whether attendance changes any payment/credit state
+* current Marcus HQ booking/session detail UI
+* current in-app notification event model
+* existing audit events
+* existing tests for attendance/no-show/completion
+
+Do not design from the previous chat summary if the live code differs.
+
+---
+
+# 2. Product Behaviour
+
+Marcus needs a simple way to record what happened after a scheduled session.
+
+For each booked client, the supported outcomes should follow the existing backend model.
+
+At minimum inspect support for:
+
+```text
+Attended
+No-show
+```
+
+If there is already a legitimate cancelled state, preserve it separately rather than treating cancellation as attendance.
+
+Do not invent new statuses if the existing model already represents these outcomes cleanly.
+
+---
+
+# 3. Marcus UX
+
+From the relevant Marcus session/booking detail, provide clear actions for recording attendance.
+
+Preferred conceptual interaction:
+
+```text
+CLIENT
+
+Calvin Sammut
+Confirmed
+
+[ Mark Attended ]   [ No-show ]
+```
+
+If multiple clients can attend one session, attendance must be recorded **per booking/client**, not only at the overall session level.
+
+Do not make Marcus update database-style status fields manually.
+
+---
+
+# 4. Timing / Eligibility
+
+Attendance actions should only be available when appropriate.
+
+Inspect existing rules and use the smallest sensible policy.
+
+At minimum:
+
+* pending booking → cannot mark attended
+* rejected booking → cannot mark attended
+* cancelled booking → cannot mark attended
+* confirmed booking → eligible according to existing time/status rules
+* already attended → do not allow repeated transition
+* already no-show → do not allow repeated transition
+
+If the current backend allows attendance before the session start, report that behaviour before changing it.
+
+Do not silently introduce a new timing policy without evidence.
+
+---
+
+# 5. Attended Behaviour
+
+When Marcus marks a client as **Attended**:
+
+1. Persist the attendance outcome.
+2. Preserve audit history.
+3. Update any existing booking/session state required by the current domain model.
+4. Ensure the completed session appears correctly in the client's past/history experience.
+5. Ensure Marcus can see that the client attended after refresh.
+6. Apply any existing session-credit/usage behaviour if already defined.
+7. Create an in-app notification for the client only if it provides useful product value and matches the existing notification architecture.
+
+Do not invent a new billing rule.
+
+---
+
+# 6. No-Show Behaviour
+
+When Marcus marks a client as **No-show**:
+
+1. Persist the no-show outcome.
+2. Preserve audit history.
+3. Show the result clearly in Marcus HQ.
+4. Reflect the correct state in the client's session/history experience.
+5. Apply existing credit/usage consequences only if they are already defined.
+6. Create a client notification if appropriate to the existing product rules.
+
+Do not automatically refund, restore or consume credits unless current business rules already define that behaviour.
+
+---
+
+# 7. Client Session History
+
+The Client Sessions experience should clearly distinguish completed outcomes.
+
+Examples:
+
+```text
+Completed
+Attended
+```
+
+and, where appropriate:
+
+```text
+No-show
+```
+
+Do not create misleading wording.
+
+The client should be able to understand:
+
+* which session occurred
+* date/time
+* location
+* attendance outcome
+* any existing completed-session recap already supported
+
+Preserve the current past-session recap/body-map functionality.
+
+---
+
+# 8. Marcus HQ State
+
+After attendance is recorded, Marcus should immediately be able to see the result.
+
+For example:
+
+```text
+Calvin Sammut        ATTENDED
+Sarah Example        NO-SHOW
+```
+
+If a group session has several bookings, each participant's outcome should remain independent.
+
+Do not mark all clients attended because one client was updated.
+
+---
+
+# 9. Overall Session Completion
+
+Inspect whether the system has an overall session-level completion state.
+
+If it does:
+
+* determine when the session becomes completed
+* preserve the existing rule
+
+If it does not:
+
+* do not invent an unnecessary automatic session transition unless required for the client history to work
+
+If all participant outcomes naturally imply session completion, report the proposed rule before making a new domain-level transition.
+
+---
+
+# 10. Credits / Entitlements
+
+This requires explicit inspection.
+
+Determine whether the existing product currently:
+
+* consumes a credit at booking
+* consumes it at confirmation
+* consumes it at attendance
+* restores it on cancellation
+* has no complete credit system yet
+
+Do not assume.
+
+Report the current rule.
+
+If credits are already implemented, verify that:
+
+### Attended
+
+uses the existing intended credit behaviour.
+
+### No-show
+
+uses the existing intended no-show behaviour.
+
+If the credit policy is incomplete or ambiguous, stop that part of the task and report it separately.
+
+Do not invent commercial policy.
+
+---
+
+# 11. In-App Notifications
+
+Reuse Task #30's notification architecture.
+
+Do not create a second notification system.
+
+Potential events, only if supported by the approved UX:
+
+```text
+session_completed
+attendance_recorded
+session_no_show
+```
+
+Use the smallest useful set.
+
+Avoid noisy notifications that tell the client something obvious without value.
+
+A useful completion notification could be:
+
+**Session completed**
+
+```text
+Your session with Marcus on Monday 24 Aug has been completed.
+```
+
+If no-show notification is included, keep the wording factual and neutral.
+
+Do not add email, SMS or push.
+
+---
+
+# 12. Deep Links
+
+Any attendance/completion notification must use the existing stable Sessions deep-link system from Task #30.
+
+Clicking should open the correct historical/session detail.
+
+Do not create another routing mechanism.
+
+---
+
+# 13. Audit Trail
+
+Preserve or add structured audit evidence for attendance transitions.
+
+Conceptually:
+
+```text
+booking:attended
+booking:no_show
+```
+
+Use existing event naming conventions if they differ.
+
+Audit data should establish:
+
+* booking/session
+* actor
+* previous state
+* resulting state/outcome
+* timestamp
+
+Do not store unnecessary sensitive data.
+
+---
+
+# 14. Idempotency / Conflict Protection
+
+Repeated requests must not create duplicate consequences.
+
+Examples:
+
+```text
+Mark Attended
+→ succeeds
+
+Retry same request
+→ must not create another credit deduction
+→ must not create duplicate notifications
+→ must not duplicate audit side effects
+```
+
+Likewise for no-show.
+
+Use current transition protections where possible.
+
+---
+
+# 15. Error States
+
+Handle clearly:
+
+* booking not found
+* unauthorised user
+* invalid transition
+* already attended
+* already no-show
+* cancelled booking
+* pending booking
+* server failure
+
+The UI should not pretend an attendance change succeeded before the API confirms it.
+
+---
+
+# 16. Responsive UX
+
+Verify Marcus attendance actions on:
+
+* desktop
+* 390px mobile
+
+Actions must remain usable without horizontal overflow.
+
+If a session contains multiple clients, the participant list should remain easy to scan and action.
+
+---
+
+# 17. Tests Required
+
+## Attended
+
+* confirmed booking can be marked attended
+* state persists
+* Marcus sees attended state after refresh
+* client history reflects correct outcome
+* audit event exists
+* notification exists if implemented
+* retry does not duplicate side effects
+
+## No-show
+
+* confirmed booking can be marked no-show
+* state persists
+* Marcus sees no-show after refresh
+* client history reflects correct outcome
+* audit event exists
+* notification exists if implemented
+* retry does not duplicate side effects
+
+## Invalid transitions
+
+Verify rejection for:
+
+* pending
+* cancelled
+* rejected
+* already attended
+* already no-show
+
+according to the actual state model.
+
+## Multiple participants
+
+For a group session:
+
+* Client A can be attended
+* Client B can remain confirmed
+* Client C can be no-show
+
+One attendance update must not alter another participant's outcome.
+
+## Credits
+
+If credits already exist:
+
+* verify attended consequence
+* verify no-show consequence
+* verify retries cannot double-consume/restore
+
+If credits are incomplete:
+
+* mark this test area **BLOCKED / NOT APPLICABLE** with evidence.
+
+## Notifications
+
+If attendance notifications are implemented:
+
+* correct recipient
+* correct event
+* correct session
+* deep link opens correct history/session
+* no duplicate notification on retry
+
+## Regression
+
+All existing:
+
+* API booking tests
+* notification tests
+* frontend Sessions tests
+* Weekly Schedule tests
+
+must remain green.
+
+---
+
+# 18. Real Browser Verification
+
+Use the development app.
+
+### Scenario A — Attended
+
+```text
+Client has confirmed session
+↓
+Marcus opens session
+↓
+Marks client Attended
+↓
+UI updates
+↓
+Refresh
+↓
+Attended state remains
+↓
+Client opens Sessions
+↓
+Session appears correctly in past/history
+```
+
+### Scenario B — No-show
+
+```text
+Client has confirmed session
+↓
+Marcus marks No-show
+↓
+Refresh
+↓
+No-show remains visible
+↓
+Client history displays correct outcome
+```
+
+### Scenario C — Group session
+
+```text
+3 confirmed clients
+↓
+1 attended
+1 no-show
+1 unchanged
+```
+
+Verify independent participant state.
+
+---
+
+# 19. Scope Protection
+
+Do not add:
+
+* timed reminders
+* 24-hour notifications
+* 2-hour notifications
+* email
+* SMS
+* push
+* payment changes
+* new pricing rules
+* new credit policy
+* workout logging
+* programme completion
+* client progress tracking
+* unrelated Marcus HQ redesign
+
+This task is specifically attendance, no-show and session completion.
+
+---
+
+# 20. Required Report
+
+Return:
+
+## Inspection Findings
+
+Explain:
+
+* existing attendance model
+* existing completion model
+* existing credit behaviour
+* existing client history behaviour
+
+## Architecture Decision
+
+How attendance/completion is represented.
+
+## Files Changed
+
+Exact files and purpose.
+
+## Attendance Behaviour
+
+What happens when Marcus marks Attended.
+
+## No-Show Behaviour
+
+What happens when Marcus marks No-show.
+
+## Credits
+
+State exactly what happens and whether any area remains blocked by undefined product policy.
+
+## Notifications
+
+Which in-app events were added, if any.
+
+## Client History
+
+How completed/no-show sessions appear.
+
+## Marcus HQ
+
+How attendance is managed and displayed.
+
+## Browser Verification
+
+Results for Attended, No-show and group-session scenarios.
+
+## Tests
+
+PASS / BLOCKED / NOT APPLICABLE only.
+
+## Remaining Sessions Gaps
+
+Identify what remains after this slice, especially:
+
+* timed reminders
+* credit/payment policy if incomplete
+* any session completion edge cases
+
+## Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+* no external messages
+
+This should be completed before timed reminders. It establishes the final operational outcome of a booked session, which the reminder layer can then safely sit on top of.

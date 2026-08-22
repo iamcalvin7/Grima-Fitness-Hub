@@ -466,7 +466,7 @@ function ScheduleView({ sessions, bookings, locations, sessionTypes, execute, ac
                                       <tr key={b.id} className="group/booking">
                                         <td className="py-3 font-medium text-white">{b.client?.firstName} {b.client?.lastName}</td>
                                         <td className="py-3">
-                                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${b.status === 'confirmed' ? 'bg-primary/20 text-primary' : b.status === 'attended' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/50'}`}>{b.status}</span>
+                                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${b.status === 'confirmed' ? 'bg-primary/20 text-primary' : b.status === 'attended' ? 'bg-green-500/20 text-green-400' : b.status === 'no_show' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/10 text-white/50'}`}>{b.status === 'no_show' ? 'NO-SHOW' : b.status.toUpperCase()}</span>
                                         </td>
                                         <td className="py-3 text-right flex justify-end gap-3">
                                           {b.status === 'confirmed' && b.session.status === 'scheduled' && new Date(b.session.endsAt).getTime() <= Date.now() && (
