@@ -1,0 +1,293 @@
+This is a **BUILD prompt**. It connects the existing Sessions interface to the completed Gate 2 backend. It does not add payments, credits, notifications or Marcus HQ screens.
+
+PROMPT TYPE: BUILD
+GATE: Sessions & Booking — Gate 3
+RISK LEVEL: AMBER
+SCOPE: Client Booking Integration
+AUTHORIZATION: Development environment only
+PRODUCTION / DEPLOYMENT: PROHIBITED
+DOCUMENTATION: Do not update during implementation; update only after the gate is verified and accepted
+
+## Objective
+
+Connect the existing Client Sessions interface to the verified Gate 2 booking backend.
+
+After this build, authenticated Clients must be able to:
+
+1. Discover real scheduled sessions.
+2. View their upcoming and historical bookings.
+3. Submit a real pending booking request.
+4. Cancel an eligible future booking.
+5. Reschedule an eligible booking atomically.
+6. See truthful loading, empty, success, error and capacity-conflict states.
+
+Preserve the existing visual design wherever possible. This is an integration build, not a redesign.
+
+## Plain-English impact
+
+The Sessions screen will stop being a simulation.
+
+When a Client books, cancels or reschedules a session, the action will be processed by the server and stored in the database. Refreshing or reopening the app must show the same confirmed server state.
+
+## Approved scope
+
+### Included
+
+* Inspect the existing `Sessions.tsx` implementation and Gate 2 route contracts before editing.
+* Connect the Client interface to the existing booking APIs.
+* Replace static session and booking data with server responses.
+* Replace the hard-coded current date with the real current date.
+* Render upcoming and historical bookings from persisted data.
+* Create booking requests through the existing API.
+* Cancel eligible bookings through the existing API.
+* Reschedule eligible bookings through the existing atomic reschedule endpoint.
+* Handle API loading, empty, success, validation, authentication, permission, capacity-conflict and unexpected-error states.
+* Prevent accidental duplicate submissions.
+* Refresh or invalidate relevant data after successful mutations.
+* Add focused automated Client component/workflow tests.
+* Preserve mobile and desktop behaviour.
+* Run complete gate verification after targeted tests pass.
+
+### Explicitly excluded
+
+Do not implement or change:
+
+* Marcus HQ scheduling or booking-management pages
+* Session pricing
+* Credits or entitlements
+* Payments or Stripe
+* Memberships
+* Email, SMS or push reminders
+* Calendar synchronisation
+* Recurring availability
+* Trainer booking permissions
+* Database schema or migrations
+* Gate 2 API behaviour unless an actual blocking defect is discovered
+* Authentication or session architecture
+* Production configuration
+* Deployment or publishing
+* Living documentation during implementation
+
+## Stage 0 — Preflight inspection
+
+Before changing code:
+
+1. Confirm this is the Replit development workspace:
+
+   * `REPLIT_DEPLOYMENT` must not be set.
+   * Record the positive development indicators.
+2. Confirm the working tree is clean.
+3. Inspect:
+
+   * The existing Sessions page and related components.
+   * Existing API-client/query conventions.
+   * The exact Gate 2 Client booking routes and response contracts.
+   * Existing frontend test infrastructure.
+4. Produce a concise route-to-interface mapping.
+5. Confirm no schema, migration or backend-route change is required.
+
+Stop if:
+
+* The environment appears deployed or connected to production.
+* The working tree contains unrelated changes.
+* The Client API contract cannot support an approved workflow.
+* Completing the work requires schema, migration, authentication or permission changes.
+* Pricing, credits or payments become necessary to complete the approved integration.
+
+Do not silently expand scope.
+
+## Stage 1 — Canary: live session discovery
+
+Implement one canary first:
+
+1. Connect scheduled-session discovery to the real Client API.
+2. Replace the static session list for this path.
+3. Display:
+
+   * Loading state
+   * Available sessions
+   * Empty state
+   * Recoverable error state with retry
+4. Confirm dates and times originate from the server.
+5. Convert UTC values consistently for display.
+6. Preserve the current visual presentation where compatible.
+
+Add focused tests proving:
+
+* Loading is shown while the request is pending.
+* Real API data is rendered.
+* Empty results are handled.
+* API failure is visible.
+* Retry performs a new request.
+* Static fallback data is not presented as real availability.
+
+Run the focused tests and Client typecheck.
+
+Proceed only if the canary passes.
+
+## Stage 2 — Client booking history
+
+Connect the Upcoming and History views to the authenticated Client’s real bookings.
+
+Requirements:
+
+* Use server-returned booking and session status.
+* Show only the authenticated Client’s server-returned records.
+* Classify upcoming and historical entries consistently.
+* Display pending, confirmed, rejected, cancelled, completed, attended and no-show states where returned.
+* Do not infer confirmation before the server confirms it.
+* Handle missing optional location or session-type information safely.
+* Refresh persisted state correctly after navigation or page reload.
+
+Add tests for:
+
+* Upcoming bookings
+* Historical bookings
+* Empty upcoming state
+* Empty history state
+* Status rendering
+* API failure and retry
+
+## Stage 3 — Real booking request
+
+Connect the existing confirmation action to the Gate 2 booking-creation endpoint.
+
+Requirements:
+
+* Send only fields required by the inspected API contract.
+* Never send Client ID, tenant ID, role or privileged fields.
+* Generate and use an idempotency key according to the backend contract.
+* Disable repeat submission while the request is pending.
+* Do not show success until the server returns success.
+* Refresh session capacity and the Client’s bookings after success.
+* Handle:
+
+  * Validation failure
+  * Session no longer available
+  * Capacity reached
+  * Duplicate/idempotent replay
+  * Authentication failure
+  * Unexpected server failure
+* Preserve the Client’s selections when a recoverable error occurs.
+
+Add tests proving:
+
+* Successful booking persists in refreshed UI state.
+* Double-clicking cannot create duplicate requests.
+* Capacity conflict does not show false success.
+* Validation and server errors are visible.
+* Client/tenant identity is never taken from editable UI state.
+
+## Stage 4 — Cancellation and rescheduling
+
+### Cancellation
+
+* Add a clear confirmation step before cancellation.
+* Allow cancellation only when the server and current booking state permit it.
+* Call the existing cancellation endpoint.
+* Update the UI only after server success.
+* Refresh booking and capacity data afterward.
+* Show a useful error if the booking became ineligible.
+
+### Rescheduling
+
+* Use the existing atomic reschedule endpoint.
+* Do not implement cancellation plus new booking as two frontend requests.
+* Allow selection only from real available sessions.
+* Prevent duplicate submission.
+* Retain the original booking if the server rejects the reschedule.
+* Refresh both affected sessions and the Client’s booking list after success.
+
+Add tests for:
+
+* Successful cancellation
+* Failed/ineligible cancellation
+* Successful atomic rescheduling
+* Capacity conflict during rescheduling
+* Original booking remaining visible after failed rescheduling
+* Duplicate reschedule submission prevention
+
+## Stage 5 — UX completion
+
+Verify and refine:
+
+* Loading skeleton or progress state
+* Empty states
+* Inline validation
+* Success feedback
+* Error feedback
+* Retry controls
+* Disabled submission states
+* Keyboard-accessible controls
+* Clear status labels
+* Mobile navigation and layout
+* Desktop navigation and layout
+* No hard-coded July 2026 date
+* No static session data presented as live data
+* No misleading pricing or credit claims
+
+Do not redesign unrelated pages.
+
+## Stage 6 — Full verification
+
+Run and report:
+
+1. New focused Client booking tests.
+2. Complete Client component test suite.
+3. API unit tests.
+4. Booking integration tests.
+5. Existing security integration tests.
+6. Scripts tests.
+7. Database-library typecheck.
+8. API typecheck.
+9. Client typecheck.
+10. Scripts typecheck.
+11. API production build.
+12. Client production build using the required development build variables.
+13. Development workflow restart.
+14. API health check.
+15. Working-tree and scope inspection.
+
+Required result:
+
+* Zero failing tests.
+* Zero unexplained skipped tests.
+* All typechecks pass.
+* Both production builds pass.
+* No schema or migration changes.
+* No production access.
+* No deployment or publishing.
+* No unrelated files, agent-memory files, prompt attachments, temporary scripts or debug logs in the change set.
+
+## Completion report
+
+Return one consolidated report containing:
+
+1. Plain-English impact for the Client.
+2. What remains unavailable to the Client.
+3. Exact files created, modified or deleted.
+4. API-to-interface mapping.
+5. Static data and hard-coded behaviour removed.
+6. Booking, cancellation and rescheduling behaviour.
+7. Loading, empty, success, error and retry states.
+8. Automated test cases added.
+9. Exact test totals: collected, passed, skipped and failed.
+10. Typecheck and build results.
+11. Development environment confirmation.
+12. Schema, migration, dependency and environment-file confirmation.
+13. Working-tree scope and hygiene.
+14. Remaining blockers.
+15. Stop conditions encountered.
+16. Final task score.
+
+End the report exactly with:
+
+`GATE 3 TASK COMPLETION: X/100 — X%`
+
+`SESSIONS & BOOKING FEATURE SCORE: awaiting AI Director rescore`
+
+Do not update the living documentation. The AI Director will update it once the completed gate has been reviewed and accepted.
+
+**PROMPT PREPARATION: 100/100 — 100%**
+
+**SESSIONS & BOOKING FEATURE: 38/100**
