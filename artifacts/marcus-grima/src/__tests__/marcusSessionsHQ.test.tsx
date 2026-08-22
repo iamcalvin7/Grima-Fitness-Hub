@@ -84,6 +84,18 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     expect(screen.getByText('Create an active location and session type before adding availability.')).toBeInTheDocument();
   });
 
+  it('opens the matching booking request from a notification link without exposing unknown IDs', async () => {
+    mockAdminData();
+    const matching = render(<MarcusSessionsHQ openBookingId={booking.id} />);
+    expect(await screen.findByRole('heading', { name: 'Booking details' })).toBeInTheDocument();
+    matching.unmount();
+
+    mockAdminData();
+    render(<MarcusSessionsHQ openBookingId="foreign-or-missing-booking" />);
+    expect(await screen.findByText('Calvin Test')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Booking details' })).not.toBeInTheDocument();
+  });
+
   it('renders every weekday group and navigates using the visible date range', async () => {
     useScheduleClock();
     mockAdminData({ sessions: [slot] });

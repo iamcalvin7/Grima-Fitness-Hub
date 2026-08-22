@@ -218,11 +218,19 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 }
 
 // -- Requests View
-function RequestsView({ bookings, execute, actionId }: { bookings: ManagedBooking[], execute: (id: string, p: Promise<any>) => Promise<boolean>, actionId: string | null }) {
+function RequestsView({ bookings, execute, actionId, openBookingId }: { bookings: ManagedBooking[], execute: (id: string, p: Promise<any>) => Promise<boolean>, actionId: string | null, openBookingId?: string }) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'rescheduled' | 'attended' | 'no_show'>('pending');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<ManagedBooking | null>(null);
   const [reason, setReason] = useState('');
+  useEffect(() => {
+    if (!openBookingId) return;
+    const booking = bookings.find((item) => item.id === openBookingId);
+    if (booking) {
+      setStatusFilter('all');
+      setSelectedBooking(booking);
+    }
+  }, [bookings, openBookingId]);
   const visibleBookings = statusFilter === 'all'
     ? bookings
     : bookings.filter((booking) => booking.status === statusFilter);
@@ -1008,11 +1016,15 @@ function SessionTypeModal({ type, onClose, onSave, submitting }: { type: Session
 
 // --- Main Page Component ---
 
-export function MarcusSessionsHQ() {
+export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) {
   const data = useAdminData();
   const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability'>('requests');
   const [actionId, setActionId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (openBookingId) setActiveTab('requests');
+  }, [openBookingId]);
 
   const execute = async (id: string, promise: Promise<any>) => {
     setActionId(id);
@@ -1110,7 +1122,7 @@ export function MarcusSessionsHQ() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
             >
-              {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} />}
+            {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} openBookingId={openBookingId} />}
               {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'availability' && <AvailabilityView rules={data.rules} exceptions={data.exceptions} occurrences={data.occurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
             </motion.div>

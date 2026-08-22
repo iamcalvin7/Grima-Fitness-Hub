@@ -11,3 +11,4 @@ export * from "./proposalDecisions";
 export * from "./auditLogs";
 export * from "./training";
 export * from "./availability";
+export * from "./notifications";

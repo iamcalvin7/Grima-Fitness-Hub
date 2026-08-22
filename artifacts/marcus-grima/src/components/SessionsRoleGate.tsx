@@ -6,7 +6,7 @@ import { Sessions } from '@/pages/Sessions';
 interface SessionsRoleGateProps {
   role: string | null | undefined;
   setPage: (page: Page) => void;
-  openSessionId?: number;
+  openSessionId?: string | number;
 }
 
 export function SessionsRoleGate({ role, setPage, openSessionId }: SessionsRoleGateProps) {
@@ -15,7 +15,7 @@ export function SessionsRoleGate({ role, setPage, openSessionId }: SessionsRoleG
   }
 
   if (role === 'admin') {
-    return <MarcusSessionsHQ />;
+    return <MarcusSessionsHQ openBookingId={typeof openSessionId === 'string' ? openSessionId : undefined} />;
   }
 
   return (

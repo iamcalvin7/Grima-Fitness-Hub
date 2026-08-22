@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { Sidebar }    from '@/components/Sidebar';
 import { BottomNav }  from '@/components/BottomNav';
 import { BurgerMenu } from '@/components/BurgerMenu';
+import { NotificationsBell } from '@/components/NotificationsBell';
 import type { Page }  from '@/App';
 
 interface LayoutProps {
   activePage: Page;
   setPage:    (page: Page) => void;
+  onOpenBooking: (bookingId: string) => void;
   children:   React.ReactNode;
 }
 
-export const Layout = ({ activePage, setPage, children }: LayoutProps) => {
+export const Layout = ({ activePage, setPage, onOpenBooking, children }: LayoutProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleNav = (page: Page) => {
@@ -70,6 +72,9 @@ export const Layout = ({ activePage, setPage, children }: LayoutProps) => {
 
       {/* Main content */}
       <main className="md:ml-60 min-h-screen">
+        <div className="fixed right-4 top-4 z-40 md:right-7 md:top-6">
+          <NotificationsBell onNavigate={setPage} onOpenBooking={onOpenBooking} />
+        </div>
         {children}
       </main>
 

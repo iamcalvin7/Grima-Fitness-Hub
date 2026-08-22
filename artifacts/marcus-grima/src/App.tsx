@@ -82,7 +82,9 @@ function FullApp() {
   const { isLoading, isAuthenticated, isProfileLoading, profile, user, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
   const [activePage,    setActivePage]    = useState<Page>('home');
-  const [sessionFocus,  setSessionFocus]  = useState<number | undefined>(undefined);
+  const [sessionFocus,  setSessionFocus]  = useState<string | number | undefined>(
+    () => new URLSearchParams(window.location.search).get('booking') ?? undefined,
+  );
 
   /**
    * `enteredApp` gates the onboarding flow: an already-authenticated user
@@ -134,10 +136,27 @@ function FullApp() {
     setActivePage('sessions');
   };
 
+  const openBookingNotification = (bookingId: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('booking', bookingId);
+    window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+    setSessionFocus(bookingId);
+    setActivePage('sessions');
+  };
+
   const handleSetPage = (page: Page) => {
-    if (page !== 'sessions') setSessionFocus(undefined);
+    if (page !== 'sessions') {
+      setSessionFocus(undefined);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('booking');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+    }
     setActivePage(page);
   };
+
+  useEffect(() => {
+    if (isAuthenticated && enteredApp && sessionFocus) setActivePage('sessions');
+  }, [enteredApp, isAuthenticated, sessionFocus]);
 
   /* Keep splash up until session + profile resolve. */
   if (!isLead && (showSplash || isLoading || (isAuthenticated && isProfileLoading))) {
@@ -241,7 +260,7 @@ function FullApp() {
   }
 
   return (
-    <Layout activePage={activePage} setPage={handleSetPage}>
+    <Layout activePage={activePage} setPage={handleSetPage} onOpenBooking={openBookingNotification}>
       {activePage === 'home'        && <Home     setPage={handleSetPage} goToSession={goToSession} />}
       {activePage === 'sessions'    && (
         <SessionsRoleGate

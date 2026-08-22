@@ -33,6 +33,7 @@ import {
   requireRole,
 } from "../middlewares/auth";
 import { writeAuditLog } from "../lib/audit";
+import { notifyActiveAdmins, notifyBookingEvent } from "../lib/notifications";
 import {
   BOOKING_HORIZON_DAYS,
   MINIMUM_LEAD_MINUTES,
@@ -787,6 +788,28 @@ router.post("/bookings", async (req, res) => {
         })
         .returning({ id: bookingsTable.id });
       if (!created) throw new Error("Failed to create booking");
+      const createdBooking = await getBooking(tx, tenantId, created.id);
+      await notifyBookingEvent(tx, {
+        tenantId,
+        bookingId: created.id,
+        event: "booking_created",
+        audience: "client",
+        recipientUserIds: [clientUserId],
+        sessionStartsAt: createdBooking?.sessionStartsAt,
+        sessionTypeName: createdBooking?.sessionTypeName,
+        locationName: createdBooking?.locationName,
+      });
+      await notifyActiveAdmins(tx, {
+        tenantId,
+        bookingId: created.id,
+        event: "booking_created",
+        clientName: createdBooking
+          ? `${createdBooking.clientFirstName} ${createdBooking.clientLastName}`
+          : undefined,
+        sessionStartsAt: createdBooking?.sessionStartsAt,
+        sessionTypeName: createdBooking?.sessionTypeName,
+        locationName: createdBooking?.locationName,
+      });
       await writeAuditLog(
         auditParams(req, "booking:create", "booking", created.id, {
           trainingSessionId,
@@ -875,6 +898,30 @@ router.post("/bookings/:id/cancel", async (req, res) => {
         }),
         tx,
       );
+      const cancelledBooking = await getBooking(tx, req.user!.tenantId, bookingId);
+      await notifyBookingEvent(tx, {
+        tenantId: req.user!.tenantId,
+        bookingId,
+        event: "booking_cancelled",
+        audience: "client",
+        recipientUserIds: [req.user!.id],
+        sessionStartsAt: cancelledBooking?.sessionStartsAt,
+        sessionTypeName: cancelledBooking?.sessionTypeName,
+        locationName: cancelledBooking?.locationName,
+        reason,
+      });
+      await notifyActiveAdmins(tx, {
+        tenantId: req.user!.tenantId,
+        bookingId,
+        event: "booking_cancelled",
+        clientName: cancelledBooking
+          ? `${cancelledBooking.clientFirstName} ${cancelledBooking.clientLastName}`
+          : undefined,
+        sessionStartsAt: cancelledBooking?.sessionStartsAt,
+        sessionTypeName: cancelledBooking?.sessionTypeName,
+        locationName: cancelledBooking?.locationName,
+        reason,
+      });
       return {
         booking: await getBooking(tx, req.user!.tenantId, bookingId),
         replayed: false,
@@ -998,6 +1045,28 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
         }),
         tx,
       );
+      const replacementBooking = await getBooking(tx, tenantId, created.id);
+      await notifyBookingEvent(tx, {
+        tenantId,
+        bookingId: created.id,
+        event: "booking_rescheduled",
+        audience: "client",
+        recipientUserIds: [clientUserId],
+        sessionStartsAt: replacementBooking?.sessionStartsAt,
+        sessionTypeName: replacementBooking?.sessionTypeName,
+        locationName: replacementBooking?.locationName,
+      });
+      await notifyActiveAdmins(tx, {
+        tenantId,
+        bookingId: created.id,
+        event: "booking_rescheduled",
+        clientName: replacementBooking
+          ? `${replacementBooking.clientFirstName} ${replacementBooking.clientLastName}`
+          : undefined,
+        sessionStartsAt: replacementBooking?.sessionStartsAt,
+        sessionTypeName: replacementBooking?.sessionTypeName,
+        locationName: replacementBooking?.locationName,
+      });
       return { id: created.id, replayed: false };
     });
     const booking = await getBooking(db, tenantId, result.id);
@@ -2042,7 +2111,25 @@ async function transitionBooking(
         }),
         tx,
       );
-      return await getBooking(tx, req.user!.tenantId, id);
+      const updatedBooking = await getBooking(tx, req.user!.tenantId, id);
+      const eventByStatus = {
+        confirmed: "booking_confirmed",
+        rejected: "booking_rejected",
+        attended: "booking_attended",
+        no_show: "booking_no_show",
+      } as const;
+      await notifyBookingEvent(tx, {
+        tenantId: req.user!.tenantId,
+        bookingId: id,
+        event: eventByStatus[nextStatus],
+        recipientUserIds: [locked.clientUserId],
+        audience: "client",
+        sessionStartsAt: updatedBooking?.sessionStartsAt,
+        sessionTypeName: updatedBooking?.sessionTypeName,
+        locationName: updatedBooking?.locationName,
+        reason,
+      });
+      return updatedBooking;
     });
     res.json({ booking: bookingOutput(booking) });
   } catch (error) {

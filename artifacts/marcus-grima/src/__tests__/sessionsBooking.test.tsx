@@ -71,8 +71,8 @@ function makeBooking(status = 'pending', session = makeSession()) {
   };
 }
 
-function renderSessions() {
-  return render(<Sessions setPage={vi.fn()} />);
+function renderSessions(openSessionId?: string) {
+  return render(<Sessions setPage={vi.fn()} openSessionId={openSessionId} />);
 }
 
 async function waitForInitialLoad() {
@@ -149,6 +149,34 @@ describe('Sessions booking integration', () => {
     fireEvent.click(screen.getByRole('button', { name: `Available on ${locationDate}` }));
     fireEvent.click(screen.getByRole('button', { name: 'See Available Times' }));
     expect(screen.getByTestId(`session-option-${liveSession.id}`)).toBeInTheDocument();
+  });
+
+  it('opens only the matching booking when loaded from a notification link, including after refresh', async () => {
+    const liveSession = makeSession();
+    const booking = makeBooking('confirmed', liveSession);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response({ sessions: [liveSession] }))
+      .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(response({ sessions: [liveSession] }))
+      .mockResolvedValueOnce(response({ bookings: [booking] }));
+
+    const firstLoad = renderSessions(booking.id);
+    expect(await screen.findByTestId('session-detail')).toBeInTheDocument();
+    firstLoad.unmount();
+
+    renderSessions(booking.id);
+    expect(await screen.findByTestId('session-detail')).toBeInTheDocument();
+  });
+
+  it('does not reveal a booking when a notification link contains an unavailable booking ID', async () => {
+    const liveSession = makeSession();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response({ sessions: [liveSession] }))
+      .mockResolvedValueOnce(response({ bookings: [makeBooking('pending', liveSession)] }));
+
+    renderSessions('foreign-or-missing-booking');
+    await waitForInitialLoad();
+    expect(screen.queryByTestId('session-detail')).not.toBeInTheDocument();
   });
 
   it('shows a recoverable error and retries both API requests', async () => {
