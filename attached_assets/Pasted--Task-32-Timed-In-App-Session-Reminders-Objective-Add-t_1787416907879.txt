@@ -1,0 +1,985 @@
+# Task #32 — Timed In-App Session Reminders
+
+## Objective
+
+Add timed in-app reminders for confirmed client sessions using the existing Task #30 notification architecture.
+
+Initial reminder schedule:
+
+```text
+24 hours before session
+2 hours before session
+```
+
+Client only for this phase.
+
+Do not add email, SMS, push, browser notifications, WhatsApp or external providers.
+
+The goal is:
+
+```text
+Confirmed session
+→ reminder scheduled
+→ 24h notification appears
+→ 2h notification appears
+→ notification opens the correct session
+```
+
+The reminder system must remain correct when sessions are:
+
+* confirmed
+* rescheduled
+* cancelled
+* rejected
+* completed
+* already in the past
+
+---
+
+# Risk
+
+**AMBER**
+
+This introduces time-based backend behaviour and interacts with persistent notifications, booking lifecycle state and session scheduling.
+
+Inspect the existing notification infrastructure and runtime architecture before implementation.
+
+If a new persistent scheduling model or database migration is required, development migration only.
+
+No production migration.
+
+---
+
+# 1. Inspect First
+
+Before implementation, inspect and report:
+
+* Task #30 notification model and service
+* existing notification deduplication/idempotency mechanism
+* booking confirmation transition
+* rescheduling transition
+* cancellation/rejection transitions
+* session date/time storage
+* timezone handling
+* whether the application already has:
+
+  * cron
+  * worker
+  * scheduled job
+  * background polling
+  * queue
+  * recurring server process
+* deployment/runtime constraints that affect scheduled work
+* application restart behaviour
+* existing tests for time-sensitive behaviour
+
+Do not choose a scheduler architecture before inspecting what already exists.
+
+---
+
+# 2. Product Rules
+
+Only **confirmed** bookings should receive timed reminders.
+
+Reminder events:
+
+```text
+session_reminder_24h
+session_reminder_2h
+```
+
+Initial recipient:
+
+```text
+Client only
+```
+
+Marcus does not need reminders in this phase.
+
+---
+
+# 3. Reminder Timing
+
+For a confirmed session beginning at:
+
+```text
+Monday 24 Aug 2026 · 17:00
+```
+
+create reminders approximately at:
+
+```text
+Sunday 23 Aug 2026 · 17:00
+Monday 24 Aug 2026 · 15:00
+```
+
+Use the actual persisted session datetime rather than formatted display strings.
+
+The scheduling system must be based on absolute timestamps.
+
+---
+
+# 4. Timezone
+
+Session timestamps currently use full timestamp-with-time-zone handling.
+
+Preserve that model.
+
+Reminder calculations should operate from the canonical persisted session start time.
+
+Display notification dates/times using the existing client-facing timezone behaviour.
+
+Do not manually subtract Malta timezone offsets from stored UTC timestamps.
+
+Test both:
+
+* Europe/Malta summer time
+* Europe/Malta winter time
+
+---
+
+# 5. Notification Content
+
+## 24-hour reminder
+
+Title:
+
+```text
+Session tomorrow
+```
+
+Example supporting text:
+
+```text
+Your session with Marcus is tomorrow at 17:00 at Fort Fitness.
+```
+
+## 2-hour reminder
+
+Title:
+
+```text
+Session in 2 hours
+```
+
+Example:
+
+```text
+Your session with Marcus starts at 17:00 at Fort Fitness.
+```
+
+Keep copy concise.
+
+---
+
+# 6. Deep Links
+
+Reuse Task #30's existing notification deep-link mechanism.
+
+Clicking either reminder must open the correct session detail.
+
+Do not introduce another routing system.
+
+Required:
+
+```text
+Notification
+→ Sessions
+→ exact booking/session
+```
+
+Direct load and refresh must continue working.
+
+---
+
+# 7. Persistent Scheduling
+
+Do not rely purely on:
+
+* frontend timers
+* open browser tabs
+* React state
+* `setTimeout`
+* server process memory
+
+Reminder intent must survive application restart.
+
+Choose the smallest reliable persistent architecture compatible with the current stack.
+
+Potential models include:
+
+### Option A — Persist due time on notification/outbox records
+
+```text
+eventType
+recipientUserId
+bookingId
+sessionId
+scheduledFor
+status
+createdAt
+```
+
+A recurring worker claims due notifications.
+
+### Option B — Dedicated scheduled reminder table
+
+Only if the existing notification model cannot represent scheduled delivery cleanly.
+
+Prefer extending existing infrastructure over creating an unrelated subsystem.
+
+---
+
+# 8. Worker / Scheduler
+
+Determine the appropriate mechanism from the current project environment.
+
+Required characteristics:
+
+* runs server-side
+* survives browser closure
+* can find reminders due for delivery
+* safe across server restarts
+* does not create duplicate notifications
+* can process missed reminders after temporary downtime according to an explicit policy
+
+Do not implement an architecture that only works while a developer browser is open.
+
+---
+
+# 9. Confirmation Behaviour
+
+When Marcus confirms a booking, evaluate which reminders are still applicable.
+
+Example:
+
+Session starts in 3 days:
+
+```text
+Create/schedule:
+24h reminder
+2h reminder
+```
+
+Session starts in 10 hours:
+
+```text
+Do not create a retroactive 24h reminder.
+Schedule 2h reminder.
+```
+
+Session starts in 90 minutes:
+
+```text
+Neither normal 24h nor 2h reminder remains future-due.
+```
+
+Do not immediately fire an overdue reminder simply because the booking was confirmed late unless inspection establishes an existing product policy.
+
+Preferred initial rule:
+
+> Only schedule reminder windows that are still in the future when confirmation occurs.
+
+---
+
+# 10. Rescheduling Behaviour
+
+Rescheduling must invalidate reminder timing associated with the old session time.
+
+Example:
+
+Original:
+
+```text
+Monday 17:00
+```
+
+Rescheduled:
+
+```text
+Tuesday 10:00
+```
+
+The client must not receive:
+
+```text
+Monday reminder
+```
+
+after the session has moved.
+
+Instead:
+
+1. Cancel/invalidate pending reminders based on old time.
+2. Calculate the new applicable reminder windows.
+3. Schedule new reminders from the replacement session time.
+
+If the booking returns to `pending` after rescheduling, do not schedule confirmed-session reminders until Marcus confirms the replacement booking.
+
+Follow the actual state model.
+
+---
+
+# 11. Cancellation Behaviour
+
+If a confirmed booking is cancelled before a reminder fires:
+
+```text
+pending reminder → cancelled/inactive
+```
+
+No 24h or 2h reminder should subsequently be delivered.
+
+This applies even if the scheduled reminder already exists in persistence.
+
+---
+
+# 12. Rejection Behaviour
+
+Rejected bookings must not receive reminders.
+
+If a pending booking had no reminder records, no action is needed.
+
+Do not schedule reminders before confirmation.
+
+---
+
+# 13. Attendance / No-Show / Completion
+
+Once the relevant booking/session has reached a terminal outcome such as:
+
+```text
+attended
+no_show
+cancelled
+rejected
+```
+
+future reminders must not be delivered.
+
+If a session is manually marked completed before a scheduled reminder is due, inspect the relationship between booking/session status and suppress invalid reminders accordingly.
+
+---
+
+# 14. Idempotency
+
+Each booking should receive at most:
+
+```text
+one 24h reminder
+one 2h reminder
+```
+
+for a specific confirmed session time.
+
+Repeated scheduler runs must not create duplicate in-app notifications.
+
+Repeated confirmation requests must not duplicate reminder schedules.
+
+Use stable uniqueness based on appropriate identifiers such as:
+
+```text
+booking
+event type
+scheduled session occurrence
+recipient
+```
+
+Choose the exact mechanism according to the existing data model.
+
+---
+
+# 15. Race Conditions
+
+Protect against cases such as:
+
+```text
+Reminder becomes due
++
+Client cancels at the same moment
+```
+
+The worker must verify current booking/session eligibility before delivering.
+
+Do not assume that because a reminder was valid when scheduled it remains valid when due.
+
+Immediately before notification creation/delivery, verify:
+
+* booking still exists
+* recipient still valid
+* booking still confirmed
+* session time still matches expected occurrence
+* session not cancelled/completed in a way that invalidates reminder
+* reminder has not already been delivered
+
+---
+
+# 16. Missed Reminder Policy
+
+Define an explicit policy for scheduler downtime.
+
+Example:
+
+Server unavailable when the 24-hour reminder becomes due and returns 30 minutes later.
+
+Reasonable behaviour:
+
+```text
+Deliver slightly late if still useful.
+```
+
+But:
+
+Server returns when the session is already underway or finished:
+
+```text
+Do not deliver stale reminder.
+```
+
+Implement a bounded grace window rather than blindly delivering every overdue reminder.
+
+Propose the grace window during inspection based on the scheduler design.
+
+A simple initial approach could be:
+
+```text
+24h reminder:
+allow reasonable late processing
+
+2h reminder:
+do not deliver once the session has started
+```
+
+Do not add arbitrary rules without documenting them.
+
+---
+
+# 17. User Experience
+
+Reminders should appear in the same notification panel from Task #30.
+
+Examples:
+
+```text
+● Session tomorrow
+  Your session with Marcus is tomorrow at 17:00.
+  3 min ago
+```
+
+and:
+
+```text
+● Session in 2 hours
+  Your session with Marcus starts at 17:00.
+  Just now
+```
+
+They participate in the existing:
+
+* unread count
+* read/unread state
+* notification panel
+* deep-link behaviour
+
+Do not create a separate reminders interface.
+
+---
+
+# 18. Existing Notification Architecture
+
+Reuse:
+
+* tenant scoping
+* recipient scoping
+* notification persistence
+* deduplication
+* unread/read behaviour
+* deep links
+* permissions
+
+Timed reminders should become another event source within the existing notification system.
+
+Do not fork the notification architecture.
+
+---
+
+# 19. Notification Preferences
+
+Do not build user-configurable reminder preferences yet.
+
+For this initial phase:
+
+```text
+confirmed client booking
+→ standard 24h + 2h reminders
+```
+
+Preferences can be added later if product needs justify them.
+
+---
+
+# 20. Booking Created vs Confirmed
+
+A `pending` booking request does **not** receive session reminders.
+
+Correct:
+
+```text
+Client requests
+→ pending
+→ NO timed reminder yet
+
+Marcus confirms
+→ reminder schedule becomes active
+```
+
+This distinction must remain explicit.
+
+---
+
+# 21. Past Sessions
+
+Never schedule reminders for a session that is already in the past.
+
+Never create old notifications simply because old confirmed bookings exist when the scheduler first runs.
+
+The implementation must have a clear initialization rule so historical data does not produce reminder spam.
+
+---
+
+# 22. Existing Confirmed Future Bookings
+
+Inspection must determine what happens to already-confirmed future bookings that existed before Task #32.
+
+Preferred behaviour:
+
+At safe initialization/backfill in development, future confirmed bookings should become eligible for reminders if the relevant windows are still in the future.
+
+Do not backfill production data in this task.
+
+If supporting existing bookings requires a migration/backfill script, report it separately.
+
+---
+
+# 23. Database Changes
+
+If the existing notification model supports scheduled notifications cleanly, prefer extending it.
+
+If schema changes are required:
+
+* update schema/model
+* create migration
+* apply development only
+* physically verify:
+
+  * fields
+  * defaults
+  * indexes
+  * constraints
+* test restart persistence
+
+Production migration remains separately gated.
+
+---
+
+# 24. Indexing
+
+If the scheduler queries something conceptually like:
+
+```text
+status = pending
+AND scheduled_for <= now
+```
+
+ensure the relevant query has appropriate indexing.
+
+Do not introduce a recurring full-table scan that becomes inefficient as notification volume grows.
+
+---
+
+# 25. Scheduler Concurrency
+
+Inspect whether multiple API/server instances could eventually process reminders.
+
+Even if development currently runs one instance, avoid an obvious architecture that could double-send when scaled.
+
+Use appropriate claiming/locking/idempotency based on the current database.
+
+Do not over-engineer distributed infrastructure, but preserve safe future operation.
+
+---
+
+# 26. Tests Required
+
+## 24-hour reminder
+
+Confirmed booking more than 24h away:
+
+* reminder scheduled
+* notification appears when due
+* correct recipient
+* correct booking/session
+* correct copy
+* deep link works
+* exactly one notification
+
+---
+
+## 2-hour reminder
+
+Confirmed booking more than 2h away:
+
+* reminder scheduled
+* appears when due
+* exactly once
+* correct content
+* correct deep link
+
+---
+
+## Pending request
+
+Pending booking:
+
+* no reminders delivered
+
+---
+
+## Late confirmation
+
+Session 10h away when confirmed:
+
+* no 24h reminder
+* 2h reminder scheduled
+
+Session 90m away when confirmed:
+
+* no retroactive 24h reminder
+* no normal 2h reminder
+
+---
+
+## Cancellation
+
+Confirmed booking with pending reminders:
+
+```text
+cancel
+→ no future reminders delivered
+```
+
+---
+
+## Rejection
+
+Rejected booking:
+
+* no reminder
+
+---
+
+## Rescheduling
+
+Confirmed booking moved from A → B:
+
+* old reminder schedule invalidated
+* old reminders never delivered
+* correct new reminders scheduled after valid confirmation state
+* notification points to replacement session
+
+---
+
+## Attendance
+
+Booking marked attended:
+
+* no subsequent timed reminder
+
+---
+
+## No-show
+
+Booking marked no-show:
+
+* no subsequent timed reminder
+
+---
+
+## Idempotency
+
+Run scheduler repeatedly over the same due reminder:
+
+* one notification only
+
+---
+
+## Restart persistence
+
+Create a future reminder.
+
+Restart relevant development workflow.
+
+Verify:
+
+* reminder schedule remains
+* still becomes deliverable
+
+---
+
+## Timezone
+
+Verify calculations around:
+
+* Europe/Malta UTC+2
+* Europe/Malta UTC+1
+* daylight-saving transition where practical
+
+---
+
+## Permissions
+
+Reminder visible only to intended client.
+
+No cross-tenant notification leakage.
+
+---
+
+## Deep links
+
+Reminder opens correct session:
+
+* normal navigation
+* direct load
+* refresh
+
+---
+
+# 27. Time-Controlled Testing
+
+Do not wait 24 real hours to test.
+
+Use deterministic time control in automated tests.
+
+Preferred:
+
+* injectable clock
+* test time provider
+* fake timers where appropriate
+* controlled database timestamps
+
+Do not weaken production scheduling logic solely to make tests easier.
+
+---
+
+# 28. Browser Verification
+
+Perform at least one development browser verification using a safely accelerated/test-controlled reminder scenario if supported by the architecture.
+
+Confirm:
+
+```text
+Client has confirmed session
+↓
+Reminder becomes due
+↓
+Bell unread count increases
+↓
+Client opens notifications
+↓
+Sees reminder
+↓
+Taps reminder
+↓
+Correct session opens
+```
+
+Do not alter the public product reminder windows just to perform the browser test.
+
+---
+
+# 29. Observability
+
+Add sufficient structured diagnostic evidence to understand scheduler behaviour.
+
+Useful fields:
+
+```text
+event
+reminderId
+bookingId
+sessionId
+recipientUserId
+eventType
+scheduledFor
+processedAt
+result
+reason
+```
+
+Possible results:
+
+```text
+delivered
+already_delivered
+not_yet_due
+booking_not_confirmed
+session_changed
+cancelled
+stale
+```
+
+Do not log secrets or unnecessary personal information.
+
+---
+
+# 30. Failure Behaviour
+
+If reminder processing fails unexpectedly:
+
+* booking remains untouched
+* existing notifications remain untouched
+* failure is logged
+* reminder is not marked successfully delivered
+* retry remains possible
+
+Notification failure must never corrupt the booking.
+
+---
+
+# 31. Do Not Implement
+
+Explicitly out of scope:
+
+* email reminders
+* SMS
+* push notifications
+* browser push
+* OneSignal
+* Resend
+* Twilio
+* Marcus reminders
+* custom reminder preferences
+* recurring fitness reminders
+* payment reminders
+* workout reminders
+* automated attendance
+* automatic session completion
+* credit deductions
+* credit refunds
+
+---
+
+# 32. Required Verification
+
+Run:
+
+* API integration suite
+* notification tests
+* booking lifecycle tests
+* frontend notification tests
+* frontend Sessions tests
+* API typecheck
+* frontend typecheck
+* production frontend build
+
+All existing Task #30 and Task #31 coverage must remain green.
+
+---
+
+# 33. Required Report
+
+Return:
+
+## Inspection Findings
+
+Describe:
+
+* existing scheduler/background capability
+* chosen mechanism
+* current notification schema suitability
+* migration requirement
+
+## Architecture Decision
+
+Explain exactly how reminders are persisted and processed.
+
+Include conceptual flow:
+
+```text
+Booking confirmed
+→ reminder scheduled
+→ persistent due time
+→ worker finds due reminder
+→ eligibility rechecked
+→ in-app notification delivered
+```
+
+## Files Changed
+
+Exact files and purpose.
+
+## Database
+
+Any schema/migration changes.
+
+## Reminder Rules
+
+Document exact:
+
+* 24h behaviour
+* 2h behaviour
+* late confirmation behaviour
+* cancellation behaviour
+* reschedule behaviour
+* terminal-state suppression
+* stale reminder policy
+
+## Idempotency
+
+Explain how duplicate reminders are impossible.
+
+## Restart Safety
+
+Evidence that scheduled reminders survive workflow/server restart.
+
+## Timezone
+
+Evidence that UTC/Malta conversion remains correct.
+
+## Notifications
+
+Show example 24h and 2h records.
+
+## Deep Links
+
+Verification that both reminder types open the correct session.
+
+## Browser Verification
+
+Report the real development-app result.
+
+## Tests
+
+PASS / BLOCKED only.
+
+## Remaining Sessions Gaps
+
+Explicitly identify:
+
+* credit/payment model
+* any attendance API timing hardening
+* reminder preferences
+* external notification channels if still desired later
+
+## Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+* no email
+* no SMS
+* no push
+* no external notifications

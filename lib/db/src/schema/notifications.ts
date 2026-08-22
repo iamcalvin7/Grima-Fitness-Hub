@@ -20,6 +20,13 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "booking_rescheduled",
   "booking_attended",
   "booking_no_show",
+  "session_reminder_24h",
+  "session_reminder_2h",
+]);
+export const notificationDeliveryStatusEnum = pgEnum("notification_delivery_status", [
+  "pending",
+  "delivered",
+  "cancelled",
 ]);
 
 export const notificationsTable = pgTable(
@@ -35,6 +42,8 @@ export const notificationsTable = pgTable(
     bookingId: uuid("booking_id"),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    deliveryStatus: notificationDeliveryStatusEnum("delivery_status").notNull().default("delivered"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true, mode: "date" }),
     readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
@@ -62,6 +71,7 @@ export const notificationsTable = pgTable(
       table.readAt,
     ),
     index("notifications_booking_idx").on(table.bookingId),
+    index("notifications_due_idx").on(table.deliveryStatus, table.scheduledFor),
   ],
 );
 

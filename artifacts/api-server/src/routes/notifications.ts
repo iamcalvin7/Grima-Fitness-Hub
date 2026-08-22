@@ -31,6 +31,7 @@ router.get("/notifications", async (req, res) => {
         and(
           eq(notificationsTable.tenantId, tenantId),
           eq(notificationsTable.recipientUserId, recipientUserId),
+            eq(notificationsTable.deliveryStatus, "delivered"),
         ),
       )
       .orderBy(desc(notificationsTable.createdAt))

@@ -16,6 +16,8 @@ BEGIN
       'booking_rescheduled',
       'booking_attended',
       'booking_no_show'
+      ,'session_reminder_24h'
+      ,'session_reminder_2h'
     );
   END IF;
 END $$;

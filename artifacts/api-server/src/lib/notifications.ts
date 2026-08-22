@@ -18,6 +18,8 @@ export type BookingNotificationEvent = Extract<
   | "booking_rescheduled"
   | "booking_attended"
   | "booking_no_show"
+  | "session_reminder_24h"
+  | "session_reminder_2h"
 >;
 
 export type BookingNotificationDetails = {
@@ -95,6 +97,16 @@ function copyFor(
         title: "Session marked as no-show",
         body: `Your ${session} has been marked as a no-show.`,
       };
+    case "session_reminder_24h":
+      return {
+        title: "Session tomorrow",
+        body: `Your session with Marcus is tomorrow at ${details.sessionStartsAt?.toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Malta" })}${details.locationName ? ` at ${details.locationName}` : ""}.`,
+      };
+    case "session_reminder_2h":
+      return {
+        title: "Session in 2 hours",
+        body: `Your session with Marcus starts at ${details.sessionStartsAt?.toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Malta" })}${details.locationName ? ` at ${details.locationName}` : ""}.`,
+      };
   }
 }
 
@@ -120,6 +132,39 @@ export async function notifyBookingEvent(
       })),
     )
     .onConflictDoNothing();
+}
+
+export async function scheduleBookingReminders(
+  executor: Executor,
+  details: Omit<BookingNotificationDetails, "event" | "audience"> & { sessionStartsAt: Date },
+): Promise<void> {
+  const windows = [
+    { event: "session_reminder_24h" as const, offset: 24 * 60 * 60 * 1000 },
+    { event: "session_reminder_2h" as const, offset: 2 * 60 * 60 * 1000 },
+  ];
+  const now = new Date();
+  const values = windows
+    .map(({ event, offset }) => ({
+      event,
+      scheduledFor: new Date(details.sessionStartsAt.getTime() - offset),
+    }))
+    .filter(({ scheduledFor }) => scheduledFor > now)
+    .flatMap(({ event, scheduledFor }) => {
+      const copy = copyFor({ ...details, event, audience: "client" });
+      return details.recipientUserIds.map((recipientUserId) => ({
+        tenantId: details.tenantId, recipientUserId, type: event,
+        eventKey: `${event}:${details.bookingId}:${recipientUserId}:${details.sessionStartsAt.toISOString()}`,
+        bookingId: details.bookingId, title: copy.title, body: copy.body,
+        deliveryStatus: "pending" as const, scheduledFor,
+      }));
+    });
+  if (values.length) await executor.insert(notificationsTable).values(values).onConflictDoNothing();
+}
+
+export async function cancelPendingBookingReminders(executor: Executor, tenantId: string, bookingId: string) {
+  await executor.update(notificationsTable)
+    .set({ deliveryStatus: "cancelled" })
+    .where(and(eq(notificationsTable.tenantId, tenantId), eq(notificationsTable.bookingId, bookingId), eq(notificationsTable.deliveryStatus, "pending")));
 }
 
 export async function notifyActiveAdmins(
