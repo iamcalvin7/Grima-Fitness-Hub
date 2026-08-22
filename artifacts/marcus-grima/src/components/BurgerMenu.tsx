@@ -84,7 +84,7 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
 
   const allItems = isAdmin
     ? [
-        ...MENU_ITEMS,
+        ...MENU_ITEMS.filter((item) => item.id === 'feed' || item.id === 'profile'),
         {
           id: 'content-admin' as Page,
           label: 'Content Admin',

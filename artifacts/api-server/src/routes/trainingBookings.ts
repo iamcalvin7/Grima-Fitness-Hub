@@ -563,8 +563,21 @@ router.post("/bookings", async (req, res) => {
   }
 
   try {
-    const bookingId = await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       await lockTrainingSessions(tx, tenantId, [trainingSessionId]);
+      const replay = await tx
+        .select({ id: bookingsTable.id })
+        .from(bookingsTable)
+        .where(
+          and(
+            eq(bookingsTable.tenantId, tenantId),
+            eq(bookingsTable.clientUserId, clientUserId),
+            eq(bookingsTable.idempotencyKey, idempotencyKey),
+          ),
+        )
+        .limit(1);
+      if (replay[0]) return { id: replay[0].id, replayed: true };
+
       const session = await getSession(tx, tenantId, trainingSessionId, true);
       if (!session || session.status !== "scheduled" || session.startsAt <= new Date()) {
         throw new HttpError(409, "Training session is not bookable");
@@ -591,10 +604,13 @@ router.post("/bookings", async (req, res) => {
         }),
         tx,
       );
-      return created.id;
+      return { id: created.id, replayed: false };
     });
-    const booking = await getBooking(db, tenantId, bookingId);
-    res.status(201).json({ booking: bookingOutput(booking), replayed: false });
+    const booking = await getBooking(db, tenantId, result.id);
+    res.status(result.replayed ? 200 : 201).json({
+      booking: bookingOutput(booking),
+      replayed: result.replayed,
+    });
   } catch (error) {
     if (hasDatabaseCode(error, "23505")) {
       const replay = await db
@@ -715,7 +731,7 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
   }
 
   try {
-    const replacementBookingId = await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const beforeLock = await getBooking(tx, tenantId, originalId);
       if (!beforeLock || beforeLock.clientUserId !== clientUserId) {
         throw new HttpError(404, "Booking not found");
@@ -725,6 +741,19 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
         tenantId,
         [beforeLock.trainingSessionId, replacementId].sort(),
       );
+      const lockedReplay = await tx
+        .select({ id: bookingsTable.id })
+        .from(bookingsTable)
+        .where(
+          and(
+            eq(bookingsTable.tenantId, tenantId),
+            eq(bookingsTable.clientUserId, clientUserId),
+            eq(bookingsTable.idempotencyKey, idempotencyKey),
+          ),
+        )
+        .limit(1);
+      if (lockedReplay[0]) return { id: lockedReplay[0].id, replayed: true };
+
       const original = await getBooking(tx, tenantId, originalId);
       if (!original || original.clientUserId !== clientUserId) {
         throw new HttpError(404, "Booking not found");
@@ -776,10 +805,13 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
         }),
         tx,
       );
-      return created.id;
+      return { id: created.id, replayed: false };
     });
-    const booking = await getBooking(db, tenantId, replacementBookingId);
-    res.status(201).json({ booking: bookingOutput(booking), replayed: false });
+    const booking = await getBooking(db, tenantId, result.id);
+    res.status(result.replayed ? 200 : 201).json({
+      booking: bookingOutput(booking),
+      replayed: result.replayed,
+    });
   } catch (error) {
     if (hasDatabaseCode(error, "23505")) {
       const replay = await db

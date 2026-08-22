@@ -1,6 +1,7 @@
 import React from 'react';
 import { House as HomeIcon, CalendarBlank as Calendar, ChatCircle as MessageSquare, List as Menu } from '@phosphor-icons/react';
 import type { Page } from '@/App';
+import { useAuth } from '@/auth/AuthContext';
 
 interface BottomNavProps {
   activePage:   Page;
@@ -10,9 +11,11 @@ interface BottomNavProps {
 }
 
 export const BottomNav = ({ activePage, onNavigate, onMenuOpen, menuOpen }: BottomNavProps) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const items: { id: Page; label: string; icon: React.ReactNode; badge?: boolean }[] = [
     { id: 'home',     label: 'Home',     icon: <HomeIcon      size={20} weight="fill" /> },
-    { id: 'sessions', label: 'Sessions', icon: <Calendar      size={20} weight="fill" /> },
+    { id: 'sessions', label: isAdmin ? 'Sessions HQ' : 'Sessions', icon: <Calendar size={20} weight="fill" /> },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} weight="fill" />, badge: true },
   ];
 

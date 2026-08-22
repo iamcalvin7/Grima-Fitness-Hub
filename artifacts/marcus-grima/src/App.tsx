@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Onboarding }        from '@/pages/Onboarding';
 import { SplashScreen }       from '@/pages/SplashScreen';
 import { Home }               from '@/pages/Home';
-import { Sessions }           from '@/pages/Sessions';
 import { Messages }           from '@/pages/Messages';
 import { Profile }            from '@/pages/Profile';
 import { Workouts }           from '@/pages/Workouts';
@@ -23,6 +22,7 @@ import { ResetPassword }      from '@/pages/ResetPassword';
 import { VerifyEmailHandler } from '@/pages/VerifyEmailHandler';
 import { OAuthCallback }      from '@/pages/OAuthCallback';
 import { Layout }             from '@/components/Layout';
+import { SessionsRoleGate }   from '@/components/SessionsRoleGate';
 import { useAuth } from '@/auth/AuthContext';
 import { LANDING_ONLY } from '@/config';
 
@@ -243,7 +243,13 @@ function FullApp() {
   return (
     <Layout activePage={activePage} setPage={handleSetPage}>
       {activePage === 'home'        && <Home     setPage={handleSetPage} goToSession={goToSession} />}
-      {activePage === 'sessions'    && <Sessions setPage={handleSetPage} openSessionId={sessionFocus} />}
+      {activePage === 'sessions'    && (
+        <SessionsRoleGate
+          role={user?.role}
+          setPage={handleSetPage}
+          openSessionId={sessionFocus}
+        />
+      )}
       {activePage === 'workouts'    && <Workouts />}
       {activePage === 'meals'       && <MealPlan />}
       {activePage === 'messages'    && <Messages setPage={handleSetPage} />}

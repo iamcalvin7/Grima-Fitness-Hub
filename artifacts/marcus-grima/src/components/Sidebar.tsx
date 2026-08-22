@@ -28,8 +28,12 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
 
   const navItems = isAdmin
     ? [
-        ...memberNavItems,
+        { id: 'home' as Page, label: 'Home', icon: <HomeIcon size={18} weight="fill" /> },
+        { id: 'sessions' as Page, label: 'Sessions HQ', icon: <Calendar size={18} weight="fill" /> },
+        { id: 'messages' as Page, label: 'Messages', icon: <MessageSquare size={18} weight="fill" />, badge: true },
+        { id: 'feed' as Page, label: 'Feed', icon: <Newspaper size={18} weight="fill" /> },
         { id: 'content-admin' as Page, label: 'Content Admin', icon: <Folders size={18} weight="fill" />, badge: undefined as boolean | undefined },
+        { id: 'profile' as Page, label: 'Profile', icon: <User size={18} weight="fill" /> },
       ]
     : memberNavItems;
 
@@ -80,16 +84,18 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
         )}
       </nav>
 
-      {/* Book CTA */}
-      <div className="px-3 py-6 border-t border-white/5">
-        <button
-          onClick={() => onNavigate('sessions')}
-          className="w-full bg-primary hover:bg-primary/80 transition-colors px-4 py-3 flex items-center gap-3 text-primary-foreground group"
-        >
-          <Zap size={15} weight="fill" className="text-foreground/70 group-hover:text-foreground transition-colors" />
-          <span className="text-xs font-bold tracking-[0.15em] uppercase">Book a Session</span>
-        </button>
-      </div>
+      {!isAdmin && (
+        <div className="px-3 py-6 border-t border-white/5">
+          <button
+            data-testid="button-book-session-nav"
+            onClick={() => onNavigate('sessions')}
+            className="w-full bg-primary hover:bg-primary/80 transition-colors px-4 py-3 flex items-center gap-3 text-primary-foreground group"
+          >
+            <Zap size={15} weight="fill" className="text-foreground/70 group-hover:text-foreground transition-colors" />
+            <span className="text-xs font-bold tracking-[0.15em] uppercase">Book a Session</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

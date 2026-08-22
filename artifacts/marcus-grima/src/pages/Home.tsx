@@ -924,11 +924,13 @@ export const Home = ({ setPage, goToSession }: HomeProps) => {
 
         {/* Col 2 */}
         <div className="flex flex-col gap-7">
-          <SessionsBlock
-            goToSession={goToSession}
-            bookSession={() => setPage('sessions')}
-            buySessions={() => setPage('memberships')}
-          />
+          {user?.role !== 'admin' && (
+            <SessionsBlock
+              goToSession={goToSession}
+              bookSession={() => setPage('sessions')}
+              buySessions={() => setPage('memberships')}
+            />
+          )}
           <MusclesWorkedBlock />
         </div>
 

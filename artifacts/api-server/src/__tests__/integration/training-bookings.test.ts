@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
+import { and, eq } from "drizzle-orm";
 import { bookingsTable, db } from "@workspace/db";
 import {
   app,
@@ -288,6 +289,42 @@ describe("booking creation, idempotency, ownership and capacity", () => {
     ]);
     expect([a.status, c.status].sort()).toEqual([201, 409]);
   });
+
+  it("replays concurrent same-key booking requests after the session lock", async () => {
+    const solo = await createManagedSession(adminAToken, 1, future(12));
+    expect(solo.status).toBe(201);
+    const soloId = solo.body.session.id;
+    const idempotencyKey = "concurrent-same-key-booking";
+    const beforeAudits = await countAuditLogs(tenantA.id, "booking:create");
+
+    const [first, second] = await Promise.all([
+      request(app)
+        .post("/api/bookings")
+        .set("Cookie", sessionCookie(clientAToken))
+        .send({ trainingSessionId: soloId, idempotencyKey }),
+      request(app)
+        .post("/api/bookings")
+        .set("Cookie", sessionCookie(clientAToken))
+        .send({ trainingSessionId: soloId, idempotencyKey }),
+    ]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 201]);
+    expect(first.body.booking.id).toBe(second.body.booking.id);
+    expect([first.body.replayed, second.body.replayed].sort()).toEqual([false, true]);
+    const rows = await db
+      .select({ id: bookingsTable.id })
+      .from(bookingsTable)
+      .where(
+        and(
+          eq(bookingsTable.tenantId, tenantA.id),
+          eq(bookingsTable.clientUserId, clientA.id),
+          eq(bookingsTable.trainingSessionId, soloId),
+          eq(bookingsTable.idempotencyKey, idempotencyKey),
+        ),
+      );
+    expect(rows).toHaveLength(1);
+    expect(await countAuditLogs(tenantA.id, "booking:create")).toBe(beforeAudits + 1);
+  });
 });
 
 describe("rescheduling and Marcus workflow", () => {
@@ -340,6 +377,52 @@ describe("rescheduling and Marcus workflow", () => {
       .expect(200);
     expect(replay.body.replayed).toBe(true);
     expect(replay.body.booking.id).toBe(rescheduledBookingId);
+  });
+
+  it("replays concurrent same-key reschedules after locking both sessions", async () => {
+    const source = await createManagedSession(adminAToken, 1, future(13));
+    const target = await createManagedSession(adminAToken, 1, future(14));
+    const sourceBooking = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientBToken))
+      .send({ trainingSessionId: source.body.session.id, idempotencyKey: "concurrent-reschedule-source" })
+      .expect(201);
+    const sourceBookingId = sourceBooking.body.booking.id;
+    const idempotencyKey = "concurrent-same-key-reschedule";
+    const beforeAudits = await countAuditLogs(tenantA.id, "booking:reschedule");
+
+    const [first, second] = await Promise.all([
+      request(app)
+        .post(`/api/bookings/${sourceBookingId}/reschedule`)
+        .set("Cookie", sessionCookie(clientBToken))
+        .send({ replacementTrainingSessionId: target.body.session.id, idempotencyKey }),
+      request(app)
+        .post(`/api/bookings/${sourceBookingId}/reschedule`)
+        .set("Cookie", sessionCookie(clientBToken))
+        .send({ replacementTrainingSessionId: target.body.session.id, idempotencyKey }),
+    ]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 201]);
+    expect(first.body.booking.id).toBe(second.body.booking.id);
+    expect([first.body.replayed, second.body.replayed].sort()).toEqual([false, true]);
+    const replacements = await db
+      .select({ id: bookingsTable.id })
+      .from(bookingsTable)
+      .where(
+        and(
+          eq(bookingsTable.tenantId, tenantA.id),
+          eq(bookingsTable.clientUserId, clientB.id),
+          eq(bookingsTable.trainingSessionId, target.body.session.id),
+          eq(bookingsTable.idempotencyKey, idempotencyKey),
+        ),
+      );
+    expect(replacements).toHaveLength(1);
+    expect(await countAuditLogs(tenantA.id, "booking:reschedule")).toBe(beforeAudits + 1);
+    const original = await request(app)
+      .get(`/api/bookings/${sourceBookingId}`)
+      .set("Cookie", sessionCookie(clientBToken))
+      .expect(200);
+    expect(original.body.booking.status).toBe("rescheduled");
   });
 
   it("allows Marcus to confirm, then record attendance, and rejects invalid transitions", async () => {
