@@ -1,0 +1,833 @@
+# Marcus Weekly Schedule — Simplified Day-Grouped Availability Management
+
+## Task
+
+Redesign the existing **Marcus Weekly Schedule** availability-management interface so Marcus manages his availability directly inside the weekly timetable.
+
+The approved UX direction is:
+
+> Marcus selects a week, sees all seven days grouped clearly, and adds availability directly to the relevant day using a `+` action.
+
+The current separate **Add Slot** workflow should be replaced by this simpler day-based interaction.
+
+This is primarily a UX restructuring. Preserve all existing scheduling business rules unless explicitly stated below.
+
+---
+
+## Risk
+
+**AMBER**
+
+This changes an existing scheduling workflow and persistent session creation path.
+
+Inspect the current Weekly Schedule implementation before making changes.
+
+Do not modify backend scheduling rules unless required to support the approved interface.
+
+---
+
+# 1. Approved UX
+
+The Weekly Schedule should feel like Marcus is editing a **weekly timetable**, not managing individual database records.
+
+The primary interaction becomes:
+
+```text
+Choose week
+↓
+Find day
+↓
+Press +
+↓
+Enter availability
+↓
+Save
+```
+
+Marcus should never have to select the date again after clicking `+` on a particular day.
+
+---
+
+# 2. Weekly Header
+
+Replace the current large control area with a simpler weekly navigation header.
+
+Target structure:
+
+```text
+WEEKLY SCHEDULE
+
+Set when clients can book you.
+
+‹ Previous          24 Aug – 30 Aug 2026          Next ›
+
+                                        Copy Previous Week
+```
+
+## Week date display
+
+Do not display only:
+
+```text
+Week of 24/08/2026
+```
+
+Instead show the complete visible week range:
+
+```text
+24 Aug – 30 Aug 2026
+```
+
+When the week crosses a month:
+
+```text
+31 Aug – 6 Sep 2026
+```
+
+When it crosses a year:
+
+```text
+28 Dec 2026 – 3 Jan 2027
+```
+
+Use the actual start and end dates of the displayed week.
+
+---
+
+# 3. Remove Existing Add-Slot Controls
+
+Remove the primary standalone:
+
+```text
++ Add Slot
+```
+
+button from the top of the page.
+
+Also remove the default visible:
+
+```text
+Week of
+[date input]
+```
+
+control.
+
+Week navigation should primarily happen using:
+
+* Previous
+* Next
+
+If an existing date/week picker is valuable for quickly jumping to another week, it may remain as a secondary optional interaction, but it should not dominate the interface.
+
+Do not remove week-navigation capability.
+
+---
+
+# 4. Always Show Seven Days
+
+The weekly schedule must always display all seven days for the selected week:
+
+1. Monday
+2. Tuesday
+3. Wednesday
+4. Thursday
+5. Friday
+6. Saturday
+7. Sunday
+
+This applies even when a day has no availability.
+
+Example:
+
+```text
+MONDAY · 24 AUG                                  +
+
+17:00–18:00    Fort Fitness    0 / 4    OPEN    ···
+18:00–19:00    Fort Fitness    0 / 4    OPEN    ···
+
+
+TUESDAY · 25 AUG                                 +
+
+10:00–11:00    Fort Fitness    0 / 4    OPEN    ···
+
+
+WEDNESDAY · 26 AUG                               +
+
+No availability
+
+
+THURSDAY · 27 AUG                                +
+
+No availability
+```
+
+Continue through Sunday.
+
+---
+
+# 5. Group Existing Sessions by Day
+
+Existing Marcus availability should no longer appear as one flat table.
+
+Group every existing slot beneath its relevant calendar day.
+
+Sort:
+
+### Days
+
+Chronologically Monday → Sunday.
+
+### Slots within each day
+
+Chronologically by start time.
+
+Example:
+
+```text
+MONDAY · 24 AUG
+
+08:00–09:00
+10:00–11:00
+17:00–18:00
+```
+
+---
+
+# 6. Add `+` to Every Day
+
+Each day heading must have a clear `+` action.
+
+Example:
+
+```text
+TUESDAY · 25 AUG                              +
+```
+
+Clicking this `+` means:
+
+> Add availability to Tuesday 25 August.
+
+The system must already know the date from the selected day.
+
+Marcus must **not** be asked to choose the date again.
+
+---
+
+# 7. Inline Slot Creation
+
+Clicking `+` should open a lightweight inline creation row directly under that day's heading.
+
+Preferred interaction:
+
+```text
+TUESDAY · 25 AUG                                  +
+
+Start          End          Location          Capacity
+
+[ 10:00 ]      [ 11:00 ]    [ Fort Fitness ]  [ 4 ]
+
+                                      Cancel   Add Slot
+```
+
+Do not open a large modal unless the current component architecture makes inline editing materially unsafe.
+
+The interaction should feel part of the timetable itself.
+
+---
+
+# 8. Inline Form Fields
+
+The new availability row should contain only the information Marcus needs.
+
+## Start
+
+Time selector/input.
+
+## End
+
+Time selector/input.
+
+## Location
+
+Use the existing active-location system.
+
+If Marcus has only one valid active location, default to it automatically.
+
+## Capacity
+
+Use the existing capacity system.
+
+If `4` is the current standard/default, continue defaulting to `4`.
+
+## Session Type
+
+Session Type remains optional.
+
+Do not reintroduce Session Type as a required field.
+
+Preserve the approved type-less workflow.
+
+---
+
+# 9. Intelligent Time Defaults
+
+When Marcus adds availability to an empty day, use a sensible valid default.
+
+When the day already has availability, default the new slot intelligently after the latest existing session where possible.
+
+Example:
+
+Existing:
+
+```text
+17:00–18:00
+18:00–19:00
+```
+
+Pressing `+` may default to:
+
+```text
+19:00–20:00
+```
+
+Marcus must still be able to edit both times before saving.
+
+Do not automatically create the slot until Marcus confirms it.
+
+---
+
+# 10. Current Week / Past-Time Protection
+
+Preserve the recently corrected behaviour around past times.
+
+When viewing the current week:
+
+* do not default new availability to a date/time already in the past;
+* clicking `+` on today should use a valid future time;
+* past days should not produce invalid default session timestamps.
+
+Inspect the existing intended behaviour before deciding whether past-day `+` actions should:
+
+* be disabled, or
+* remain visible but prevent invalid creation.
+
+Use the smallest behaviour consistent with the current scheduling rules.
+
+Do not silently change historical-session rules.
+
+---
+
+# 11. Existing Slot Row Design
+
+Make existing slots compact and easy to scan.
+
+Recommended structure:
+
+```text
+17:00–18:00    Fort Fitness       0 / 4       OPEN        ···
+```
+
+The dominant information should be:
+
+1. Time
+2. Location
+3. Clients
+4. Status
+
+Avoid repeating the full date inside every row because the day heading already provides that context.
+
+---
+
+# 12. Remove Heavy Global Table Headers
+
+The current global table structure:
+
+```text
+DAY & DATE
+TIME
+LOCATION
+CLIENTS
+SLOT
+```
+
+is no longer appropriate because the schedule is grouped by day.
+
+Replace it with day sections and compact slot rows.
+
+Column alignment can still be maintained visually on desktop.
+
+Do not create unnecessary column-label repetition for every day.
+
+---
+
+# 13. Row Actions
+
+The current action area is cramped and actions such as **Duplicate** are visually clipped.
+
+Replace individual row action text with:
+
+```text
+···
+```
+
+The menu should expose existing supported actions such as:
+
+```text
+Edit
+Duplicate
+Delete
+```
+
+Do not introduce new session-management behaviour.
+
+Use existing rules for whether an action is allowed.
+
+For example, booked or locked sessions must continue respecting their existing restrictions.
+
+---
+
+# 14. Duplicate Behaviour
+
+Preserve the existing Duplicate capability if already supported.
+
+When duplicating from a day-grouped schedule, the duplicated availability should logically begin from the same day context.
+
+Do not bypass overlap checks.
+
+Do not silently create invalid duplicate sessions.
+
+If the current duplicate workflow opens editable data before creation, preserve that behaviour unless inspection establishes a better existing pattern.
+
+---
+
+# 15. Empty Day State
+
+Empty days must remain visible.
+
+Use a very lightweight state such as:
+
+```text
+No availability
+```
+
+Do not use large empty-state cards.
+
+The `+` remains visible on the day heading so the action is obvious.
+
+Example:
+
+```text
+WEDNESDAY · 26 AUG                               +
+
+No availability
+```
+
+---
+
+# 16. Copy Previous Week
+
+Keep:
+
+```text
+Copy Previous Week
+```
+
+This remains a useful shortcut.
+
+Place it as a secondary weekly action rather than the dominant CTA.
+
+Preserve all existing validation when copying sessions.
+
+Copied availability must not bypass:
+
+* overlap validation
+* location validation
+* capacity rules
+* date validity
+* existing server-side protections
+
+Do not redesign the business logic of Copy Previous Week as part of this task.
+
+---
+
+# 17. Location Management
+
+The existing:
+
+```text
+1 active location available
+Add a location
+```
+
+information should remain available where useful, but it should not dominate the weekly schedule.
+
+If there are no active locations and creating availability requires one, preserve a clear path to:
+
+```text
+Add a location
+```
+
+Do not change location-domain behaviour as part of this UX task.
+
+---
+
+# 18. Mobile Behaviour
+
+The grouped-day concept must also work cleanly on mobile.
+
+Do not force the desktop row into horizontal scrolling.
+
+A mobile slot can become a compact stacked row/card, for example:
+
+```text
+17:00–18:00                         OPEN
+
+Fort Fitness
+0 / 4 clients                         ···
+```
+
+The day heading and `+` must remain immediately visible.
+
+Mobile interaction must still follow:
+
+```text
+Day
++
+Inline availability form
+```
+
+---
+
+# 19. Loading / Save Behaviour
+
+When Marcus presses **Add Slot**:
+
+* prevent accidental repeated submissions while the request is pending;
+* show a clear pending/loading state;
+* do not optimistically show a successfully created session until the API confirms success;
+* on success, place the slot under the correct day in chronological order;
+* on failure, keep the form available with the entered values where possible.
+
+Do not weaken the existing backend overlap protection.
+
+The recent investigation established that the server-side full-datetime overlap rule is correct.
+
+---
+
+# 20. Error Behaviour
+
+Preserve existing server errors.
+
+For example, a real overlap should continue returning/displaying:
+
+```text
+This session overlaps another Marcus session
+```
+
+Do not change overlap logic in this task.
+
+The server currently correctly evaluates:
+
+```text
+newStart < existingEnd &&
+newEnd > existingStart
+```
+
+using complete datetimes.
+
+The redesign must not recreate date/time state bugs on the frontend.
+
+---
+
+# 21. Date / Time Integrity
+
+Because the date will now be inherited from the day heading, verify carefully how the frontend constructs:
+
+```text
+startsAt
+endsAt
+```
+
+The submitted date must always correspond to the day where Marcus pressed `+`.
+
+Example:
+
+If Marcus clicks:
+
+```text
+TUESDAY · 25 AUG
+```
+
+and enters:
+
+```text
+10:00
+11:00
+```
+
+the payload must represent Tuesday 25 August at those times.
+
+Week navigation must update this correctly.
+
+Do not accidentally retain a previously selected date in React/form state.
+
+---
+
+# 22. Preserve Existing Business Rules
+
+Do not change:
+
+* full-datetime overlap validation
+* same-Marcus conflict rules
+* tenant scoping
+* cancelled-session handling
+* booked-session schedule locking
+* active reservation capacity rules
+* location validation
+* Session Type optionality
+* type-less session support
+* booking logic
+* pricing
+* credits
+* attendance
+* cancellation
+* client booking behaviour
+* production schema
+* database structure
+
+This task is about simplifying Marcus's availability-management experience.
+
+---
+
+# 23. Preferred Final Desktop Structure
+
+Use this as the conceptual reference:
+
+```text
+WEEKLY SCHEDULE
+Set when clients can book you.
+
+‹ Previous          24 Aug – 30 Aug 2026          Next ›
+
+                                      Copy Previous Week
+
+
+MONDAY · 24 AUG                                      +
+
+17:00–18:00     Fort Fitness       0 / 4     OPEN    ···
+18:00–19:00     Fort Fitness       0 / 4     OPEN    ···
+
+
+TUESDAY · 25 AUG                                     +
+
+10:00–11:00     Fort Fitness       0 / 4     OPEN    ···
+
+
+WEDNESDAY · 26 AUG                                   +
+
+No availability
+
+
+THURSDAY · 27 AUG                                    +
+
+No availability
+
+
+FRIDAY · 28 AUG                                      +
+
+No availability
+
+
+SATURDAY · 29 AUG                                    +
+
+No availability
+
+
+SUNDAY · 30 AUG                                      +
+
+No availability
+```
+
+Visual execution should follow the existing Marcus HQ design system rather than literally reproducing monospace spacing from this example.
+
+---
+
+# 24. Inspection Before Implementation
+
+Before changing code, report:
+
+### Current component structure
+
+Which components currently power Weekly Schedule.
+
+### Current add-slot workflow
+
+How date/time/location/capacity state is currently created and submitted.
+
+### Week calculations
+
+How the current week start is calculated.
+
+### Existing actions
+
+How Edit, Duplicate and Delete currently work.
+
+### Mobile implementation
+
+How the current schedule responds at narrow widths.
+
+### Dependencies
+
+Any shared components or session-management functions affected.
+
+If inspection reveals backend/schema changes are required, stop and report before implementation.
+
+---
+
+# 25. Testing Requirements
+
+After implementation verify at minimum:
+
+### Week display
+
+* Current week displays correct Monday–Sunday range.
+* Previous changes exactly one week backward.
+* Next changes exactly one week forward.
+* Month-crossing date range renders correctly.
+* Year-crossing date range renders correctly.
+
+### Day grouping
+
+* All 7 days always render.
+* Slots appear under the correct date.
+* Multiple slots on one day sort chronologically.
+* Empty days display `No availability`.
+
+### Add availability
+
+* `+` opens creation beneath the correct day.
+* Date does not need to be selected manually.
+* Submitted timestamp uses the clicked day.
+* Location default works.
+* Capacity default works.
+* Type-less creation works.
+* Save places the resulting row under the correct day.
+
+### Multiple days
+
+Create:
+
+```text
+Monday 17:00–18:00
+Monday 18:00–19:00
+Tuesday 10:00–11:00
+```
+
+All three must save and appear in the correct sections.
+
+### Conflict protection
+
+* Genuine same-day overlap remains rejected.
+* Same time on different days remains allowed.
+* Back-to-back sessions remain allowed.
+
+### Current-week behaviour
+
+* No automatic past timestamp is generated.
+
+### Actions
+
+* Edit works.
+* Duplicate works.
+* Delete works.
+* Existing locked/booked-session restrictions remain intact.
+
+### Submission safety
+
+* One click produces one create request.
+* Save button cannot create accidental duplicate submissions while pending.
+
+### Responsive
+
+* Desktop verified.
+* Mobile verified.
+* No clipped Duplicate/action text.
+* No required horizontal scrolling for the primary mobile workflow.
+
+---
+
+# 26. Required Checks
+
+Run:
+
+* relevant API integration tests
+* relevant frontend tests
+* API typecheck
+* frontend typecheck
+* production build
+* real browser workflow
+
+Existing **99 API integration tests** must remain green unless the test count legitimately increases.
+
+Do not remove or weaken the newly added overlap regression coverage or development diagnostics.
+
+---
+
+# 27. Report Back
+
+Return a structured report containing:
+
+## Inspection
+
+What existed and how it worked.
+
+## Files Changed
+
+Exact files and purpose.
+
+## UX Changes
+
+What changed from Marcus's perspective.
+
+## Protected Behaviour
+
+Confirm which existing scheduling rules were preserved.
+
+## Browser Verification
+
+Show evidence for:
+
+```text
+Mon 24 Aug
+17:00–18:00
+18:00–19:00
+
+Tue 25 Aug
+10:00–11:00
+```
+
+and at least one empty day.
+
+## Mobile Verification
+
+Describe the tested mobile layout.
+
+## Tests
+
+PASS / BLOCKED only.
+
+## Deviations
+
+Any approved UX requirement that could not safely be implemented and why.
+
+## Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+
+Do not publish.

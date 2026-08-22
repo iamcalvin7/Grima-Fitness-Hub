@@ -37,22 +37,29 @@ function mockAdminData(resources: { sessions?: unknown[]; locations?: unknown[];
 }
 
 async function actEvent(action: () => void) {
-  await act(async () => { action(); await Promise.resolve(); await Promise.resolve(); });
+  await act(async () => {
+    action();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 }
 
 async function openWeekSchedule() {
-  const scheduleButton = await screen.findByRole('button', { name: /schedule/i });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  const scheduleButton = screen.getByRole('button', { name: /schedule/i });
   await actEvent(() => fireEvent.click(scheduleButton));
-  await actEvent(() => fireEvent.change(screen.getByLabelText('Week starting'), { target: { value: '2026-08-17' } }));
 }
 
-function futureDateKey() {
-  const date = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('-');
+function useScheduleClock(iso = '2026-08-18T08:00:00.000Z') {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(iso));
 }
 
 describe('MarcusSessionsHQ weekly schedule', () => {
@@ -71,24 +78,56 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     expect(screen.queryByRole('button', { name: /^locations$/i })).not.toBeInTheDocument();
   });
 
-  it('creates a type-less bookable slot from the selected week', async () => {
+  it('renders every weekday group and navigates using the visible date range', async () => {
+    useScheduleClock();
     mockAdminData({ sessions: [slot] });
     render(<MarcusSessionsHQ />);
     await openWeekSchedule();
-    expect(await screen.findByText('Sliema Studio')).toBeInTheDocument();
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session')));
-    expect(screen.queryByText('Session Type')).not.toBeInTheDocument();
-    const dialog = screen.getByRole('dialog');
-    fireEvent.change(dialog.querySelector('input[type="date"]')!, { target: { value: futureDateKey() } });
+
+    for (const dateKey of ['2026-08-17', '2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '2026-08-22', '2026-08-23']) {
+      expect(screen.getByTestId(`day-section-${dateKey}`)).toBeInTheDocument();
+    }
+    expect(screen.getByTestId('text-no-availability-2026-08-17')).toHaveTextContent('No availability');
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('17 Aug – 23 Aug 2026');
+    expect(screen.queryByLabelText('Week starting')).not.toBeInTheDocument();
+
+    await actEvent(() => fireEvent.click(screen.getByTestId('button-next-week')));
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('24 Aug – 30 Aug 2026');
+    await actEvent(() => fireEvent.click(screen.getByTestId('button-previous-week')));
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('17 Aug – 23 Aug 2026');
+  });
+
+  it('keeps a complete range label when the selected week crosses years', async () => {
+    useScheduleClock('2026-12-31T10:00:00.000Z');
+    mockAdminData();
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('28 Dec 2026 – 3 Jan 2027');
+    expect(screen.getByTestId('day-section-2027-01-03')).toBeInTheDocument();
+  });
+
+  it('creates a type-less bookable slot from the selected week', async () => {
+    useScheduleClock();
+    mockAdminData({ sessions: [slot] });
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+    expect(screen.getByText('Sliema Studio')).toBeInTheDocument();
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session-2026-08-18')));
+    expect(screen.getByText('Session type (optional)')).toBeInTheDocument();
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({
+    expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({
       method: 'POST',
       body: expect.objectContaining({ locationId: 'location-1', capacity: 4 }),
-    })));
+    }));
     const createCall = apiRequest.mock.calls.find(([path, options]) =>
       path === '/admin/training-sessions' && (options as { method?: string } | undefined)?.method === 'POST',
     )!;
-    expect((createCall[1] as { body: Record<string, unknown> }).body.sessionTypeId).toBeUndefined();
+    expect((createCall[1] as { body: Record<string, unknown> }).body).toMatchObject({
+      sessionTypeId: null,
+      startsAt: expect.stringMatching(/^2026-08-18T/),
+      endsAt: expect.stringMatching(/^2026-08-18T/),
+    });
   });
 
   it('defaults a current-week slot to a future type-less time instead of a past Monday', async () => {
@@ -101,8 +140,7 @@ describe('MarcusSessionsHQ weekly schedule', () => {
       await Promise.resolve();
     });
     await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /schedule/i })));
-    await actEvent(() => fireEvent.change(screen.getByLabelText('Week starting'), { target: { value: '2026-08-17' } }));
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session')));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session-2026-08-22'))); // click + for today
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
 
     const createCall = apiRequest.mock.calls.find(([path, options]) =>
@@ -110,55 +148,60 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     )!;
     const body = (createCall[1] as { body: Record<string, unknown> }).body;
     expect(body).toMatchObject({ locationId: 'location-1', capacity: 4 });
-    expect(body.sessionTypeId).toBeUndefined();
+    expect(body.sessionTypeId).toBeNull();
     expect(new Date(body.startsAt as string).getTime()).toBeGreaterThan(new Date().getTime());
     expect(new Date(body.endsAt as string).getTime()).toBeGreaterThan(new Date(body.startsAt as string).getTime());
   });
 
   it('locks booked rows in the weekly editor', async () => {
+    useScheduleClock();
     mockAdminData({ sessions: [{ ...slot, reservedCapacity: 1, remainingCapacity: 3 }] });
     render(<MarcusSessionsHQ />);
     await openWeekSchedule();
-    expect(await screen.findByText('Booked · locked')).toBeInTheDocument();
+    expect(screen.getByText('Locked')).toBeInTheDocument();
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-session-actions-session-1')));
     expect(screen.getByTestId('btn-edit-session-session-1')).toBeDisabled();
     expect(screen.getByTestId('btn-delete-session-session-1')).toBeDisabled();
     expect(screen.getByTestId('btn-duplicate-session-session-1')).not.toBeDisabled();
   });
 
   it('duplicates an unbooked row through the same explicit save form', async () => {
+    useScheduleClock();
     mockAdminData({ sessions: [slot] });
     render(<MarcusSessionsHQ />);
     await openWeekSchedule();
-    await screen.findByText('Sliema Studio');
+    expect(screen.getByText('Sliema Studio')).toBeInTheDocument();
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-session-actions-session-1')));
     await actEvent(() => fireEvent.click(screen.getByTestId('btn-duplicate-session-session-1')));
-    expect(await screen.findByText('Duplicate slot')).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('dialog').querySelector('input[type="date"]')!, { target: { value: futureDateKey() } });
+    expect(screen.getByText('Save Copy')).toBeInTheDocument();
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({ method: 'POST' })));
+    expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({ method: 'POST' }));
   });
 
   it('copies the previous week and reports server outcomes', async () => {
+    useScheduleClock();
     mockAdminData({ sessions: [slot] });
     render(<MarcusSessionsHQ />);
     await openWeekSchedule();
     await actEvent(() => fireEvent.click(screen.getByTestId('btn-copy-previous-week')));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/copy-previous-week', {
+    expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/copy-previous-week', {
       method: 'POST',
       body: { targetWeekStart: '2026-08-17' },
-    }));
-    expect(await screen.findByTestId('copy-week-report')).toHaveTextContent('1 created, 0 skipped, 0 conflicts. Bookings were not copied.');
+    });
+    expect(screen.getByTestId('copy-week-report')).toHaveTextContent('1 created, 0 skipped, 0 conflicts. Bookings were not copied.');
   });
 
   it('adds a location from the schedule workflow when no active locations exist', async () => {
+    useScheduleClock();
     mockAdminData({ locations: [] });
     render(<MarcusSessionsHQ />);
     await openWeekSchedule();
-    expect(await screen.findByText('Create a location before adding slots.')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-create-session')).toBeDisabled();
+    expect(screen.getByText('Create a location before adding slots.')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-create-session-2026-08-17')).toBeDisabled();
     await actEvent(() => fireEvent.click(screen.getByTestId('btn-add-location-inline')));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = screen.getByRole('dialog');
     fireEvent.change(dialog.querySelector('input')!, { target: { value: 'Valletta Gym' } });
     await actEvent(() => fireEvent.submit(dialog.querySelector('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations', expect.objectContaining({ method: 'POST' })));
+    expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations', expect.objectContaining({ method: 'POST' }));
   });
 });

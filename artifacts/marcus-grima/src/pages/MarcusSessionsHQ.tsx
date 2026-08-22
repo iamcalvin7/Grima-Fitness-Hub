@@ -1098,7 +1098,7 @@ export function MarcusSessionsHQ() {
               transition={{ duration: 0.15, ease: 'easeOut' }}
             >
               {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} />}
-              {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} execute={execute} actionId={actionId} />}
+              {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
             </motion.div>
           </AnimatePresence>
         </div>
