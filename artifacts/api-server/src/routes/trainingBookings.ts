@@ -19,7 +19,6 @@ import {
 import {
   db,
   bookingCommercialsTable,
-  commercialClassLocksTable,
   commercialSettlementsTable,
   bookingsTable,
   trainingLocationsTable,
@@ -48,7 +47,7 @@ import {
 } from "../lib/availability";
 import {
   CommercialError,
-  closeClassCommercial,
+  closeSessionCommercial,
   createBookingCommercial,
   releaseBookingHold,
   transferBookingCommercial,
@@ -194,7 +193,10 @@ function sessionValidationFields(input: {
 
 function sendError(req: Request, res: Response, error: unknown, fallback: string) {
   if (error instanceof HttpError || error instanceof CommercialError) {
-    res.status(error.status).json({ error: error.message });
+    res.status(error.status).json({
+      error: error.message,
+      ...(error.details ? { details: error.details } : {}),
+    });
     return;
   }
   req.log.error({ err: error }, fallback);
@@ -336,6 +338,8 @@ function sessionOutput(
     endsAt: Date;
     capacity: number;
     status: TrainingSessionStatus;
+    commercialClosedAt: Date | null;
+    commercialClosedParticipantCount: number | null;
     marcusNotes: string | null;
     createdByUserId: string;
     createdAt: Date;
@@ -361,6 +365,8 @@ function sessionOutput(
     reservedCapacity: activeCount,
     remainingCapacity: Math.max(0, row.capacity - activeCount),
     status: row.status,
+    commercialClosedAt: row.commercialClosedAt,
+    commercialClosedParticipantCount: row.commercialClosedParticipantCount,
     sessionType: row.sessionTypeId
       ? {
           id: row.sessionTypeId,
@@ -395,6 +401,9 @@ const sessionSelection = {
   endsAt: trainingSessionsTable.endsAt,
   capacity: trainingSessionsTable.capacity,
   status: trainingSessionsTable.status,
+  commercialClosedAt: trainingSessionsTable.commercialClosedAt,
+  commercialClosedParticipantCount:
+    trainingSessionsTable.commercialClosedParticipantCount,
   marcusNotes: trainingSessionsTable.marcusNotes,
   createdByUserId: trainingSessionsTable.createdByUserId,
   createdAt: trainingSessionsTable.createdAt,
@@ -473,6 +482,8 @@ async function getBooking(
       sessionStartsAt: trainingSessionsTable.startsAt,
       sessionEndsAt: trainingSessionsTable.endsAt,
       sessionStatus: trainingSessionsTable.status,
+      sessionCapacity: trainingSessionsTable.capacity,
+      sessionCommercialClosedAt: trainingSessionsTable.commercialClosedAt,
       sessionTypeId: trainingSessionsTable.sessionTypeId,
       sessionTypeName: trainingSessionTypesTable.name,
       locationId: trainingSessionsTable.locationId,
@@ -488,11 +499,11 @@ async function getBooking(
       commercialRateTable: bookingCommercialsTable.rateTable,
       commercialMaximumHeldAmountMinor:
         bookingCommercialsTable.maximumHeldAmountMinor,
-       commercialHeldAmountMinor: bookingCommercialsTable.heldAmountMinor,
+       commercialReservedAmountMinor: bookingCommercialsTable.reservedAmountMinor,
        commercialLockedParticipantCount:
          bookingCommercialsTable.lockedParticipantCount,
-       commercialLockedAmountMinor: bookingCommercialsTable.lockedAmountMinor,
-       commercialLockedAt: bookingCommercialsTable.lockedAt,
+       commercialLockedChargeAmountMinor:
+         bookingCommercialsTable.lockedChargeAmountMinor,
       commercialHoldStatus: bookingCommercialsTable.holdStatus,
       commercialSettlementId: commercialSettlementsTable.id,
       commercialFinalChargeAmountMinor:
@@ -573,10 +584,9 @@ function bookingOutput(row: Awaited<ReturnType<typeof getBooking>>) {
           currency: row.commercialCurrency,
           rateTable: row.commercialRateTable,
           maximumHeldAmountMinor: row.commercialMaximumHeldAmountMinor,
-           heldAmountMinor: row.commercialHeldAmountMinor,
+           reservedAmountMinor: row.commercialReservedAmountMinor,
            lockedParticipantCount: row.commercialLockedParticipantCount,
-           lockedAmountMinor: row.commercialLockedAmountMinor,
-           lockedAt: row.commercialLockedAt,
+           lockedChargeAmountMinor: row.commercialLockedChargeAmountMinor,
           holdStatus: row.commercialHoldStatus,
           settlement: row.commercialSettlementId
             ? {
@@ -694,6 +704,7 @@ router.get("/training-sessions", async (req, res) => {
         and(
           eq(trainingSessionsTable.tenantId, req.user!.tenantId),
           eq(trainingSessionsTable.status, "scheduled"),
+          isNull(trainingSessionsTable.commercialClosedAt),
           gte(trainingSessionsTable.startsAt, from),
           lte(trainingSessionsTable.startsAt, cappedTo),
         ),
@@ -835,23 +846,11 @@ router.post("/bookings", async (req, res) => {
       if (
         !session ||
         session.status !== "scheduled" ||
+        session.commercialClosedAt !== null ||
         session.startsAt < window.lead ||
         session.startsAt > window.horizon
       ) {
         throw new HttpError(409, "Training session is not bookable");
-      }
-      const [classLock] = await tx
-        .select({ id: commercialClassLocksTable.id })
-        .from(commercialClassLocksTable)
-        .where(
-          and(
-            eq(commercialClassLocksTable.tenantId, tenantId),
-            eq(commercialClassLocksTable.trainingSessionId, trainingSessionId),
-          ),
-        )
-        .limit(1);
-      if (classLock) {
-        throw new HttpError(409, "Training session is closed for new bookings");
       }
       const reserved = await activeReservationCount(tx, tenantId, trainingSessionId);
       if (reserved >= session.capacity) {
@@ -1083,6 +1082,7 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
         original.sessionStartsAt < window.lead ||
         original.sessionStartsAt > window.horizon ||
         original.sessionStatus !== "scheduled" ||
+        original.sessionCommercialClosedAt !== null ||
         !ACTIVE_BOOKING_STATUSES.includes(original.status)
       ) {
         throw new HttpError(409, "Booking cannot be rescheduled");
@@ -1091,6 +1091,7 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
       if (
         !replacement ||
         replacement.status !== "scheduled" ||
+        replacement.commercialClosedAt !== null ||
         replacement.startsAt < window.lead ||
         replacement.startsAt > window.horizon
       ) {
@@ -2168,6 +2169,19 @@ async function transitionBooking(
       if (locked.sessionStatus !== "scheduled") {
         throw new HttpError(409, "The training session is not scheduled");
       }
+      if (nextStatus === "confirmed" && locked.sessionCommercialClosedAt) {
+        throw new HttpError(409, "Class pricing is closed; this booking cannot be confirmed.");
+      }
+      if (
+        (nextStatus === "attended" || nextStatus === "no_show") &&
+        locked.commercialId &&
+        !locked.sessionCommercialClosedAt
+      ) {
+        throw new HttpError(
+          409,
+          "Close class pricing before recording attendance outcomes.",
+        );
+      }
       if (nextStatus === "confirmed" && locked.sessionStartsAt <= new Date()) {
         throw new HttpError(409, "A past booking cannot be confirmed");
       }
@@ -2199,23 +2213,6 @@ async function transitionBooking(
               reason: "booking_rejected",
             })
           : null;
-      const classClose =
-        nextStatus === "confirmed"
-          ? await closeClassCommercial(tx, {
-              tenantId: req.user!.tenantId,
-              trainingSessionId: locked.trainingSessionId,
-              reason: "full",
-              actorUserId: null,
-            }).catch((error) => {
-              if (
-                error instanceof CommercialError &&
-                error.message === "The class has not reached capacity."
-              ) {
-                return null;
-              }
-              throw error;
-            })
-          : null;
       await writeAuditLog(
         auditParams(req, action, "booking", id, {
           ...(reason ? { reason } : {}),
@@ -2232,25 +2229,31 @@ async function transitionBooking(
           tx,
         );
       }
-      if (classClose && !classClose.replayed) {
-        await writeAuditLog(
-          auditParams(req, "class:auto_closed", "training_session", locked.trainingSessionId, {
-            confirmedParticipantCount: classClose.lock.confirmedParticipantCount,
-            closeReason: "full",
-          }),
-          tx,
-        );
-        for (const participant of classClose.participants) {
-          await writeAuditLog(
-            auditParams(req, "class_price:locked", "booking", participant.bookingId, {
-              classLockId: classClose.lock.id,
-              confirmedParticipantCount: classClose.lock.confirmedParticipantCount,
-              maximumHeldAmountMinor: participant.maximumHeldAmountMinor,
-              lockedAmountMinor: participant.lockedAmountMinor,
-              releasedAmountMinor: participant.releasedAmountMinor,
-            }),
-            tx,
+      if (nextStatus === "confirmed") {
+        const confirmedCount = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(bookingsTable)
+          .where(
+            and(
+              eq(bookingsTable.tenantId, req.user!.tenantId),
+              eq(bookingsTable.trainingSessionId, locked.trainingSessionId),
+              eq(bookingsTable.status, "confirmed"),
+            ),
           );
+        if (Number(confirmedCount[0]?.count ?? 0) >= locked.sessionCapacity) {
+          const closeResult = await closeSessionCommercial(tx, {
+            tenantId: req.user!.tenantId,
+            trainingSessionId: locked.trainingSessionId,
+          });
+          if (!closeResult.replayed) {
+            await writeAuditLog(
+              auditParams(req, "training_session:commercial_close", "training_session", locked.trainingSessionId, {
+                participantCount: closeResult.participantCount,
+                source: "capacity",
+              }),
+              tx,
+            );
+          }
         }
       }
       const transitioned = await getBooking(tx, req.user!.tenantId, id);

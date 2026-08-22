@@ -78,10 +78,9 @@ interface Booking {
     currency: string;
     rateTable: Record<string, number>;
     maximumHeldAmountMinor: number;
-    heldAmountMinor: number;
+    reservedAmountMinor: number;
     lockedParticipantCount: number | null;
-    lockedAmountMinor: number | null;
-    lockedAt: string | null;
+    lockedChargeAmountMinor: number | null;
     holdStatus: string;
     settlement?: {
       attendanceCount: number;
@@ -97,7 +96,9 @@ interface BalanceResponse {
   availableValueMinor: number;
   pricing?: {
     planName: string;
-    version: number;
+    planVersion: number;
+    maximumHoldAmountMinor: number;
+    rateTable: Record<string, number>;
   } | null;
 }
 
@@ -454,17 +455,17 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
                 <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-1">Pricing Plan</p>
                 <p className="text-sm font-bold">{booking.commercial.planName}</p>
               </div>
-              {booking.commercial.holdStatus === 'active' && booking.commercial.lockedAmountMinor !== null && (
+              {booking.commercial.holdStatus === 'active' && booking.commercial.lockedChargeAmountMinor !== null && (
                 <div>
                   <p className="text-[9px] font-bold tracking-[0.2em] text-primary/60 uppercase mb-1">Locked session value</p>
-                  <p className="text-sm font-bold text-primary">{formatEur(booking.commercial.lockedAmountMinor)}</p>
+                  <p className="text-sm font-bold text-primary">{formatEur(booking.commercial.lockedChargeAmountMinor)}</p>
                   <p className="mt-1 text-xs leading-relaxed text-foreground/45">Locked when {booking.commercial.lockedParticipantCount} confirmed participant{booking.commercial.lockedParticipantCount === 1 ? '' : 's'} were in the class. This value will not change.</p>
                 </div>
               )}
-              {booking.commercial.holdStatus === 'active' && booking.commercial.lockedAmountMinor === null && booking.commercial.heldAmountMinor > 0 && (
+              {booking.commercial.holdStatus === 'active' && booking.commercial.lockedChargeAmountMinor === null && booking.commercial.reservedAmountMinor > 0 && (
                 <div>
                   <p className="text-[9px] font-bold tracking-[0.2em] text-amber-500/50 uppercase mb-1">Maximum value held</p>
-                  <p className="text-sm font-bold text-amber-400">{formatEur(booking.commercial.heldAmountMinor)}</p>
+                  <p className="text-sm font-bold text-amber-400">{formatEur(booking.commercial.reservedAmountMinor)}</p>
                   <p className="mt-1 text-xs leading-relaxed text-foreground/45">Your final value is set when Marcus closes the class with confirmed participants. Any excess hold becomes available immediately.</p>
                 </div>
               )}
@@ -496,6 +497,7 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
 interface BookingSheetProps {
   sessions: TrainingSession[];
   bookings: Booking[];
+  balance: BalanceResponse | null;
   onClose: () => void;
   onBook: (sessionId: string, idempotencyKey: string) => Promise<BookingMutationResponse>;
   onMutationRejected: (message: string) => Promise<void>;
@@ -503,7 +505,7 @@ interface BookingSheetProps {
 
 type BookingStep = 'date' | 'time' | 'confirm' | 'done';
 
-function BookingSheet({ sessions, bookings, onClose, onBook, onMutationRejected }: BookingSheetProps) {
+function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutationRejected }: BookingSheetProps) {
   const [step, setStep] = useState<BookingStep>('date');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
@@ -712,6 +714,13 @@ function BookingSheet({ sessions, bookings, onClose, onBook, onMutationRejected 
                 </div>
               </div>
               {error && <p className="text-xs text-red-300/80 leading-relaxed mb-5" role="alert">{error}</p>}
+              {balance?.pricing && (
+                <div className="mb-4 border border-amber-500/20 bg-amber-500/10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400/70">Maximum session cost</p>
+                  <p className="mt-1 text-base font-bold text-amber-300">{formatEur(balance.pricing.maximumHoldAmountMinor)}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-amber-100/60">This amount is reserved when your request is accepted. Your final price may be lower, depending on attendance.</p>
+                </div>
+              )}
               <p className="text-xs text-foreground/40 leading-relaxed mb-6">Marcus will receive your request and confirm shortly. Your place is held only when the server accepts the request.</p>
               <button onClick={() => void submit()} disabled={submitting} data-testid="confirm-booking-button" className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-wait py-4 rounded-full text-primary-foreground font-bold tracking-[0.15em] uppercase text-sm transition-colors flex items-center justify-center gap-2">
                 {submitting && <SpinnerGap size={16} className="animate-spin" />} {submitting ? 'Sending request…' : 'Confirm Booking'}
@@ -1150,7 +1159,7 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
 
       <AnimatePresence>
         {detailBooking && <SessionDetail booking={detailBooking} onBack={closeDetail} />}
-        {showBooking && <><motion.div className="fixed inset-0 bg-black/70 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBooking(false)} /><BookingSheet sessions={sessions} bookings={bookings} onClose={() => setShowBooking(false)} onBook={createBooking} onMutationRejected={reconcileRejectedMutation} /></>}
+        {showBooking && <><motion.div className="fixed inset-0 bg-black/70 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBooking(false)} /><BookingSheet sessions={sessions} bookings={bookings} balance={balance} onClose={() => setShowBooking(false)} onBook={createBooking} onMutationRejected={reconcileRejectedMutation} /></>}
         {rescheduleBooking && <><motion.div className="fixed inset-0 bg-black/70 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!mutating) setRescheduleBooking(null); }} /><RescheduleSheet booking={rescheduleBooking} sessions={sessions} bookings={bookings} onClose={() => setRescheduleBooking(null)} onReschedule={reschedule} onMutationRejected={reconcileRejectedMutation} /></>}
         {confirmingCancel && (
           <motion.div className="fixed inset-0 bg-black/75 z-[60] flex items-center justify-center px-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-labelledby="cancel-title">

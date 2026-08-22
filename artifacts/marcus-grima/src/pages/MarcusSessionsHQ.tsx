@@ -21,6 +21,8 @@ export interface ManagedSession {
   reservedCapacity: number;
   remainingCapacity: number;
   status: string;
+  commercialClosedAt: string | null;
+  commercialClosedParticipantCount: number | null;
   marcusNotes: string | null;
   sessionType?: { id: string; name: string; description: string | null; durationMinutes: number } | null;
   location?: { id: string; name: string; timezone: string; addressDetails: string | null } | null;

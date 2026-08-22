@@ -43,10 +43,10 @@ record_existing "0004_in_app_notifications.sql" \
   "SELECT to_regclass('public.notifications') IS NOT NULL"
 record_existing "0005_timed_session_reminders.sql" \
   "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = 'delivery_status')"
-record_existing "0006_booking_notification_context.sql" \
-  "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = 'training_session_id')"
 record_existing "0006_dynamic_pricing_credit_holds.sql" \
   "SELECT to_regclass('public.pricing_plans') IS NOT NULL"
+record_existing "0009_booking_notification_context.sql" \
+  "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = 'training_session_id')"
 
 for migration in lib/db/migrations/*.sql; do
   filename="$(basename "$migration")"

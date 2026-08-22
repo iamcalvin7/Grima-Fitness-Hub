@@ -104,6 +104,13 @@ export const trainingSessionsTable = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "date" }).notNull(),
     capacity: integer("capacity").notNull(),
     status: trainingSessionStatusEnum("status").notNull().default("scheduled"),
+    commercialClosedAt: timestamp("commercial_closed_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    commercialClosedParticipantCount: integer(
+      "commercial_closed_participant_count",
+    ),
     marcusNotes: text("marcus_notes"),
     createdByUserId: uuid("created_by_user_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
@@ -134,6 +141,10 @@ export const trainingSessionsTable = pgTable(
     unique("training_sessions_tenant_id_unique").on(table.tenantId, table.id),
     check("training_sessions_capacity_positive", sql`${table.capacity} > 0`),
     check("training_sessions_end_after_start", sql`${table.endsAt} > ${table.startsAt}`),
+    check(
+      "training_sessions_closed_participant_non_negative",
+      sql`${table.commercialClosedParticipantCount} is null or ${table.commercialClosedParticipantCount} >= 0`,
+    ),
   ],
 );
 
