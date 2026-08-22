@@ -24,6 +24,15 @@ function response(data: unknown, status = 200): Response {
   });
 }
 
+const balanceResponse = () => response({
+  balance: {
+    totalValueMinor: 0,
+    heldValueMinor: 0,
+    availableValueMinor: 0,
+    pricing: null,
+  },
+});
+
 function dateKey(value: string, timezone = 'Europe/Malta'): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
@@ -123,7 +132,7 @@ describe('Sessions booking integration', () => {
   });
 
   it('shows an empty availability state instead of static fallback slots', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(response({ sessions: [] })).mockResolvedValueOnce(response({ bookings: [] }));
+    vi.mocked(fetch).mockResolvedValueOnce(response({ sessions: [] })).mockResolvedValueOnce(response({ bookings: [] })).mockResolvedValueOnce(balanceResponse());
     renderSessions();
     await waitForInitialLoad();
 
@@ -141,7 +150,7 @@ describe('Sessions booking integration', () => {
       location: { id: 'location-2', name: 'Pacific Studio', timezone: locationTimezone },
     };
     const locationDate = dateKey(liveSession.startsAt, locationTimezone);
-    vi.mocked(fetch).mockResolvedValueOnce(response({ sessions: [liveSession] })).mockResolvedValueOnce(response({ bookings: [] }));
+    vi.mocked(fetch).mockResolvedValueOnce(response({ sessions: [liveSession] })).mockResolvedValueOnce(response({ bookings: [] })).mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     await waitForInitialLoad();
@@ -157,8 +166,10 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [liveSession] }))
       .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ sessions: [liveSession] }))
-      .mockResolvedValueOnce(response({ bookings: [booking] }));
+      .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     const firstLoad = renderSessions(booking.id);
     expect(await screen.findByTestId('session-detail')).toBeInTheDocument();
@@ -172,7 +183,8 @@ describe('Sessions booking integration', () => {
     const liveSession = makeSession();
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [liveSession] }))
-      .mockResolvedValueOnce(response({ bookings: [makeBooking('pending', liveSession)] }));
+      .mockResolvedValueOnce(response({ bookings: [makeBooking('pending', liveSession)] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions('foreign-or-missing-booking');
     await waitForInitialLoad();
@@ -183,15 +195,17 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockRejectedValueOnce(new Error('offline'))
       .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ sessions: [] }))
-      .mockResolvedValueOnce(response({ bookings: [] }));
+      .mockResolvedValueOnce(response({ bookings: [] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     expect(await screen.findByTestId('sessions-error')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /retry/i }));
     await waitForInitialLoad();
     expect(screen.getByText('No upcoming bookings')).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(fetch).toHaveBeenCalledTimes(6);
   });
 
   it('submits a real booking once and refreshes persisted state', async () => {
@@ -200,9 +214,11 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [liveSession] }))
       .mockResolvedValueOnce(response({ bookings: [] }))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ booking: newBooking, replayed: false }, 201))
       .mockResolvedValueOnce(response({ sessions: [{ ...liveSession, remainingCapacity: 0, reservedCapacity: 2 }] }))
-      .mockResolvedValueOnce(response({ bookings: [newBooking] }));
+      .mockResolvedValueOnce(response({ bookings: [newBooking] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     await waitForInitialLoad();
@@ -227,9 +243,11 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [liveSession] }))
       .mockResolvedValueOnce(response({ bookings: [] }))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ error: 'Training session is full' }, 409))
       .mockResolvedValueOnce(response({ sessions: [{ ...liveSession, remainingCapacity: 0, reservedCapacity: 2 }] }))
-      .mockResolvedValueOnce(response({ bookings: [] }));
+      .mockResolvedValueOnce(response({ bookings: [] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     await waitForInitialLoad();
@@ -247,9 +265,11 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [liveSession] }))
       .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ booking: { ...booking, status: 'cancelled' }, replayed: false }))
       .mockResolvedValueOnce(response({ sessions: [{ ...liveSession, remainingCapacity: 2, reservedCapacity: 0 }] }))
-      .mockResolvedValueOnce(response({ bookings: [{ ...booking, status: 'cancelled' }] }));
+      .mockResolvedValueOnce(response({ bookings: [{ ...booking, status: 'cancelled' }] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     await waitForInitialLoad();
@@ -275,9 +295,11 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [originalSession, replacement] }))
       .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ booking: replacementBooking, replayed: false }, 201))
       .mockResolvedValueOnce(response({ sessions: [originalSession, replacement] }))
-      .mockResolvedValueOnce(response({ bookings: [{ ...booking, status: 'rescheduled' }, replacementBooking] }));
+      .mockResolvedValueOnce(response({ bookings: [{ ...booking, status: 'rescheduled' }, replacementBooking] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     await waitForInitialLoad();
@@ -304,9 +326,11 @@ describe('Sessions booking integration', () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ sessions: [originalSession, replacement] }))
       .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(balanceResponse())
       .mockResolvedValueOnce(response({ error: 'Training session is full' }, 409))
       .mockResolvedValueOnce(response({ sessions: [originalSession, { ...replacement, remainingCapacity: 0, reservedCapacity: 2 }] }))
-      .mockResolvedValueOnce(response({ bookings: [booking] }));
+      .mockResolvedValueOnce(response({ bookings: [booking] }))
+      .mockResolvedValueOnce(balanceResponse());
 
     renderSessions();
     await waitForInitialLoad();

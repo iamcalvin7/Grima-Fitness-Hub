@@ -71,6 +71,29 @@ interface Booking {
       timezone?: string | null;
     } | null;
   };
+  commercial?: {
+    planName: string;
+    planVersion: number;
+    currency: string;
+    rateTable: Record<string, number>;
+    maximumHeldAmountMinor: number;
+    holdStatus: string;
+    settlement?: {
+      attendanceCount: number;
+      finalChargeAmountMinor: number;
+      releasedAmountMinor: number;
+    } | null;
+  } | null;
+}
+
+interface BalanceResponse {
+  totalValueMinor: number;
+  heldValueMinor: number;
+  availableValueMinor: number;
+  pricing?: {
+    planName: string;
+    version: number;
+  } | null;
 }
 
 interface SessionsResponse {
@@ -90,6 +113,11 @@ const DEFAULT_TIMEZONE = 'Europe/Malta';
 const DISCOVERY_DAYS = 90;
 const ACTIVE_BOOKING_STATUSES = new Set(['pending', 'confirmed']);
 const FINAL_BOOKING_STATUSES = new Set(['rejected', 'cancelled', 'rescheduled', 'attended', 'no_show']);
+
+function formatEur(minorUnits: number | undefined | null) {
+  if (minorUnits == null) return '';
+  return new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(minorUnits / 100);
+}
 
 function createIdempotencyKey(prefix: string): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -318,6 +346,26 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
                   : 'This booking is part of your session history.'}
             </p>
           )}
+          {booking.commercial && (
+            <div className="pt-4 mt-4 border-t border-white/5 space-y-4">
+              <div>
+                <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-1">Pricing Plan</p>
+                <p className="text-sm font-bold">{booking.commercial.planName}</p>
+              </div>
+              {booking.commercial.holdStatus === 'active' && booking.commercial.maximumHeldAmountMinor > 0 && (
+                <div>
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-amber-500/50 uppercase mb-1">Value Held</p>
+                  <p className="text-sm font-bold text-amber-400">{formatEur(booking.commercial.maximumHeldAmountMinor)}</p>
+                </div>
+              )}
+              {booking.commercial.settlement && booking.commercial.settlement.finalChargeAmountMinor > 0 && (
+                <div>
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-green-500/50 uppercase mb-1">Value Charged</p>
+                  <p className="text-sm font-bold text-green-400">{formatEur(booking.commercial.settlement.finalChargeAmountMinor)}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -339,6 +387,7 @@ function BookingSheet({ sessions, bookings, onClose, onBook, onMutationRejected 
   const [step, setStep] = useState<BookingStep>('date');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const keyRef = useRef<string | null>(null);
@@ -402,7 +451,8 @@ function BookingSheet({ sessions, bookings, onClose, onBook, onMutationRejected 
     setError(null);
     keyRef.current ??= createIdempotencyKey('booking');
     try {
-      await onBook(selectedSession.id, keyRef.current);
+      const result = await onBook(selectedSession.id, keyRef.current);
+      setCreatedBooking(result.booking);
       setStep('done');
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'We couldn’t send your request. Please try again.';
@@ -554,7 +604,15 @@ function BookingSheet({ sessions, bookings, onClose, onBook, onMutationRejected 
               <div className="w-16 h-16 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center mb-5"><Check size={28} weight="bold" className="text-primary" /></div>
               <h3 className="text-lg font-bold tracking-wider mb-2">Request Sent</h3>
               <p className="text-sm text-foreground/50 leading-relaxed mb-1">{formatDate(selectedSession.startsAt, selectedTimezone)}</p>
-              <p className="text-sm font-bold text-primary mb-6">{formatTime(selectedSession.startsAt, selectedTimezone)}</p>
+              <p className="text-sm font-bold text-primary mb-4">{formatTime(selectedSession.startsAt, selectedTimezone)}</p>
+              {createdBooking?.commercial && createdBooking.commercial.maximumHeldAmountMinor > 0 && (
+                <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 w-full max-w-sm">
+                  <p className="text-[10px] font-bold tracking-[0.2em] text-amber-500/60 uppercase mb-1">Value Held</p>
+                  <p className="text-base font-bold text-amber-500">{formatEur(createdBooking.commercial.maximumHeldAmountMinor)}</p>
+                  <p className="text-[10px] text-amber-500/50 mt-1">This value is held from your available balance until the session is settled.</p>
+                </div>
+              )}
+
               <p className="text-xs text-foreground/35 leading-relaxed max-w-[260px]">Your request is pending Marcus's confirmation. Your Sessions page will reflect the saved booking.</p>
               <button onClick={onClose} className="mt-10 w-full border border-white/12 hover:border-white/25 py-4 rounded-full text-sm font-bold tracking-[0.15em] uppercase text-foreground/60 hover:text-foreground transition-colors">Done</button>
             </motion.div>
@@ -585,6 +643,7 @@ function RescheduleSheet({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const keyRef = useRef<string | null>(null);
   const submissionInFlight = useRef(false);
   const activeSessionIds = useMemo(
@@ -610,7 +669,8 @@ function RescheduleSheet({
     setError(null);
     keyRef.current ??= createIdempotencyKey('reschedule');
     try {
-      await onReschedule(booking.id, replacementId, keyRef.current);
+      const result = await onReschedule(booking.id, replacementId, keyRef.current);
+      setCreatedBooking(result.booking);
       setDone(true);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'We couldn’t reschedule this booking. Please try again.';
@@ -640,8 +700,16 @@ function RescheduleSheet({
           <div className="flex flex-col items-center text-center py-10">
             <div className="w-16 h-16 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center mb-5"><Check size={28} weight="bold" className="text-primary" /></div>
             <h3 className="text-lg font-bold tracking-wider mb-2">Request Sent</h3>
+            {createdBooking?.commercial && createdBooking.commercial.maximumHeldAmountMinor > 0 && (
+              <div className="my-6 p-4 bg-amber-500/10 border border-amber-500/20 w-full max-w-sm">
+                <p className="text-[10px] font-bold tracking-[0.2em] text-amber-500/60 uppercase mb-1">Value Held</p>
+                <p className="text-base font-bold text-amber-500">{formatEur(createdBooking.commercial.maximumHeldAmountMinor)}</p>
+                <p className="text-[10px] text-amber-500/50 mt-1">This value is held from your available balance until the session is settled.</p>
+              </div>
+            )}
+
             <p className="text-sm text-foreground/45 leading-relaxed max-w-[270px]">Your original booking remains in your history and the replacement is pending Marcus's confirmation.</p>
-            <button onClick={onClose} className="mt-10 w-full border border-white/12 hover:border-white/25 py-4 rounded-full text-sm font-bold tracking-[0.15em] uppercase text-foreground/60 hover:text-foreground">Done</button>
+            <button onClick={onClose} className="mt-10 w-full border border-white/12 hover:border-white/25 py-4 rounded-full text-sm font-bold tracking-[0.15em] uppercase text-foreground/60 hover:text-foreground transition-colors">Done</button>
           </div>
         ) : (
           <>
@@ -694,6 +762,7 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [balance, setBalance] = useState<BalanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -709,12 +778,14 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
     try {
       const from = new Date();
       const to = new Date(from.getTime() + DISCOVERY_DAYS * 24 * 60 * 60 * 1000);
-      const [sessionResponse, bookingResponse] = await Promise.all([
+      const [sessionResponse, bookingResponse, balanceResponse] = await Promise.all([
         apiRequest<SessionsResponse>(`/training-sessions?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`, { signal }),
         apiRequest<BookingsResponse>('/bookings', { signal }),
+        apiRequest<BalanceResponse>('/commercial/balance', { signal }).catch(() => null),
       ]);
       setSessions(Array.isArray(sessionResponse.sessions) ? sessionResponse.sessions : []);
       setBookings(Array.isArray(bookingResponse.bookings) ? bookingResponse.bookings : []);
+      setBalance(balanceResponse);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       setLoadError(apiErrorMessage(error, 'load your sessions'));
@@ -859,14 +930,23 @@ export const Sessions = ({ setPage, openSessionId }: SessionsProps) => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-foreground pb-24 md:pb-0">
       <header className="px-5 md:px-8 py-5 sticky top-0 z-30 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-white/5">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-4 gap-4">
           <div>
             <h1 className="text-xl font-bold tracking-[0.15em] uppercase">Sessions</h1>
             <p className="text-xs text-foreground/40 font-semibold tracking-wider mt-0.5 hidden md:block">Manage your training schedule</p>
           </div>
-          <button onClick={() => { setActionError(null); setShowBooking(true); }} disabled={loading} data-testid="book-session-button" className="flex items-center gap-2 bg-primary px-4 py-2.5 text-[11px] font-bold tracking-widest uppercase text-primary-foreground hover:bg-primary/80 disabled:opacity-50 transition-colors">
-            <Plus size={13} weight="bold" /> Book Session
-          </button>
+          <div className="flex flex-col md:items-end gap-2">
+            {balance && (
+              <div className="flex gap-4 text-[10px] font-bold tracking-widest uppercase">
+                {balance.pricing && <span className="text-primary">{balance.pricing.planName}</span>}
+                <span className="text-white/60">Avail <span className="text-white ml-1">{formatEur(balance.availableValueMinor)}</span></span>
+                {balance.heldValueMinor > 0 && <span className="text-amber-500/80">Held <span className="text-amber-500 ml-1">{formatEur(balance.heldValueMinor)}</span></span>}
+              </div>
+            )}
+            <button onClick={() => { setActionError(null); setShowBooking(true); }} disabled={loading} data-testid="book-session-button" className="flex items-center justify-center gap-2 bg-primary px-4 py-2.5 text-[11px] font-bold tracking-widest uppercase text-primary-foreground hover:bg-primary/80 disabled:opacity-50 transition-colors w-full md:w-auto">
+              <Plus size={13} weight="bold" /> Book Session
+            </button>
+          </div>
         </div>
         <div className="flex gap-0 border border-white/10 w-fit">
           {(['upcoming', 'past'] as const).map((currentTab) => (

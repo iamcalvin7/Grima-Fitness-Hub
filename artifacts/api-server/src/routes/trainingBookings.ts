@@ -18,6 +18,8 @@ import {
 } from "drizzle-orm";
 import {
   db,
+  bookingCommercialsTable,
+  commercialSettlementsTable,
   bookingsTable,
   trainingLocationsTable,
   trainingSessionsTable,
@@ -44,6 +46,12 @@ import {
   MINIMUM_LEAD_MINUTES,
   validateTimezone,
 } from "../lib/availability";
+import {
+  CommercialError,
+  createBookingCommercial,
+  releaseBookingHold,
+  transferBookingCommercial,
+} from "../lib/commercial";
 
 const router: IRouter = Router();
 const UUID_RE =
@@ -184,7 +192,7 @@ function sessionValidationFields(input: {
 }
 
 function sendError(req: Request, res: Response, error: unknown, fallback: string) {
-  if (error instanceof HttpError) {
+  if (error instanceof HttpError || error instanceof CommercialError) {
     res.status(error.status).json({ error: error.message });
     return;
   }
@@ -472,6 +480,19 @@ async function getBooking(
       clientEmail: usersTable.email,
       clientFirstName: usersTable.firstName,
       clientLastName: usersTable.lastName,
+      commercialId: bookingCommercialsTable.id,
+      commercialPlanName: bookingCommercialsTable.pricingPlanName,
+      commercialPlanVersion: bookingCommercialsTable.pricingPlanVersion,
+      commercialCurrency: bookingCommercialsTable.currency,
+      commercialRateTable: bookingCommercialsTable.rateTable,
+      commercialMaximumHeldAmountMinor:
+        bookingCommercialsTable.maximumHeldAmountMinor,
+      commercialHoldStatus: bookingCommercialsTable.holdStatus,
+      commercialSettlementId: commercialSettlementsTable.id,
+      commercialFinalChargeAmountMinor:
+        commercialSettlementsTable.finalChargeAmountMinor,
+      commercialReleasedAmountMinor: commercialSettlementsTable.releasedAmountMinor,
+      commercialAttendanceCount: commercialSettlementsTable.attendanceCount,
     })
     .from(bookingsTable)
     .innerJoin(
@@ -502,6 +523,20 @@ async function getBooking(
         eq(usersTable.tenantId, bookingsTable.tenantId),
       ),
     )
+    .leftJoin(
+      bookingCommercialsTable,
+      and(
+        eq(bookingCommercialsTable.bookingId, bookingsTable.id),
+        eq(bookingCommercialsTable.tenantId, bookingsTable.tenantId),
+      ),
+    )
+    .leftJoin(
+      commercialSettlementsTable,
+      and(
+        eq(commercialSettlementsTable.bookingId, bookingsTable.id),
+        eq(commercialSettlementsTable.tenantId, bookingsTable.tenantId),
+      ),
+    )
     .where(
       and(eq(bookingsTable.id, id), eq(bookingsTable.tenantId, tenantId)),
     )
@@ -525,6 +560,23 @@ function bookingOutput(row: Awaited<ReturnType<typeof getBooking>>) {
     confirmedAt: row.confirmedAt,
     cancelledAt: row.cancelledAt,
     attendanceAt: row.attendanceAt,
+    commercial: row.commercialId
+      ? {
+          planName: row.commercialPlanName,
+          planVersion: row.commercialPlanVersion,
+          currency: row.commercialCurrency,
+          rateTable: row.commercialRateTable,
+          maximumHeldAmountMinor: row.commercialMaximumHeldAmountMinor,
+          holdStatus: row.commercialHoldStatus,
+          settlement: row.commercialSettlementId
+            ? {
+                attendanceCount: row.commercialAttendanceCount,
+                finalChargeAmountMinor: row.commercialFinalChargeAmountMinor,
+                releasedAmountMinor: row.commercialReleasedAmountMinor,
+              }
+            : null,
+        }
+      : null,
     session: {
       startsAt: row.sessionStartsAt,
       endsAt: row.sessionEndsAt,
@@ -793,6 +845,11 @@ router.post("/bookings", async (req, res) => {
         })
         .returning({ id: bookingsTable.id });
       if (!created) throw new Error("Failed to create booking");
+      const pricing = await createBookingCommercial(tx, {
+        tenantId,
+        bookingId: created.id,
+        clientUserId,
+      });
       const createdBooking = await getBooking(tx, tenantId, created.id);
       await notifyBookingEvent(tx, {
         tenantId,
@@ -819,6 +876,14 @@ router.post("/bookings", async (req, res) => {
         auditParams(req, "booking:create", "booking", created.id, {
           trainingSessionId,
           status: "pending",
+        }),
+        tx,
+      );
+      await writeAuditLog(
+        auditParams(req, "commercial_hold:create", "booking", created.id, {
+          maximumHeldAmountMinor: pricing.maximumHoldAmountMinor,
+          pricingPlanId: pricing.planId,
+          pricingPlanVersion: pricing.planVersion,
         }),
         tx,
       );
@@ -897,6 +962,11 @@ router.post("/bookings/:id/cancel", async (req, res) => {
             eq(bookingsTable.tenantId, req.user!.tenantId),
           ),
         );
+      const releasedHold = await releaseBookingHold(tx, {
+        tenantId: req.user!.tenantId,
+        bookingId,
+        reason: "booking_cancelled",
+      });
       await cancelPendingBookingReminders(tx, req.user!.tenantId, bookingId);
       await writeAuditLog(
         auditParams(req, "booking:cancel", "booking", bookingId, {
@@ -904,6 +974,15 @@ router.post("/bookings/:id/cancel", async (req, res) => {
         }),
         tx,
       );
+      if (releasedHold !== null) {
+        await writeAuditLog(
+          auditParams(req, "commercial_hold:release", "booking", bookingId, {
+            amountMinor: releasedHold,
+            reason: "booking_cancelled",
+          }),
+          tx,
+        );
+      }
       const cancelledBooking = await getBooking(tx, req.user!.tenantId, bookingId);
       await notifyBookingEvent(tx, {
         tenantId: req.user!.tenantId,
@@ -1044,6 +1123,11 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
             eq(bookingsTable.tenantId, tenantId),
           ),
         );
+      const transferredHold = await transferBookingCommercial(tx, {
+        tenantId,
+        originalBookingId: originalId,
+        replacementBookingId: created.id,
+      });
       await cancelPendingBookingReminders(tx, tenantId, originalId);
       await writeAuditLog(
         auditParams(req, "booking:reschedule", "booking", created.id, {
@@ -1052,6 +1136,15 @@ router.post("/bookings/:id/reschedule", async (req, res) => {
         }),
         tx,
       );
+      if (transferredHold !== null) {
+        await writeAuditLog(
+          auditParams(req, "commercial_hold:transfer", "booking", created.id, {
+            originalBookingId: originalId,
+            amountMinor: transferredHold,
+          }),
+          tx,
+        );
+      }
       const replacementBooking = await getBooking(tx, tenantId, created.id);
       await notifyBookingEvent(tx, {
         tenantId,
@@ -2138,6 +2231,14 @@ async function transitionBooking(
         )
         .returning();
       if (!updated) throw new HttpError(404, "Booking not found");
+      const releasedHold =
+        nextStatus === "rejected"
+          ? await releaseBookingHold(tx, {
+              tenantId: req.user!.tenantId,
+              bookingId: id,
+              reason: "booking_rejected",
+            })
+          : null;
       await writeAuditLog(
         auditParams(req, action, "booking", id, {
           ...(reason ? { reason } : {}),
@@ -2149,6 +2250,15 @@ async function transitionBooking(
         }),
         tx,
       );
+      if (releasedHold !== null) {
+        await writeAuditLog(
+          auditParams(req, "commercial_hold:release", "booking", id, {
+            amountMinor: releasedHold,
+            reason: "booking_rejected",
+          }),
+          tx,
+        );
+      }
       const updatedBooking = await getBooking(tx, req.user!.tenantId, id);
       const eventByStatus = {
         confirmed: "booking_confirmed",

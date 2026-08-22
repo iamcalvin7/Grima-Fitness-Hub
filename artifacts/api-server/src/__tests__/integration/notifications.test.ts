@@ -87,6 +87,27 @@ beforeAll(async () => {
   otherClientToken = (await createSession(otherClient.id)).token;
   otherTenantAdminToken = (await createSession(otherTenantAdmin.id)).token;
 
+  await request(app)
+    .post("/api/admin/commercial/pricing-plans")
+    .set("Cookie", sessionCookie(adminToken))
+    .send({
+      name: "Notification default",
+      kind: "default",
+      rates: [{ participantCount: 1, amountMinor: 9000 }],
+    })
+    .expect(201);
+  for (const currentClient of [client, otherClient]) {
+    await request(app)
+      .post(`/api/admin/commercial/clients/${currentClient.id}/value`)
+      .set("Cookie", sessionCookie(adminToken))
+      .send({
+        amountMinor: 100_000,
+        reason: "Notification fixture value",
+        idempotencyKey: `fixture-value-${currentClient.id}`,
+      })
+      .expect(201);
+  }
+
   const location = await request(app)
     .post("/api/admin/training-locations")
     .set("Cookie", sessionCookie(adminToken))

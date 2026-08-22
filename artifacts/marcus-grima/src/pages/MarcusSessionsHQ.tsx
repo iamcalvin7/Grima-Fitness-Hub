@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiError, apiRequest } from '@/lib/api';
 import { WeeklySchedulePlanner } from '@/components/WeeklySchedulePlanner';
+import { CommercialHQ } from '@/components/CommercialHQ';
 import { 
   CalendarBlank, MapPin, User, WarningCircle, CheckCircle, XCircle, 
   SpinnerGap, CaretRight, Plus, X, Barbell, Trash, 
-  PencilSimple, ArrowClockwise
+  PencilSimple, ArrowClockwise, CurrencyEur
 } from '@phosphor-icons/react';
 
 // --- Types ---
@@ -1018,7 +1019,7 @@ function SessionTypeModal({ type, onClose, onSave, submitting }: { type: Session
 
 export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) {
   const data = useAdminData();
-  const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability' | 'commercial'>('requests');
   const [actionId, setActionId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
@@ -1087,6 +1088,9 @@ export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) 
           <button onClick={() => setActiveTab('availability')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'availability' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`} data-testid="button-tab-availability">
             <span className="flex items-center gap-3"><ArrowClockwise size={16} weight={activeTab === 'availability' ? 'bold' : 'regular'} /> Availability</span>
           </button>
+          <button onClick={() => setActiveTab('commercial')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'commercial' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`} data-testid="button-tab-commercial">
+            <span className="flex items-center gap-3"><CurrencyEur size={16} weight={activeTab === 'commercial' ? 'bold' : 'regular'} /> Commercial</span>
+          </button>
         </nav>
       </aside>
 
@@ -1094,7 +1098,7 @@ export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) 
       <main className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
         <header className="h-16 md:h-20 border-b border-white/10 flex items-center justify-between px-4 md:px-10 shrink-0">
           <h2 className="text-xl font-bold tracking-tight text-white">
-            {activeTab === 'schedule' ? 'Weekly Schedule' : activeTab === 'availability' ? 'Availability' : 'Requests'}
+            {activeTab === 'schedule' ? 'Weekly Schedule' : activeTab === 'availability' ? 'Availability' : activeTab === 'commercial' ? 'Commercial HQ' : 'Requests'}
           </h2>
           <div className="flex items-center gap-4">
             <button onClick={() => data.reload(false)} disabled={data.loading || data.reloading} className="p-2.5 text-white/30 hover:text-white rounded-full hover:bg-white/10 disabled:opacity-50 transition-colors" title="Sync with Server">
@@ -1125,6 +1129,7 @@ export function MarcusSessionsHQ({ openBookingId }: { openBookingId?: string }) 
             {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} openBookingId={openBookingId} />}
               {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'availability' && <AvailabilityView rules={data.rules} exceptions={data.exceptions} occurrences={data.occurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
+              {activeTab === 'commercial' && <CommercialHQ execute={execute} actionId={actionId} sessions={data.sessions} />}
             </motion.div>
           </AnimatePresence>
         </div>

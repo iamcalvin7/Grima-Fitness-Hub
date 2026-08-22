@@ -3,3 +3,4 @@
 - [Profile data model](profile-data-model.md) — separate profiles table; experience vs activity level semantics; age→DOB conversion; avatar data-URL interim; migration/race rules.
 - [Integration test harness](integration-test-harness.md) — pool connect-event search_path trick; singleFork; global-setup DDL; audit route returns `records` not `logs`; run via `test:integration`.
 - [Weekly schedule & recurrence](weekly-schedule-transition.md) — dated sessions remain canonical; admin-managed weekly availability now materializes safe bookable sessions in the same table.
+- [Commercial value lifecycle](commercial-value-lifecycle.md) — immutable internal value snapshots, single active holds, and completed-session settlement rules.

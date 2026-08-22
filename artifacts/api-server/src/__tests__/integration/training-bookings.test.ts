@@ -73,6 +73,33 @@ beforeAll(async () => {
   clientBToken = (await createSession(clientB.id)).token;
   clientCToken = (await createSession(clientC.id)).token;
 
+  const pricingPlan = await request(app)
+    .post("/api/admin/commercial/pricing-plans")
+    .set("Cookie", sessionCookie(adminAToken))
+    .send({
+      name: "Integration default",
+      kind: "default",
+      rates: [
+        { participantCount: 1, amountMinor: 9000 },
+        { participantCount: 2, amountMinor: 6000 },
+        { participantCount: 3, amountMinor: 4500 },
+      ],
+    })
+    .expect(201);
+  expect(pricingPlan.body.pricingPlan.kind).toBe("default");
+
+  for (const client of [clientA, clientB, clientC]) {
+    await request(app)
+      .post(`/api/admin/commercial/clients/${client.id}/value`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({
+        amountMinor: 100_000,
+        reason: "Integration fixture value",
+        idempotencyKey: `fixture-value-${client.id}`,
+      })
+      .expect(201);
+  }
+
   const location = await request(app)
     .post("/api/admin/training-locations")
     .set("Cookie", sessionCookie(adminAToken))

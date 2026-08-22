@@ -11,6 +11,7 @@ import auditRouter from "./audit";
 import trainingBookingsRouter from "./trainingBookings";
 import availabilityRouter from "./availability";
 import notificationsRouter from "./notifications";
+import commercialRouter from "./commercial";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use(proposalFeaturesRouter);
 router.use(auditRouter);
 router.use(trainingBookingsRouter);
 router.use(availabilityRouter);
-  router.use(notificationsRouter);
+router.use(notificationsRouter);
+router.use(commercialRouter);
 
 export default router;
