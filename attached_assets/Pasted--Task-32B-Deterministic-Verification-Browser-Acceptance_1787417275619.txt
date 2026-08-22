@@ -1,0 +1,764 @@
+# Task #32B — Deterministic Verification & Browser Acceptance for Timed In-App Reminders
+
+## Objective
+
+Complete verification for Task #32 without adding new product scope.
+
+The core timed in-app reminder implementation is already in place.
+
+This task is specifically to prove that the current implementation behaves correctly across:
+
+* due delivery
+* suppression
+* rescheduling
+* idempotency
+* restart persistence
+* timezone handling
+* recipient isolation
+* unread count
+* notification deep links
+* real browser flow
+
+Do not add new reminder behaviour unless a failing test proves a defect.
+
+---
+
+## Risk
+
+**AMBER — Verification and potential defect correction only**
+
+No new scheduling policy is approved.
+
+If verification exposes a bug, fix only the smallest proven cause and report it.
+
+Do not expand into reminder preferences, external channels, or new lifecycle rules.
+
+---
+
+# 1. Current Implementation to Preserve
+
+The current implementation already includes:
+
+* `session_reminder_24h`
+* `session_reminder_2h`
+* persistent reminder rows in `notifications`
+* delivery states:
+
+  * `pending`
+  * `delivered`
+  * `cancelled`
+* server-side development processor every 30 seconds
+* reminders scheduled only after booking confirmation
+* no retroactive scheduling of already-passed reminder windows
+* invalidation on:
+
+  * cancellation
+  * reschedule
+  * attendance
+  * no-show
+  * session cancellation
+  * session completion
+* eligibility re-check before delivery
+* pending reminders hidden from inbox/unread count
+* stable event keys for deduplication
+* due-reminder index
+* development migration already applied
+
+Do not redesign these mechanisms unless a test demonstrates a defect.
+
+---
+
+# 2. Deterministic Time Testing
+
+Do not wait real hours.
+
+Add deterministic tests using the smallest safe time-control mechanism compatible with the existing codebase.
+
+Preferred options:
+
+* injectable clock/time provider
+* controlled `now`
+* fake timers where appropriate
+* explicit processor invocation against controlled timestamps
+
+Do not weaken production logic just to make tests easier.
+
+The processor should be directly testable without requiring a real 30-second wait loop.
+
+---
+
+# 3. 24-Hour Reminder Test
+
+Create a confirmed booking whose session is sufficiently in the future.
+
+Verify that:
+
+1. A `session_reminder_24h` record exists.
+2. It begins as `pending`.
+3. It is excluded from the client's notification inbox.
+4. It is excluded from unread count.
+5. Before `scheduledFor`, processor run does not deliver it.
+6. At/after the valid due point, processor delivers it.
+7. Status becomes `delivered`.
+8. It now appears in the client's notification list.
+9. Unread count increases by exactly 1.
+10. It references the correct booking/session.
+11. It contains the correct event type.
+12. Running the processor again does not create or deliver another 24h reminder.
+
+Expected:
+
+```text
+PASS — exactly one delivered 24h reminder
+```
+
+---
+
+# 4. 2-Hour Reminder Test
+
+Repeat the same deterministic flow for:
+
+```text
+session_reminder_2h
+```
+
+Verify:
+
+* pending before due
+* hidden from inbox before delivery
+* delivered at the correct window
+* correct client
+* correct booking/session
+* unread count increments once
+* repeated processing produces no duplicate
+
+Expected:
+
+```text
+PASS — exactly one delivered 2h reminder
+```
+
+---
+
+# 5. Late Confirmation Tests
+
+Verify the existing rule explicitly.
+
+## Scenario A — session 10 hours away
+
+Confirm booking.
+
+Expected:
+
+```text
+24h reminder: NOT scheduled
+2h reminder: scheduled
+```
+
+## Scenario B — session 90 minutes away
+
+Confirm booking.
+
+Expected:
+
+```text
+24h reminder: NOT scheduled
+2h reminder: NOT scheduled
+```
+
+Do not create retroactive reminders.
+
+---
+
+# 6. Cancellation Suppression
+
+Create confirmed booking with pending reminders.
+
+Cancel before reminder delivery.
+
+Verify:
+
+* relevant pending reminders become `cancelled` or otherwise inactive according to the implemented model
+* processor does not expose them
+* client unread count does not increase
+* no reminder notification appears later
+
+Expected:
+
+```text
+PASS — cancelled booking produces no future timed reminder
+```
+
+---
+
+# 7. Reschedule Suppression & Replacement
+
+This requires exact occurrence validation.
+
+Create:
+
+```text
+Original session:
+Monday 17:00
+```
+
+Confirm and create pending reminders.
+
+Reschedule to:
+
+```text
+Replacement session:
+Tuesday 10:00
+```
+
+Verify:
+
+1. Old occurrence reminder rows are invalidated.
+2. Old Monday reminders can never deliver.
+3. If rescheduling returns booking to `pending`, no new confirmed reminder is scheduled yet.
+4. After replacement booking becomes confirmed, applicable reminder rows are scheduled against Tuesday 10:00.
+5. Event identity references the new occurrence timestamp.
+6. Delivered reminder deep-links to the replacement booking/session.
+
+Expected:
+
+```text
+PASS — no stale reminder survives rescheduling
+```
+
+---
+
+# 8. Attendance Suppression
+
+Create confirmed booking with pending reminder.
+
+Mark attended before reminder would deliver.
+
+Verify:
+
+* pending reminder is invalidated
+* processor does not expose it
+* no unread notification created
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+# 9. No-Show Suppression
+
+Repeat for:
+
+```text
+booking status = no_show
+```
+
+Expected:
+
+```text
+PASS — no future timed reminder
+```
+
+---
+
+# 10. Session Cancellation Suppression
+
+If the session itself becomes cancelled while booking reminder is pending:
+
+Verify:
+
+* reminder no longer delivers
+* unread count remains unchanged
+* processor records an appropriate suppression reason if diagnostics support one
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+# 11. Session Completion Suppression
+
+If session is manually completed before reminder delivery:
+
+Verify:
+
+* pending reminder does not become visible
+* no stale reminder is delivered
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+# 12. Delivery-Time Revalidation
+
+Prove the processor does not trust scheduling-time state.
+
+Create a valid pending reminder.
+
+Change the associated booking/session state before the reminder is due.
+
+Then process it.
+
+Verify current state is re-read and the reminder is suppressed.
+
+This test should prove the equivalent of:
+
+```text
+scheduled correctly earlier
+≠
+automatically valid now
+```
+
+---
+
+# 13. Idempotency
+
+Test repeated processing aggressively.
+
+For one due reminder:
+
+```text
+processor run 1
+processor run 2
+processor run 3
+```
+
+Verify:
+
+* one notification becomes delivered
+* one unread item exists
+* no duplicate notification rows
+* no duplicate lifecycle side effects
+
+Also test repeated confirmation/retry if applicable.
+
+Expected:
+
+```text
+PASS — exactly-once visible reminder behaviour
+```
+
+---
+
+# 14. Restart Persistence
+
+Prove reminder schedules survive process restart.
+
+Required development verification:
+
+1. Create confirmed future booking.
+2. Verify pending reminder exists in database.
+3. Restart API workflow/process.
+4. Confirm pending reminder still exists.
+5. Advance/control time to due point.
+6. Run/restart processor.
+7. Verify reminder delivers normally.
+
+Do not rely only on an automated mock for this specific acceptance case.
+
+Expected:
+
+```text
+PASS — persisted reminder survives restart
+```
+
+---
+
+# 15. Malta Summer-Time Coverage
+
+Test a session during Europe/Malta summer offset:
+
+```text
+UTC+02:00
+```
+
+Verify:
+
+* reminder due calculation is based on canonical timestamp
+* 24h reminder is exactly 24 hours before the session instant
+* 2h reminder is exactly 2 hours before
+* displayed local session time is correct
+* no double offset is applied
+
+Do not manually subtract timezone values.
+
+---
+
+# 16. Malta Winter-Time Coverage
+
+Repeat for:
+
+```text
+UTC+01:00
+```
+
+Verify the same rules.
+
+Expected:
+
+```text
+PASS — summer and winter offsets both correct
+```
+
+---
+
+# 17. DST Boundary Coverage
+
+Where practical, add one targeted test around a Europe/Malta daylight-saving transition.
+
+The requirement is not that local clock subtraction equals a fixed wall-clock difference.
+
+The requirement is that reminders are scheduled from the actual stored session instant correctly.
+
+If the current date library/runtime already handles this cleanly, test that behaviour without introducing manual DST logic.
+
+---
+
+# 18. Client-Only Recipient Isolation
+
+Timed reminders are client-only in Task #32.
+
+Verify:
+
+* intended client receives reminder
+* Marcus does not receive timed reminder
+* another client does not receive it
+* another tenant cannot see it
+* unread count is scoped to recipient
+* notification list is scoped to recipient
+
+Expected:
+
+```text
+PASS — no recipient leakage
+```
+
+---
+
+# 19. Pending Reminder Visibility
+
+Explicitly prove that a `pending` scheduled reminder is not treated as a normal notification.
+
+Before delivery:
+
+```text
+notification inbox → absent
+unread count → unchanged
+```
+
+After delivery:
+
+```text
+notification inbox → present
+unread count → +1
+```
+
+This is an important acceptance requirement.
+
+---
+
+# 20. Deep-Link Test
+
+For both:
+
+```text
+session_reminder_24h
+session_reminder_2h
+```
+
+verify notification click opens the correct booking/session.
+
+Test:
+
+* normal in-app navigation
+* direct route load
+* browser refresh
+* booking/session focus retained
+
+The reminder must not open a stale session after rescheduling.
+
+---
+
+# 21. Missing / Unauthorized Deep-Link Safety
+
+Verify:
+
+### Missing booking/session
+
+Safe unavailable/not-found state.
+
+### Another client's booking
+
+No confidential data exposed.
+
+### Wrong tenant
+
+No access.
+
+Do not leak record existence through overly specific error messages.
+
+---
+
+# 22. Accelerated Browser Acceptance Scenario
+
+Use the actual development app.
+
+Do not change the product's real 24h/2h reminder windows.
+
+Use a controlled development/testing mechanism to make a reminder due safely.
+
+Required flow:
+
+```text
+CLIENT
+
+Has confirmed future session
+↓
+Reminder exists as pending
+↓
+Reminder is not visible yet
+↓
+Controlled test time / processor makes it due
+↓
+Bell unread count increases
+↓
+Open notifications
+↓
+See "Session tomorrow" or "Session in 2 hours"
+↓
+Tap reminder
+↓
+Correct session detail opens
+```
+
+Verify at least one reminder type in the real browser.
+
+Preferred: verify both if the test mechanism makes this inexpensive.
+
+---
+
+# 23. Mobile Browser Check
+
+At 390px:
+
+* bell remains usable
+* unread badge visible
+* reminder notification readable
+* panel/drawer does not overflow
+* tapping reminder opens correct session
+
+Do not redesign the notification UI.
+
+---
+
+# 24. Diagnostics
+
+Inspect existing structured scheduler diagnostics.
+
+For test scenarios, confirm useful results are available for states such as:
+
+```text
+delivered
+already_delivered
+cancelled
+booking_not_confirmed
+session_changed
+session_completed
+stale
+```
+
+Use the actual implemented vocabulary.
+
+Do not add noisy logs solely for test output if existing diagnostics are sufficient.
+
+---
+
+# 25. Failure Handling Test
+
+Simulate a processor failure if the architecture supports doing so safely.
+
+Verify:
+
+* booking remains correct
+* reminder is not falsely marked delivered
+* retry remains possible
+* no duplicate visible notification is produced after successful retry
+
+Do not introduce an artificial production failure mode just for testing.
+
+---
+
+# 26. Existing Regression Suites
+
+After dedicated reminder coverage is added, run all existing relevant suites.
+
+Required:
+
+* API integration tests
+* Task #30 notification coverage
+* Task #31 attendance coverage
+* frontend notification tests
+* frontend Sessions tests
+* API typecheck
+* frontend typecheck
+* frontend production build
+
+No existing coverage may be removed or weakened.
+
+---
+
+# 27. Scope Protection
+
+Do not implement:
+
+* reminder preferences
+* Marcus reminders
+* email
+* SMS
+* push
+* browser push
+* external provider integration
+* payment reminders
+* workout reminders
+* automatic attendance
+* automatic completion
+* credit policy
+* new scheduling windows
+* new reminder frequency
+
+Verification only, except for proven defect fixes.
+
+---
+
+# 28. Required Report
+
+Return the following.
+
+## Dedicated Reminder Tests
+
+Provide PASS / BLOCKED for:
+
+| Scenario                         | Result |
+| -------------------------------- | ------ |
+| 24h delivery                     |        |
+| 2h delivery                      |        |
+| Late confirmation 10h            |        |
+| Late confirmation 90m            |        |
+| Cancellation suppression         |        |
+| Reschedule suppression           |        |
+| Attendance suppression           |        |
+| No-show suppression              |        |
+| Session cancellation suppression |        |
+| Session completion suppression   |        |
+| Delivery-time revalidation       |        |
+| Idempotency                      |        |
+| Restart persistence              |        |
+| Malta summer timezone            |        |
+| Malta winter timezone            |        |
+| DST boundary                     |        |
+| Recipient isolation              |        |
+| Pending reminder hidden          |        |
+| Deep link                        |        |
+| Unauthorized link                |        |
+| Browser unread-count flow        |        |
+| Mobile notification flow         |        |
+
+## Defects Found
+
+For each defect, report:
+
+* symptom
+* proven cause
+* smallest fix
+* files changed
+* regression test added
+
+If none:
+
+```text
+No reminder defects found.
+```
+
+## Reminder Counts
+
+Show one controlled example demonstrating:
+
+```text
+Before due:
+pending = X
+visible = 0
+unread = 0
+
+After due:
+delivered = X
+visible = X
+unread = X
+```
+
+## Restart Evidence
+
+Describe the actual development workflow restart test.
+
+## Timezone Evidence
+
+Provide one summer and one winter example using actual timestamps.
+
+## Browser Verification
+
+Describe:
+
+```text
+due reminder
+→ unread badge
+→ notification panel
+→ correct session deep link
+```
+
+## Final Test Totals
+
+Report:
+
+* API integration tests
+* frontend tests
+* API typecheck
+* frontend typecheck
+* production build
+
+## Task #32 Verdict
+
+Use exactly one:
+
+```text
+COMPLETE IN DEVELOPMENT
+```
+
+or:
+
+```text
+BLOCKED
+```
+
+Do not mark complete if any core reminder acceptance case remains unverified.
+
+## Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+* no email
+* no SMS
+* no push
+* no external notification delivery

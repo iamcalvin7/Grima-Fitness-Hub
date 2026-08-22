@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
+import { and, eq } from "drizzle-orm";
 import {
   app,
   createSession,
@@ -9,6 +10,8 @@ import {
   type Tenant,
   type User,
 } from "./harness";
+import { bookingsTable, db, notificationsTable, trainingSessionsTable } from "@workspace/db";
+import { processDueSessionReminders } from "../../lib/sessionReminderScheduler";
 
 let tenant: Tenant;
 let otherTenant: Tenant;
@@ -269,5 +272,41 @@ describe("in-app booking notifications", () => {
         title: "Reschedule request",
       }),
     ]));
+  });
+
+  it("delivers a due 24-hour reminder exactly once and keeps it hidden while pending", async () => {
+    const [scheduled] = await db
+      .select({ id: notificationsTable.id, scheduledFor: notificationsTable.scheduledFor, type: notificationsTable.type })
+      .from(notificationsTable)
+      .where(and(
+        eq(notificationsTable.bookingId, bookingId),
+        eq(notificationsTable.type, "session_reminder_24h"),
+      ));
+    expect(scheduled?.type).toBe("session_reminder_24h");
+    expect(scheduled?.scheduledFor).toBeTruthy();
+    const pendingInbox = await request(app)
+      .get("/api/notifications")
+      .set("Cookie", sessionCookie(clientToken))
+      .expect(200);
+    expect(pendingInbox.body.notifications.some((item: { type: string; bookingId: string }) =>
+      item.type === "session_reminder_24h" && item.bookingId === bookingId)).toBe(false);
+
+    const [booking] = await db
+      .select({ trainingSessionId: bookingsTable.trainingSessionId })
+      .from(bookingsTable)
+      .where(eq(bookingsTable.id, bookingId));
+    const [session] = await db
+      .select({ startsAt: trainingSessionsTable.startsAt })
+      .from(trainingSessionsTable)
+      .where(eq(trainingSessionsTable.id, booking!.trainingSessionId));
+    const controlledNow = new Date(session!.startsAt.getTime() - 24 * 60 * 60 * 1000 + 1000);
+    expect(await processDueSessionReminders(controlledNow)).toBe(1);
+    expect(await processDueSessionReminders(new Date(controlledNow.getTime() + 1000))).toBe(0);
+    const delivered = await request(app)
+      .get("/api/notifications")
+      .set("Cookie", sessionCookie(clientToken))
+      .expect(200);
+    expect(delivered.body.notifications.filter((item: { type: string; bookingId: string }) =>
+      item.type === "session_reminder_24h" && item.bookingId === bookingId)).toHaveLength(1);
   });
 });
