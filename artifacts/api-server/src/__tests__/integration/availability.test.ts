@@ -55,8 +55,8 @@ beforeAll(async () => {
   sessionTypeId = type.body.sessionType.id;
 });
 
-describe("recurring availability admin boundary", () => {
-  it("fails closed for Clients and Trainers", async () => {
+describe("dormant recurring availability boundary", () => {
+  it("does not expose recurrence routes to Clients, Trainers, or Admins", async () => {
     await request(app)
       .get("/api/admin/availability/rules")
       .set("Cookie", sessionCookie(clientAToken))
@@ -65,6 +65,10 @@ describe("recurring availability admin boundary", () => {
       .get("/api/admin/availability/rules")
       .set("Cookie", sessionCookie(trainerAToken))
       .expect(403);
+    await request(app)
+      .get("/api/admin/availability/rules")
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(404);
   });
 
   it("validates IANA timezones on location creation", async () => {
@@ -75,9 +79,9 @@ describe("recurring availability admin boundary", () => {
       .expect(400);
   });
 
-  it("creates and audits a tenant-scoped weekly rule without leaking it", async () => {
+  it("does not mutate dormant recurring rules", async () => {
     const beforeAudit = await countAuditLogs(tenantA.id, "availability_rule:create");
-    const create = await request(app)
+    await request(app)
       .post("/api/admin/availability/rules")
       .set("Cookie", sessionCookie(adminAToken))
       .send({
@@ -89,28 +93,7 @@ describe("recurring availability admin boundary", () => {
         slotIntervalMinutes: 60,
         effectiveFrom,
       })
-      .expect(201);
-    expect(create.body.rule).toMatchObject({
-      locationId,
-      sessionTypeId,
-      weekday,
-      isActive: true,
-    });
-    expect(await countAuditLogs(tenantA.id, "availability_rule:create")).toBe(beforeAudit + 1);
-
-    const ownerRead = await request(app)
-      .get("/api/admin/availability/rules")
-      .set("Cookie", sessionCookie(adminAToken))
-      .expect(200);
-    expect(ownerRead.body.rules).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: create.body.rule.id })]),
-    );
-    const otherTenantRead = await request(app)
-      .get("/api/admin/availability/rules")
-      .set("Cookie", sessionCookie(adminBToken))
-      .expect(200);
-    expect(otherTenantRead.body.rules).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: create.body.rule.id })]),
-    );
+      .expect(404);
+    expect(await countAuditLogs(tenantA.id, "availability_rule:create")).toBe(beforeAudit);
   });
 });

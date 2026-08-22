@@ -98,7 +98,7 @@ export const trainingSessionsTable = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
-    sessionTypeId: uuid("session_type_id").notNull(),
+    sessionTypeId: uuid("session_type_id"),
     locationId: uuid("location_id").notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "date" }).notNull(),

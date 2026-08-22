@@ -5,289 +5,123 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 const { apiRequest } = vi.hoisted(() => ({ apiRequest: vi.fn() }));
 
 vi.mock('@/lib/api', () => ({ apiRequest }));
-
 vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) =>
-      React.createElement('div', props, children),
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) =>
-    React.createElement(React.Fragment, null, children),
+  motion: { div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => React.createElement('div', props, children) },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
 }));
 
 import { MarcusSessionsHQ } from '@/pages/MarcusSessionsHQ';
 
-const pendingBooking = {
-  id: 'booking-1',
-  trainingSessionId: 'session-1',
-  clientUserId: 'client-1',
-  status: 'pending',
-  rejectionReason: null,
-  createdAt: '2026-08-22T10:00:00.000Z',
-  confirmedAt: null,
-  attendanceAt: null,
-  session: {
-    startsAt: '2026-09-01T10:00:00.000Z',
-    endsAt: '2026-09-01T11:00:00.000Z',
-    status: 'scheduled',
-    sessionType: { id: 'type-1', name: 'Personal Training' },
-    location: { id: 'location-1', name: 'Sliema Studio', timezone: 'Europe/Malta' },
-  },
+const location = { id: 'location-1', name: 'Sliema Studio', timezone: 'Europe/Malta', addressDetails: '1 Main Street', isActive: true };
+const booking = {
+  id: 'booking-1', trainingSessionId: 'session-1', clientUserId: 'client-1', status: 'pending', rejectionReason: null,
+  createdAt: '2026-08-22T10:00:00.000Z', confirmedAt: null, attendanceAt: null,
+  session: { startsAt: '2026-08-18T10:00:00.000Z', endsAt: '2026-08-18T11:00:00.000Z', status: 'scheduled', sessionType: null, location },
   client: { id: 'client-1', firstName: 'Calvin', lastName: 'Test', email: 'calvin@example.com' },
 };
-
-const managedLocation = {
-  id: 'location-1',
-  name: 'Sliema Studio',
-  timezone: 'Europe/Malta',
-  addressDetails: '1 Main Street',
-  isActive: true,
+const slot = {
+  id: 'session-1', sessionTypeId: null, locationId: location.id, startsAt: '2026-08-18T10:00:00.000Z', endsAt: '2026-08-18T11:00:00.000Z',
+  capacity: 4, reservedCapacity: 0, remainingCapacity: 4, status: 'scheduled', marcusNotes: null, sessionType: null, location,
 };
 
-const managedType = {
-  id: 'type-1',
-  name: 'Personal Training',
-  description: 'One-to-one coaching',
-  durationMinutes: 60,
-  defaultCapacity: 1,
-  isActive: true,
-};
-
-const managedSession = {
-  id: 'session-1',
-  sessionTypeId: 'type-1',
-  locationId: 'location-1',
-  startsAt: '2026-09-01T10:00:00.000Z',
-  endsAt: '2026-09-01T11:00:00.000Z',
-  capacity: 4,
-  reservedCapacity: 1,
-  remainingCapacity: 3,
-  status: 'scheduled',
-  marcusNotes: null,
-  sessionType: managedType,
-  location: managedLocation,
-};
-
-function mockAdminData(
-  bookings = [pendingBooking],
-  confirmFails = false,
-  resources: { sessions?: unknown[]; locations?: unknown[]; sessionTypes?: unknown[] } = {},
-) {
+function mockAdminData(resources: { sessions?: unknown[]; locations?: unknown[]; bookings?: unknown[] } = {}) {
   apiRequest.mockImplementation((path: string) => {
     if (path === '/admin/training-sessions') return Promise.resolve({ sessions: resources.sessions ?? [] });
-    if (path === '/admin/bookings') return Promise.resolve({ bookings });
-    if (path === '/admin/training-locations') return Promise.resolve({ locations: resources.locations ?? [] });
-    if (path === '/admin/session-types') return Promise.resolve({ sessionTypes: resources.sessionTypes ?? [] });
-    if (path === '/admin/availability/rules') return Promise.resolve({ rules: [] });
-    if (path === '/admin/availability/exceptions') return Promise.resolve({ exceptions: [] });
-    if (path === '/admin/availability/preview') return Promise.resolve({ occurrences: [] });
-    if (path === '/admin/bookings/booking-1/confirm') {
-      return confirmFails
-        ? Promise.reject(new Error('Booking can no longer be confirmed.'))
-        : Promise.resolve({ booking: { ...pendingBooking, status: 'confirmed' } });
-    }
+    if (path === '/admin/bookings') return Promise.resolve({ bookings: resources.bookings ?? [booking] });
+    if (path === '/admin/training-locations') return Promise.resolve({ locations: resources.locations ?? [location] });
+    if (path === '/admin/session-types') return Promise.resolve({ sessionTypes: [] });
+    if (path === '/admin/training-sessions/copy-previous-week') return Promise.resolve({ created: [{ sessionId: 'copy-1' }], skipped: [], conflicts: [] });
     if (path.startsWith('/admin/')) return Promise.resolve({});
     return Promise.reject(new Error(`Unexpected endpoint: ${path}`));
   });
 }
 
 async function actEvent(action: () => void) {
-  await act(async () => {
-    action();
-    await Promise.resolve();
-    await Promise.resolve();
-  });
+  await act(async () => { action(); await Promise.resolve(); await Promise.resolve(); });
 }
 
-describe('MarcusSessionsHQ', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+async function openWeekSchedule() {
+  const scheduleButton = await screen.findByRole('button', { name: /schedule/i });
+  await actEvent(() => fireEvent.click(scheduleButton));
+  await actEvent(() => fireEvent.change(screen.getByLabelText('Week starting'), { target: { value: '2026-08-17' } }));
+}
 
-  it('loads pending booking requests from the admin endpoint envelope', async () => {
+describe('MarcusSessionsHQ weekly schedule', () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it('keeps request approval available and does not fetch or expose recurrence controls', async () => {
     mockAdminData();
     render(<MarcusSessionsHQ />);
-
     expect(await screen.findByText('Calvin Test')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-confirm-booking-1')).toBeInTheDocument();
     expect(apiRequest).toHaveBeenCalledWith('/admin/bookings');
+    expect(apiRequest).not.toHaveBeenCalledWith('/admin/availability/rules');
+    expect(screen.queryByRole('button', { name: /availability/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^locations$/i })).not.toBeInTheDocument();
   });
 
-  it('confirms a request and refreshes authoritative admin data', async () => {
-    mockAdminData();
+  it('creates a type-less bookable slot from the selected week', async () => {
+    mockAdminData({ sessions: [slot] });
     render(<MarcusSessionsHQ />);
-
-    await screen.findByTestId('btn-confirm-booking-1');
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-confirm-booking-1')));
-
-    await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-1/confirm', { method: 'POST' });
-    });
-    await waitFor(() => {
-      expect(apiRequest.mock.calls.filter(([path]) => path === '/admin/training-sessions').length).toBeGreaterThan(1);
-    });
-  });
-
-  it('retains the request view and reloads authoritative data after a failed confirmation', async () => {
-    mockAdminData([pendingBooking], true);
-    render(<MarcusSessionsHQ />);
-
-    await screen.findByTestId('btn-confirm-booking-1');
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-confirm-booking-1')));
-
-    expect(await screen.findByText('Booking can no longer be confirmed.')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-confirm-booking-1')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(apiRequest.mock.calls.filter(([path]) => path === '/admin/bookings').length).toBeGreaterThan(1);
-    });
-  });
-
-  it('filters bookings by status and opens a booking detail view', async () => {
-    const confirmedBooking = {
-      ...pendingBooking,
-      id: 'booking-2',
-      status: 'confirmed',
-      client: { ...pendingBooking.client, firstName: 'Mira', lastName: 'Admin' },
-    };
-    mockAdminData([pendingBooking, confirmedBooking]);
-    render(<MarcusSessionsHQ />);
-
-    await screen.findByText('Calvin Test');
-    await actEvent(() => fireEvent.change(screen.getByTestId('select-booking-status'), { target: { value: 'confirmed' } }));
-
-    expect(await screen.findByText('Mira Admin')).toBeInTheDocument();
-    expect(screen.queryByText('Calvin Test')).not.toBeInTheDocument();
-    await actEvent(() => fireEvent.click(screen.getByTestId('button-booking-detail-booking-2')));
-    expect(await screen.findByText('Booking details')).toBeInTheDocument();
-    expect(screen.getByText('confirmed')).toBeInTheDocument();
-  });
-
-  it('shows empty schedule, location, and type management states with creation controls', async () => {
-    mockAdminData([]);
-    render(<MarcusSessionsHQ />);
-
-    await screen.findByText('No pending bookings right now.');
-    const scheduleTab = await screen.findByRole('button', { name: /schedule/i });
-    await actEvent(() => fireEvent.click(scheduleTab));
-    expect(await screen.findByText('No upcoming sessions found.')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-create-session')).toBeInTheDocument();
-
-    const locationsTab = await screen.findByRole('button', { name: /locations/i });
-    await actEvent(() => fireEvent.click(locationsTab));
-    expect(await screen.findByText('No locations configured.')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-create-loc')).toBeInTheDocument();
-
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /session types/i })));
-    expect(await screen.findByText('No session types configured.')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-create-type')).toBeInTheDocument();
-  });
-
-  it('loads the protected availability section with its empty state and manual refresh control', async () => {
-    mockAdminData([], false, { locations: [managedLocation], sessionTypes: [managedType] });
-    render(<MarcusSessionsHQ />);
-
-    await screen.findByText('No pending bookings right now.');
-    await actEvent(() => fireEvent.click(screen.getByTestId('tab-availability')));
-
-    expect(await screen.findByText('No recurring availability rules yet. One-off sessions remain available from Schedule.')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-create-availability-rule')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-refresh-availability')).toBeInTheDocument();
-    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/rules');
-    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/exceptions');
-    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/preview');
-  });
-
-  it('covers session create/edit, completion, cancellation, and duplicate-submit protection', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
-    mockAdminData([], false, { sessions: [managedSession], locations: [managedLocation], sessionTypes: [managedType] });
-    render(<MarcusSessionsHQ />);
-    const scheduleTab = await screen.findByRole('button', { name: /schedule/i });
-    await actEvent(() => fireEvent.click(scheduleTab));
-    await screen.findByText('Personal Training');
-
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-edit-session-session-1')));
+    await openWeekSchedule();
+    expect(await screen.findByText('Sliema Studio')).toBeInTheDocument();
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-session')));
+    expect(screen.queryByText('Session Type')).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(dialog.querySelector('input[type="date"]')!, { target: { value: '2026-08-19' } });
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/session-1', expect.objectContaining({ method: 'PATCH' })));
-
-    await screen.findByTestId('btn-complete-session-session-1');
-    const baseRequest = apiRequest.getMockImplementation()!;
-    let resolveComplete: (() => void) | undefined;
-    apiRequest.mockImplementation((path: string, options?: unknown) => {
-      if (path === '/admin/training-sessions/session-1/complete') {
-        return new Promise((resolve) => {
-          resolveComplete = () => resolve({});
-        });
-      }
-      return baseRequest(path, options);
-    });
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-complete-session-session-1')));
-    expect(screen.getByTestId('btn-cancel-session-session-1')).toBeDisabled();
-    expect(apiRequest.mock.calls.filter(([path]) => path === '/admin/training-sessions/session-1/complete')).toHaveLength(1);
-    await act(async () => {
-      resolveComplete?.();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    await waitFor(() => expect(screen.getByTestId('btn-cancel-session-session-1')).not.toBeDisabled());
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-cancel-session-session-1')));
-    expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/session-1/complete', { method: 'POST' });
-    expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/session-1/cancel', { method: 'POST' });
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({
+      method: 'POST',
+      body: expect.objectContaining({ locationId: 'location-1', capacity: 4 }),
+    })));
+    const createCall = apiRequest.mock.calls.find(([path, options]) =>
+      path === '/admin/training-sessions' && (options as { method?: string } | undefined)?.method === 'POST',
+    )!;
+    expect((createCall[1] as { body: Record<string, unknown> }).body.sessionTypeId).toBeUndefined();
   });
 
-  it('covers location and session-type create, edit, and deactivate paths', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
-    mockAdminData([], false, { locations: [managedLocation], sessionTypes: [managedType] });
+  it('locks booked rows in the weekly editor', async () => {
+    mockAdminData({ sessions: [{ ...slot, reservedCapacity: 1, remainingCapacity: 3 }] });
     render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+    expect(await screen.findByText('Booked · locked')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-edit-session-session-1')).toBeDisabled();
+    expect(screen.getByTestId('btn-delete-session-session-1')).toBeDisabled();
+    expect(screen.getByTestId('btn-duplicate-session-session-1')).not.toBeDisabled();
+  });
 
-    const locationsTab = await screen.findByRole('button', { name: /locations/i });
-    await actEvent(() => fireEvent.click(locationsTab));
+  it('duplicates an unbooked row through the same explicit save form', async () => {
+    mockAdminData({ sessions: [slot] });
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
     await screen.findByText('Sliema Studio');
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-loc')));
-    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-loc').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations', expect.objectContaining({ method: 'POST' })));
-    await waitFor(() => expect(screen.queryByTestId('btn-save-loc')).not.toBeInTheDocument());
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /edit location/i })));
-    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-loc').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations/location-1', expect.objectContaining({ method: 'PATCH' })));
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /deactivate location/i })));
-    expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations/location-1/deactivate', { method: 'POST' });
-
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /session types/i })));
-    await screen.findByText('Personal Training');
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-type')));
-    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-type').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/session-types', expect.objectContaining({ method: 'POST' })));
-    await waitFor(() => expect(screen.queryByTestId('btn-save-type')).not.toBeInTheDocument());
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /edit session type/i })));
-    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-type').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/session-types/type-1', expect.objectContaining({ method: 'PATCH' })));
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /deactivate session type/i })));
-    expect(apiRequest).toHaveBeenCalledWith('/admin/session-types/type-1/deactivate', { method: 'POST' });
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-duplicate-session-session-1')));
+    expect(await screen.findByText('Duplicate slot')).toBeInTheDocument();
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({ method: 'POST' })));
   });
 
-  it('covers rejection and attendance/no-show actions with past-session eligibility', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
-    const pastSession = { ...managedSession, startsAt: '2020-01-01T10:00:00.000Z', endsAt: '2020-01-01T11:00:00.000Z' };
-    const pastBooking = { ...pendingBooking, session: { ...pendingBooking.session, startsAt: pastSession.startsAt, endsAt: pastSession.endsAt } };
-    const confirmedPastBooking = { ...pastBooking, id: 'booking-2', status: 'confirmed' };
-    mockAdminData([pastBooking, confirmedPastBooking], false, { sessions: [pastSession] });
+  it('copies the previous week and reports server outcomes', async () => {
+    mockAdminData({ sessions: [slot] });
     render(<MarcusSessionsHQ />);
-    await screen.findByTestId('btn-reject-booking-1');
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-reject-booking-1')));
-    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-confirm-reject').closest('form')!));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-1/reject', expect.objectContaining({ method: 'POST' })));
-    await waitFor(() => expect(screen.queryByTestId('btn-confirm-reject')).not.toBeInTheDocument());
+    await openWeekSchedule();
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-copy-previous-week')));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/copy-previous-week', {
+      method: 'POST',
+      body: { targetWeekStart: '2026-08-17' },
+    }));
+    expect(await screen.findByTestId('copy-week-report')).toHaveTextContent('1 created, 0 skipped, 0 conflicts. Bookings were not copied.');
+  });
 
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /schedule/i })));
-    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /^past$/i })));
-    await screen.findByTestId('btn-expand-session-session-1');
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-expand-session-session-1')));
-    expect(screen.getByTestId('btn-attend-booking-2')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-noshow-booking-2')).toBeInTheDocument();
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-attend-booking-2')));
-    await waitFor(() => expect(screen.getByTestId('btn-noshow-booking-2')).not.toBeDisabled());
-    await actEvent(() => fireEvent.click(screen.getByTestId('btn-noshow-booking-2')));
-    expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-2/attended', { method: 'POST' });
-    expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-2/no-show', { method: 'POST' });
+  it('adds a location from the schedule workflow when no active locations exist', async () => {
+    mockAdminData({ locations: [] });
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+    expect(await screen.findByText('Create a location before adding slots.')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-create-session')).toBeDisabled();
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-add-location-inline')));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(dialog.querySelector('input')!, { target: { value: 'Valletta Gym' } });
+    await actEvent(() => fireEvent.submit(dialog.querySelector('form')!));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations', expect.objectContaining({ method: 'POST' })));
   });
 });

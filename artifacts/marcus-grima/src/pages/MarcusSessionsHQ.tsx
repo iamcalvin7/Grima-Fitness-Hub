@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/api';
+import { WeeklySchedulePlanner } from '@/components/WeeklySchedulePlanner';
 import { 
   CalendarBlank, MapPin, User, WarningCircle, CheckCircle, XCircle, 
   SpinnerGap, CaretRight, Plus, X, Barbell, Trash, 
@@ -11,7 +12,7 @@ import {
 
 export interface ManagedSession {
   id: string;
-  sessionTypeId: string;
+  sessionTypeId: string | null;
   locationId: string;
   startsAt: string;
   endsAt: string;
@@ -140,9 +141,6 @@ function useAdminData() {
   const [bookings, setBookings] = useState<ManagedBooking[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
-  const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
-  const [availabilityExceptions, setAvailabilityExceptions] = useState<AvailabilityException[]>([]);
-  const [availabilityOccurrences, setAvailabilityOccurrences] = useState<AvailabilityOccurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloading, setReloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,22 +151,16 @@ function useAdminData() {
     setError(null);
 
     try {
-      const [sessRes, bookRes, locRes, typeRes, ruleRes, exceptionRes, previewRes] = await Promise.all([
+      const [sessRes, bookRes, locRes, typeRes] = await Promise.all([
         apiRequest<{ sessions: ManagedSession[] }>('/admin/training-sessions'),
         apiRequest<{ bookings: ManagedBooking[] }>('/admin/bookings'),
         apiRequest<{ locations: Location[] }>('/admin/training-locations'),
         apiRequest<{ sessionTypes: SessionType[] }>('/admin/session-types'),
-        apiRequest<{ rules: AvailabilityRule[] }>('/admin/availability/rules'),
-        apiRequest<{ exceptions: AvailabilityException[] }>('/admin/availability/exceptions'),
-        apiRequest<{ occurrences: AvailabilityOccurrence[] }>('/admin/availability/preview'),
       ]);
       setSessions(sessRes.sessions);
       setBookings(bookRes.bookings);
       setLocations(locRes.locations);
       setSessionTypes(typeRes.sessionTypes);
-      setAvailabilityRules(ruleRes.rules);
-      setAvailabilityExceptions(exceptionRes.exceptions);
-      setAvailabilityOccurrences(previewRes.occurrences);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load HQ data';
       if (isInitial) setError(msg);
@@ -184,8 +176,7 @@ function useAdminData() {
   }, [fetchAll]);
 
   return {
-    sessions, bookings, locations, sessionTypes, availabilityRules, availabilityExceptions,
-    availabilityOccurrences, loading, reloading, error, reload: fetchAll
+    sessions, bookings, locations, sessionTypes, loading, reloading, error, reload: fetchAll
   };
 }
 
@@ -1009,7 +1000,7 @@ function SessionTypeModal({ type, onClose, onSave, submitting }: { type: Session
 
 export function MarcusSessionsHQ() {
   const data = useAdminData();
-  const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability' | 'locations' | 'types'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'schedule'>('requests');
   const [actionId, setActionId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
@@ -1064,19 +1055,6 @@ export function MarcusSessionsHQ() {
           <button onClick={() => setActiveTab('schedule')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'schedule' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
             <span className="flex items-center gap-3"><CalendarBlank size={16} weight={activeTab === 'schedule' ? 'bold' : 'regular'} /> Schedule</span>
           </button>
-          <button onClick={() => setActiveTab('availability')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'availability' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`} data-testid="tab-availability">
-            <span className="flex items-center gap-3"><CalendarBlank size={16} weight={activeTab === 'availability' ? 'bold' : 'regular'} /> Availability</span>
-          </button>
-          
-          <div className="hidden md:block pt-8 pb-3">
-            <p className="px-4 text-[9px] font-bold tracking-[0.25em] text-white/20 uppercase">Configuration</p>
-          </div>
-          <button onClick={() => setActiveTab('locations')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'locations' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
-            <span className="flex items-center gap-3"><MapPin size={16} weight={activeTab === 'locations' ? 'bold' : 'regular'} /> Locations</span>
-          </button>
-          <button onClick={() => setActiveTab('types')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'types' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
-            <span className="flex items-center gap-3"><Barbell size={16} weight={activeTab === 'types' ? 'bold' : 'regular'} /> Session Types</span>
-          </button>
         </nav>
       </aside>
 
@@ -1084,7 +1062,7 @@ export function MarcusSessionsHQ() {
       <main className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
         <header className="h-16 md:h-20 border-b border-white/10 flex items-center justify-between px-4 md:px-10 shrink-0">
           <h2 className="text-xl font-bold tracking-tight text-white">
-            {activeTab === 'types' ? 'Session Types' : activeTab === 'availability' ? 'Availability' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            {activeTab === 'schedule' ? 'Weekly Schedule' : 'Requests'}
           </h2>
           <div className="flex items-center gap-4">
             <button onClick={() => data.reload(false)} disabled={data.loading || data.reloading} className="p-2.5 text-white/30 hover:text-white rounded-full hover:bg-white/10 disabled:opacity-50 transition-colors" title="Sync with Server">
@@ -1113,10 +1091,7 @@ export function MarcusSessionsHQ() {
               transition={{ duration: 0.15, ease: 'easeOut' }}
             >
               {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} />}
-              {activeTab === 'schedule' && <ScheduleView sessions={data.sessions} bookings={data.bookings} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
-               {activeTab === 'availability' && <AvailabilityView rules={data.availabilityRules} exceptions={data.availabilityExceptions} occurrences={data.availabilityOccurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
-              {activeTab === 'locations' && <LocationsView locations={data.locations} execute={execute} actionId={actionId} />}
-              {activeTab === 'types' && <SessionTypesView types={data.sessionTypes} execute={execute} actionId={actionId} />}
+              {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} execute={execute} actionId={actionId} />}
             </motion.div>
           </AnimatePresence>
         </div>

@@ -11,7 +11,9 @@ import {
   eq,
   gte,
   inArray,
+  isNull,
   lte,
+  or,
   sql,
 } from "drizzle-orm";
 import {
@@ -43,6 +45,7 @@ const UUID_RE =
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = ["pending", "confirmed"];
 const MAX_NAME_LENGTH = 160;
 const MAX_REASON_LENGTH = 500;
+const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -83,6 +86,12 @@ function dateValue(value: unknown): Date | null {
   if (typeof value !== "string" && !(value instanceof Date)) return null;
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function mondayValue(value: unknown): Date | null {
+  if (typeof value !== "string" || !DATE_KEY_RE.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.getUTCDay() === 1 ? date : null;
 }
 
 function sendError(req: Request, res: Response, error: unknown, fallback: string) {
@@ -188,11 +197,28 @@ async function activeReservationCounts(
   return counts;
 }
 
+async function bookingCount(
+  executor: typeof db | Transaction,
+  tenantId: string,
+  trainingSessionId: string,
+): Promise<number> {
+  const [row] = await executor
+    .select({ count: sql<number>`count(*)::int` })
+    .from(bookingsTable)
+    .where(
+      and(
+        eq(bookingsTable.tenantId, tenantId),
+        eq(bookingsTable.trainingSessionId, trainingSessionId),
+      ),
+    );
+  return Number(row?.count ?? 0);
+}
+
 function sessionOutput(
   row: {
     id: string;
     tenantId: string;
-    sessionTypeId: string;
+    sessionTypeId: string | null;
     locationId: string;
     startsAt: Date;
     endsAt: Date;
@@ -202,9 +228,9 @@ function sessionOutput(
     createdByUserId: string;
     createdAt: Date;
     updatedAt: Date;
-    sessionTypeName: string;
+    sessionTypeName: string | null;
     sessionTypeDescription: string | null;
-    durationMinutes: number;
+    durationMinutes: number | null;
     locationName: string;
     locationTimezone: string;
     locationAddressDetails: string | null;
@@ -223,12 +249,14 @@ function sessionOutput(
     reservedCapacity: activeCount,
     remainingCapacity: Math.max(0, row.capacity - activeCount),
     status: row.status,
-    sessionType: {
-      id: row.sessionTypeId,
-      name: row.sessionTypeName,
-      description: row.sessionTypeDescription,
-      durationMinutes: row.durationMinutes,
-    },
+    sessionType: row.sessionTypeId
+      ? {
+          id: row.sessionTypeId,
+          name: row.sessionTypeName,
+          description: row.sessionTypeDescription,
+          durationMinutes: row.durationMinutes,
+        }
+      : null,
     location: {
       id: row.locationId,
       name: row.locationName,
@@ -276,7 +304,7 @@ async function getSession(
   const [row] = await executor
     .select(sessionSelection)
     .from(trainingSessionsTable)
-    .innerJoin(
+    .leftJoin(
       trainingSessionTypesTable,
       and(
         eq(trainingSessionTypesTable.id, trainingSessionsTable.sessionTypeId),
@@ -296,7 +324,10 @@ async function getSession(
         eq(trainingSessionsTable.tenantId, tenantId),
         ...(requireActiveReferences
           ? [
-              eq(trainingSessionTypesTable.isActive, true),
+              or(
+                isNull(trainingSessionsTable.sessionTypeId),
+                eq(trainingSessionTypesTable.isActive, true),
+              ),
               eq(trainingLocationsTable.isActive, true),
             ]
           : []),
@@ -347,7 +378,7 @@ async function getBooking(
         eq(trainingSessionsTable.tenantId, bookingsTable.tenantId),
       ),
     )
-    .innerJoin(
+    .leftJoin(
       trainingSessionTypesTable,
       and(
         eq(trainingSessionTypesTable.id, trainingSessionsTable.sessionTypeId),
@@ -395,7 +426,9 @@ function bookingOutput(row: Awaited<ReturnType<typeof getBooking>>) {
       startsAt: row.sessionStartsAt,
       endsAt: row.sessionEndsAt,
       status: row.sessionStatus,
-      sessionType: { id: row.sessionTypeId, name: row.sessionTypeName },
+      sessionType: row.sessionTypeId
+        ? { id: row.sessionTypeId, name: row.sessionTypeName }
+        : null,
       location: {
         id: row.locationId,
         name: row.locationName,
@@ -476,7 +509,7 @@ router.get("/training-sessions", async (req, res) => {
     const rows = await db
       .select(sessionSelection)
       .from(trainingSessionsTable)
-      .innerJoin(
+      .leftJoin(
         trainingSessionTypesTable,
         and(
           eq(trainingSessionTypesTable.id, trainingSessionsTable.sessionTypeId),
@@ -1228,7 +1261,7 @@ router.get("/admin/training-sessions", async (req, res) => {
     const rows = await db
       .select(sessionSelection)
       .from(trainingSessionsTable)
-      .innerJoin(
+      .leftJoin(
         trainingSessionTypesTable,
         and(
           eq(trainingSessionTypesTable.id, trainingSessionsTable.sessionTypeId),
@@ -1296,46 +1329,57 @@ router.get("/admin/training-sessions/:id", async (req, res) => {
 });
 
 router.post("/admin/training-sessions", async (req, res) => {
-  const sessionTypeId = uuidValue(req.body?.sessionTypeId);
+  const rawSessionTypeId = req.body?.sessionTypeId;
+  const sessionTypeId =
+    rawSessionTypeId === undefined || rawSessionTypeId === null || rawSessionTypeId === ""
+      ? null
+      : uuidValue(rawSessionTypeId);
   const locationId = uuidValue(req.body?.locationId);
   const startsAt = dateValue(req.body?.startsAt);
   const endsAt = dateValue(req.body?.endsAt);
   const capacity =
     req.body?.capacity === undefined ? null : Number(req.body.capacity);
   if (
-    !sessionTypeId ||
+    (rawSessionTypeId !== undefined &&
+      rawSessionTypeId !== null &&
+      rawSessionTypeId !== "" &&
+      !sessionTypeId) ||
     !locationId ||
     !startsAt ||
     !endsAt ||
     endsAt <= startsAt ||
     startsAt <= new Date() ||
     (capacity !== null &&
-      (!Number.isInteger(capacity) || capacity <= 0 || capacity > 10000))
+      (!Number.isInteger(capacity) || capacity <= 0 || capacity > 10000)) ||
+    (!sessionTypeId && capacity === null)
   ) {
     res.status(400).json({ error: "Invalid scheduled session fields" });
     return;
   }
   if (
-    !(await verifyAdminReference(req.user!.tenantId, trainingSessionTypesTable, sessionTypeId)) ||
+    (sessionTypeId &&
+      !(await verifyAdminReference(req.user!.tenantId, trainingSessionTypesTable, sessionTypeId))) ||
     !(await verifyAdminReference(req.user!.tenantId, trainingLocationsTable, locationId))
   ) {
-    res.status(400).json({ error: "Active session type and location are required" });
+    res.status(400).json({ error: "An active location and, when supplied, an active session type are required" });
     return;
   }
   try {
     const session = await db.transaction(async (tx) => {
-      const [type] = await tx
-        .select({ defaultCapacity: trainingSessionTypesTable.defaultCapacity })
-        .from(trainingSessionTypesTable)
-        .where(
-          and(
-            eq(trainingSessionTypesTable.id, sessionTypeId),
-            eq(trainingSessionTypesTable.tenantId, req.user!.tenantId),
-            eq(trainingSessionTypesTable.isActive, true),
-          ),
-        )
-        .limit(1);
-      if (!type) throw new HttpError(400, "Active session type is required");
+      const [type] = sessionTypeId
+        ? await tx
+            .select({ defaultCapacity: trainingSessionTypesTable.defaultCapacity })
+            .from(trainingSessionTypesTable)
+            .where(
+              and(
+                eq(trainingSessionTypesTable.id, sessionTypeId),
+                eq(trainingSessionTypesTable.tenantId, req.user!.tenantId),
+                eq(trainingSessionTypesTable.isActive, true),
+              ),
+            )
+            .limit(1)
+        : [];
+      if (sessionTypeId && !type) throw new HttpError(400, "Active session type is required");
       await assertMarcusTimeAvailable(
         tx,
         req.user!.tenantId,
@@ -1351,7 +1395,7 @@ router.post("/admin/training-sessions", async (req, res) => {
           locationId,
           startsAt,
           endsAt,
-          capacity: capacity ?? type.defaultCapacity,
+          capacity: capacity ?? type?.defaultCapacity!,
           createdByUserId: req.user!.id,
           status: "scheduled",
         })
@@ -1407,8 +1451,11 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
     updates.capacity = value;
   }
   if (req.body?.sessionTypeId !== undefined) {
-    const value = uuidValue(req.body.sessionTypeId);
-    if (!value) {
+    const value =
+      req.body.sessionTypeId === null || req.body.sessionTypeId === ""
+        ? null
+        : uuidValue(req.body.sessionTypeId);
+    if (value === null && req.body.sessionTypeId !== null && req.body.sessionTypeId !== "") {
       res.status(400).json({ error: "Invalid sessionTypeId" });
       return;
     }
@@ -1460,7 +1507,7 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
         nextEndsAt,
         id,
       );
-      if (updates.sessionTypeId !== undefined &&
+      if (updates.sessionTypeId &&
         !(await verifyAdminReference(req.user!.tenantId, trainingSessionTypesTable, updates.sessionTypeId as string))) {
         throw new HttpError(400, "Active session type is required");
       }
@@ -1470,6 +1517,10 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
       }
       const nextCapacity = (updates.capacity as number | undefined) ?? current.capacity;
       const reserved = await activeReservationCount(tx, req.user!.tenantId, id);
+      const protectedFields = ["startsAt", "endsAt", "locationId", "capacity", "sessionTypeId"];
+      if (reserved > 0 && Object.keys(updates).some((field) => protectedFields.includes(field))) {
+        throw new HttpError(409, "Booked session schedule details are locked");
+      }
       if (nextCapacity < reserved) {
         throw new HttpError(409, "Capacity cannot be below active reservations");
       }
@@ -1498,6 +1549,174 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
   }
 });
 
+router.delete("/admin/training-sessions/:id", async (req, res) => {
+  const id = uuidValue(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: "Invalid training session id" });
+    return;
+  }
+  try {
+    await db.transaction(async (tx) => {
+      await lockTrainingSessions(tx, req.user!.tenantId, [id]);
+      const current = await getSession(tx, req.user!.tenantId, id);
+      if (!current) throw new HttpError(404, "Training session not found");
+      if (current.status !== "scheduled") {
+        throw new HttpError(409, "Only scheduled sessions can be deleted");
+      }
+      if (await bookingCount(tx, req.user!.tenantId, id)) {
+        throw new HttpError(409, "Booked sessions cannot be deleted");
+      }
+      const [deleted] = await tx
+        .delete(trainingSessionsTable)
+        .where(
+          and(
+            eq(trainingSessionsTable.id, id),
+            eq(trainingSessionsTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .returning({ id: trainingSessionsTable.id });
+      if (!deleted) throw new HttpError(404, "Training session not found");
+      await writeAuditLog(
+        auditParams(req, "training_session:delete", "training_session", id),
+        tx,
+      );
+    });
+    res.status(204).end();
+  } catch (error) {
+    sendError(req, res, error, "Failed to delete training session");
+  }
+});
+
+router.post("/admin/training-sessions/copy-previous-week", async (req, res) => {
+  const targetWeekStart = mondayValue(req.body?.targetWeekStart);
+  if (!targetWeekStart) {
+    res.status(400).json({ error: "targetWeekStart must be a Monday in YYYY-MM-DD format" });
+    return;
+  }
+  const sourceWeekStart = new Date(targetWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sourceWeekEnd = new Date(targetWeekStart.getTime() - 1);
+  const targetWeekEnd = new Date(targetWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const sourceSlots = await tx
+        .select({
+          id: trainingSessionsTable.id,
+          sessionTypeId: trainingSessionsTable.sessionTypeId,
+          locationId: trainingSessionsTable.locationId,
+          startsAt: trainingSessionsTable.startsAt,
+          endsAt: trainingSessionsTable.endsAt,
+          capacity: trainingSessionsTable.capacity,
+          marcusNotes: trainingSessionsTable.marcusNotes,
+          createdByUserId: trainingSessionsTable.createdByUserId,
+        })
+        .from(trainingSessionsTable)
+        .where(
+          and(
+            eq(trainingSessionsTable.tenantId, req.user!.tenantId),
+            eq(trainingSessionsTable.status, "scheduled"),
+            gte(trainingSessionsTable.startsAt, sourceWeekStart),
+            lte(trainingSessionsTable.startsAt, sourceWeekEnd),
+          ),
+        )
+        .orderBy(asc(trainingSessionsTable.startsAt));
+      const targetSlots = await tx
+        .select({
+          id: trainingSessionsTable.id,
+          startsAt: trainingSessionsTable.startsAt,
+          endsAt: trainingSessionsTable.endsAt,
+        })
+        .from(trainingSessionsTable)
+        .where(
+          and(
+            eq(trainingSessionsTable.tenantId, req.user!.tenantId),
+            eq(trainingSessionsTable.status, "scheduled"),
+            gte(trainingSessionsTable.startsAt, targetWeekStart),
+            lte(trainingSessionsTable.startsAt, targetWeekEnd),
+          ),
+        );
+      const created: Array<{ sourceSessionId: string; sessionId: string }> = [];
+      const skipped: Array<{ sourceSessionId: string; reason: string }> = [];
+      const conflicts: Array<{ sourceSessionId: string; sessionId: string; reason: string }> = [];
+
+      for (const source of sourceSlots) {
+        const startsAt = new Date(source.startsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const endsAt = new Date(source.endsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (startsAt <= new Date()) {
+          skipped.push({ sourceSessionId: source.id, reason: "Target slot is in the past" });
+          continue;
+        }
+        if (!(await verifyAdminReference(req.user!.tenantId, trainingLocationsTable, source.locationId))) {
+          skipped.push({ sourceSessionId: source.id, reason: "Source location is no longer active" });
+          continue;
+        }
+        const overlapping = targetSlots.find(
+          (target) => target.startsAt < endsAt && target.endsAt > startsAt,
+        );
+        if (overlapping) {
+          const activeBookings = await activeReservationCount(
+            tx,
+            req.user!.tenantId,
+            overlapping.id,
+          );
+          if (activeBookings > 0) {
+            conflicts.push({
+              sourceSessionId: source.id,
+              sessionId: overlapping.id,
+              reason: "A booked target slot overlaps this time",
+            });
+          } else {
+            skipped.push({
+              sourceSessionId: source.id,
+              reason: "An existing target slot already uses this time",
+            });
+          }
+          continue;
+        }
+        await assertMarcusTimeAvailable(
+          tx,
+          req.user!.tenantId,
+          req.user!.id,
+          startsAt,
+          endsAt,
+        );
+        const [copy] = await tx
+          .insert(trainingSessionsTable)
+          .values({
+            tenantId: req.user!.tenantId,
+            sessionTypeId: source.sessionTypeId,
+            locationId: source.locationId,
+            startsAt,
+            endsAt,
+            capacity: source.capacity,
+            marcusNotes: source.marcusNotes,
+            createdByUserId: req.user!.id,
+            status: "scheduled",
+          })
+          .returning({ id: trainingSessionsTable.id, startsAt: trainingSessionsTable.startsAt, endsAt: trainingSessionsTable.endsAt });
+        if (!copy) throw new Error("Failed to copy training session");
+        targetSlots.push(copy);
+        created.push({ sourceSessionId: source.id, sessionId: copy.id });
+      }
+
+      await writeAuditLog(
+        auditParams(req, "training_session:copy_previous_week", "training_session", null, {
+          sourceWeekStart: sourceWeekStart.toISOString().slice(0, 10),
+          targetWeekStart: targetWeekStart.toISOString().slice(0, 10),
+          created: created.length,
+          skipped: skipped.length,
+          conflicts: conflicts.length,
+        }),
+        tx,
+      );
+      return { created, skipped, conflicts };
+    });
+    res.status(201).json(result);
+  } catch (error) {
+    sendError(req, res, error, "Failed to copy previous week");
+  }
+});
+
 async function transitionSession(
   req: Request,
   res: Response,
@@ -1515,6 +1734,12 @@ async function transitionSession(
       }
       if (nextStatus === "completed" && current.startsAt > new Date()) {
         throw new HttpError(409, "A future session cannot be completed");
+      }
+      if (
+        nextStatus === "cancelled" &&
+        (await activeReservationCount(tx, req.user!.tenantId, id)) > 0
+      ) {
+        throw new HttpError(409, "Booked sessions cannot be cancelled");
       }
       const [updated] = await tx
         .update(trainingSessionsTable)

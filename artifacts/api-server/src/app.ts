@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { startDevelopmentAvailabilityScheduler } from "./lib/availabilityScheduler";
 
 const app: Express = express();
 
@@ -57,6 +56,5 @@ app.use(express.json({ limit: "400kb" })); // headroom for avatar data URLs
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
-startDevelopmentAvailabilityScheduler();
 
 export default app;

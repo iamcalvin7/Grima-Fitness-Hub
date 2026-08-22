@@ -238,7 +238,7 @@ CREATE INDEX training_session_types_active_idx ON training_session_types(tenant_
 CREATE TABLE training_sessions (
   id                 UUID                    DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id          UUID                    NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  session_type_id    UUID                    NOT NULL,
+  session_type_id    UUID,
   location_id        UUID                    NOT NULL,
   starts_at          TIMESTAMPTZ             NOT NULL,
   ends_at            TIMESTAMPTZ             NOT NULL,

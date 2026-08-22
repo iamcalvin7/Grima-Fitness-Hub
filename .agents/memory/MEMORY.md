@@ -2,3 +2,4 @@
 - [Auth architecture decisions](auth-decisions.md) — DB-backed cookie sessions (no JWT), scrypt via node:crypto, tenant-aware single-tenant schema, CORS allowlist, no signup enumeration, OAuth PKCE+state-cookie, identity-linking rules, email service abstraction, profileOnly onboarding for OAuth users.
 - [Profile data model](profile-data-model.md) — separate profiles table; experience vs activity level semantics; age→DOB conversion; avatar data-URL interim; migration/race rules.
 - [Integration test harness](integration-test-harness.md) — pool connect-event search_path trick; singleFork; global-setup DDL; audit route returns `records` not `logs`; run via `test:integration`.
+- [Weekly schedule transition](weekly-schedule-transition.md) — dated type-less slots live in training_sessions; legacy recurrence tables stay preserved but their routes and scheduler remain dormant.

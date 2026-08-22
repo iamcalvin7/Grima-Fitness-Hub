@@ -327,6 +327,95 @@ describe("booking creation, idempotency, ownership and capacity", () => {
   });
 });
 
+describe("weekly type-less slots", () => {
+  const mondayUtc = (weeksAhead: number, hour = 8) => {
+    const date = new Date();
+    const daysUntilMonday = (8 - date.getUTCDay()) % 7 || 7;
+    date.setUTCDate(date.getUTCDate() + daysUntilMonday + weeksAhead * 7);
+    date.setUTCHours(hour, 0, 0, 0);
+    return date;
+  };
+
+  it("creates a type-less slot with explicit capacity that Clients can discover and book", async () => {
+    const startsAt = future(18, 8);
+    const endsAt = new Date(new Date(startsAt).getTime() + 45 * 60 * 1000).toISOString();
+    const created = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt, endsAt, capacity: 3 })
+      .expect(201);
+    const slotId = created.body.session.id;
+    expect(created.body.session.sessionTypeId).toBeNull();
+
+    const discovery = await request(app)
+      .get(`/api/training-sessions/${slotId}`)
+      .set("Cookie", sessionCookie(clientAToken))
+      .expect(200);
+    expect(discovery.body.session.sessionType).toBeNull();
+    expect(discovery.body.session.capacity).toBe(3);
+    await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientAToken))
+      .send({ trainingSessionId: slotId, idempotencyKey: "type-less-slot-booking" })
+      .expect(201);
+  });
+
+  it("locks every scheduling field and deletion once a slot has an active booking", async () => {
+    const startsAt = future(19, 8);
+    const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
+    const created = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt, endsAt, capacity: 2 })
+      .expect(201);
+    const slotId = created.body.session.id;
+    await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientBToken))
+      .send({ trainingSessionId: slotId, idempotencyKey: "locked-slot-booking" })
+      .expect(201);
+    await request(app)
+      .patch(`/api/admin/training-sessions/${slotId}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ capacity: 3 })
+      .expect(409);
+    await request(app)
+      .delete(`/api/admin/training-sessions/${slotId}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(409);
+  });
+
+  it("copies unbooked slots from the previous week without copying bookings or overwriting overlaps", async () => {
+    const sourceStart = mondayUtc(4, 8);
+    const sourceEnd = new Date(sourceStart.getTime() + 60 * 60 * 1000);
+    const source = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt: sourceStart.toISOString(), endsAt: sourceEnd.toISOString(), capacity: 2 })
+      .expect(201);
+    const targetWeekStart = new Date(sourceStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const copied = await request(app)
+      .post("/api/admin/training-sessions/copy-previous-week")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ targetWeekStart: targetWeekStart.toISOString().slice(0, 10) })
+      .expect(201);
+    expect(copied.body.created).toEqual(
+      expect.arrayContaining([expect.objectContaining({ sourceSessionId: source.body.session.id })]),
+    );
+    const copiedSessionId = copied.body.created.find((item: { sourceSessionId: string }) => item.sourceSessionId === source.body.session.id).sessionId;
+    await request(app)
+      .get(`/api/training-sessions/${copiedSessionId}`)
+      .set("Cookie", sessionCookie(clientCToken))
+      .expect(200);
+    await request(app)
+      .post("/api/admin/training-sessions/copy-previous-week")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ targetWeekStart: targetWeekStart.toISOString().slice(0, 10) })
+      .expect(201)
+      .expect((response) => expect(response.body.skipped.length + response.body.conflicts.length).toBeGreaterThan(0));
+  });
+});
+
 describe("rescheduling and Marcus workflow", () => {
   let sourceBookingId: string;
   let rescheduledBookingId: string;
