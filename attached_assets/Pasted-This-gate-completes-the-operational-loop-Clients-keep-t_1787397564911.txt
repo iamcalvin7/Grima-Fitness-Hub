@@ -1,0 +1,314 @@
+This gate completes the operational loop: Clients keep their verified booking experience, while Marcus receives a dedicated Sessions HQ instead of Client controls.
+
+PROMPT TYPE: BUILD
+BUILD SUBTYPE: BACKEND HARDENING + ROLE-AWARE OPERATOR UI
+GATE: Sessions & Booking — Gate 4
+RISK LEVEL: AMBER
+SCOPE: Idempotency Correction + Marcus Sessions HQ
+AUTHORIZATION: Development environment only
+PRODUCTION / DEPLOYMENT: PROHIBITED
+DOCUMENTATION: Do not update during implementation; update only after AI Director acceptance
+
+Objective
+
+Complete two connected requirements in one bounded gate:
+
+1. Correct the confirmed concurrent idempotency replay issue in booking and rescheduling.
+2. Replace Marcus’s Client-style Sessions page with a dedicated role-aware Sessions HQ interface using the existing Gate 2 admin APIs.
+
+The verified Client Sessions workflow must remain unchanged.
+
+Plain-English impact
+
+After this build:
+
+* Clients will continue booking, cancelling and rescheduling normally.
+* Concurrent retries will return the original successful result rather than a false capacity conflict.
+* Marcus will no longer see “Book Session,” “View Plan” and Client cancellation controls.
+* Marcus will be able to schedule sessions, manage booking requests, monitor capacity and record attendance through the app.
+
+Explicit exclusions
+
+Do not add:
+
+* Pricing
+* Credits
+* Payments or Stripe
+* Memberships
+* Email, SMS or push reminders
+* Calendar synchronisation
+* Recurring availability
+* New roles or trainer permissions
+* Schema or migration changes
+* New production dependencies unless genuinely unavoidable
+* Production configuration
+* Deployment or publishing
+* Living-documentation changes
+
+Stage 0 — Preflight and contract inspection
+
+Before editing:
+
+1. Confirm:
+    * REPLIT_DEPLOYMENT is unset.
+    * A development-domain indicator is present.
+    * The working tree is clean.
+2. Inspect the exact existing:
+    * Booking and rescheduling idempotency implementation.
+    * Database uniqueness constraints.
+    * Marcus/admin booking APIs.
+    * Authenticated role source.
+    * Sessions routing/rendering logic.
+    * Client Sessions tests.
+3. Produce a concise internal route-to-interface map.
+4. Confirm no schema or migration is required.
+
+Stop if production is detected, unrelated changes exist, schema changes become necessary or the inspected APIs cannot support the approved Marcus workflow.
+
+Stage 1 — Idempotency hardening canary
+
+Booking creation
+
+Add a deterministic integration test for:
+
+* Capacity-one session.
+* Same authenticated Client.
+* Same session.
+* Same idempotency key.
+* Two concurrent booking requests.
+
+Required outcome:
+
+* Exactly one booking row exists.
+* Both requests return the same booking identity.
+* One response may be the original result and the other must be an idempotent replay.
+* The second request must not return a false capacity conflict.
+* Audit behaviour must remain correct and non-duplicative.
+
+Correct the ordering by repeating the idempotency lookup inside the transaction after acquiring the relevant session lock and before capacity/availability rejection.
+
+Preserve the existing database constraints and outer replay fallback.
+
+Rescheduling
+
+Inspect and test the equivalent concurrent same-key rescheduling path.
+
+Required outcome:
+
+* The original booking is transitioned only once.
+* Only one replacement booking is created.
+* Concurrent replay returns the same replacement result.
+* No false capacity conflict.
+* No duplicate audit mutation.
+* No partial reschedule state.
+
+Do not redesign the API contract.
+
+Run the focused integration tests, API typecheck and existing booking suite. Proceed only when the canary is green.
+
+Stage 2 — Role-aware Sessions separation
+
+Split the Sessions experience by the authenticated server-backed role:
+
+* client → existing verified Client Sessions experience.
+* admin → new Marcus Sessions HQ.
+* trainer → no Marcus controls; fail closed.
+* Missing, loading or unknown role → fail closed until identity is resolved.
+
+Requirements:
+
+* Do not use URL parameters, local storage or editable frontend state as the authority for role selection.
+* Client-side manipulation must not mount Marcus operator components.
+* Server capabilities remain authoritative for every admin mutation.
+* Marcus must not see Client-specific “Book Session,” “View Plan” or personal cancellation/rescheduling controls.
+* Preserve all existing Client Gate 3 behaviour and tests.
+
+Add automated tests proving each role branch.
+
+Stage 3 — Marcus Sessions HQ
+
+Build a dedicated operator interface matching the existing Marcus Grima visual system.
+
+A. Operational overview
+
+Show useful current information such as:
+
+* Today’s scheduled sessions.
+* Upcoming sessions.
+* Pending booking requests.
+* Confirmed attendance/capacity.
+* Sessions requiring action.
+
+Do not invent analytics that the existing APIs cannot truthfully provide.
+
+B. Schedule management
+
+Allow Marcus to:
+
+* View sessions by date and status.
+* Create a scheduled session.
+* Edit an eligible scheduled session.
+* Cancel a session with confirmation.
+* Complete an eligible session.
+* View session type, location, date, time, duration and capacity.
+* See booked places and remaining capacity.
+
+Use the existing admin APIs and their transition rules.
+
+C. Booking-request management
+
+Allow Marcus to:
+
+* View tenant booking requests.
+* Filter pending, confirmed, rejected, cancelled and completed records.
+* Open booking details.
+* Confirm a pending booking.
+* Reject a pending booking.
+* See the associated Client, session, location and status.
+* Refresh authoritative data after every mutation.
+
+D. Attendance
+
+For eligible completed/past sessions, allow Marcus to:
+
+* Mark a confirmed Client as attended.
+* Mark a confirmed Client as no-show.
+* Display the resulting server status.
+* Prevent invalid repeat transitions in the interface while still relying on server enforcement.
+
+E. Locations and session types
+
+Using the existing APIs, provide a manageable operator surface for:
+
+* Viewing locations.
+* Creating or editing locations where supported.
+* Activating/deactivating locations where supported.
+* Viewing session types.
+* Creating or editing session types where supported.
+* Activating/deactivating session types where supported.
+
+Do not invent unsupported deletion or recurrence behaviour.
+
+Stage 4 — Operator UX states
+
+Provide truthful:
+
+* Loading states.
+* Empty schedule state.
+* Empty pending-request state.
+* Success feedback.
+* Validation feedback.
+* Permission denial.
+* Transition-conflict feedback.
+* Capacity-conflict feedback.
+* General error state.
+* Retry controls.
+* Confirmation for destructive actions.
+* Disabled duplicate-submit states.
+
+Requirements:
+
+* Responsive desktop and mobile layout.
+* Keyboard-accessible forms and controls.
+* Location-timezone-safe date/time display.
+* No hard-coded dates.
+* No static records presented as live information.
+* No pricing, credits or payment claims.
+
+Stage 5 — Automated coverage
+
+Add focused tests proving:
+
+Role separation
+
+* Admin sees Marcus Sessions HQ.
+* Admin does not see Client booking controls.
+* Client sees the Client Sessions experience.
+* Client cannot mount Marcus controls through state manipulation.
+* Trainer cannot access Marcus controls.
+* Missing or unknown role fails closed.
+
+Marcus workflows
+
+* Schedule loading, empty, error and retry states.
+* Create and edit session.
+* Cancel and complete session.
+* Pending booking confirmation and rejection.
+* Capacity display.
+* Attendance and no-show transitions.
+* Location and session-type management.
+* Duplicate-submit prevention.
+* Failed mutation reconciles with authoritative server state.
+
+Regression
+
+* All nine Gate 3 Client Sessions tests remain unchanged and passing.
+* Existing permission and tenant-isolation tests remain passing.
+
+Stage 6 — Full verification
+
+Run:
+
+1. Focused idempotency integration tests.
+2. Complete booking integration suite.
+3. Focused Marcus Sessions component tests.
+4. Complete Client component suite.
+5. API unit tests.
+6. Complete security integration suite.
+7. Scripts tests.
+8. Database-library typecheck.
+9. API typecheck.
+10. Client typecheck.
+11. Scripts typecheck.
+12. API production build.
+13. Client production build with required development build variables.
+14. Development workflow restart.
+15. API health check.
+16. Browser smoke verification for both role branches where authenticated development users already exist.
+17. Working-tree and scope inspection.
+
+Do not create or promote users merely to perform browser testing. Record unavailable authenticated role sessions as BLOCKED and rely on automated component coverage.
+
+Required result:
+
+* Zero failing tests.
+* Zero unexplained skips.
+* All typechecks and builds pass.
+* No schema or migration changes.
+* No production access.
+* No deployment or publishing.
+* No unrelated files, prompt attachments, memory files, temporary scripts or debug logs in the change set.
+
+Final report
+
+Return one consolidated report containing:
+
+1. Plain-English impact for Clients.
+2. Plain-English impact for Marcus.
+3. Idempotency race correction and concurrency evidence.
+4. Exact files changed.
+5. Final role-routing behaviour.
+6. Marcus API-to-interface mapping.
+7. Marcus workflow delivered.
+8. Loading, empty, success, error and retry states.
+9. Exact test totals.
+10. Typecheck and build results.
+11. Browser verification and limitations.
+12. Development-environment confirmation.
+13. Schema, migration, dependency and environment-file confirmation.
+14. Final git status --short.
+15. Exact net changed-file list.
+16. Remaining blockers.
+17. Stop conditions encountered.
+
+Do not update living documentation.
+
+End exactly with:
+
+GATE 4 TASK COMPLETION: X/100 — X%
+
+SESSIONS & BOOKING FEATURE SCORE: awaiting AI Director rescore
+
+PROMPT PREPARATION: 100/100 — 100%
+
+SESSIONS & BOOKING FEATURE: 58/100
