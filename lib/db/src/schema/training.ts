@@ -179,7 +179,6 @@ export const bookingsTable = pgTable(
       name: "bookings_rescheduled_from_fk",
     }),
     index("bookings_tenant_idx").on(table.tenantId),
-    unique("bookings_tenant_id_unique").on(table.tenantId, table.id),
     index("bookings_session_status_idx").on(table.trainingSessionId, table.status),
     index("bookings_client_created_idx").on(table.clientUserId, table.createdAt),
     uniqueIndex("bookings_tenant_client_idempotency_unique").on(

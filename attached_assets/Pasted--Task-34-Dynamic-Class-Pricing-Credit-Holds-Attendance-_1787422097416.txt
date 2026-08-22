@@ -1,0 +1,1253 @@
+# Task #34 — Dynamic Class Pricing, Credit Holds & Attendance Settlement
+
+## Objective
+
+Align the existing Dynamic Pricing & Credit Holds engine with the approved Marcus Sessions commercial model.
+
+The core rule is:
+
+```text
+Available training value
+→ Hold maximum 1-to-1 amount at booking
+→ Class closes
+→ Final price tier locks
+→ Attendance is recorded
+→ Locked amount is consumed or released
+```
+
+The class price is determined by the **confirmed participant count when the class closes**, not by final attendance.
+
+Attendance determines whether the already-locked amount is charged, not what the price becomes.
+
+---
+
+# Risk
+
+**AMBER**
+
+This affects commercial state, holds, pricing snapshots, settlement, no-show handling and booking/session lifecycle behavior.
+
+Inspect the current implementation first.
+
+If the current implementation already matches the approved model, do not rewrite it. Add only the missing behavior/tests and correct misleading naming where necessary.
+
+No production migration.
+
+No Stripe or real money movement.
+
+---
+
+# 1. Approved Commercial Rules
+
+## Booking
+
+When a client submits a booking request, reserve the maximum possible value based on the **1-to-1 rate**.
+
+Example:
+
+```text
+1-to-1 price = €40
+Client books
+→ €40 held
+→ €0 consumed
+```
+
+The client must have sufficient available training value to support the maximum hold.
+
+The booking hold protects Marcus from the class remaining 1-to-1.
+
+---
+
+# 2. Pending and Confirmed Bookings
+
+Both pending and confirmed active bookings may retain their commercial hold according to the existing implemented engine.
+
+Do not consume the value merely because Marcus confirms the booking.
+
+Confirmation is a booking-status decision, not final commercial settlement.
+
+---
+
+# 3. When the Class Closes
+
+A class closes when either:
+
+### A. It reaches capacity
+
+Example:
+
+```text
+Capacity = 4
+Fourth valid confirmed participant joins
+→ class closes automatically
+```
+
+or:
+
+### B. Marcus manually closes it
+
+Marcus may close the class before the session starts.
+
+Example:
+
+```text
+Capacity = 4
+3 confirmed participants
+Marcus chooses Close Class
+→ class closes with 3 participants
+```
+
+Whichever happens first becomes the price-lock moment.
+
+---
+
+# 4. Close-Class Eligibility
+
+Marcus may manually close a class only before the session starts.
+
+Do not allow a normal manual close after the session has begun unless the existing domain model already requires a special administrative recovery path.
+
+Automatic close occurs when valid confirmed bookings reach session capacity.
+
+Define clearly which booking statuses count toward class size.
+
+For pricing-lock purposes, the count should be based on valid **confirmed participants**.
+
+Do not count:
+
+* pending
+* rejected
+* cancelled
+* rescheduled-away bookings
+
+---
+
+# 5. Final Price Lock
+
+At class close, calculate the applicable rate from the pricing plan using the frozen confirmed participant count.
+
+Example rate card:
+
+```text
+1 confirmed participant → €40
+2 confirmed participants → €30 each
+3 confirmed participants → €25 each
+4 confirmed participants → €20 each
+```
+
+If class closes with 3 confirmed clients:
+
+```text
+final locked price = €25 each
+```
+
+Persist the participant count and applicable rate as immutable commercial evidence for that class occurrence.
+
+Do not derive the final price later from current participant count.
+
+---
+
+# 6. Release Excess Hold at Class Close
+
+Each active booking initially holds the maximum 1-to-1 amount.
+
+At class close:
+
+```text
+original hold = €40
+locked price = €25
+```
+
+Reduce the active commercial commitment to €25 and release the excess €15 back to the client's available training value.
+
+Conceptually:
+
+```text
+Before close:
+Available: €60
+Held: €40
+
+After close:
+Available: €75
+Locked/Held: €25
+```
+
+The final €25 remains reserved until attendance/no-show settlement.
+
+---
+
+# 7. Price Can Never Increase After Close
+
+Once the class closes:
+
+> The client's final price is immutable.
+
+If a participant later:
+
+* cancels
+* no-shows
+* fails to attend
+* is manually waived
+
+the remaining clients' prices must not increase.
+
+Example:
+
+```text
+Class closes with 4 clients
+4-person rate = €20
+
+One client later no-shows
+```
+
+The other three clients still pay:
+
+```text
+€20 each
+```
+
+They must not be repriced to the 3-person tier.
+
+---
+
+# 8. Attendance Must NOT Determine Price Tier
+
+Inspect the current implementation carefully for the reported:
+
+```text
+attendance-based settlement
+```
+
+This is acceptable only if it means:
+
+> attendance triggers financial settlement of an already locked price.
+
+It is **not** acceptable if the implementation:
+
+* counts attended clients;
+* chooses a pricing tier from attendance count;
+* recalculates other clients' prices after attendance/no-show decisions.
+
+Required invariant:
+
+```text
+price tier = class-close confirmed participant count
+```
+
+not:
+
+```text
+price tier = attended participant count
+```
+
+---
+
+# 9. Attended Settlement
+
+When Marcus records:
+
+```text
+ATTENDED
+```
+
+for a booking after the class price has locked:
+
+Consume exactly that booking's locked amount.
+
+Example:
+
+```text
+Maximum original hold: €40
+Locked class rate: €25
+Attendance: attended
+
+Final consumed: €25
+Released from original hold: €15
+```
+
+Do not consume €40.
+
+Do not recalculate price based on who else attended.
+
+---
+
+# 10. No-Show Settlement
+
+A no-show must not automatically determine the pricing tier.
+
+When Marcus records:
+
+```text
+NO-SHOW
+```
+
+the booking retains its locked commercial amount until Marcus chooses:
+
+### Charge no-show
+
+Consume the locked amount.
+
+Example:
+
+```text
+Locked = €25
+No-show charge
+→ consume €25
+```
+
+### Waive no-show
+
+Release the locked amount back to the client's available training value.
+
+Example:
+
+```text
+Locked = €25
+Waive
+→ consume €0
+→ release €25
+```
+
+No-show charge must never exceed the booking's locked price.
+
+---
+
+# 11. No-Show Does Not Reprice Others
+
+Example:
+
+```text
+4 clients confirmed
+Class closes
+4-person rate = €20
+```
+
+Later:
+
+```text
+Client D = no-show
+```
+
+Expected:
+
+```text
+Clients A/B/C:
+locked price remains €20
+
+Client D:
+Marcus chooses charge €20 or waive €20
+```
+
+Do not reprice A/B/C.
+
+---
+
+# 12. Cancellation Before Class Close
+
+If an active booking is cancelled before the class closes:
+
+* release its maximum hold;
+* remove it from the count used when the class eventually closes.
+
+Example:
+
+```text
+3 confirmed
+1 cancels before close
+→ class later closes with 2
+→ use 2-person rate
+```
+
+Follow existing cancellation eligibility and state rules.
+
+---
+
+# 13. Cancellation After Class Close
+
+Once the class has closed:
+
+* do not reprice the remaining clients;
+* preserve the class's frozen participant count and price tier.
+
+The cancelled client's own financial consequence must follow the current approved cancellation policy.
+
+If no explicit late-cancellation commercial policy exists yet, do not invent one in this task.
+
+Report that booking's commercial state separately if required.
+
+---
+
+# 14. Rejection
+
+When Marcus rejects a pending booking before class close:
+
+* release the booking's maximum hold;
+* remove it from any active count;
+* do not consume value.
+
+A rejected request must never leave the client financially worse off.
+
+---
+
+# 15. Rescheduling
+
+Preserve the existing commercial history of the original booking.
+
+The original occurrence must not be rewritten.
+
+Expected conceptual flow:
+
+```text
+Original booking
+→ commercial history preserved
+→ active hold/reservation transferred or released according to existing model
+→ replacement booking becomes its own occurrence
+```
+
+If replacement remains pending:
+
+* it should hold the maximum applicable 1-to-1 value;
+* it should not inherit a locked rate from the old class.
+
+If replacement joins a different class:
+
+* its final price will be determined when the replacement class closes.
+
+Do not transfer the old class's participant-price tier onto the new class.
+
+---
+
+# 16. Automatic Close When Full
+
+Implement/verify the automatic close rule.
+
+When confirmed participant count reaches:
+
+```text
+training_sessions.capacity
+```
+
+the class should lock automatically.
+
+The operation must be transaction-safe.
+
+It must not allow two concurrent confirmations to:
+
+* overfill the class;
+* close twice;
+* create conflicting pricing settlements;
+* produce duplicate ledger movements.
+
+---
+
+# 17. Manual Close by Marcus
+
+Marcus HQ should expose an intentional:
+
+```text
+Close Class
+```
+
+action for an eligible future session.
+
+Before confirmation, show a useful preview:
+
+```text
+3 confirmed clients
+3-person rate: €25 each
+Closing will lock this rate for this class.
+```
+
+Marcus confirms the action.
+
+After close:
+
+* show class status clearly;
+* show frozen participant count;
+* show locked per-client rate;
+* prevent further ordinary bookings if that is the approved closed-class behavior.
+
+Do not use ambiguous labels such as generic "Complete".
+
+---
+
+# 18. Closed-Class Booking Rule
+
+A closed class should no longer accept additional normal booking requests.
+
+This applies whether closed:
+
+* automatically because full;
+* manually by Marcus.
+
+If the current backend already prevents booking a full class, preserve that behavior.
+
+Extend the equivalent protection to manually closed classes.
+
+Do not allow a new participant to enter after the rate has been locked unless a separate future override workflow is explicitly approved.
+
+---
+
+# 19. Pricing Snapshot
+
+Persist enough immutable class-level and booking-level information to prove:
+
+### Class occurrence
+
+* pricing plan used
+* confirmed participant count at close
+* close reason:
+
+  * full
+  * Marcus manual
+* closedAt
+* closedBy where applicable
+* rate selected
+
+### Booking
+
+* original maximum hold
+* final locked price
+* pricing-plan/version snapshot/reference
+* lockedAt/class-close reference
+* final consumed/released amount
+
+Follow the existing schema if equivalent fields already exist.
+
+Do not duplicate state unnecessarily.
+
+---
+
+# 20. Pricing Plan Changes
+
+Changing a pricing plan after a class closes must not change the locked class.
+
+Example:
+
+```text
+Class closed at 3-person rate €25
+Marcus later changes plan to €27
+```
+
+Existing closed class stays:
+
+```text
+€25
+```
+
+Future classes use the updated plan according to the existing pricing assignment rules.
+
+---
+
+# 21. Client Training Value
+
+Client UI should clearly distinguish:
+
+```text
+Available
+Held
+```
+
+and, where useful:
+
+```text
+Final charge / settled
+```
+
+Before close:
+
+```text
+Held: maximum possible price
+```
+
+After close:
+
+```text
+Held: locked final price
+```
+
+The client should not need to understand internal ledger mechanics.
+
+Use clear product language.
+
+---
+
+# 22. Booking UX
+
+When requesting a booking, communicate the commercial model clearly.
+
+Example meaning:
+
+```text
+Up to €40 training value will be held.
+Your final session price may decrease depending on the number of confirmed participants when the class closes.
+You will never be charged more than €40.
+```
+
+Use the actual configured rate/value.
+
+Do not tell clients the final price before the class is locked unless the class is already closed/full and the price is known.
+
+---
+
+# 23. Closed-Class Client Display
+
+After the class locks, the client should see:
+
+```text
+Final session value: €25
+```
+
+instead of only:
+
+```text
+Up to €40 held
+```
+
+The released difference should reflect in available training value.
+
+---
+
+# 24. Marcus Commercial Workspace
+
+In the existing Commercial workspace, Marcus should be able to see for each session:
+
+* class capacity
+* confirmed participant count
+* class open/closed state
+* close reason
+* pricing tier that would apply if closed now
+* currently held maximum value
+* final locked rate after close
+* unsettled attendance/no-show decisions
+* final consumed amounts
+
+Keep this operational rather than overly financial/accounting-heavy.
+
+---
+
+# 25. Settlement Eligibility
+
+Do not settle a booking at a dynamic price before the class price is locked.
+
+If attendance is recorded before the class has been closed for some edge-case reason, the commercial layer should prevent final settlement until a valid class price exists.
+
+Do not silently choose the attendee count as a substitute.
+
+---
+
+# 26. Session Completion
+
+Overall session completion remains separate from participant settlement.
+
+If session completion currently requires all commercial decisions resolved, preserve that protection where sensible.
+
+At minimum, do not allow commercial settlement to remain ambiguous for:
+
+* attended bookings
+* charge/waive no-show decisions
+
+before financial completion is considered finished.
+
+---
+
+# 27. Ledger Invariants
+
+The ledger must guarantee:
+
+```text
+maximum hold
+>= locked price
+>= final charged amount
+```
+
+except where the no-show is waived:
+
+```text
+final charged = 0
+```
+
+And:
+
+```text
+one booking
+→ one active commercial reservation maximum
+```
+
+Retries must never:
+
+* double-hold
+* double-release
+* double-consume
+* double-waive
+
+---
+
+# 28. Concurrency
+
+Test class-close concurrency.
+
+Examples:
+
+### Last capacity slot
+
+```text
+Capacity = 4
+3 confirmed
+Two confirmations arrive concurrently
+```
+
+Only one valid fourth participant should result according to existing capacity rules.
+
+The class should:
+
+* reach 4 exactly;
+* close once;
+* freeze one pricing tier;
+* create one set of price-lock ledger adjustments.
+
+### Manual close vs confirmation
+
+If Marcus closes the class while a booking confirmation is occurring:
+
+The transaction rules must produce one valid state:
+
+* booking included before close, or
+* booking excluded because close won.
+
+Never a half-applied price state.
+
+---
+
+# 29. Permissions
+
+Only authorised Marcus/admin users with the appropriate capability may:
+
+* manage pricing plans
+* close a class manually
+* grant/adjust value
+* decide no-show charge/waive
+* settle commercial outcomes
+
+Client cannot manipulate:
+
+* class close state
+* price tier
+* hold
+* locked price
+* ledger
+* no-show decision
+
+Server-side enforcement required.
+
+---
+
+# 30. Audit
+
+Preserve/add audit evidence for:
+
+```text
+pricing_plan:selected
+booking_hold:created
+class:auto_closed
+class:manually_closed
+class_price:locked
+booking_hold:reduced
+booking_value:released
+booking_value:consumed
+booking_no_show:charged
+booking_no_show:waived
+```
+
+Use current event conventions where they differ.
+
+Audit should establish:
+
+* actor
+* booking/session
+* participant count
+* selected rate
+* original hold
+* final locked value
+* resulting ledger movement
+
+---
+
+# 31. Required Core Tests
+
+## Booking hold
+
+Given:
+
+```text
+1-person rate = €40
+```
+
+Client books.
+
+Expected:
+
+```text
+held = €40
+consumed = €0
+```
+
+---
+
+## Auto close at capacity
+
+Rate card:
+
+```text
+1 = €40
+2 = €30
+3 = €25
+4 = €20
+```
+
+Capacity:
+
+```text
+4
+```
+
+Four confirmed clients.
+
+Expected:
+
+```text
+class closes automatically
+participant count snapshot = 4
+locked rate = €20
+each client hold reduced from €40 → €20
+€20 released to each client
+```
+
+---
+
+## Manual close
+
+Capacity:
+
+```text
+4
+```
+
+Three confirmed clients.
+
+Marcus closes class.
+
+Expected:
+
+```text
+participant count = 3
+locked rate = €25
+each client final locked value = €25
+excess hold released
+```
+
+---
+
+## Attended
+
+Closed at:
+
+```text
+€25
+```
+
+Client attended.
+
+Expected:
+
+```text
+consume €25
+```
+
+---
+
+## No-show charged
+
+Closed at:
+
+```text
+€25
+```
+
+Client no-show.
+
+Marcus chooses charge.
+
+Expected:
+
+```text
+consume €25
+```
+
+---
+
+## No-show waived
+
+Closed at:
+
+```text
+€25
+```
+
+Client no-show.
+
+Marcus chooses waive.
+
+Expected:
+
+```text
+consume €0
+release €25
+```
+
+---
+
+## No-show does not reprice others
+
+Four-person class locked at:
+
+```text
+€20
+```
+
+One no-show.
+
+Expected:
+
+```text
+3 attendees remain €20 each
+```
+
+---
+
+## Cancellation before close
+
+Three confirmed.
+
+One cancels.
+
+Marcus later closes with two.
+
+Expected:
+
+```text
+cancelled client hold released
+final participant count = 2
+2-person rate applied
+```
+
+---
+
+## Cancellation after close
+
+Four clients lock at €20.
+
+One later cancels.
+
+Expected:
+
+```text
+remaining clients remain €20
+```
+
+Do not assert a cancellation charge/refund for the cancelled client unless current product policy already defines it.
+
+---
+
+## Rejected request
+
+Expected:
+
+```text
+hold fully released
+consumed = 0
+```
+
+---
+
+## Reschedule
+
+Original commercial history preserved.
+
+Replacement booking:
+
+```text
+new maximum hold
+new class
+new future price lock
+```
+
+No price tier inherited from old class.
+
+---
+
+## Pricing plan edit
+
+Closed class:
+
+```text
+€25 locked
+```
+
+Plan later changed.
+
+Expected:
+
+```text
+existing class still €25
+```
+
+---
+
+## Idempotency
+
+Retry:
+
+* class close
+* attendance settlement
+* no-show decision
+* cancellation/release
+
+Expected:
+
+```text
+no duplicate ledger movement
+```
+
+---
+
+# 32. Browser Verification
+
+Use the development application.
+
+Verify one real end-to-end commercial scenario:
+
+```text
+Marcus configures rate card:
+1 = €40
+2 = €30
+3 = €25
+4 = €20
+
+Client A books
+→ €40 held
+
+Client B books
+→ €40 held
+
+Client C books
+→ €40 held
+
+Marcus closes class
+→ class locks at 3-person tier
+→ €25 final each
+→ €15 released to each
+
+Session happens
+
+A = attended
+B = attended
+C = no-show
+
+Marcus charges C
+
+Expected:
+A consumes €25
+B consumes €25
+C consumes €25
+```
+
+Then verify separately:
+
+```text
+No-show waived
+→ locked amount released instead
+```
+
+---
+
+# 33. UI Verification
+
+### Client
+
+Verify:
+
+* available value
+* held value
+* maximum booking hold
+* final locked price
+* final settled charge
+
+### Marcus HQ
+
+Verify:
+
+* open class
+* confirmed count
+* current projected tier
+* Close Class action
+* closed class
+* locked participant count
+* locked price
+* attendance settlement
+* no-show charge/waive
+
+Desktop and 390px mobile where affected.
+
+---
+
+# 34. Existing Regression
+
+Run:
+
+* shared DB typecheck
+* API typecheck
+* API integration suite
+* frontend typecheck
+* frontend tests
+* frontend production build
+
+Existing Sessions:
+
+* booking
+* notifications
+* reminders
+* attendance
+* history
+* Weekly Schedule
+
+must remain green.
+
+---
+
+# 35. Scope Protection
+
+Do not add:
+
+* Stripe
+* checkout
+* card payments
+* refunds to bank/card
+* subscriptions
+* invoices
+* VAT logic
+* accounting exports
+* revenue dashboard
+* email
+* SMS
+* push
+
+This task is the internal commercial engine only.
+
+---
+
+# 36. Required Report
+
+Return:
+
+## Existing Implementation Finding
+
+State whether the previous implementation was:
+
+```text
+ALREADY ALIGNED
+```
+
+or:
+
+```text
+REQUIRED CORRECTION
+```
+
+and explain specifically whether attendance was previously influencing the rate tier.
+
+## Class Close Rule
+
+Confirm:
+
+```text
+Full → automatic close
+Marcus manual close before start → close
+```
+
+## Price Lock Rule
+
+Confirm final price is based on:
+
+```text
+confirmed participant count at class close
+```
+
+## Hold Rule
+
+Show:
+
+```text
+maximum hold
+→ final locked amount
+→ released difference
+```
+
+## Attendance Rule
+
+Confirm:
+
+```text
+attended → consume locked amount
+```
+
+not repricing.
+
+## No-Show Rule
+
+Confirm:
+
+```text
+charge → consume locked amount
+waive → release locked amount
+```
+
+## Price Protection
+
+Provide explicit evidence that:
+
+```text
+one participant no-showing after class close
+does not increase another client's price
+```
+
+## Files Changed
+
+Exact files and purpose.
+
+## Database
+
+Any additive development migration required.
+
+## Browser Verification
+
+Report the 3-person manual-close example.
+
+## Tests
+
+PASS / BLOCKED only.
+
+## Regression Totals
+
+Report all suites/builds.
+
+## Production
+
+Confirm:
+
+* no Stripe
+* no real payment movement
+* no production migration
+* no production access
+* no deployment
+* no publishing

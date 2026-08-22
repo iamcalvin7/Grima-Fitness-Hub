@@ -2,5 +2,6 @@
 - [Auth architecture decisions](auth-decisions.md) — DB-backed cookie sessions (no JWT), scrypt via node:crypto, tenant-aware single-tenant schema, CORS allowlist, no signup enumeration, OAuth PKCE+state-cookie, identity-linking rules, email service abstraction, profileOnly onboarding for OAuth users.
 - [Profile data model](profile-data-model.md) — separate profiles table; experience vs activity level semantics; age→DOB conversion; avatar data-URL interim; migration/race rules.
 - [Integration test harness](integration-test-harness.md) — pool connect-event search_path trick; singleFork; global-setup DDL; audit route returns `records` not `logs`; run via `test:integration`.
+- [Post-merge schema synchronization](post-merge-schema-sync.md) — migrations use a non-interactive ledger runner, not Drizzle schema push.
 - [Weekly schedule & recurrence](weekly-schedule-transition.md) — dated sessions remain canonical; admin-managed weekly availability now materializes safe bookable sessions in the same table.
 - [Commercial value lifecycle](commercial-value-lifecycle.md) — immutable internal value snapshots, single active holds, and completed-session settlement rules.
