@@ -1,0 +1,252 @@
+# Marcus Sessions — Capture Evidence for Unexplained 409 Conflict
+
+## Objective
+
+Investigate the remaining unexplained:
+
+`POST /api/admin/training-sessions → 409`
+
+Do not change session overlap behaviour yet.
+
+The existing overlap implementation has now been verified to correctly support:
+
+* same time on different calendar days
+* back-to-back sessions
+* Malta timezone offsets
+* edit self-exclusion
+* genuine overlapping ranges
+
+The next goal is to capture sufficient evidence from the next 409 response to determine exactly why the API rejected the request.
+
+## Risk
+
+**AMBER**
+
+This work touches backend request/error diagnostics but must not alter scheduling business rules.
+
+## Scope
+
+Inspect the training-session creation path and determine all conditions capable of returning HTTP `409`.
+
+Document every possible 409 source first.
+
+For each one, identify:
+
+* condition that triggers it
+* returned error code/message
+* relevant database/query check
+* whether it happens before or after overlap validation
+
+Do not assume every 409 comes from the overlap helper.
+
+## Add Development Diagnostic Evidence
+
+In the **development environment only**, add structured server-side diagnostic logging around training-session creation failures.
+
+When a session creation attempt returns `409`, capture:
+
+* request correlation ID if one exists
+* authenticated user ID
+* tenant ID
+* location ID
+* `startsAt`
+* `endsAt`
+* parsed UTC start
+* parsed UTC end
+* session ID if editing
+* operation: create/update
+* exact conflict reason
+* conflicting session ID if applicable
+* conflicting session `starts_at`
+* conflicting session `ends_at`
+* conflicting session status
+* creator/owner used by the conflict query
+
+Do not log:
+
+* authentication tokens
+* cookies
+* secrets
+* unnecessary personal information
+
+Prefer a structured diagnostic object rather than scattered console statements.
+
+Example shape:
+
+```ts
+{
+  event: "training_session_conflict",
+  operation: "create",
+  tenantId,
+  ownerUserId,
+  locationId,
+  proposedStart,
+  proposedEnd,
+  conflictReason,
+  conflictingSessionId,
+  conflictingStart,
+  conflictingEnd
+}
+```
+
+## Improve API Error Classification if Needed
+
+Inspect whether several unrelated conflict conditions currently return the same generic message:
+
+**“This session overlaps another Marcus session”**
+
+If the message can only originate from the actual overlap check, leave behaviour unchanged.
+
+If multiple different failure conditions are being mapped to that same message, report that as a finding before changing anything.
+
+Do not change user-facing copy unless required by a proven cause.
+
+## Client-Side Evidence
+
+Inspect the Weekly Schedule submission handler.
+
+For development only, make it possible to correlate the UI submission with the API failure.
+
+Confirm the actual values being submitted immediately before the request:
+
+```text
+date
+startsAt
+endsAt
+locationId
+capacity
+sessionTypeId
+```
+
+Prefer browser/network evidence over permanent frontend logging.
+
+Do not leave noisy console logging in the finished implementation.
+
+## Reproduce Through the Real UI
+
+Use the normal Marcus Weekly Schedule interface.
+
+Attempt session creation across multiple days and times, including the scenario that previously produced the owner-observed error if it can be recreated.
+
+If a `409` occurs:
+
+1. Capture the exact request body.
+2. Capture the response body.
+3. Capture the new server diagnostic event.
+4. Inspect the conflicting database record if one is identified.
+5. Compare the actual datetime intervals mathematically.
+
+Do not delete the evidence until the cause is documented.
+
+Temporary test sessions may be deleted afterwards through the normal development workflow.
+
+## Important Investigation
+
+Specifically check whether the unexpected 409 could come from:
+
+* duplicate request submission
+* double-click / repeated form submission
+* stale frontend form state
+* stale selected date after week navigation
+* optimistic retry
+* React event firing twice
+* create request being sent more than once
+* session creation succeeding once and the duplicate request then colliding with the newly created record
+* frontend displaying the error from the second request even though the first succeeded
+
+This is now a credible hypothesis because the different-day overlap rule itself has been proven correct.
+
+Do not implement a debounce or submission lock unless duplicate submission is actually observed.
+
+## Tests
+
+Existing 99 API integration tests must remain green.
+
+Add tests only if the investigation establishes a new reproducible defect.
+
+Diagnostic-only code should not require speculative business-rule tests.
+
+Run:
+
+* affected API integration suite
+* API typecheck
+* frontend typecheck if frontend code changes
+* production build if any runtime source changes
+
+## Stop Conditions
+
+Stop and report before behavioural implementation if:
+
+* the 409 cannot be reproduced
+* evidence shows the existing overlap rule is behaving correctly
+* the cause appears to be duplicate submission
+* another validation path is responsible
+* changing the fix would affect booking, capacity, locations, attendance or other scheduling domains
+
+## Report Back
+
+Return:
+
+### 1. All 409 Sources
+
+Every code path in training-session create/update capable of returning 409.
+
+### 2. Reproduction
+
+Whether the unexpected 409 was reproduced through the real Marcus UI.
+
+### 3. Exact Failed Request
+
+If reproduced:
+
+```json
+{
+  "locationId": "...",
+  "startsAt": "...",
+  "endsAt": "...",
+  "capacity": 0,
+  "sessionTypeId": null
+}
+```
+
+### 4. Server Conflict Evidence
+
+Include the exact diagnostic result and conflicting session timestamps.
+
+### 5. Duplicate Submission Check
+
+State explicitly:
+
+**Observed / Not observed / Unable to establish**
+
+and provide evidence.
+
+### 6. Root Cause
+
+Only state a root cause if proven.
+
+Otherwise:
+
+**Root cause remains unestablished.**
+
+### 7. Recommended Fix
+
+If proven, propose the smallest safe fix.
+
+Do not implement the behavioural fix yet if it introduces a new scheduling rule or expands scope.
+
+### 8. Tests
+
+PASS / BLOCKED results.
+
+## Production Rule
+
+No production access.
+
+No deployment.
+
+No publishing.
+
+No production logging changes.
+
+No database migration.

@@ -53,9 +53,52 @@ class HttpError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
   }
+}
+
+type SessionConflictContext = {
+  operation: "create" | "update";
+  tenantId?: string;
+  ownerUserId?: string;
+  locationId?: string | null;
+  proposedStart?: Date | null;
+  proposedEnd?: Date | null;
+  sessionId?: string | null;
+};
+
+function logTrainingSessionConflict(
+  req: Request,
+  error: unknown,
+  context: SessionConflictContext,
+) {
+  if (process.env.NODE_ENV !== "development" || !(error instanceof HttpError) || error.status !== 409) {
+    return;
+  }
+  const details = error.details ?? {};
+  req.log.warn(
+    {
+      event: "training_session_conflict",
+      operation: context.operation,
+      requestId: req.id,
+      userId: req.user?.id,
+      tenantId: context.tenantId ?? req.user?.tenantId,
+      ownerUserId: context.ownerUserId,
+      locationId: context.locationId,
+      proposedStart: context.proposedStart?.toISOString(),
+      proposedEnd: context.proposedEnd?.toISOString(),
+      sessionId: context.sessionId,
+      conflictReason: details.conflictReason ?? error.message,
+      conflictingSessionId: details.conflictingSessionId,
+      conflictingStart: details.conflictingStart,
+      conflictingEnd: details.conflictingEnd,
+      conflictingStatus: details.conflictingStatus,
+      conflictingOwnerUserId: details.conflictingOwnerUserId,
+    },
+    "training session conflict",
+  );
 }
 
 function hasDatabaseCode(error: unknown, code: string): boolean {
@@ -173,7 +216,7 @@ async function assertMarcusTimeAvailable(
     )
   `);
   const rows = await tx.execute(sql`
-    SELECT id
+    SELECT id, starts_at, ends_at, status, created_by_user_id
     FROM training_sessions
     WHERE tenant_id = ${tenantId}
       AND created_by_user_id = ${ownerUserId}::uuid
@@ -184,7 +227,21 @@ async function assertMarcusTimeAvailable(
     LIMIT 1
   `);
   if (rows.rows.length > 0) {
-    throw new HttpError(409, "This session overlaps another Marcus session");
+    const conflict = rows.rows[0] as {
+      id: string;
+      starts_at: Date | string;
+      ends_at: Date | string;
+      status: TrainingSessionStatus;
+      created_by_user_id: string;
+    };
+    throw new HttpError(409, "This session overlaps another Marcus session", {
+      conflictReason: "overlapping_datetime_range",
+      conflictingSessionId: conflict.id,
+      conflictingStart: new Date(conflict.starts_at).toISOString(),
+      conflictingEnd: new Date(conflict.ends_at).toISOString(),
+      conflictingStatus: conflict.status,
+      conflictingOwnerUserId: conflict.created_by_user_id,
+    });
   }
 }
 
@@ -1475,6 +1532,14 @@ router.post("/admin/training-sessions", async (req, res) => {
     });
     res.status(201).json({ session });
   } catch (error) {
+    logTrainingSessionConflict(req, error, {
+      operation: "create",
+      tenantId: req.user!.tenantId,
+      ownerUserId: req.user!.id,
+      locationId,
+      proposedStart: startsAt,
+      proposedEnd: endsAt,
+    });
     sendError(req, res, error, "Failed to create training session");
   }
 });
@@ -1486,6 +1551,12 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
     return;
   }
   const updates: Record<string, unknown> = {};
+  const conflictContext: SessionConflictContext = {
+    operation: "update",
+    tenantId: req.user?.tenantId,
+    ownerUserId: req.user?.id,
+    sessionId: id,
+  };
   if (req.body?.startsAt !== undefined) {
     const value = dateValue(req.body.startsAt);
     if (!value) {
@@ -1493,6 +1564,7 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
       return;
     }
     updates.startsAt = value;
+    conflictContext.proposedStart = value;
   }
   if (req.body?.endsAt !== undefined) {
     const value = dateValue(req.body.endsAt);
@@ -1501,6 +1573,7 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
       return;
     }
     updates.endsAt = value;
+    conflictContext.proposedEnd = value;
   }
   if (req.body?.capacity !== undefined) {
     const value = Number(req.body.capacity);
@@ -1548,11 +1621,15 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
       await lockTrainingSessions(tx, req.user!.tenantId, [id]);
       const current = await getSession(tx, req.user!.tenantId, id);
       if (!current) throw new HttpError(404, "Training session not found");
+       conflictContext.ownerUserId = current.createdByUserId;
+       conflictContext.locationId = (updates.locationId as string | undefined) ?? current.locationId;
       if (current.status !== "scheduled") {
         throw new HttpError(409, "Only scheduled sessions can be updated");
       }
       const nextStartsAt = (updates.startsAt as Date | undefined) ?? current.startsAt;
       const nextEndsAt = (updates.endsAt as Date | undefined) ?? current.endsAt;
+       conflictContext.proposedStart = nextStartsAt;
+       conflictContext.proposedEnd = nextEndsAt;
       if (nextEndsAt <= nextStartsAt) {
         throw new HttpError(400, "endsAt must be after startsAt");
       }
@@ -1605,6 +1682,7 @@ router.patch("/admin/training-sessions/:id", async (req, res) => {
     });
     res.json({ session });
   } catch (error) {
+    logTrainingSessionConflict(req, error, conflictContext);
     sendError(req, res, error, "Failed to update training session");
   }
 });
