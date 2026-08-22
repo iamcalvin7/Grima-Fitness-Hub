@@ -357,7 +357,7 @@ function ScheduleView({ sessions, bookings, locations, sessionTypes, execute, ac
                   <React.Fragment key={s.id}>
                     <tr className="hover:bg-white/[0.03] transition-colors group">
                       <td className="p-3 text-center">
-                        <button onClick={() => setExpandedId(isExpanded ? null : s.id)} className="p-1.5 rounded hover:bg-white/10 text-white/30 hover:text-white transition-colors">
+                        <button onClick={() => setExpandedId(isExpanded ? null : s.id)} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} session ${s.id}`} data-testid={`btn-expand-session-${s.id}`} className="p-1.5 rounded hover:bg-white/10 text-white/30 hover:text-white transition-colors">
                           <CaretRight className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} weight="bold" />
                         </button>
                       </td>
