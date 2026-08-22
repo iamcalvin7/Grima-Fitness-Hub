@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const { apiRequest } = vi.hoisted(() => ({ apiRequest: vi.fn() }));
 
@@ -88,6 +88,14 @@ function mockAdminData(
   });
 }
 
+async function actEvent(action: () => void) {
+  await act(async () => {
+    action();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
 describe('MarcusSessionsHQ', () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -107,7 +115,7 @@ describe('MarcusSessionsHQ', () => {
     render(<MarcusSessionsHQ />);
 
     await screen.findByTestId('btn-confirm-booking-1');
-    fireEvent.click(screen.getByTestId('btn-confirm-booking-1'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-confirm-booking-1')));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-1/confirm', { method: 'POST' });
@@ -122,7 +130,7 @@ describe('MarcusSessionsHQ', () => {
     render(<MarcusSessionsHQ />);
 
     await screen.findByTestId('btn-confirm-booking-1');
-    fireEvent.click(screen.getByTestId('btn-confirm-booking-1'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-confirm-booking-1')));
 
     expect(await screen.findByText('Booking can no longer be confirmed.')).toBeInTheDocument();
     expect(screen.getByTestId('btn-confirm-booking-1')).toBeInTheDocument();
@@ -142,11 +150,11 @@ describe('MarcusSessionsHQ', () => {
     render(<MarcusSessionsHQ />);
 
     await screen.findByText('Calvin Test');
-    fireEvent.change(screen.getByTestId('select-booking-status'), { target: { value: 'confirmed' } });
+    await actEvent(() => fireEvent.change(screen.getByTestId('select-booking-status'), { target: { value: 'confirmed' } }));
 
     expect(await screen.findByText('Mira Admin')).toBeInTheDocument();
     expect(screen.queryByText('Calvin Test')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('button-booking-detail-booking-2'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('button-booking-detail-booking-2')));
     expect(await screen.findByText('Booking details')).toBeInTheDocument();
     expect(screen.getByText('confirmed')).toBeInTheDocument();
   });
@@ -156,15 +164,17 @@ describe('MarcusSessionsHQ', () => {
     render(<MarcusSessionsHQ />);
 
     await screen.findByText('No pending bookings right now.');
-    fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
+    const scheduleTab = await screen.findByRole('button', { name: /schedule/i });
+    await actEvent(() => fireEvent.click(scheduleTab));
     expect(await screen.findByText('No upcoming sessions found.')).toBeInTheDocument();
     expect(screen.getByTestId('btn-create-session')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /locations/i }));
+    const locationsTab = await screen.findByRole('button', { name: /locations/i });
+    await actEvent(() => fireEvent.click(locationsTab));
     expect(await screen.findByText('No locations configured.')).toBeInTheDocument();
     expect(screen.getByTestId('btn-create-loc')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /session types/i }));
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /session types/i })));
     expect(await screen.findByText('No session types configured.')).toBeInTheDocument();
     expect(screen.getByTestId('btn-create-type')).toBeInTheDocument();
   });
@@ -173,18 +183,35 @@ describe('MarcusSessionsHQ', () => {
     vi.stubGlobal('confirm', vi.fn(() => true));
     mockAdminData([], false, { sessions: [managedSession], locations: [managedLocation], sessionTypes: [managedType] });
     render(<MarcusSessionsHQ />);
-    fireEvent.click(await screen.findByRole('button', { name: /schedule/i }));
+    const scheduleTab = await screen.findByRole('button', { name: /schedule/i });
+    await actEvent(() => fireEvent.click(scheduleTab));
     await screen.findByText('Personal Training');
 
-    fireEvent.click(screen.getByTestId('btn-edit-session-session-1'));
-    fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!);
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-edit-session-session-1')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/session-1', expect.objectContaining({ method: 'PATCH' })));
 
     await screen.findByTestId('btn-complete-session-session-1');
-    fireEvent.click(screen.getByTestId('btn-complete-session-session-1'));
+    const baseRequest = apiRequest.getMockImplementation()!;
+    let resolveComplete: (() => void) | undefined;
+    apiRequest.mockImplementation((path: string, options?: unknown) => {
+      if (path === '/admin/training-sessions/session-1/complete') {
+        return new Promise((resolve) => {
+          resolveComplete = () => resolve({});
+        });
+      }
+      return baseRequest(path, options);
+    });
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-complete-session-session-1')));
     expect(screen.getByTestId('btn-cancel-session-session-1')).toBeDisabled();
+    expect(apiRequest.mock.calls.filter(([path]) => path === '/admin/training-sessions/session-1/complete')).toHaveLength(1);
+    await act(async () => {
+      resolveComplete?.();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     await waitFor(() => expect(screen.getByTestId('btn-cancel-session-session-1')).not.toBeDisabled());
-    fireEvent.click(screen.getByTestId('btn-cancel-session-session-1'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-cancel-session-session-1')));
     expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/session-1/complete', { method: 'POST' });
     expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions/session-1/cancel', { method: 'POST' });
   });
@@ -194,28 +221,29 @@ describe('MarcusSessionsHQ', () => {
     mockAdminData([], false, { locations: [managedLocation], sessionTypes: [managedType] });
     render(<MarcusSessionsHQ />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /locations/i }));
+    const locationsTab = await screen.findByRole('button', { name: /locations/i });
+    await actEvent(() => fireEvent.click(locationsTab));
     await screen.findByText('Sliema Studio');
-    fireEvent.click(screen.getByTestId('btn-create-loc'));
-    fireEvent.submit(screen.getByTestId('btn-save-loc').closest('form')!);
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-loc')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-loc').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations', expect.objectContaining({ method: 'POST' })));
     await waitFor(() => expect(screen.queryByTestId('btn-save-loc')).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /edit location/i }));
-    fireEvent.submit(screen.getByTestId('btn-save-loc').closest('form')!);
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /edit location/i })));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-loc').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations/location-1', expect.objectContaining({ method: 'PATCH' })));
-    fireEvent.click(screen.getByRole('button', { name: /deactivate location/i }));
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /deactivate location/i })));
     expect(apiRequest).toHaveBeenCalledWith('/admin/training-locations/location-1/deactivate', { method: 'POST' });
 
-    fireEvent.click(await screen.findByRole('button', { name: /session types/i }));
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /session types/i })));
     await screen.findByText('Personal Training');
-    fireEvent.click(screen.getByTestId('btn-create-type'));
-    fireEvent.submit(screen.getByTestId('btn-save-type').closest('form')!);
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-create-type')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-type').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/session-types', expect.objectContaining({ method: 'POST' })));
     await waitFor(() => expect(screen.queryByTestId('btn-save-type')).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /edit session type/i }));
-    fireEvent.submit(screen.getByTestId('btn-save-type').closest('form')!);
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /edit session type/i })));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-type').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/session-types/type-1', expect.objectContaining({ method: 'PATCH' })));
-    fireEvent.click(screen.getByRole('button', { name: /deactivate session type/i }));
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /deactivate session type/i })));
     expect(apiRequest).toHaveBeenCalledWith('/admin/session-types/type-1/deactivate', { method: 'POST' });
   });
 
@@ -227,20 +255,20 @@ describe('MarcusSessionsHQ', () => {
     mockAdminData([pastBooking, confirmedPastBooking], false, { sessions: [pastSession] });
     render(<MarcusSessionsHQ />);
     await screen.findByTestId('btn-reject-booking-1');
-    fireEvent.click(screen.getByTestId('btn-reject-booking-1'));
-    fireEvent.submit(screen.getByTestId('btn-confirm-reject').closest('form')!);
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-reject-booking-1')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-confirm-reject').closest('form')!));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-1/reject', expect.objectContaining({ method: 'POST' })));
     await waitFor(() => expect(screen.queryByTestId('btn-confirm-reject')).not.toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /^past$/i }));
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /schedule/i })));
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /^past$/i })));
     await screen.findByTestId('btn-expand-session-session-1');
-    fireEvent.click(screen.getByTestId('btn-expand-session-session-1'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-expand-session-session-1')));
     expect(screen.getByTestId('btn-attend-booking-2')).toBeInTheDocument();
     expect(screen.getByTestId('btn-noshow-booking-2')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('btn-attend-booking-2'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-attend-booking-2')));
     await waitFor(() => expect(screen.getByTestId('btn-noshow-booking-2')).not.toBeDisabled());
-    fireEvent.click(screen.getByTestId('btn-noshow-booking-2'));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-noshow-booking-2')));
     expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-2/attended', { method: 'POST' });
     expect(apiRequest).toHaveBeenCalledWith('/admin/bookings/booking-2/no-show', { method: 'POST' });
   });
