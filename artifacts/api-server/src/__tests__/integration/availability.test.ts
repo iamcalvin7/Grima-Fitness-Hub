@@ -23,6 +23,7 @@ let clientAToken: string;
 let trainerAToken: string;
 let locationId: string;
 let sessionTypeId: string;
+let ruleId: string;
 
 const effectiveFrom = new Date(Date.now() + 48 * 60 * 60 * 1000)
   .toISOString()
@@ -55,8 +56,8 @@ beforeAll(async () => {
   sessionTypeId = type.body.sessionType.id;
 });
 
-describe("dormant recurring availability boundary", () => {
-  it("does not expose recurrence routes to Clients, Trainers, or Admins", async () => {
+describe("recurring availability", () => {
+  it("exposes admin-only recurrence routes", async () => {
     await request(app)
       .get("/api/admin/availability/rules")
       .set("Cookie", sessionCookie(clientAToken))
@@ -68,7 +69,7 @@ describe("dormant recurring availability boundary", () => {
     await request(app)
       .get("/api/admin/availability/rules")
       .set("Cookie", sessionCookie(adminAToken))
-      .expect(404);
+      .expect(200);
   });
 
   it("validates IANA timezones on location creation", async () => {
@@ -79,9 +80,9 @@ describe("dormant recurring availability boundary", () => {
       .expect(400);
   });
 
-  it("does not mutate dormant recurring rules", async () => {
+  it("materializes a tenant-owned weekly rule only once", async () => {
     const beforeAudit = await countAuditLogs(tenantA.id, "availability_rule:create");
-    await request(app)
+    const created = await request(app)
       .post("/api/admin/availability/rules")
       .set("Cookie", sessionCookie(adminAToken))
       .send({
@@ -93,7 +94,56 @@ describe("dormant recurring availability boundary", () => {
         slotIntervalMinutes: 60,
         effectiveFrom,
       })
-      .expect(404);
-    expect(await countAuditLogs(tenantA.id, "availability_rule:create")).toBe(beforeAudit);
+      .expect(201);
+    ruleId = created.body.rule.id;
+    expect(await countAuditLogs(tenantA.id, "availability_rule:create")).toBe(beforeAudit + 1);
+
+    const preview = await request(app)
+      .get(`/api/admin/availability/preview?from=${effectiveFrom}&to=${effectiveFrom}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(preview.body.occurrences).toHaveLength(2);
+    expect(preview.body.occurrences.every((item: { resolution: string }) => item.resolution === "generated")).toBe(true);
+
+    await request(app)
+      .post("/api/admin/availability/refresh")
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    const afterRefresh = await request(app)
+      .get(`/api/admin/availability/preview?from=${effectiveFrom}&to=${effectiveFrom}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(afterRefresh.body.occurrences).toHaveLength(2);
+
+    const otherTenantRules = await request(app)
+      .get("/api/admin/availability/rules")
+      .set("Cookie", sessionCookie(adminBToken))
+      .expect(200);
+    expect(otherTenantRules.body.rules).toEqual([]);
+  });
+
+  it("suppresses affected unbooked slots for an all-day unavailable exception", async () => {
+    await request(app)
+      .post("/api/admin/availability/exceptions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({
+        availabilityRuleId: ruleId,
+        locationId,
+        sessionTypeId,
+        exceptionDate: effectiveFrom,
+        kind: "unavailable",
+        startsLocalTime: null,
+        endsLocalTime: null,
+        reason: "Studio closed",
+        confirmImpact: true,
+      })
+      .expect(201);
+
+    const preview = await request(app)
+      .get(`/api/admin/availability/preview?from=${effectiveFrom}&to=${effectiveFrom}`)
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(preview.body.occurrences).toHaveLength(2);
+    expect(preview.body.occurrences.every((item: { resolution: string }) => item.resolution === "suppressed")).toBe(true);
   });
 });

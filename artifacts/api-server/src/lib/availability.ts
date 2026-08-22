@@ -235,8 +235,8 @@ function exceptionApplies(
 
 export async function generateAvailability(
   tenantId: string,
-  fromDate = dateFromInstant(new Date(), "UTC"),
-  toDate = addDays(fromDate, GENERATION_DAYS),
+  fromDate?: string,
+  toDate?: string,
 ): Promise<{ generated: number; skipped: number; conflicts: number }> {
   const rules = await db
     .select({
@@ -268,23 +268,25 @@ export async function generateAvailability(
         eq(recurringAvailabilityRulesTable.isActive, true),
       ),
     );
+  const generationStartedAt = new Date();
   const exceptions = await db
     .select()
     .from(availabilityExceptionsTable)
-    .where(
-      and(
-        eq(availabilityExceptionsTable.tenantId, tenantId),
-        gte(availabilityExceptionsTable.exceptionDate, fromDate),
-        lte(availabilityExceptionsTable.exceptionDate, toDate),
-      ),
-    );
+    .where(eq(availabilityExceptionsTable.tenantId, tenantId));
   let generated = 0;
   let skipped = 0;
   let conflicts = 0;
 
   for (const { rule, timezone, durationMinutes, defaultCapacity } of rules) {
-    const slots = generateLocalSlots(rule, durationMinutes, fromDate, toDate);
-    for (const exception of exceptions) {
+    const ruleFromDate = fromDate ?? dateFromInstant(generationStartedAt, timezone);
+    const ruleToDate = toDate ?? addDays(ruleFromDate, GENERATION_DAYS - 1);
+    const ruleExceptions = exceptions.filter(
+      (exception) =>
+        exception.exceptionDate >= ruleFromDate &&
+        exception.exceptionDate <= ruleToDate,
+    );
+    const slots = generateLocalSlots(rule, durationMinutes, ruleFromDate, ruleToDate);
+    for (const exception of ruleExceptions) {
       if (
         exception.kind !== "additional" ||
         exception.locationId !== rule.locationId ||
@@ -308,7 +310,7 @@ export async function generateAvailability(
       }
     }
     for (const slot of slots) {
-      const applicable = exceptions.filter((exception) =>
+      const applicable = ruleExceptions.filter((exception) =>
         exceptionApplies(exception, rule, slot.date, slot.time, durationMinutes),
       );
       const unavailable = applicable.find((exception) => exception.kind === "unavailable");
@@ -364,29 +366,92 @@ export async function generateAvailability(
             and(
               eq(trainingSessionsTable.tenantId, tenantId),
               eq(trainingSessionsTable.createdByUserId, rule.ownerUserId),
-              lte(trainingSessionsTable.startsAt, resolvedEnd),
-              gte(trainingSessionsTable.endsAt, resolvedStart),
+              sql`${trainingSessionsTable.startsAt} < ${resolvedEnd}`,
+              sql`${trainingSessionsTable.endsAt} > ${resolvedStart}`,
               sql`${trainingSessionsTable.status} <> 'cancelled'`,
             ),
           )
           .limit(1);
-        if (conflict[0]) return "conflict" as const;
-        const inserted = await tx
-          .insert(availabilityOccurrencesTable)
-          .values({
-            tenantId,
-            availabilityRuleId: rule.id,
-            localDate: slot.date,
-            localStartTime: slot.time,
-            timezone,
-            resolvedStartsAt: resolvedStart,
-            resolvedEndsAt: resolvedEnd,
-            resolution: "generated",
-            exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
+        const [existing] = await tx
+          .select({
+            id: availabilityOccurrencesTable.id,
+            trainingSessionId: availabilityOccurrencesTable.trainingSessionId,
+            resolution: availabilityOccurrencesTable.resolution,
           })
-          .onConflictDoNothing()
-          .returning({ id: availabilityOccurrencesTable.id });
-        if (!inserted[0]) return "duplicate" as const;
+          .from(availabilityOccurrencesTable)
+          .where(
+            and(
+              eq(availabilityOccurrencesTable.tenantId, tenantId),
+              eq(availabilityOccurrencesTable.availabilityRuleId, rule.id),
+              eq(availabilityOccurrencesTable.localDate, slot.date),
+              eq(availabilityOccurrencesTable.localStartTime, slot.time),
+            ),
+          )
+          .limit(1);
+        if (conflict[0]) {
+          if (existing?.trainingSessionId) return "duplicate" as const;
+          if (existing) {
+            await tx
+              .update(availabilityOccurrencesTable)
+              .set({
+                timezone,
+                resolvedStartsAt: resolvedStart,
+                resolvedEndsAt: resolvedEnd,
+                resolution: "conflict",
+                exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
+                updatedAt: new Date(),
+              })
+              .where(eq(availabilityOccurrencesTable.id, existing.id));
+          } else {
+            await tx
+              .insert(availabilityOccurrencesTable)
+              .values({
+                tenantId,
+                availabilityRuleId: rule.id,
+                localDate: slot.date,
+                localStartTime: slot.time,
+                timezone,
+                resolvedStartsAt: resolvedStart,
+                resolvedEndsAt: resolvedEnd,
+                resolution: "conflict",
+                exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
+              })
+              .onConflictDoNothing();
+          }
+          return "conflict" as const;
+        }
+        if (existing?.trainingSessionId) return "duplicate" as const;
+        if (existing && existing.resolution !== "conflict") return "duplicate" as const;
+        const occurrenceId = existing?.id ?? (
+          await tx
+            .insert(availabilityOccurrencesTable)
+            .values({
+              tenantId,
+              availabilityRuleId: rule.id,
+              localDate: slot.date,
+              localStartTime: slot.time,
+              timezone,
+              resolvedStartsAt: resolvedStart,
+              resolvedEndsAt: resolvedEnd,
+              resolution: "generated",
+              exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
+            })
+            .returning({ id: availabilityOccurrencesTable.id })
+        )[0]?.id;
+        if (!occurrenceId) return "duplicate" as const;
+        if (existing) {
+          await tx
+            .update(availabilityOccurrencesTable)
+            .set({
+              timezone,
+              resolvedStartsAt: resolvedStart,
+              resolvedEndsAt: resolvedEnd,
+              resolution: "generated",
+              exceptionId: applicable.find((exception) => exception.kind !== "additional")?.id,
+              updatedAt: new Date(),
+            })
+            .where(eq(availabilityOccurrencesTable.id, occurrenceId));
+        }
         const [session] = await tx
           .insert(trainingSessionsTable)
           .values({
@@ -406,7 +471,7 @@ export async function generateAvailability(
           .set({ trainingSessionId: session.id, updatedAt: new Date() })
           .where(
             and(
-              eq(availabilityOccurrencesTable.id, inserted[0].id),
+              eq(availabilityOccurrencesTable.id, occurrenceId),
               eq(availabilityOccurrencesTable.tenantId, tenantId),
             ),
           );

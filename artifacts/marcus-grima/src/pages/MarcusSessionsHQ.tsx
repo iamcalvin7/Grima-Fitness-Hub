@@ -141,6 +141,9 @@ function useAdminData() {
   const [bookings, setBookings] = useState<ManagedBooking[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
+  const [rules, setRules] = useState<AvailabilityRule[]>([]);
+  const [exceptions, setExceptions] = useState<AvailabilityException[]>([]);
+  const [occurrences, setOccurrences] = useState<AvailabilityOccurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloading, setReloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,16 +154,22 @@ function useAdminData() {
     setError(null);
 
     try {
-      const [sessRes, bookRes, locRes, typeRes] = await Promise.all([
+      const [sessRes, bookRes, locRes, typeRes, rulesRes, exceptionsRes, previewRes] = await Promise.all([
         apiRequest<{ sessions: ManagedSession[] }>('/admin/training-sessions'),
         apiRequest<{ bookings: ManagedBooking[] }>('/admin/bookings'),
         apiRequest<{ locations: Location[] }>('/admin/training-locations'),
         apiRequest<{ sessionTypes: SessionType[] }>('/admin/session-types'),
+        apiRequest<{ rules?: AvailabilityRule[] }>('/admin/availability/rules'),
+        apiRequest<{ exceptions?: AvailabilityException[] }>('/admin/availability/exceptions'),
+        apiRequest<{ occurrences?: AvailabilityOccurrence[] }>('/admin/availability/preview'),
       ]);
       setSessions(sessRes.sessions);
       setBookings(bookRes.bookings);
       setLocations(locRes.locations);
       setSessionTypes(typeRes.sessionTypes);
+      setRules(rulesRes.rules ?? []);
+      setExceptions(exceptionsRes.exceptions ?? []);
+      setOccurrences(previewRes.occurrences ?? []);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load HQ data';
       if (isInitial) setError(msg);
@@ -176,7 +185,8 @@ function useAdminData() {
   }, [fetchAll]);
 
   return {
-    sessions, bookings, locations, sessionTypes, loading, reloading, error, reload: fetchAll
+    sessions, bookings, locations, sessionTypes, rules, exceptions, occurrences,
+    loading, reloading, error, reload: fetchAll
   };
 }
 
@@ -1000,7 +1010,7 @@ function SessionTypeModal({ type, onClose, onSave, submitting }: { type: Session
 
 export function MarcusSessionsHQ() {
   const data = useAdminData();
-  const [activeTab, setActiveTab] = useState<'requests' | 'schedule'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'schedule' | 'availability'>('requests');
   const [actionId, setActionId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
@@ -1062,6 +1072,9 @@ export function MarcusSessionsHQ() {
           <button onClick={() => setActiveTab('schedule')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'schedule' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
             <span className="flex items-center gap-3"><CalendarBlank size={16} weight={activeTab === 'schedule' ? 'bold' : 'regular'} /> Schedule</span>
           </button>
+          <button onClick={() => setActiveTab('availability')} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'availability' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`} data-testid="button-tab-availability">
+            <span className="flex items-center gap-3"><ArrowClockwise size={16} weight={activeTab === 'availability' ? 'bold' : 'regular'} /> Availability</span>
+          </button>
         </nav>
       </aside>
 
@@ -1069,7 +1082,7 @@ export function MarcusSessionsHQ() {
       <main className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
         <header className="h-16 md:h-20 border-b border-white/10 flex items-center justify-between px-4 md:px-10 shrink-0">
           <h2 className="text-xl font-bold tracking-tight text-white">
-            {activeTab === 'schedule' ? 'Weekly Schedule' : 'Requests'}
+            {activeTab === 'schedule' ? 'Weekly Schedule' : activeTab === 'availability' ? 'Availability' : 'Requests'}
           </h2>
           <div className="flex items-center gap-4">
             <button onClick={() => data.reload(false)} disabled={data.loading || data.reloading} className="p-2.5 text-white/30 hover:text-white rounded-full hover:bg-white/10 disabled:opacity-50 transition-colors" title="Sync with Server">
@@ -1099,6 +1112,7 @@ export function MarcusSessionsHQ() {
             >
               {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} />}
               {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
+              {activeTab === 'availability' && <AvailabilityView rules={data.rules} exceptions={data.exceptions} occurrences={data.occurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
             </motion.div>
           </AnimatePresence>
         </div>

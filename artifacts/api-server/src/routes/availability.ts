@@ -20,6 +20,7 @@ import {
   GENERATION_DAYS,
   isIsoDate,
   isLocalTime,
+  resolveLocalDateTime,
   validateRuleTimes,
   validateTimezone,
 } from "../lib/availability";
@@ -34,6 +35,21 @@ class HttpError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
+}
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type AvailabilityExecutor = typeof db | Transaction;
+
+async function lockAvailabilityOwner(
+  tx: Transaction,
+  tenantId: string,
+  ownerUserId: string,
+): Promise<void> {
+  await tx.execute(sql`
+    SELECT pg_advisory_xact_lock(
+      hashtextextended(${`${tenantId}:${ownerUserId}`}, 0)
+    )
+  `);
 }
 
 function uuidValue(value: unknown): string | null {
@@ -121,17 +137,22 @@ async function activeReferences(
 }
 
 async function ruleOverlaps(
+  executor: AvailabilityExecutor,
   tenantId: string,
   ownerUserId: string,
   weekday: number,
   startsLocalTime: string,
   endsLocalTime: string,
+  effectiveFrom: string,
+  effectiveUntil: string | null,
   excludeId?: string,
 ): Promise<boolean> {
-  const rows = await db
+  const rows = await executor
     .select({
       startsLocalTime: recurringAvailabilityRulesTable.startsLocalTime,
       endsLocalTime: recurringAvailabilityRulesTable.endsLocalTime,
+      effectiveFrom: recurringAvailabilityRulesTable.effectiveFrom,
+      effectiveUntil: recurringAvailabilityRulesTable.effectiveUntil,
     })
     .from(recurringAvailabilityRulesTable)
     .where(
@@ -144,13 +165,21 @@ async function ruleOverlaps(
       ),
     );
   return rows.some(
-    (row) => startsLocalTime < row.endsLocalTime && endsLocalTime > row.startsLocalTime,
+    (row) =>
+      startsLocalTime < row.endsLocalTime &&
+      endsLocalTime > row.startsLocalTime &&
+      row.effectiveFrom <= (effectiveUntil ?? "9999-12-31") &&
+      (row.effectiveUntil === null || row.effectiveUntil >= effectiveFrom),
   );
 }
 
-async function impactForRule(tenantId: string, ruleId: string) {
+async function impactForRule(
+  executor: AvailabilityExecutor,
+  tenantId: string,
+  ruleId: string,
+) {
   const today = dateFromInstant(new Date(), "UTC");
-  const rows = await db
+  const rows = await executor
     .select({
       occurrenceId: availabilityOccurrencesTable.id,
       sessionId: availabilityOccurrencesTable.trainingSessionId,
@@ -186,6 +215,7 @@ async function impactForRule(tenantId: string, ruleId: string) {
 }
 
 async function impactForException(
+  executor: AvailabilityExecutor,
   tenantId: string,
   input: {
     availabilityRuleId: string | null;
@@ -197,11 +227,13 @@ async function impactForException(
     endsLocalTime: string | null;
   },
 ) {
-  const rows = await db
+  const rows = await executor
     .select({
       occurrenceId: availabilityOccurrencesTable.id,
       sessionId: availabilityOccurrencesTable.trainingSessionId,
-      localStartTime: availabilityOccurrencesTable.localStartTime,
+      timezone: availabilityOccurrencesTable.timezone,
+      startsAt: availabilityOccurrencesTable.resolvedStartsAt,
+      endsAt: availabilityOccurrencesTable.resolvedEndsAt,
       activeBookings: sql<number>`count(${bookingsTable.id})::int`,
     })
     .from(availabilityOccurrencesTable)
@@ -235,7 +267,24 @@ async function impactForException(
     .groupBy(availabilityOccurrencesTable.id);
   const windowed = rows.filter((row) => {
     if (!input.startsLocalTime || !input.endsLocalTime) return true;
-    return row.localStartTime >= input.startsLocalTime && row.localStartTime < input.endsLocalTime;
+    const exceptionStart = resolveLocalDateTime(
+      input.exceptionDate,
+      input.startsLocalTime,
+      row.timezone,
+    );
+    const exceptionEnd = resolveLocalDateTime(
+      input.exceptionDate,
+      input.endsLocalTime,
+      row.timezone,
+    );
+    return Boolean(
+      exceptionStart &&
+      exceptionEnd &&
+      row.startsAt &&
+      row.endsAt &&
+      row.startsAt < exceptionEnd &&
+      row.endsAt > exceptionStart,
+    );
   });
   return {
     booked: windowed.filter((row) => Number(row.activeBookings) > 0),
@@ -336,18 +385,26 @@ router.post("/admin/availability/rules", async (req, res) => {
   }
   try {
     await activeReferences(req.user!.tenantId, locationId, sessionTypeId);
-    if (
-      await ruleOverlaps(
-        req.user!.tenantId,
-        req.user!.id,
-        weekday,
-        startsLocalTime,
-        endsLocalTime,
-      )
-    ) {
-      throw new HttpError(409, "This availability overlaps another active Marcus rule");
-    }
     const rule = await db.transaction(async (tx) => {
+      await tx.execute(sql`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${`${req.user!.tenantId}:${req.user!.id}:availability-rules`}, 0)
+        )
+      `);
+      if (
+        await ruleOverlaps(
+          tx,
+          req.user!.tenantId,
+          req.user!.id,
+          weekday,
+          startsLocalTime,
+          endsLocalTime,
+          effectiveFrom,
+          effectiveUntil,
+        )
+      ) {
+        throw new HttpError(409, "This availability overlaps another active Marcus rule");
+      }
       const [created] = await tx
         .insert(recurringAvailabilityRulesTable)
         .values({
@@ -397,7 +454,7 @@ router.get("/admin/availability/rules/:id/impact", async (req, res) => {
       )
       .limit(1);
     if (!rule) throw new HttpError(404, "Availability rule not found");
-    res.json({ impact: await impactForRule(req.user!.tenantId, id) });
+    res.json({ impact: await impactForRule(db, req.user!.tenantId, id) });
   } catch (error) {
     sendError(req, res, error, "Failed to preview availability impact");
   }
@@ -495,20 +552,7 @@ router.patch("/admin/availability/rules/:id", async (req, res) => {
       validatedUpdates.locationId,
       validatedUpdates.sessionTypeId,
     );
-    if (
-      validatedUpdates.isActive &&
-      await ruleOverlaps(
-        req.user!.tenantId,
-        current.ownerUserId,
-        validatedUpdates.weekday,
-        validatedUpdates.startsLocalTime,
-        validatedUpdates.endsLocalTime,
-        id,
-      )
-    ) {
-      throw new HttpError(409, "This availability overlaps another active Marcus rule");
-    }
-    const impact = await impactForRule(req.user!.tenantId, id);
+    const impact = await impactForRule(db, req.user!.tenantId, id);
     if (impact.booked.length > 0) {
       throw new HttpError(
         409,
@@ -520,7 +564,39 @@ router.patch("/admin/availability/rules/:id", async (req, res) => {
       return;
     }
     const rule = await db.transaction(async (tx) => {
-      if (impact.unbookedSessionIds.length > 0) {
+      await lockAvailabilityOwner(tx, req.user!.tenantId, current.ownerUserId);
+      await tx.execute(sql`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${`${req.user!.tenantId}:${current.ownerUserId}:availability-rules`}, 0)
+        )
+      `);
+      if (
+        validatedUpdates.isActive &&
+        await ruleOverlaps(
+          tx,
+          req.user!.tenantId,
+          current.ownerUserId,
+          validatedUpdates.weekday,
+          validatedUpdates.startsLocalTime,
+          validatedUpdates.endsLocalTime,
+          validatedUpdates.effectiveFrom,
+          validatedUpdates.effectiveUntil,
+          id,
+        )
+      ) {
+        throw new HttpError(409, "This availability overlaps another active Marcus rule");
+      }
+      const lockedImpact = await impactForRule(tx, req.user!.tenantId, id);
+      if (lockedImpact.booked.length > 0) {
+        throw new HttpError(
+          409,
+          "This change affects booked sessions. Review and resolve those sessions individually before editing the rule.",
+        );
+      }
+      if (!req.body?.confirmImpact && lockedImpact.unbookedSessionIds.length > 0) {
+        throw new HttpError(409, "Review the impact and resubmit with confirmImpact: true");
+      }
+      if (lockedImpact.unbookedSessionIds.length > 0) {
         await tx
           .delete(availabilityOccurrencesTable)
           .where(
@@ -528,7 +604,6 @@ router.patch("/admin/availability/rules/:id", async (req, res) => {
               eq(availabilityOccurrencesTable.tenantId, req.user!.tenantId),
               eq(availabilityOccurrencesTable.availabilityRuleId, id),
               gte(availabilityOccurrencesTable.localDate, dateFromInstant(new Date(), "UTC")),
-              sql`${availabilityOccurrencesTable.trainingSessionId} is not null`,
             ),
           );
         await tx
@@ -537,7 +612,7 @@ router.patch("/admin/availability/rules/:id", async (req, res) => {
             and(
               eq(trainingSessionsTable.tenantId, req.user!.tenantId),
               sql`${trainingSessionsTable.id} in (${sql.join(
-                impact.unbookedSessionIds.map((sessionId) => sql`${sessionId}::uuid`),
+                lockedImpact.unbookedSessionIds.map((sessionId) => sql`${sessionId}::uuid`),
                 sql`, `,
               )})`,
             ),
@@ -556,7 +631,7 @@ router.patch("/admin/availability/rules/:id", async (req, res) => {
       if (!updated) throw new HttpError(404, "Availability rule not found");
       await writeAuditLog(
         auditParams(req, "availability_rule:update", "availability_rule", id, {
-          regeneratedUnbookedCount: impact.unbookedSessionIds.length,
+          regeneratedUnbookedCount: lockedImpact.unbookedSessionIds.length,
         }),
         tx,
       );
@@ -618,6 +693,7 @@ router.post("/admin/availability/exceptions", async (req, res) => {
     (startsLocalTime && (!isLocalTime(startsLocalTime) || !endsLocalTime || !isLocalTime(endsLocalTime))) ||
     (startsLocalTime && endsLocalTime && startsLocalTime >= endsLocalTime) ||
     (kind === "additional" && (!startsLocalTime || !endsLocalTime)) ||
+     (kind === "override" && capacityOverride === null) ||
     (capacityOverride !== null && capacityOverride <= 0)
   ) {
     res.status(400).json({ error: "Invalid exception time window or capacity" });
@@ -640,7 +716,7 @@ router.post("/admin/availability/exceptions", async (req, res) => {
     }
     const affectsMaterializedSessions = kind === "unavailable" || kind === "override";
     const impact = affectsMaterializedSessions
-      ? await impactForException(req.user!.tenantId, {
+      ? await impactForException(db, req.user!.tenantId, {
           availabilityRuleId,
           ownerUserId: req.user!.id,
           locationId,
@@ -661,14 +737,35 @@ router.post("/admin/availability/exceptions", async (req, res) => {
       return;
     }
     const exception = await db.transaction(async (tx) => {
-      if (impact.unbookedSessionIds.length > 0) {
+      await lockAvailabilityOwner(tx, req.user!.tenantId, req.user!.id);
+      const lockedImpact = affectsMaterializedSessions
+        ? await impactForException(tx, req.user!.tenantId, {
+            availabilityRuleId,
+            ownerUserId: req.user!.id,
+            locationId,
+            sessionTypeId,
+            exceptionDate,
+            startsLocalTime,
+            endsLocalTime,
+          })
+        : { booked: [], unbookedSessionIds: [] };
+      if (lockedImpact.booked.length > 0) {
+        throw new HttpError(
+          409,
+          "This exception affects booked sessions. Resolve those sessions individually before applying the exception.",
+        );
+      }
+      if (!req.body?.confirmImpact && lockedImpact.unbookedSessionIds.length > 0) {
+        throw new HttpError(409, "Review the impact and resubmit with confirmImpact: true");
+      }
+      if (lockedImpact.unbookedSessionIds.length > 0) {
         await tx
           .delete(availabilityOccurrencesTable)
           .where(
             and(
               eq(availabilityOccurrencesTable.tenantId, req.user!.tenantId),
               sql`${availabilityOccurrencesTable.trainingSessionId} in (${sql.join(
-                impact.unbookedSessionIds.map((sessionId) => sql`${sessionId}::uuid`),
+                lockedImpact.unbookedSessionIds.map((sessionId) => sql`${sessionId}::uuid`),
                 sql`, `,
               )})`,
             ),
@@ -679,7 +776,7 @@ router.post("/admin/availability/exceptions", async (req, res) => {
             and(
               eq(trainingSessionsTable.tenantId, req.user!.tenantId),
               sql`${trainingSessionsTable.id} in (${sql.join(
-                impact.unbookedSessionIds.map((sessionId) => sql`${sessionId}::uuid`),
+                lockedImpact.unbookedSessionIds.map((sessionId) => sql`${sessionId}::uuid`),
                 sql`, `,
               )})`,
             ),
@@ -705,7 +802,7 @@ router.post("/admin/availability/exceptions", async (req, res) => {
       if (!created) throw new Error("Failed to create availability exception");
       await writeAuditLog(
         auditParams(req, "availability_exception:create", "availability_exception", created.id, {
-          regeneratedUnbookedCount: impact.unbookedSessionIds.length,
+          regeneratedUnbookedCount: lockedImpact.unbookedSessionIds.length,
         }),
         tx,
       );
@@ -724,8 +821,8 @@ router.get("/admin/availability/preview", async (req, res) => {
     : dateFromInstant(new Date(), "UTC");
   const to = typeof req.query.to === "string" && isIsoDate(req.query.to)
     ? req.query.to
-    : addDays(from, GENERATION_DAYS);
-  if (to < from || to > addDays(from, GENERATION_DAYS)) {
+    : addDays(from, GENERATION_DAYS - 1);
+  if (to < from || to > addDays(from, GENERATION_DAYS - 1)) {
     res.status(400).json({ error: "Preview range must be within 120 days" });
     return;
   }

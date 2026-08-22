@@ -30,6 +30,9 @@ function mockAdminData(resources: { sessions?: unknown[]; locations?: unknown[];
     if (path === '/admin/bookings') return Promise.resolve({ bookings: resources.bookings ?? [booking] });
     if (path === '/admin/training-locations') return Promise.resolve({ locations: resources.locations ?? [location] });
     if (path === '/admin/session-types') return Promise.resolve({ sessionTypes: [] });
+    if (path === '/admin/availability/rules') return Promise.resolve({ rules: [] });
+    if (path === '/admin/availability/exceptions') return Promise.resolve({ exceptions: [] });
+    if (path === '/admin/availability/preview') return Promise.resolve({ occurrences: [] });
     if (path === '/admin/training-sessions/copy-previous-week') return Promise.resolve({ created: [{ sessionId: 'copy-1' }], skipped: [], conflicts: [] });
     if (path.startsWith('/admin/')) return Promise.resolve({});
     return Promise.reject(new Error(`Unexpected endpoint: ${path}`));
@@ -68,14 +71,17 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     vi.clearAllMocks();
   });
 
-  it('keeps request approval available and does not fetch or expose recurrence controls', async () => {
+  it('keeps request approval available and exposes the availability workspace', async () => {
     mockAdminData();
     render(<MarcusSessionsHQ />);
     expect(await screen.findByText('Calvin Test')).toBeInTheDocument();
     expect(apiRequest).toHaveBeenCalledWith('/admin/bookings');
-    expect(apiRequest).not.toHaveBeenCalledWith('/admin/availability/rules');
-    expect(screen.queryByRole('button', { name: /availability/i })).not.toBeInTheDocument();
+    expect(apiRequest).toHaveBeenCalledWith('/admin/availability/rules');
+    expect(screen.getByRole('button', { name: /availability/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^locations$/i })).not.toBeInTheDocument();
+    await actEvent(() => fireEvent.click(screen.getByRole('button', { name: /availability/i })));
+    expect(screen.getByRole('heading', { name: 'Materialized 120 days ahead' })).toBeInTheDocument();
+    expect(screen.getByText('Create an active location and session type before adding availability.')).toBeInTheDocument();
   });
 
   it('renders every weekday group and navigates using the visible date range', async () => {
