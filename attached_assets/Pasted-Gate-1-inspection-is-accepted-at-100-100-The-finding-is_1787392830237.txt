@@ -1,0 +1,505 @@
+Gate 1 inspection is accepted at **100/100**. The finding is clear: Sessions & Booking is a polished prototype, but nothing is currently saved or shared with Marcus.
+
+The next build creates the real booking engine underneath it.
+
+Client impact: bookings can be saved, viewed, cancelled and rescheduled safely.
+Marcus impact: Marcus can create sessions, control capacity, and approve or reject requests.
+
+Pricing, credits, payments, notifications and frontend conversion remain outside this gate.
+
+* Sessions & Booking feature: **10/100**
+* Gate 2 Core Booking Backend: **0/100**
+* Documentation: unchanged until Gate 2 finishes
+
+# APPROVED RED BUILD — Sessions & Booking Gate 2: Core Booking Backend
+
+Build the complete backend foundation for the existing Sessions & Booking feature.
+
+Proceed through the approved stages without waiting for further approval when checks pass. Stop only when a defined stop condition occurs.
+
+Do not update documentation. ChatGPT will update it once Gate 2 reaches 100%.
+
+After each meaningful update, report:
+
+* Plain-English Client impact
+* Plain-English Marcus impact
+* `GATE 2 TASK COMPLETION: X/100 — X%`
+* `SESSIONS & BOOKING FEATURE SCORE: 10/100 — awaiting AI Director rescore`
+
+## Locked product decisions
+
+Use these decisions without reopening them:
+
+* Product actors: Client and Marcus only
+* Marcus is represented technically by `admin`
+* Legacy `trainer` receives no booking-management capability
+* V1 is single-tenant, but every record and query remains tenant-scoped
+* Business timezone: `Europe/Malta`
+* Store appointment timestamps as UTC `timestamptz`
+* Existing static sessions are visual sample data only
+* Do not migrate or seed the static July sessions
+* Clients submit booking requests
+* New bookings begin as `pending`
+* Marcus confirms or rejects them
+* Pending and confirmed bookings both reserve capacity
+* Clients may cancel their own future pending or confirmed booking
+* Rescheduling is atomic: the existing booking changes only if the replacement succeeds
+* Pricing, packages, credits, memberships, payments and entitlements are separate concerns
+* Do not invent or hard-code commercial prices in this gate
+* No emails, reminders or calendar synchronisation in this gate
+* Build concrete scheduled sessions first; recurring availability rules are outside this gate
+
+## Approved scope
+
+1. Add the minimum booking-domain schema.
+2. Apply and physically verify an additive development migration.
+3. Build Client session-discovery and booking APIs.
+4. Build Marcus session and booking-management APIs.
+5. Enforce capacity, ownership, tenant isolation, idempotency and concurrency.
+6. Add transactional booking audit records.
+7. Add complete unit and isolated database-backed integration tests.
+8. Run full verification.
+
+## Explicit exclusions
+
+Do not:
+
+* Change production
+* Publish or deploy
+* Seed sample sessions or bookings
+* Modify real users
+* Build or modify frontend pages
+* Add payments, credits, packages or entitlements
+* Add pricing fields or pricing calculations
+* Add recurring availability
+* Add email or push notifications
+* Add Google Calendar
+* Enable the legacy trainer role
+* Update documentation
+* Refactor unrelated authentication, content, proposal or audit behaviour
+
+## Stage 0 — Preflight and exact design — 10 points
+
+Inspect:
+
+* Existing schema and migration conventions
+* Current isolated integration-test harness
+* Audit helper and transaction patterns
+* Capability middleware
+* API validation and error-response conventions
+* Rate-limiting and idempotency patterns
+* Current Sessions frontend data shape for future compatibility
+
+Before editing, return:
+
+* Exact tables and enums proposed
+* Exact routes proposed
+* Status lifecycle
+* Capacity algorithm
+* Idempotency strategy
+* Tenant-enforcement strategy
+* Audit-event vocabulary
+* Files expected to change
+
+Stop if:
+
+* The environment is deployed or production
+* A destructive migration is required
+* Existing schema names conflict
+* Safe capacity locking cannot be implemented
+* Scope requires pricing, payment or authentication changes
+
+## Stage 1 — Additive booking domain — 25 points
+
+Create the minimum domain model using existing database conventions.
+
+### Training locations
+
+Minimum fields:
+
+* ID
+* Tenant ID
+* Name
+* Timezone, defaulting to `Europe/Malta`
+* Optional address/details
+* Active status
+* Created and updated timestamps
+
+### Training session types
+
+Minimum fields:
+
+* ID
+* Tenant ID
+* Name
+* Optional description
+* Duration in minutes
+* Default capacity
+* Active status
+* Created and updated timestamps
+
+Do not add prices.
+
+### Training sessions
+
+Use a name that cannot be confused with the existing authentication `sessions` table.
+
+Minimum fields:
+
+* ID
+* Tenant ID
+* Session-type ID
+* Location ID
+* Start timestamp
+* End timestamp
+* Capacity snapshot
+* Status
+* Optional Marcus notes
+* Created-by user ID
+* Created and updated timestamps
+
+Minimum session statuses:
+
+* `scheduled`
+* `cancelled`
+* `completed`
+
+Constraints:
+
+* Capacity must be greater than zero
+* End must be after start
+* Tenant relationships must match
+* Timestamps use UTC-compatible `timestamptz`
+
+### Bookings
+
+Minimum fields:
+
+* ID
+* Tenant ID
+* Training-session ID
+* Client user ID
+* Status
+* Idempotency key
+* Optional cancellation reason
+* Optional rejection reason
+* Optional source/rescheduled-from booking ID
+* Created, updated, confirmed, cancelled and attendance timestamps where applicable
+
+Minimum booking statuses:
+
+* `pending`
+* `confirmed`
+* `rejected`
+* `cancelled`
+* `rescheduled`
+* `attended`
+* `no_show`
+
+Constraints:
+
+* One active booking per Client per training session
+* Unique idempotency key within the Client/tenant boundary
+* Client and training session must belong to the same tenant
+* Foreign keys and indexes for tenant, session, Client, status and time-based queries
+* No hard deletion of booking history
+
+Create an additive migration, apply it only in the confirmed development workspace and physically verify:
+
+* Tables
+* Enums
+* Columns and types
+* Constraints
+* Foreign keys
+* Partial uniqueness where applicable
+* Indexes
+* Migration history
+
+Do not insert sample records into the normal development database.
+
+## Stage 2 — Client booking APIs — 25 points
+
+Build authenticated Client APIs using existing route conventions.
+
+Minimum routes:
+
+* `GET /api/training-sessions`
+* `GET /api/training-sessions/:id`
+* `GET /api/bookings`
+* `GET /api/bookings/:id`
+* `POST /api/bookings`
+* `POST /api/bookings/:id/cancel`
+* `POST /api/bookings/:id/reschedule`
+
+### Session discovery
+
+Clients may see only:
+
+* Their tenant’s active scheduled sessions
+* Sessions within validated date boundaries
+* Capacity information safe for Client display
+* Location and session-type information
+
+Do not expose private Marcus notes or other Clients.
+
+### Booking creation
+
+Require:
+
+* Authenticated Client
+* Training-session ID
+* Client-generated idempotency key
+
+Server derives:
+
+* Client user ID
+* Tenant ID
+* Initial status
+* Audit actor
+* Capacity state
+
+Rules:
+
+* New booking status is `pending`
+* Pending and confirmed bookings reserve capacity
+* Session must be scheduled and in the future
+* Client and session must share a tenant
+* Replayed idempotency key returns the original result
+* Same Client cannot create two active bookings for one session
+* Capacity must never be exceeded
+
+Use a transaction and database locking. Concurrent requests for the final place must produce exactly one success.
+
+### Cancellation
+
+Clients may cancel only their own future `pending` or `confirmed` booking.
+
+Rules:
+
+* No price, credit or penalty logic
+* Preserve booking history
+* Repeated cancellation is idempotent
+* Another Client’s booking is not discoverable
+* Past, rejected, attended or no-show bookings cannot be cancelled
+
+### Rescheduling
+
+Rescheduling must be one transaction.
+
+Rules:
+
+* Client owns the original booking
+* Original booking is pending or confirmed and in the future
+* Replacement session is eligible and has capacity
+* Lock affected sessions in a stable order
+* Create the replacement booking as pending
+* Mark the original booking as rescheduled
+* Preserve the relationship between both bookings
+* If replacement creation fails, the original booking remains unchanged
+* Idempotent retries return the original reschedule result
+
+Audit every successful create, cancel and reschedule.
+
+## Stage 3 — Marcus management APIs — 20 points
+
+Protect every Marcus endpoint with:
+
+`requireCapability("bookings:manage")`
+
+Minimum Marcus routes:
+
+### Locations
+
+* Create
+* List
+* Update
+* Deactivate
+
+### Session types
+
+* Create
+* List
+* Update
+* Deactivate
+
+### Scheduled sessions
+
+* Create
+* List
+* Read
+* Update when safe
+* Cancel
+* Mark completed
+
+### Booking management
+
+* List and filter bookings
+* Read booking detail
+* Confirm pending booking
+* Reject pending booking
+* Record attended
+* Record no-show
+
+Rules:
+
+* Marcus/admin allowed
+* Client denied
+* Legacy trainer denied
+* Missing authentication denied
+* Every query is tenant-scoped
+* Status transitions fail closed
+* Capacity cannot be reduced below active reservations
+* A session with bookings is cancelled, not deleted
+* Client identity comes from stored booking data
+* Every successful mutation creates a transactional audit record
+
+Use explicit audit actions such as:
+
+* `training_location:create`
+* `training_location:update`
+* `training_session_type:create`
+* `training_session_type:update`
+* `training_session:create`
+* `training_session:update`
+* `training_session:cancel`
+* `training_session:complete`
+* `booking:create`
+* `booking:cancel`
+* `booking:reschedule`
+* `booking:confirm`
+* `booking:reject`
+* `booking:attended`
+* `booking:no_show`
+
+Metadata must contain no secrets or unnecessary personal information.
+
+## Stage 4 — Automated proof and full verification — 20 points
+
+Reuse the isolated integration-test harness.
+
+Required tests:
+
+### Schema and tenancy
+
+* All records are tenant-scoped
+* Cross-tenant foreign relationships are refused
+* Client cannot inject tenant or Client IDs
+* Marcus from Tenant B cannot manage Tenant A sessions or bookings
+
+### Permissions
+
+* Client can use only Client booking routes
+* Client receives 403 on every Marcus booking route
+* Legacy trainer receives 403
+* Marcus/admin retains access
+* Missing authentication receives 401
+
+### Booking integrity
+
+* Successful pending booking
+* Idempotent retry
+* Duplicate active booking refused
+* Full session refused
+* Concurrent final-place requests allow exactly one success
+* Pending reservations count toward capacity
+* Confirmed reservations count toward capacity
+* Rejected, cancelled and rescheduled bookings release capacity
+* Past or cancelled sessions cannot be booked
+
+### Cancellation and rescheduling
+
+* Client may cancel their own eligible booking
+* Client cannot cancel another Client’s booking
+* Repeated cancellation is idempotent
+* Successful atomic reschedule
+* Failed replacement leaves original unchanged
+* Concurrent reschedule cannot overbook
+* Cross-tenant reschedule refused
+
+### Marcus workflow
+
+* Create location
+* Create session type
+* Create scheduled session
+* View pending booking
+* Confirm or reject booking
+* Mark attended or no-show
+* Invalid status transition refused
+* Capacity reduction below reservations refused
+
+### Audit
+
+* Every successful mutation creates exactly one audit record
+* Denied and validation-failed requests create none
+* Audit failure rolls back the mutation
+* Actor, tenant, action and target are server-derived
+
+Run:
+
+* Complete API unit and integration tests
+* Client tests
+* Scripts tests
+* All-package typechecks
+* API production build
+* Client production build with inline `PORT` and `BASE_PATH`
+* Migration verification
+* Isolated-schema cleanup verification
+* Working-tree scope
+* Dependency and lockfile review
+* Environment-file check
+* Secret, debug and temporary-file checks
+
+## Stop conditions
+
+Stop immediately if:
+
+* Production or deployment is detected
+* Migration becomes destructive
+* Capacity cannot be protected transactionally
+* Integration tests touch normal development data
+* Tenant isolation fails
+* Idempotency cannot be enforced safely
+* Pricing or payment becomes required
+* Real users or sessions would be modified
+* Existing authentication or permission behaviour regresses
+* Typechecks, existing tests or builds fail
+* Scope expands beyond the approved backend foundation
+
+## Completion rubric
+
+* Preflight and design: 10/10
+* Additive domain and development migration: 25/25
+* Client booking APIs: 25/25
+* Marcus management APIs: 20/20
+* Automated proof and full verification: 20/20
+
+Every mandatory section must pass for Gate 2 to reach 100%.
+
+## Final report
+
+Return one consolidated report containing:
+
+1. Plain-English Client impact
+2. Plain-English Marcus impact
+3. Final schema and lifecycle
+4. Development migration evidence
+5. Client routes and behaviour
+6. Marcus routes and behaviour
+7. Capacity and concurrency proof
+8. Idempotency proof
+9. Cancellation and rescheduling proof
+10. Tenant and permission proof
+11. Audit-event table
+12. Complete test totals
+13. Typecheck and build results
+14. Working-tree, dependency and environment hygiene
+15. Remaining blockers
+16. Stop conditions encountered
+
+End with:
+
+`GATE 2 TASK COMPLETION: X/100 — X%`
+
+`SESSIONS & BOOKING FEATURE SCORE: 10/100 — awaiting AI Director rescore`
+
+Do not build frontend changes, begin pricing/payments, publish, or update documentation.

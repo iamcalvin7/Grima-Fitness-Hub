@@ -8,6 +8,7 @@ import storageRouter from "./storage";
 import contentRouter from "./content";
 import proposalFeaturesRouter from "./proposalFeatures";
 import auditRouter from "./audit";
+import trainingBookingsRouter from "./trainingBookings";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(storageRouter);
 router.use(contentRouter);
 router.use(proposalFeaturesRouter);
 router.use(auditRouter);
+router.use(trainingBookingsRouter);
 
 export default router;

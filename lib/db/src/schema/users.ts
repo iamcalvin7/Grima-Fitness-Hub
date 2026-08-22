@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -60,6 +61,7 @@ export const usersTable = pgTable(
       table.tenantId,
       table.email,
     ),
+    unique("users_id_tenant_unique").on(table.id, table.tenantId),
     index("users_tenant_id_idx").on(table.tenantId),
   ],
 );

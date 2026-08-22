@@ -72,6 +72,8 @@ CREATE TYPE user_role AS ENUM ('admin', 'trainer', 'client');
 CREATE TYPE audit_actor_type AS ENUM ('user', 'system', 'cli');
 CREATE TYPE content_type AS ENUM ('video', 'image', 'article');
 CREATE TYPE content_status AS ENUM ('draft', 'published');
+CREATE TYPE training_session_status AS ENUM ('scheduled', 'cancelled', 'completed');
+CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'rejected', 'cancelled', 'rescheduled', 'attended', 'no_show');
 
 -- ── tenants ────────────────────────────────────────────────────────────────
 CREATE TABLE tenants (
@@ -99,7 +101,8 @@ CREATE TABLE users (
   email_verified_at TIMESTAMPTZ,
   last_login_at     TIMESTAMPTZ,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (id, tenant_id)
 );
 CREATE UNIQUE INDEX users_tenant_email_unique ON users(tenant_id, email);
 CREATE INDEX users_tenant_id_idx ON users(tenant_id);
@@ -199,6 +202,91 @@ CREATE INDEX content_posts_tenant_idx   ON content_posts(tenant_id);
 CREATE INDEX content_posts_status_idx   ON content_posts(status);
 CREATE INDEX content_posts_author_idx   ON content_posts(author_id);
 CREATE INDEX content_posts_featured_idx ON content_posts(featured);
+
+-- ── training locations and bookings ───────────────────────────────────────
+CREATE TABLE training_locations (
+  id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id       UUID        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name            TEXT        NOT NULL,
+  timezone        TEXT        NOT NULL DEFAULT 'Europe/Malta',
+  address_details TEXT,
+  is_active       BOOLEAN     NOT NULL DEFAULT TRUE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id)
+);
+CREATE INDEX training_locations_tenant_idx ON training_locations(tenant_id);
+CREATE INDEX training_locations_active_idx ON training_locations(tenant_id, is_active);
+
+CREATE TABLE training_session_types (
+  id               UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id        UUID        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name             TEXT        NOT NULL,
+  description      TEXT,
+  duration_minutes INTEGER     NOT NULL CHECK (duration_minutes > 0),
+  default_capacity INTEGER     NOT NULL CHECK (default_capacity > 0),
+  is_active        BOOLEAN     NOT NULL DEFAULT TRUE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id)
+);
+CREATE INDEX training_session_types_tenant_idx ON training_session_types(tenant_id);
+CREATE INDEX training_session_types_active_idx ON training_session_types(tenant_id, is_active);
+
+CREATE TABLE training_sessions (
+  id                 UUID                    DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id          UUID                    NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  session_type_id    UUID                    NOT NULL,
+  location_id        UUID                    NOT NULL,
+  starts_at          TIMESTAMPTZ             NOT NULL,
+  ends_at            TIMESTAMPTZ             NOT NULL,
+  capacity           INTEGER                 NOT NULL CHECK (capacity > 0),
+  status             training_session_status NOT NULL DEFAULT 'scheduled',
+  marcus_notes       TEXT,
+  created_by_user_id UUID                    NOT NULL,
+  created_at         TIMESTAMPTZ             NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ             NOT NULL DEFAULT NOW(),
+  CHECK (ends_at > starts_at),
+  UNIQUE (tenant_id, id),
+  FOREIGN KEY (tenant_id, session_type_id)
+    REFERENCES training_session_types(tenant_id, id),
+  FOREIGN KEY (tenant_id, location_id)
+    REFERENCES training_locations(tenant_id, id),
+  FOREIGN KEY (tenant_id, created_by_user_id)
+    REFERENCES users(tenant_id, id)
+);
+CREATE UNIQUE INDEX training_sessions_tenant_id_unique ON training_sessions(tenant_id, id);
+CREATE INDEX training_sessions_tenant_start_idx ON training_sessions(tenant_id, starts_at);
+CREATE INDEX training_sessions_status_start_idx ON training_sessions(status, starts_at);
+
+CREATE TABLE bookings (
+  id                          UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id                   UUID           NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  training_session_id         UUID           NOT NULL,
+  client_user_id              UUID           NOT NULL,
+  status                      booking_status NOT NULL DEFAULT 'pending',
+  idempotency_key             TEXT           NOT NULL,
+  cancellation_reason         TEXT,
+  rejection_reason            TEXT,
+  rescheduled_from_booking_id UUID           REFERENCES bookings(id),
+  created_at                  TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  updated_at                  TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  confirmed_at                TIMESTAMPTZ,
+  cancelled_at                TIMESTAMPTZ,
+  attendance_at               TIMESTAMPTZ,
+  FOREIGN KEY (tenant_id, training_session_id)
+    REFERENCES training_sessions(tenant_id, id),
+  FOREIGN KEY (tenant_id, client_user_id)
+    REFERENCES users(tenant_id, id)
+);
+CREATE INDEX bookings_tenant_idx ON bookings(tenant_id);
+CREATE INDEX bookings_session_status_idx ON bookings(training_session_id, status);
+CREATE INDEX bookings_client_created_idx ON bookings(client_user_id, created_at);
+CREATE UNIQUE INDEX bookings_tenant_client_idempotency_unique
+  ON bookings(tenant_id, client_user_id, idempotency_key);
+CREATE UNIQUE INDEX bookings_active_client_session_unique
+  ON bookings(tenant_id, client_user_id, training_session_id)
+  WHERE status IN ('pending', 'confirmed');
 
 -- ── proposal_features ─────────────────────────────────────────────────────
 CREATE TABLE proposal_features (
