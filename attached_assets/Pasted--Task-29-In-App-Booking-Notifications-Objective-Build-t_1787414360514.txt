@@ -1,0 +1,811 @@
+# Task #29 — In-App Booking Notifications
+
+## Objective
+
+Build the booking notification system entirely inside the Marcus Fitness app.
+
+Do **not** implement email, SMS, push, Resend, SendGrid, Twilio, OneSignal or reminder scheduling in this task.
+
+The goal is:
+
+```text
+Client books
+→ Marcus gets an in-app notification
+
+Marcus confirms/rejects
+→ Client gets an in-app notification
+
+Client cancels/reschedules
+→ Marcus gets an in-app notification
+```
+
+Notifications must persist, support unread/read state, and open the correct booking/session.
+
+---
+
+## Risk
+
+**AMBER**
+
+This introduces persistent notification state, backend lifecycle integration and deep-link behaviour.
+
+If a database migration is required, create and apply it in development only.
+
+No production migration.
+
+---
+
+# 1. Preserve Existing Booking Behaviour
+
+Do not change the current booking state machine.
+
+Important distinction:
+
+```text
+Booking created = pending request
+Marcus confirms = confirmed session
+```
+
+Preserve:
+
+* capacity validation
+* overlap validation
+* booking status rules
+* rescheduling rules
+* cancellation rules
+* booked-session locks
+* attendance/no-show behaviour
+* locations
+* Session Type optionality
+* credits/pricing
+
+Notifications report booking state. They must not redefine it.
+
+---
+
+# 2. Notification Lifecycle
+
+Implement in-app notifications for the following events.
+
+## Booking requested
+
+When a client successfully submits a booking request:
+
+### Client
+
+Create:
+
+**Booking request sent**
+
+Supporting text should communicate that Marcus still needs to confirm it.
+
+Example meaning:
+
+```text
+Your booking request for Monday 24 Aug at 17:00 has been sent to Marcus.
+```
+
+### Marcus
+
+Create:
+
+**New booking request**
+
+Example meaning:
+
+```text
+Calvin requested Monday 24 Aug at 17:00.
+```
+
+This should be actionable.
+
+---
+
+## Booking confirmed
+
+When Marcus confirms:
+
+### Client
+
+Create:
+
+**Session confirmed**
+
+Example:
+
+```text
+Your session on Monday 24 Aug at 17:00 is confirmed.
+```
+
+---
+
+## Booking rejected
+
+When Marcus rejects:
+
+### Client
+
+Create:
+
+**Booking request not accepted**
+
+Use neutral language.
+
+Do not describe this as a technical error.
+
+---
+
+## Booking cancelled by client
+
+When the client cancels:
+
+### Marcus
+
+Create:
+
+**Booking cancelled**
+
+Example:
+
+```text
+Calvin cancelled their session on Monday 24 Aug at 17:00.
+```
+
+### Client
+
+A lightweight cancellation confirmation may also be created if consistent with the UX.
+
+---
+
+## Booking rescheduled
+
+Notify both relevant users.
+
+### Marcus
+
+Example:
+
+**Booking rescheduled**
+
+```text
+Calvin moved their booking to Tuesday 25 Aug at 10:00.
+```
+
+### Client
+
+The notification wording must reflect the resulting database status.
+
+If rescheduling means the booking becomes pending again:
+
+```text
+Reschedule request sent
+Marcus needs to confirm the new time.
+```
+
+Do not say the new session is confirmed unless its actual status is confirmed.
+
+---
+
+# 3. Persistent Notification Model
+
+Notifications must be stored server-side.
+
+Do not create frontend-only notifications that disappear on refresh.
+
+The model should support conceptually:
+
+```text
+id
+tenantId
+recipientUserId
+eventType
+bookingId
+sessionId
+title
+message
+isRead
+readAt
+createdAt
+```
+
+Follow existing database conventions rather than blindly using these exact names.
+
+Store only the information necessary for the notification experience.
+
+Do not store unnecessary sensitive information.
+
+---
+
+# 4. Event Types
+
+Define explicit notification types such as:
+
+```text
+booking_requested_client
+booking_requested_trainer
+booking_confirmed
+booking_rejected
+booking_cancelled
+booking_rescheduled_client
+booking_rescheduled_trainer
+```
+
+A cleaner event + recipient model is also acceptable if it fits the architecture better.
+
+Avoid using free-form notification strings as the only event identity.
+
+---
+
+# 5. Transaction Integrity
+
+A notification must only exist if the associated booking transition succeeds.
+
+Preferred pattern:
+
+```text
+Begin transaction
+↓
+Persist booking transition
+↓
+Create notification record(s)
+↓
+Commit
+```
+
+Examples:
+
+If booking creation fails:
+
+```text
+NO "Booking request sent" notification
+NO Marcus alert
+```
+
+If confirmation fails:
+
+```text
+NO "Session confirmed" notification
+```
+
+Never create a success notification before the underlying state has persisted.
+
+---
+
+# 6. Idempotency
+
+Prevent duplicate notifications from accidental retry or repeated transition requests.
+
+The same successful lifecycle transition should not generate multiple identical notifications for the same recipient.
+
+Do not prevent legitimate later lifecycle events.
+
+Example:
+
+```text
+booking requested
+booking confirmed
+booking rescheduled
+booking confirmed again
+```
+
+may legitimately produce separate notifications.
+
+---
+
+# 7. Notification API
+
+Add authenticated endpoints/service methods needed to support the app notification experience.
+
+At minimum Marcus/client users need to be able to:
+
+* retrieve their own notifications
+* retrieve unread count
+* mark a notification as read
+* optionally mark all as read
+
+Server must determine the recipient from authenticated identity.
+
+Do not allow a client to query notifications for another user by supplying another user's ID.
+
+---
+
+# 8. Permissions
+
+Notification access must be server enforced.
+
+Required:
+
+* client sees only their notifications
+* Marcus sees only notifications intended for Marcus/operator identity
+* users cannot mark another user's notification as read
+* cross-tenant access is impossible
+* booking/session references remain protected by existing permissions
+
+---
+
+# 9. In-App Notification Entry Point
+
+Add a notification entry point to the app navigation/header.
+
+Preferred interaction:
+
+```text
+🔔
+```
+
+with unread count/badge.
+
+Example:
+
+```text
+🔔 3
+```
+
+Follow the existing design system.
+
+Do not redesign the overall application navigation.
+
+---
+
+# 10. Notification Panel
+
+Clicking/tapping the notification control should open a lightweight notification panel/list.
+
+Example structure:
+
+```text
+Notifications                         Mark all as read
+
+● New booking request
+  Calvin requested Monday 24 Aug at 17:00.
+  2 min ago
+
+● Booking cancelled
+  Sarah cancelled Tuesday 25 Aug at 10:00.
+  18 min ago
+
+  Booking request
+  James requested Wednesday 26 Aug at 09:00.
+  Yesterday
+```
+
+Unread notifications should be visually distinct without becoming visually aggressive.
+
+---
+
+# 11. Read / Unread Behaviour
+
+Required behaviour:
+
+* new notification starts unread
+* unread badge reflects actual unread records
+* opening a notification may mark it as read
+* explicit Mark as Read is acceptable
+* Mark All as Read is useful if straightforward
+* state persists after refresh
+* badge updates immediately after successful mutation
+
+Do not keep read state only in React/local storage.
+
+---
+
+# 12. Empty State
+
+If there are no notifications:
+
+```text
+No notifications yet
+```
+
+Optional supporting copy:
+
+```text
+Booking updates and client activity will appear here.
+```
+
+Keep it lightweight.
+
+---
+
+# 13. Notification Click Behaviour
+
+Notifications must be actionable.
+
+Clicking a booking-related notification should open the correct session/booking context.
+
+The inspection established that the current client session-detail flow relies on in-memory state.
+
+Implement stable deep-link behaviour as part of this task if necessary.
+
+Preferred conceptual route:
+
+```text
+/sessions/:sessionId
+```
+
+or the smallest equivalent route supported by the current architecture.
+
+Do not create a separate duplicate session-details page.
+
+Use the existing Sessions experience.
+
+---
+
+# 14. Logged-Out Deep Links
+
+If a user opens a notification/session deep link while logged out:
+
+```text
+Requested session URL
+→ login
+→ return to requested session
+```
+
+Preserve the intended destination through authentication.
+
+Do not expose protected booking data before login.
+
+---
+
+# 15. Invalid / Unauthorised Deep Links
+
+Handle:
+
+### Missing record
+
+Friendly unavailable/not-found state.
+
+### Another client's booking
+
+Do not expose it.
+
+### Wrong tenant
+
+Do not expose it.
+
+Use existing application security/error conventions.
+
+---
+
+# 16. Marcus Booking Workflow Integration
+
+The Marcus notification should not just be informational.
+
+For:
+
+**New booking request**
+
+clicking the notification should take Marcus to the appropriate session/booking where he can review the pending request.
+
+Do not create a new parallel booking-management UI if the existing Sessions HQ can support this.
+
+---
+
+# 17. Client Workflow Integration
+
+Client notifications should open the appropriate existing Sessions experience.
+
+Examples:
+
+**Booking request sent**
+→ open pending session/request.
+
+**Session confirmed**
+→ open confirmed upcoming session.
+
+**Booking request not accepted**
+→ open relevant session/request context if still appropriate.
+
+---
+
+# 18. Responsive Behaviour
+
+Verify the notification UX on:
+
+* desktop
+* 390px mobile
+
+On mobile, the panel may become:
+
+* full-width drawer
+* sheet
+* full-screen lightweight notification view
+
+Use whichever pattern fits the existing application architecture.
+
+Do not create horizontal overflow.
+
+---
+
+# 19. Loading / Error States
+
+Notification UI must handle:
+
+* loading
+* no notifications
+* failed fetch
+* failed mark-as-read request
+* retry
+
+Do not silently clear notifications if a request fails.
+
+---
+
+# 20. No External Notifications
+
+Explicitly do not implement:
+
+* Resend
+* email templates
+* SendGrid
+* Twilio
+* SMS
+* push notifications
+* OneSignal
+* Firebase
+* browser notifications
+* 24-hour reminders
+* 2-hour reminders
+
+These are future optional channels.
+
+The architecture should not prevent adding them later, but they are outside scope.
+
+---
+
+# 21. Database Rule
+
+If notification persistence requires a schema change:
+
+* create schema/model changes
+* create migration
+* apply migration in development only
+* verify physical schema
+* run all relevant tests
+
+Production migration is RED and remains unapproved.
+
+---
+
+# 22. Tests Required
+
+## Booking request
+
+Successful booking creation:
+
+* booking remains pending
+* client receives one notification
+* Marcus receives one notification
+* both reference correct booking/session
+
+Failed booking creation:
+
+* creates no notifications
+
+---
+
+## Confirmation
+
+Marcus confirmation:
+
+* booking becomes confirmed
+* client receives exactly one confirmation notification
+
+Failed confirmation:
+
+* no confirmation notification
+
+---
+
+## Rejection
+
+* booking state remains correct
+* client receives correct rejection notification
+
+---
+
+## Cancellation
+
+Client cancellation:
+
+* Marcus receives notification
+* notification references correct session
+* booking state remains authoritative
+
+---
+
+## Reschedule
+
+* correct notification(s) generated
+* new time/date shown
+* wording reflects resulting pending/confirmed status
+
+---
+
+## Permissions
+
+* client cannot retrieve another client's notifications
+* client cannot mutate another user's notification
+* tenant isolation enforced
+* Marcus access follows current role/capability model
+
+---
+
+## Read state
+
+* new notification is unread
+* mark read persists
+* unread count updates
+* refresh retains state
+* mark-all-read persists if implemented
+
+---
+
+## Idempotency
+
+* retried booking transition does not create duplicate lifecycle notifications
+
+---
+
+## Deep links
+
+* direct URL works
+* refresh works
+* login redirect returns correctly
+* correct session opens
+* unauthorised session remains protected
+
+---
+
+## Regression
+
+All existing:
+
+* frontend tests
+* API booking integration tests
+* overlap tests
+* schedule tests
+
+must remain green.
+
+---
+
+# 23. Real Browser Verification
+
+Complete this flow using the actual development app:
+
+```text
+CLIENT
+
+Book a session
+↓
+See "Booking request sent"
+↓
+Notification badge increments
+
+
+MARCUS
+
+Open notifications
+↓
+See "New booking request"
+↓
+Tap notification
+↓
+Open correct pending booking
+↓
+Confirm
+
+
+CLIENT
+
+Notification badge increments
+↓
+Open "Session confirmed"
+↓
+Correct confirmed session opens
+```
+
+Also verify:
+
+```text
+Client cancellation
+→ Marcus notification
+```
+
+and:
+
+```text
+Client reschedule
+→ correct notification state for both users
+```
+
+Verify desktop and 390px mobile.
+
+---
+
+# 24. UX Standard
+
+Notifications should feel like a natural product capability rather than an admin log.
+
+Priorities:
+
+1. What happened?
+2. Does the user need to act?
+3. Which session is it?
+4. When did it happen?
+5. Tap to resolve/view.
+
+Keep copy short.
+
+---
+
+# 25. Required Report
+
+Return:
+
+## Architecture
+
+How lifecycle events create persistent in-app notifications.
+
+## Database
+
+Any schema/migration added.
+
+## Notification Coverage
+
+Provide a matrix:
+
+| Event             | Client | Marcus |
+| ----------------- | ------ | ------ |
+| Booking requested |        |        |
+| Confirmed         |        |        |
+| Rejected          |        |        |
+| Cancelled         |        |        |
+| Rescheduled       |        |        |
+
+## UX
+
+Where notifications appear and how unread/read behaves.
+
+## Deep Links
+
+Exact route design and authentication behaviour.
+
+## Permissions
+
+How notification access is protected.
+
+## Files Changed
+
+Exact files and purpose.
+
+## Browser Verification
+
+Client → Marcus → Client real workflow.
+
+## Tests
+
+PASS / BLOCKED only.
+
+## Remaining Future Channels
+
+Explicitly list:
+
+* push notifications
+* email
+* SMS
+* 24-hour reminder
+* 2-hour reminder
+
+These remain unimplemented.
+
+## Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+* no external messages sent
