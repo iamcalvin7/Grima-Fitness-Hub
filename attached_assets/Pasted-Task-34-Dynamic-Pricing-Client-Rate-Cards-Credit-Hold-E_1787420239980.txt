@@ -1,0 +1,961 @@
+Task #34 — Dynamic Pricing, Client Rate Cards & Credit Hold Engine
+
+Objective
+
+Build the internal commercial engine for Marcus Sessions.
+
+Do not connect Stripe or move real money yet.
+
+The system must support:
+
+Client has prepaid/granted training value
+→ Client books
+→ Maximum personal 1-to-1 amount is held
+→ Session takes place
+→ Marcus records attendance
+→ Final class size is known
+→ Each attendee is charged their own applicable group rate
+→ Excess hold is released
+
+No-show charges are decided separately by Marcus.
+
+⸻
+
+Approved Product Rules
+
+These rules are approved and should be treated as the source of truth.
+
+1. Dynamic class pricing
+
+Price depends on the number of clients who actually attend.
+
+Example only:
+
+Attendees	Standard rate
+1	€40
+2	€35
+3	€30
+4	€25
+
+Actual prices must be configurable by Marcus.
+
+⸻
+
+2. Individual client pricing
+
+Different clients may have different prices.
+
+Support:
+
+* Marcus default pricing
+* Pricing tiers such as:
+    * Standard
+    * Legacy
+    * Friends & Family
+* Individual client-specific pricing
+
+Example:
+
+Standard client 1-to-1: €40
+Legacy client 1-to-1: €25
+
+Both can attend the same session and be charged different amounts.
+
+⸻
+
+3. Pricing hierarchy
+
+Use:
+
+Client-specific pricing
+↓
+Assigned pricing tier
+↓
+Marcus default pricing
+
+A specific client override always wins.
+
+⸻
+
+4. Pricing Snapshot at Booking
+
+When a booking request is created, determine the client’s applicable pricing.
+
+Snapshot the complete applicable rate card onto the commercial booking record.
+
+Example:
+
+1 attendee → €40
+2 attendees → €35
+3 attendees → €30
+4 attendees → €25
+
+This snapshot must not change if Marcus edits prices later.
+
+Historical/current bookings must continue using the pricing that applied when they booked.
+
+⸻
+
+5. Maximum Hold
+
+When the client books, reserve their personal maximum possible amount.
+
+The maximum is their:
+
+1-to-1 rate
+
+Example:
+
+Standard client
+1-to-1 = €40
+→ hold €40
+Legacy client
+1-to-1 = €25
+→ hold €25
+
+The hold is not a charge.
+
+It temporarily reduces the amount available for another booking.
+
+⸻
+
+6. Insufficient Balance
+
+A client cannot create a booking if they do not have enough available training balance to cover their maximum hold.
+
+Example:
+
+Balance: €30
+Required maximum hold: €40
+→ booking cannot proceed
+
+Return a clear client-facing state explaining that insufficient training balance is available.
+
+Do not create the booking and then discover the balance problem afterwards.
+
+⸻
+
+7. Pending / Confirmed Booking
+
+The maximum hold remains active while the booking is:
+
+pending
+confirmed
+
+Marcus confirming the booking must not create another hold.
+
+One booking = one active hold.
+
+Retries must not double-reserve value.
+
+⸻
+
+8. Rejected Booking
+
+If Marcus rejects the request:
+
+full hold released
+
+No value is consumed.
+
+⸻
+
+9. Rescheduling
+
+Rescheduling must not create a second commercial reservation.
+
+The original hold should transfer/follow the replacement booking.
+
+If the applicable pricing snapshot remains the same, reuse it.
+
+Do not:
+
+old booking hold
++
+new booking hold
+
+and accidentally reserve twice.
+
+⸻
+
+10. Cancellation
+
+A dedicated late-cancellation fee policy has not yet been defined.
+
+For this phase:
+
+cancelled booking
+→ full remaining hold released
+
+Do not implement cancellation penalties in Task #34.
+
+This can be changed later through an explicit cancellation-policy task.
+
+⸻
+
+11. Final Pricing Uses Attendance
+
+The current pricing rule is:
+
+Final class price is based on the number of people who actually attend.
+
+Example:
+
+4 booked
+3 attended
+1 no-show
+
+Pricing participant count:
+
+3
+
+The three attendees are each charged their own snapshotted 3-person rate.
+
+The no-show does not count toward the attendee pricing tier.
+
+⸻
+
+12. Different Rates in the Same Session
+
+Example:
+
+Three people attend.
+
+Their snapshots may contain:
+
+Client A 3-person rate = €30
+Client B 3-person rate = €30
+Legacy Client 3-person rate = €20
+
+Settlement:
+
+Client A → €30
+Client B → €30
+Legacy Client → €20
+
+Do not force all participants to share one price.
+
+⸻
+
+13. Excess Hold Release
+
+Example:
+
+Client:
+
+Maximum hold = €40
+Final 3-person price = €30
+
+Settlement:
+
+€30 consumed
+€10 released
+
+The final charge may be lower than the hold.
+
+It must never exceed the original hold.
+
+⸻
+
+14. No-Show Rule
+
+No-show pricing is manually controlled by Marcus.
+
+When Marcus marks a client as No-show, he must be able to choose:
+
+Waive
+
+Charge = €0
+Full hold released
+
+Charge amount
+
+Marcus selects an amount:
+
+€0 → maximum original hold
+
+Example:
+
+Original hold: €40
+Marcus may charge:
+€10
+€20
+€25
+€40
+etc.
+
+The selected amount must never exceed the original hold.
+
+⸻
+
+15. No-Show Audit
+
+Persist:
+
+* original held amount
+* selected charge
+* amount released
+* waived yes/no
+* actor
+* timestamp
+* optional note/reason
+
+No-show financial decisions must be auditable.
+
+⸻
+
+16. Settlement
+
+Do not charge attendees before final attendance is known.
+
+Create a clear settlement step after attendance outcomes have been recorded.
+
+Preferred Marcus workflow:
+
+Session ends
+↓
+Marcus records Attended / No-show for each participant
+↓
+No-show charge decisions completed
+↓
+Marcus reviews settlement
+↓
+Settle Session
+
+Settlement preview should show:
+
+Client	Outcome	Held	Final charge	Release
+Client A	Attended	€40	€30	€10
+Client B	Attended	€40	€30	€10
+Legacy Client	Attended	€25	€20	€5
+Client D	No-show	€40	Marcus choice	remainder
+
+Do not settle while unresolved active participants remain.
+
+⸻
+
+17. Settlement Idempotency
+
+Settlement is financially important.
+
+Repeated requests must never:
+
+* charge twice
+* release twice
+* duplicate ledger entries
+* duplicate no-show charges
+
+The same settlement retry must resolve to the same financial result.
+
+⸻
+
+18. Internal Balance Model
+
+Do not use a mutable integer such as:
+
+credits = 5
+
+The commercial value varies by client and rate.
+
+Use value-denominated accounting.
+
+Store EUR amounts in integer minor units:
+
+€40.00 = 4000
+€25.00 = 2500
+
+No floating-point financial calculations.
+
+⸻
+
+19. Ledger
+
+Use an auditable ledger for actual balance movements.
+
+Examples:
+
++12000  manual/package value grant
+-3000   attended session settlement
+-2000   no-show charge
++5000   Marcus manual grant
+
+A hold is a reservation, not a completed ledger charge.
+
+Conceptually:
+
+Ledger balance
+-
+active holds
+=
+available balance
+
+⸻
+
+20. Commercial Data Model
+
+Inspect existing schema conventions first.
+
+The architecture should support equivalents of:
+
+Pricing plans
+
+pricing plan
+name
+currency
+active/version
+
+Pricing rates
+
+pricingPlanId
+participantCount
+amountMinor
+
+Client pricing assignment
+
+clientId
+pricingPlanId
+
+Allow an individual custom plan/override when needed.
+
+Training balance ledger
+
+clientId
+amountMinor
+movementType
+reference
+actor
+reason
+createdAt
+
+Booking hold / commercial snapshot
+
+Must preserve:
+
+bookingId
+clientId
+pricing plan/version
+snapshotted rate table
+maximum held amount
+hold state
+currency
+
+Settlement
+
+Must preserve:
+
+bookingId
+attendance count used
+held amount
+final charge
+released amount
+pricing snapshot/rule
+settledAt
+
+Exact table structure should follow current project conventions rather than blindly copying these names.
+
+⸻
+
+21. Pricing Rule Version
+
+Current rule:
+
+final price basis = actual attendance count
+
+Do not bury this assumption throughout route code.
+
+Represent the pricing method explicitly enough that a future rule could become:
+
+confirmed participant count
+
+or another approved method.
+
+Historical settlements must retain the rule used.
+
+⸻
+
+22. Marcus Pricing Controls
+
+Add a simple Marcus HQ commercial surface allowing Marcus to:
+
+Manage default pricing
+
+Example:
+
+1 person   €40
+2 people   €35
+3 people   €30
+4 people   €25
+
+Create pricing tiers
+
+Examples:
+
+Standard
+Legacy
+Friends & Family
+
+Assign pricing to client
+
+Example:
+
+Calvin Sammut
+Pricing: Legacy
+
+Client-specific override
+
+Allow Marcus to create custom pricing for an individual where necessary.
+
+Do not require custom pricing for every client.
+
+⸻
+
+23. Marcus Balance Controls
+
+Because real payments do not exist yet, Marcus needs a development/operational way to grant training value manually.
+
+Allow authorised Marcus/admin users to:
+
+Grant balance
+
+Example:
+
+Grant €120 training balance
+Reason: 3-session package
+
+Also support an auditable manual adjustment/restoration where required.
+
+Do not build real refunds or payments.
+
+⸻
+
+24. Client Balance UX
+
+Clients should be able to understand:
+
+Training balance
+Available
+Held for bookings
+
+Example:
+
+Training Balance
+€120 total value
+€80 available
+€40 held
+
+Do not expose accounting complexity unnecessarily.
+
+⸻
+
+25. Booking UX
+
+Before booking, show the client’s maximum possible cost.
+
+Example:
+
+Maximum session cost: €40
+Your final price may be lower depending on how many people attend.
+
+For a legacy client:
+
+Maximum session cost: €25
+
+Do not expose another client’s pricing.
+
+⸻
+
+26. Pending / Confirmed UX
+
+Where useful show:
+
+€40 currently held
+Final price calculated after the session
+
+Keep the explanation concise.
+
+⸻
+
+27. Completed Session UX
+
+After settlement show the final amount clearly.
+
+Example:
+
+Final session price: €30
+3 people attended
+€10 released from your original hold
+
+Historical session detail must retain this result permanently.
+
+⸻
+
+28. No-Show Marcus UX
+
+When Marcus chooses No-show, do not immediately settle an arbitrary amount.
+
+Open a small decision UI:
+
+No-show charge
+Original hold: €40
+[ Waive charge ]
+or
+Charge:
+[ €____ ]
+Optional note:
+[____________]
+Cancel                     Confirm No-show
+
+Validate:
+
+0 <= charge <= original hold
+
+⸻
+
+29. Permissions
+
+Server enforce:
+
+* clients see only their own balance/pricing outcome
+* clients cannot edit pricing
+* clients cannot grant balance
+* Marcus/admin can manage pricing according to capabilities
+* tenant isolation
+* one client can never see another client’s custom rate
+
+Do not rely on frontend hiding.
+
+⸻
+
+30. Audit
+
+Audit:
+
+* pricing plan creation/change
+* client pricing assignment
+* manual balance grant/adjustment
+* hold creation
+* hold release
+* settlement
+* no-show financial decision
+
+Record actor and relevant identifiers.
+
+⸻
+
+31. Notifications
+
+Do not create a new notification architecture.
+
+Use the existing in-app system only where useful.
+
+Potentially notify a client when settlement completes, for example:
+
+Session completed
+Final session price: €30
+
+Do not create noisy balance-change notifications for every internal ledger step.
+
+⸻
+
+32. Existing Bookings
+
+Do not retroactively manufacture commercial history for historical completed sessions.
+
+For existing future bookings that predate this engine, inspect the safest development migration/onboarding path.
+
+Do not silently create holds without understanding the client’s available balance.
+
+Report any legacy-booking transition requirement.
+
+⸻
+
+33. No Real Payments
+
+Explicitly do not add:
+
+* Stripe
+* checkout
+* payment intents
+* cards
+* Apple Pay
+* Google Pay
+* refunds
+* bank payments
+* payment webhooks
+* invoices
+
+Task #34 proves the internal commercial logic first.
+
+⸻
+
+34. Database Rules
+
+This task will likely require additive schema changes.
+
+If so:
+
+* create proper migrations
+* apply in development only
+* verify schema physically
+* add appropriate constraints/indexes
+* use integer minor currency units
+* preserve tenant boundaries
+* add uniqueness/idempotency constraints where appropriate
+
+Production migration remains RED and unapproved.
+
+⸻
+
+35. Core Acceptance Scenarios
+
+Keep verification product-focused.
+
+Scenario A — Standard client
+
+Balance = €100
+1-to-1 rate = €40
+Books
+→ €40 held
+→ €60 available
+
+Three people eventually attend.
+
+Client’s 3-person rate:
+
+€30
+
+Settlement:
+
+€30 consumed
+€10 hold released
+€70 available balance remains
+
+⸻
+
+Scenario B — Legacy client
+
+Balance = €100
+1-to-1 = €25
+3-person = €20
+
+Books same class:
+
+€25 held
+
+Three attend:
+
+€20 consumed
+€5 released
+
+⸻
+
+Scenario C — Mixed pricing
+
+Three attendees:
+
+Client A final = €30
+Client B final = €30
+Legacy Client final = €20
+
+All settle independently using their own snapshots.
+
+⸻
+
+Scenario D — Four booked, one no-show
+
+4 booked
+3 attended
+1 no-show
+
+Attendees:
+
+charged using 3-person rates
+
+No-show:
+
+does not count toward attendee tier
+Marcus chooses charge independently
+
+⸻
+
+Scenario E — No-show waived
+
+Hold = €40
+Marcus chooses Waive
+Charge = €0
+Release = €40
+
+⸻
+
+Scenario F — Partial no-show charge
+
+Hold = €40
+Marcus selects €15
+Charge = €15
+Release = €25
+
+⸻
+
+Scenario G — Insufficient available balance
+
+Available = €30
+Required hold = €40
+Booking blocked
+No hold
+No booking
+
+⸻
+
+Scenario H — Rejection
+
+Hold = €40
+Marcus rejects
+Hold released = €40
+Charge = €0
+
+⸻
+
+Scenario I — Reschedule
+
+Verify:
+
+one commercial hold
+not two
+
+and settlement follows the replacement booking.
+
+⸻
+
+Scenario J — Idempotency
+
+Repeat:
+
+* booking request
+* confirmation
+* settlement
+* no-show decision
+
+Verify no duplicate:
+
+* holds
+* charges
+* releases
+* ledger entries
+
+⸻
+
+36. Regression
+
+All existing:
+
+* Sessions booking tests
+* Weekly Schedule tests
+* notifications
+* reminders
+* attendance/no-show
+* client history
+* deep-link tests
+
+must remain green.
+
+Run:
+
+* API integration tests
+* frontend tests
+* API typecheck
+* frontend typecheck
+* production frontend build
+
+⸻
+
+37. Stop Conditions
+
+Stop and report before continuing if:
+
+* current database architecture cannot support transactional balance + hold updates safely
+* pricing requires changing unrelated booking semantics
+* payment-provider integration becomes necessary
+* commercial treatment of a lifecycle event is undefined
+* production action becomes necessary
+
+Do not invent missing commercial policy.
+
+⸻
+
+38. Required Report
+
+Return:
+
+Architecture
+
+Explain:
+
+pricing
+→ snapshot
+→ maximum hold
+→ attendance
+→ settlement
+→ ledger
+
+Pricing Controls
+
+Show how default, tier and individual pricing work.
+
+Balance Model
+
+Explain available vs held vs consumed value.
+
+Settlement
+
+Explain how attendance count determines attendee pricing.
+
+No-Show
+
+Explain waive/custom-charge behaviour.
+
+Files Changed
+
+Exact files and purpose.
+
+Database
+
+Schema + development migration.
+
+Core Acceptance
+
+Scenario	Result
+Standard client	
+Legacy client	
+Mixed pricing	
+4 booked / 3 attended	
+No-show waived	
+Partial no-show charge	
+Insufficient balance	
+Rejection release	
+Reschedule hold transfer	
+Idempotency	
+
+Tests
+
+PASS / BLOCKED only.
+
+Remaining Commercial Gaps
+
+Explicitly identify:
+
+* real payments
+* package checkout
+* cancellation fee policy
+* refunds
+* revenue reporting
+
+Production
+
+Confirm:
+
+* no deployment
+* no publishing
+* no production access
+* no production migration
+* no real payment
+* no refund
