@@ -1,0 +1,1003 @@
+Task #36 — Training Wallet Top-Ups via Stripe Checkout
+
+Objective
+
+Add automatic Training Wallet top-ups using Stripe Checkout in Test Mode.
+
+The client experience should be:
+
+Training Wallet
+→ Add Training Value
+→ choose amount
+→ Stripe Checkout
+→ Apple Pay / Google Pay / card where available
+→ verified successful payment
+→ wallet automatically credited
+
+The existing commercial engine remains unchanged:
+
+Wallet value
+→ booking maximum hold
+→ class-close price lock
+→ attendance/no-show settlement
+→ Marcus revenue
+
+A wallet top-up is not session revenue.
+
+⸻
+
+Risk
+
+AMBER — Test Mode implementation
+
+Allowed:
+
+* Stripe Test Mode
+* development schema changes
+* test checkout
+* test webhooks
+* test cards
+* wallet credits generated only from Stripe test payments
+
+RED — not authorised
+
+Stop before:
+
+* live Stripe API keys
+* real money
+* production webhook
+* production migration
+* deployment/publishing
+* real refunds
+* real client top-ups
+
+⸻
+
+1. Inspect Before Implementation
+
+Before changing code inspect:
+
+* current Training Wallet ledger
+* wallet balance API
+* cash-backed/non-cash-backed provenance
+* immutable settlement model
+* Task #35 revenue reporting
+* existing environment-variable patterns
+* authentication/capability architecture
+* database transaction/idempotency patterns
+* current client Sessions/Wallet UI
+
+Also inspect the current official Stripe documentation for:
+
+* Malta account availability
+* individual / sole-proprietor onboarding
+* Checkout Sessions
+* Apple Pay
+* Google Pay
+* card payments
+* webhook verification
+* checkout.session.completed
+* payment success/failure lifecycle
+* idempotency
+* refunds
+* Test Mode
+* local webhook testing
+
+Do not implement from remembered Stripe APIs.
+
+⸻
+
+2. Provider Decision
+
+Use:
+
+Stripe Checkout
+
+Prefer the Stripe-hosted checkout rather than building card-entry UI inside Marcus Fitness.
+
+The app should not handle raw:
+
+* card numbers
+* CVC
+* Apple Pay credentials
+* payment tokens intended only for Stripe
+
+Stripe owns the payment interface.
+
+⸻
+
+3. Account Eligibility Gate
+
+Before implementation is considered production-ready, confirm that Marcus can onboard to Stripe in Malta under his current operating structure.
+
+Current development can proceed in Test Mode.
+
+Report separately:
+
+Stripe Malta account onboarding:
+PASS / BLOCKED / REQUIRES LIVE VERIFICATION
+
+Do not create fake business/company information.
+
+⸻
+
+4. Initial Top-Up Amounts
+
+Use predefined amounts initially.
+
+Recommended:
+
+€50
+€100
+€200
+
+Do not introduce arbitrary client-entered values in the first version.
+
+Amounts must be validated server-side.
+
+Currency:
+
+EUR
+
+Store money as integer cents.
+
+Examples:
+
+€50 = 5000
+€100 = 10000
+€200 = 20000
+
+⸻
+
+5. Client Wallet UX
+
+In the existing Training Wallet panel add:
+
+Add Training Value
+
+Opening it should show something like:
+
+ADD TRAINING VALUE
+€50
+€100
+€200
+Secure payment powered by Stripe
+
+The client selects an amount and continues to checkout.
+
+Do not redesign Sessions.
+
+⸻
+
+6. Server-Side Top-Up Creation
+
+The frontend must never tell the system that a payment succeeded.
+
+Expected flow:
+
+Client selects €100
+↓
+POST /wallet/top-ups
+↓
+Backend validates authenticated client
+↓
+Backend validates allowed amount + EUR
+↓
+Internal top-up/payment record created
+↓
+Backend creates Stripe Checkout Session
+↓
+Internal record stores Stripe Checkout Session ID
+↓
+Client receives Stripe-hosted checkout URL
+
+The Stripe secret key must remain server-side.
+
+⸻
+
+7. Payment/Top-Up Record
+
+Create a persistent record representing the attempted wallet purchase.
+
+Follow existing schema conventions.
+
+Conceptually:
+
+id
+tenantId
+clientUserId
+amountCents
+currency
+provider = stripe
+stripeCheckoutSessionId
+stripePaymentIntentId
+status
+walletCreditLedgerEntryId
+creditedAt
+createdAt
+updatedAt
+
+Useful internal states may include:
+
+created
+pending
+paid
+failed
+cancelled
+
+Map these deliberately against actual Stripe states rather than inventing provider behaviour.
+
+⸻
+
+8. Critical Wallet Credit Rule
+
+This must be absolute:
+
+Stripe Checkout success redirect
+≠
+wallet credit
+
+The browser returning to Marcus Fitness is not authoritative proof of payment.
+
+The wallet may only be credited following server-side verified Stripe payment confirmation.
+
+Preferred flow:
+
+Stripe
+→ signed webhook
+→ Marcus backend
+→ verify event
+→ verify relevant payment/Checkout state
+→ transactionally credit wallet
+
+⸻
+
+9. Webhook
+
+Implement a Stripe webhook endpoint following current Stripe guidance.
+
+The endpoint must:
+
+1. Receive the raw webhook body as required by Stripe signature verification.
+2. Verify Stripe-Signature.
+3. Reject invalid signatures.
+4. Resolve the internal top-up from Stripe identifiers.
+5. Verify the top-up belongs to the expected amount/currency/client context.
+6. Process relevant successful payment event.
+7. Credit the wallet exactly once.
+8. Safely handle duplicate webhook delivery.
+
+Do not require client authentication for Stripe’s webhook route.
+
+Stripe authentication is through webhook signature verification.
+
+⸻
+
+10. Exactly-Once Wallet Credit
+
+This is a mandatory commercial invariant.
+
+Example:
+
+Client buys €100
+
+Stripe webhook arrives:
+
+1 time
+5 times
+20 times
+
+Expected total wallet addition:
+
++€100
+
+Never:
+
++€200
++€500
++€2,000
+
+Use database-backed idempotency/uniqueness.
+
+Do not rely only on memory or process state.
+
+⸻
+
+11. Transaction Boundary
+
+When authoritative payment success is processed:
+
+BEGIN
+top-up → paid
+cash-backed ledger movement → +€100
+top-up linked to movement
+creditedAt set
+COMMIT
+
+If wallet credit creation fails:
+
+* do not pretend the top-up is completely credited;
+* retain enough state for safe reconciliation/retry;
+* never create two credits later.
+
+⸻
+
+12. Cash-Backed Value
+
+Stripe-purchased value must be identifiable as:
+
+cash-backed
+
+This is different from:
+
+Marcus complimentary grant
+promotion
+manual non-cash adjustment
+
+Example:
+
++€100
+Source: Stripe top-up
+Backing: cash
+
+versus:
+
++€25
+Source: Marcus complimentary adjustment
+Backing: non-cash
+
+Do not convert old manual grants into fake cash-backed funds.
+
+⸻
+
+13. Future Withdrawals
+
+Do not implement cash withdrawals yet.
+
+However, Task #36 must preserve sufficient provenance to support this future case:
+
+Client tops up €200
+Client uses €150
+Unused eligible cash-backed value = €50
+Client requests €50 back
+
+We must eventually be able to identify which remaining wallet value came from real Stripe purchases.
+
+Report whether the current ledger architecture supports this safely.
+
+⸻
+
+14. Mixed Wallet Sources
+
+Explicitly inspect this case:
+
+€100 cash-backed
+€40 complimentary
+
+Client spends:
+
+€60
+
+Future withdrawable balance depends on which source was considered consumed.
+
+Do not silently choose a commercial allocation rule unless one already exists.
+
+If undefined, report:
+
+SOURCE ALLOCATION POLICY REQUIRED BEFORE WITHDRAWALS
+
+This does not block top-ups if provenance is preserved.
+
+⸻
+
+15. Payment Methods
+
+Stripe Checkout should automatically offer eligible payment methods supported by the client’s browser/device/account configuration.
+
+Target:
+
+* Apple Pay
+* Google Pay
+* standard cards
+
+Do not create three separate integrations.
+
+Do not hard-code Apple Pay buttons outside Stripe Checkout unless inspection shows a reason.
+
+For each method report:
+
+PASS
+BLOCKED
+NOT AVAILABLE IN TEST ENVIRONMENT
+
+⸻
+
+16. Apple Pay
+
+If Apple Pay is available through Stripe Checkout in the development/testing environment, verify it.
+
+If device/domain/Test Mode limitations prevent end-to-end Apple Pay validation:
+
+* do not fake PASS;
+* verify that Stripe Checkout is correctly configured to offer eligible wallet methods;
+* report the remaining live/device verification requirement.
+
+⸻
+
+17. Payment Return URLs
+
+Use stable environment-correct routes for:
+
+Success return
+
+Example conceptual route:
+
+/wallet/top-up/success
+
+Cancel return
+
+/wallet/top-up/cancelled
+
+Follow existing routing conventions.
+
+The success screen should not immediately assert:
+
+€100 successfully added
+
+unless the backend confirms the wallet credit.
+
+Instead support:
+
+Payment confirmed
+Adding value to your wallet…
+
+or:
+
+Payment processing
+
+until backend state is authoritative.
+
+⸻
+
+18. Successful Client UX
+
+Once the top-up is actually credited:
+
+€100 added to your Training Wallet
+
+Wallet summary updates.
+
+Example:
+
+Before:
+
+Available €25
+Held €0
+
+After:
+
+Available €125
+Held €0
+
+Activity:
+
+Training value purchased
++€100
+
+⸻
+
+19. Failed Payment
+
+If payment fails:
+
+wallet addition = €0
+
+The client should see a clear retry path.
+
+Do not alter existing wallet balance.
+
+⸻
+
+20. Cancelled Checkout
+
+If the client abandons or cancels checkout:
+
+wallet unchanged
+
+The app may show:
+
+Payment cancelled
+Your wallet was not charged.
+
+No wallet movement.
+
+⸻
+
+21. Top-Up History
+
+Client wallet activity should include successful purchases.
+
+Optional lightweight payment-status history may include:
+
+€100   Completed
+€50    Failed
+€200   Cancelled
+
+Do not build invoices/accounting.
+
+⸻
+
+22. Marcus HQ
+
+Within Commercial add a simple:
+
+Wallet Top-Ups
+
+view.
+
+Show:
+
+* client
+* amount
+* date
+* provider
+* status
+* wallet credited yes/no
+
+Example:
+
+Client	Amount	Status	Wallet
+Client A	€100	Paid	Credited
+Client B	€50	Failed	Not credited
+
+Marcus cannot manually mark Stripe payments as successful.
+
+⸻
+
+23. Existing Marcus Manual Adjustments
+
+Preserve them.
+
+Manual adjustment UX must clearly distinguish:
+
+Revolut/Stripe purchased value
+
+from:
+
+Complimentary value
+Manual correction
+
+For Task #36 the actual provider is Stripe.
+
+⸻
+
+24. Booking Integration
+
+Purchased Training Value must feed directly into the existing wallet engine.
+
+Example:
+
+Top up €100
+↓
+Available +€100
+Book class
+↓
+Maximum hold €40
+Class closes with 3
+↓
+Locked €25
+↓
+€15 released
+Attended
+↓
+€25 consumed
+
+Do not create separate “Stripe credits.”
+
+There is one Training Wallet.
+
+⸻
+
+25. Revenue Protection
+
+A €100 wallet top-up must not produce:
+
+Marcus session revenue +€100
+
+Task #35 revenue remains based on actual settled session consumption.
+
+Explicitly test:
+
+top-up €100
+→ wallet +€100
+→ session revenue unchanged
+
+Only later:
+
+attended session consumes €25
+→ session revenue +€25
+
+⸻
+
+26. Security
+
+Required:
+
+* Stripe secret server-side only
+* publishable key used only where required
+* webhook signature verification
+* server validates amount
+* server validates EUR
+* server chooses Stripe Price/amount or equivalent authoritative values
+* client cannot supply another user’s wallet ID
+* client cannot credit another wallet
+* client cannot set payment status
+* tenant isolation enforced
+* provider IDs immutable from client requests
+* no card data stored
+* no secrets logged
+
+⸻
+
+27. Stripe Metadata
+
+Use Stripe metadata only for non-sensitive identifiers helpful for reconciliation.
+
+Potential:
+
+internalTopUpId
+tenantId
+clientUserId
+
+Do not treat metadata from an unverified browser source as authoritative.
+
+Do not store unnecessary personal information.
+
+⸻
+
+28. Test Mode Environment
+
+Use explicit Test Mode environment variables.
+
+Follow existing naming conventions.
+
+Conceptually:
+
+STRIPE_SECRET_KEY
+STRIPE_PUBLISHABLE_KEY
+STRIPE_WEBHOOK_SECRET
+APP_BASE_URL
+
+All must be Test Mode credentials.
+
+Never commit keys.
+
+Never expose the secret key to frontend code.
+
+⸻
+
+29. Database Migration
+
+If top-up persistence/provenance requires new tables/fields:
+
+* additive migration only
+* apply development only
+* migration ledger
+* physical verification
+* indexes
+* uniqueness constraints
+* restart verification
+
+No production migration.
+
+⸻
+
+30. Core Test — Successful €100 Top-Up
+
+Start:
+
+Available = €20
+Held = €0
+
+Client chooses:
+
+€100
+
+Expected:
+
+internal top-up created
+↓
+Stripe Test Checkout Session created
+↓
+test payment succeeds
+↓
+verified webhook received
+↓
+exactly one cash-backed ledger entry +€100
+
+Final:
+
+Available = €120
+Held = €0
+
+Marcus session revenue:
+
+unchanged
+
+⸻
+
+31. Duplicate Webhook Test
+
+Process the same valid successful Stripe event multiple times.
+
+Expected:
+
+one top-up
+one wallet movement
++€100 total
+
+Mandatory PASS.
+
+⸻
+
+32. Failed Payment Test
+
+Attempt €100 top-up with Stripe test failure method.
+
+Expected:
+
+top-up = failed
+wallet +€0
+
+⸻
+
+33. Cancelled Checkout Test
+
+Create Checkout Session, then cancel/return.
+
+Expected:
+
+wallet +€0
+
+⸻
+
+34. Wrong Amount Protection
+
+Attempt to manipulate frontend request:
+
+€1
+€0
+negative value
+unapproved amount
+different currency
+
+Expected:
+
+rejected server-side
+
+Only configured top-up values accepted.
+
+⸻
+
+35. Cross-Client Security
+
+Client A must never be able to:
+
+* create a top-up for Client B
+* retrieve Client B top-ups
+* cause wallet credit to Client B
+* change another payment
+
+Server derives wallet owner from authenticated identity.
+
+⸻
+
+36. End-to-End Booking Test
+
+After verified €100 top-up:
+
+Available €100
+Book
+→ €40 held
+Class closes at 3-person tier
+→ €25 held
+→ €15 released
+Attended
+→ €25 consumed
+Available final = €75
+Held final = €0
+
+Revenue:
+
+€25
+
+not €100/€125.
+
+⸻
+
+37. Browser Verification
+
+Use the actual development app with Stripe Test Mode.
+
+Desktop:
+
+Client opens wallet
+→ Add Training Value
+→ selects €100
+→ Stripe Checkout
+→ test payment
+→ returns
+→ wallet updates after backend confirmation
+→ activity shows +€100
+
+Then book a development session using purchased value.
+
+Verify 390px mobile as well.
+
+⸻
+
+38. Required Automated Tests
+
+Run:
+
+* shared DB typecheck
+* API typecheck
+* frontend typecheck
+* API integration suite
+* frontend tests
+* frontend production build
+
+Add focused tests for:
+
+* top-up creation
+* amount validation
+* successful webhook
+* invalid webhook
+* duplicate webhook
+* failed payment
+* cancelled payment
+* cash-backed provenance
+* wallet activity
+* top-up excluded from revenue
+* permissions
+* booking integration
+
+Existing Sessions/commercial tests must remain green.
+
+⸻
+
+39. Observability
+
+Add safe structured events:
+
+stripe_topup_created
+stripe_checkout_created
+stripe_payment_confirmed
+stripe_payment_failed
+stripe_wallet_credit_created
+stripe_duplicate_event_ignored
+
+Include safe IDs and amount/status.
+
+Never log:
+
+* Stripe secret
+* webhook secret
+* card information
+* complete sensitive webhook payload unnecessarily
+
+⸻
+
+40. Do Not Implement
+
+Out of scope:
+
+* live payments
+* client withdrawals
+* partial cash refunds
+* subscriptions
+* recurring billing
+* Stripe Billing
+* invoices
+* VAT
+* promo codes
+* arbitrary top-up amounts
+* multi-currency
+* revenue forecasting
+* accounting integrations
+* production deployment
+
+⸻
+
+41. Required Report
+
+Return:
+
+Stripe Eligibility
+
+Status of Malta individual/sole-proprietor onboarding based on current official Stripe documentation.
+
+Stripe Architecture
+
+Exact Checkout + webhook flow implemented.
+
+Client UX
+
+Top-up experience and supported amounts.
+
+Payment Methods
+
+Report:
+
+Method	Test result
+Card	
+Apple Pay	
+Google Pay	
+
+Use PASS / BLOCKED / NOT AVAILABLE.
+
+Wallet Credit
+
+Show:
+
+verified €100 payment
+→ exactly +€100 cash-backed value
+
+Idempotency
+
+Evidence duplicate webhook does not double-credit.
+
+Failure Behaviour
+
+Failed/cancelled checkout result.
+
+Cash-Backed Provenance
+
+How purchased value differs from complimentary value.
+
+Withdrawal Readiness
+
+Whether unused purchased value remains traceable.
+
+State any unresolved mixed-source consumption policy.
+
+Booking Integration
+
+Show:
+
+Stripe top-up
+→ hold
+→ class price lock
+→ settlement
+
+Revenue Protection
+
+Confirm top-up does not count as session revenue.
+
+Marcus HQ
+
+Top-up/payment visibility.
+
+Files Changed
+
+Exact files and purpose.
+
+Database
+
+Development migration details.
+
+Tests
+
+PASS / BLOCKED only.
+
+Production
+
+Confirm:
+
+* Stripe Test Mode only
+* no live Stripe credentials
+* no real money
+* no production webhook
+* no production migration
+* no deployment
+* no publishing

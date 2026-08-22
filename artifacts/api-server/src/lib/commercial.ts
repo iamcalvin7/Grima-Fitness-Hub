@@ -74,42 +74,6 @@ export async function lockCommercialClient(
     throw new CommercialError(404, "Client not found");
   }
 }
-export async function lockCommercialClient(
-  tx: Transaction,
-  tenantId: string,
-  clientUserId: string,
-): Promise<void> {
-  const result = await tx.execute(
-    sql`SELECT id FROM users WHERE tenant_id = ${tenantId} AND id = ${clientUserId} FOR UPDATE`,
-  );
-  if (result.rows.length === 0) {
-    throw new CommercialError(404, "Client not found");
-  }
-}
-export async function lockCommercialClient(
-  tx: Transaction,
-  tenantId: string,
-  clientUserId: string,
-): Promise<void> {
-  const result = await tx.execute(
-    sql`SELECT id FROM users WHERE tenant_id = ${tenantId} AND id = ${clientUserId} FOR UPDATE`,
-  );
-  if (result.rows.length === 0) {
-    throw new CommercialError(404, "Client not found");
-  }
-}
-export async function lockCommercialClient(
-  tx: Transaction,
-  tenantId: string,
-  clientUserId: string,
-): Promise<void> {
-  const result = await tx.execute(
-    sql`SELECT id FROM users WHERE tenant_id = ${tenantId} AND id = ${clientUserId} FOR UPDATE`,
-  );
-  if (result.rows.length === 0) {
-    throw new CommercialError(404, "Client not found");
-  }
-}
 export async function resolveClientPricing(
   executor: Executor,
   tenantId: string,
