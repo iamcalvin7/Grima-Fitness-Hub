@@ -13,7 +13,7 @@ import { attachUser, requireAuth, requireCapability, requireRole } from "../midd
 import { writeAuditLog } from "../lib/audit";
 import {
   CommercialError,
-  closeClassCommercial,
+  closeSessionCommercial,
   getClassPricingSummary,
   getClientWalletActivity,
   getCommercialSummary,
@@ -650,28 +650,24 @@ router.post("/admin/commercial/sessions/:id/close", async (req, res) => {
   }
   try {
     const result = await db.transaction(async (tx) => {
-      const close = await closeClassCommercial(tx, {
+      const close = await closeSessionCommercial(tx, {
         tenantId: req.user!.tenantId,
         trainingSessionId,
-        reason: "marcus_manual",
-        actorUserId: req.user!.id,
       });
       if (!close.replayed) {
         await writeAuditLog(
           auditParams(req, "class:manually_closed", "training_session", trainingSessionId, {
-            confirmedParticipantCount: close.lock.confirmedParticipantCount,
-            closeReason: close.lock.closeReason,
+            participantCount: close.participantCount,
+            source: "marcus_manual",
           }),
           tx,
         );
-        for (const participant of close.participants) {
+        for (const release of close.releases) {
           await writeAuditLog(
-            auditParams(req, "class_price:locked", "booking", participant.bookingId, {
-              classLockId: close.lock.id,
-              confirmedParticipantCount: close.lock.confirmedParticipantCount,
-              maximumHeldAmountMinor: participant.maximumHeldAmountMinor,
-              lockedAmountMinor: participant.lockedAmountMinor,
-              releasedAmountMinor: participant.releasedAmountMinor,
+            auditParams(req, "commercial_hold:release", "booking", release.bookingId, {
+              participantCount: close.participantCount,
+              releasedAmountMinor: release.releasedAmountMinor,
+              source: "marcus_manual",
             }),
             tx,
           );
@@ -715,9 +711,9 @@ router.get("/admin/commercial/sessions/:id/settlement-preview", async (req, res)
           row.settlementId
             ? row.finalChargeAmountMinor
             : row.bookingStatus === "attended"
-              ? row.lockedAmountMinor
+              ? row.lockedChargeAmountMinor
               : row.noShowChargeAmountMinor;
-        const heldAmountMinor = row.heldAmountMinor;
+        const heldAmountMinor = row.reservedAmountMinor;
         return {
           bookingId: row.bookingId,
           clientName: `${row.clientFirstName} ${row.clientLastName}`,

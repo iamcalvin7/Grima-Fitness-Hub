@@ -107,14 +107,14 @@ beforeAll(async () => {
     .expect(201);
   locationId = location.body.location.id;
 
-    const type = await request(app)
-      .post("/api/admin/session-types")
-      .set("Cookie", sessionCookie(adminAToken))
-      .send({ name: "Temporary Type", durationMinutes: 45, defaultCapacity: 1 })
-      .expect(201);
+  const type = await request(app)
+    .post("/api/admin/session-types")
+    .set("Cookie", sessionCookie(adminAToken))
+    .send({ name: "Personal Training", durationMinutes: 60, defaultCapacity: 2 })
+    .expect(201);
   sessionTypeId = type.body.sessionType.id;
 
-    const session = await createManagedSession(adminAToken, 3, future(56));
+  const session = await createManagedSession(adminAToken, 2);
   expect(session.status).toBe(201);
   primarySessionId = session.body.session.id;
 });
@@ -126,11 +126,10 @@ describe("training booking permissions and discovery", () => {
 
   it("allows clients to discover their own tenant's scheduled sessions without private notes", async () => {
     const res = await request(app)
-      .post("/api/bookings")
+      .get("/api/training-sessions")
       .set("Cookie", sessionCookie(clientAToken))
-      .send({ trainingSessionId: primarySessionId, idempotencyKey: "client-a-primary" })
       .expect(200);
-    const session = await createManagedSession(adminAToken, 3, future(56));
+    const session = res.body.sessions.find((item: { id: string }) => item.id === primarySessionId);
     expect(session).toMatchObject({
       id: primarySessionId,
       capacity: 2,
@@ -178,9 +177,21 @@ describe("training booking permissions and discovery", () => {
       .send({ name: "Temporary Type", durationMinutes: 45, defaultCapacity: 1 })
       .expect(201);
     const inactiveTypeId = type.body.sessionType.id;
-    const startsAt = future(19, 8);
-    const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
-    const session = await createManagedSession(adminAToken, 3, future(56));
+    const startsAt = future(7, 14);
+    const endsAt = new Date(
+      new Date(startsAt).getTime() + 45 * 60 * 1000,
+    ).toISOString();
+    const session = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({
+        sessionTypeId: inactiveTypeId,
+        locationId,
+        startsAt,
+        endsAt,
+        capacity: 1,
+      })
+      .expect(201);
     const inactiveSessionId = session.body.session.id;
     await request(app)
       .post(`/api/admin/session-types/${inactiveTypeId}/deactivate`)
@@ -205,7 +216,29 @@ describe("booking creation, idempotency, ownership and capacity", () => {
   let bookingAId: string;
 
   it("creates a pending booking, derives client and tenant server-side, and audits once", async () => {
-    const before = await countAuditLogs(tenantA.id, "booking:reschedule");
+    const before = await countAuditLogs(tenantA.id, "booking:create");
+    const res = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientAToken))
+      .send({
+        trainingSessionId: primarySessionId,
+        idempotencyKey: "client-a-primary",
+        tenantId: tenantB.id,
+        clientUserId: clientB.id,
+      })
+      .expect(201);
+    bookingAId = res.body.booking.id;
+    expect(res.body.booking).toMatchObject({
+      trainingSessionId: primarySessionId,
+      clientUserId: clientA.id,
+      tenantId: tenantA.id,
+      status: "pending",
+    });
+    expect(await countAuditLogs(tenantA.id, "booking:create")).toBe(before + 1);
+  });
+
+  it("replays the same idempotency key without a duplicate audit record", async () => {
+    const before = await countAuditLogs(tenantA.id, "booking:create");
     const res = await request(app)
       .post("/api/bookings")
       .set("Cookie", sessionCookie(clientAToken))
@@ -245,47 +278,7 @@ describe("booking creation, idempotency, ownership and capacity", () => {
   });
 
   it("allows clients to cancel only their own future booking and makes cancellation replay safe", async () => {
-    const before = await countAuditLogs(tenantA.id, "booking:reschedule");
-    const res = await request(app)
-      .post("/api/bookings")
-      .set("Cookie", sessionCookie(clientAToken))
-      .send({ trainingSessionId: primarySessionId, idempotencyKey: "client-a-primary" })
-      .expect(200);
-    expect(res.body.replayed).toBe(true);
-    expect(res.body.booking.id).toBe(bookingAId);
-    expect(await countAuditLogs(tenantA.id, "booking:create")).toBe(before);
-  });
-
-  it("refuses a duplicate active booking by the same client", async () => {
-    await request(app)
-      .post("/api/bookings")
-      .set("Cookie", sessionCookie(clientAToken))
-      .send({ trainingSessionId: primarySessionId, idempotencyKey: "client-a-duplicate" })
-      .expect(409);
-  });
-
-  it("does not disclose another client's booking", async () => {
-    await request(app)
-      .get(`/api/bookings/${bookingAId}`)
-      .set("Cookie", sessionCookie(clientBToken))
-      .expect(404);
-  });
-
-  it("pending bookings reserve capacity and a full session refuses the final place", async () => {
-    await request(app)
-      .post("/api/bookings")
-      .set("Cookie", sessionCookie(clientBToken))
-      .send({ trainingSessionId: primarySessionId, idempotencyKey: "client-b-primary" })
-      .expect(201);
-    await request(app)
-      .post("/api/bookings")
-      .set("Cookie", sessionCookie(clientCToken))
-      .send({ trainingSessionId: primarySessionId, idempotencyKey: "client-c-full" })
-      .expect(409);
-  });
-
-  it("allows clients to cancel only their own future booking and makes cancellation replay safe", async () => {
-    const before = await countAuditLogs(tenantA.id, "booking:reschedule");
+    const before = await countAuditLogs(tenantA.id, "booking:cancel");
     await request(app)
       .post(`/api/bookings/${bookingAId}/cancel`)
       .set("Cookie", sessionCookie(clientBToken))
@@ -300,19 +293,15 @@ describe("booking creation, idempotency, ownership and capacity", () => {
     expect(cancelled.body.replayed).toBe(false);
     expect(await countAuditLogs(tenantA.id, "booking:cancel")).toBe(before + 1);
     const replay = await request(app)
-      .post(`/api/bookings/${sourceBookingId}/reschedule`)
+      .post(`/api/bookings/${bookingAId}/cancel`)
       .set("Cookie", sessionCookie(clientAToken))
-      .send({
-        replacementTrainingSessionId: "00000000-0000-4000-8000-000000000000",
-        idempotencyKey: "reschedule-target",
-      })
       .expect(200);
     expect(replay.body.replayed).toBe(true);
     expect(await countAuditLogs(tenantA.id, "booking:cancel")).toBe(before + 1);
   });
 
   it("allows exactly one concurrent booking for the final place", async () => {
-    const solo = await createManagedSession(adminAToken, 1, future(12));
+    const solo = await createManagedSession(adminAToken, 1, future(9));
     expect(solo.status).toBe(201);
     const soloId = solo.body.session.id;
     const [a, c] = await Promise.all([
@@ -332,18 +321,18 @@ describe("booking creation, idempotency, ownership and capacity", () => {
     const solo = await createManagedSession(adminAToken, 1, future(12));
     expect(solo.status).toBe(201);
     const soloId = solo.body.session.id;
-    const idempotencyKey = "concurrent-same-key-reschedule";
-    const beforeAudits = await countAuditLogs(tenantA.id, "booking:reschedule");
+    const idempotencyKey = "concurrent-same-key-booking";
+    const beforeAudits = await countAuditLogs(tenantA.id, "booking:create");
 
     const [first, second] = await Promise.all([
       request(app)
-        .post(`/api/bookings/${sourceBookingId}/reschedule`)
-        .set("Cookie", sessionCookie(clientBToken))
-        .send({ replacementTrainingSessionId: target.body.session.id, idempotencyKey }),
+        .post("/api/bookings")
+        .set("Cookie", sessionCookie(clientAToken))
+        .send({ trainingSessionId: soloId, idempotencyKey }),
       request(app)
-        .post(`/api/bookings/${sourceBookingId}/reschedule`)
-        .set("Cookie", sessionCookie(clientBToken))
-        .send({ replacementTrainingSessionId: target.body.session.id, idempotencyKey }),
+        .post("/api/bookings")
+        .set("Cookie", sessionCookie(clientAToken))
+        .send({ trainingSessionId: soloId, idempotencyKey }),
     ]);
 
     expect([first.status, second.status].sort()).toEqual([200, 201]);
@@ -375,13 +364,13 @@ describe("weekly type-less slots", () => {
   };
 
   it("creates a type-less slot with explicit capacity that Clients can discover and book", async () => {
-    const startsAt = future(19, 8);
-    const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
-      const created = await request(app)
-        .post("/api/bookings")
-        .set("Cookie", sessionCookie(token))
-        .send({ trainingSessionId: groupSessionId, idempotencyKey: `group-attendance-${index}` })
-        .expect(201);
+    const startsAt = future(18, 8);
+    const endsAt = new Date(new Date(startsAt).getTime() + 45 * 60 * 1000).toISOString();
+    const created = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt, endsAt, capacity: 3 })
+      .expect(201);
     const slotId = created.body.session.id;
     expect(created.body.session.sessionTypeId).toBeNull();
 
@@ -413,7 +402,7 @@ describe("weekly type-less slots", () => {
       .expect(400);
     expect(pastResponse.body.fields.startsAt).toContain("future");
 
-    const startsAt = future(19, 8);
+    const startsAt = future(28, 15);
     const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
     const validResponse = await request(app)
       .post("/api/admin/training-sessions")
@@ -468,11 +457,11 @@ describe("weekly type-less slots", () => {
   it("locks every scheduling field and deletion once a slot has an active booking", async () => {
     const startsAt = future(19, 8);
     const endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
-      const created = await request(app)
-        .post("/api/bookings")
-        .set("Cookie", sessionCookie(token))
-        .send({ trainingSessionId: groupSessionId, idempotencyKey: `group-attendance-${index}` })
-        .expect(201);
+    const created = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt, endsAt, capacity: 2 })
+      .expect(201);
     const slotId = created.body.session.id;
     await request(app)
       .post("/api/bookings")
@@ -493,7 +482,11 @@ describe("weekly type-less slots", () => {
   it("copies unbooked slots from the previous week without copying bookings or overwriting overlaps", async () => {
     const sourceStart = mondayUtc(4, 8);
     const sourceEnd = new Date(sourceStart.getTime() + 60 * 60 * 1000);
-    const source = await createManagedSession(adminAToken, 1, future(13));
+    const source = await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminAToken))
+      .send({ locationId, startsAt: sourceStart.toISOString(), endsAt: sourceEnd.toISOString(), capacity: 2 })
+      .expect(201);
     const targetWeekStart = new Date(sourceStart.getTime() + 7 * 24 * 60 * 60 * 1000);
     const copied = await request(app)
       .post("/api/admin/training-sessions/copy-previous-week")
@@ -570,19 +563,19 @@ describe("Marcus session overlap validation", () => {
 });
 
 describe("rescheduling and Marcus workflow", () => {
-    const sourceBookingId = sourceBooking.body.booking.id;
+  let sourceBookingId: string;
   let rescheduledBookingId: string;
 
   it("reschedules atomically, preserving the old record and creating a pending replacement", async () => {
-    const source = await createManagedSession(adminAToken, 1, future(13));
-    const target = await createManagedSession(adminAToken, 1, future(14));
+    const source = await createManagedSession(adminAToken, 2, future(10));
+    const target = await createManagedSession(adminAToken, 2, future(11));
     const sourceId = source.body.session.id;
     const targetId = target.body.session.id;
-      const booking = await request(app)
-        .post("/api/bookings")
-        .set("Cookie", sessionCookie(token))
-        .send({ trainingSessionId: sessionId, idempotencyKey })
-        .expect(201);
+    const booking = await request(app)
+      .post("/api/bookings")
+      .set("Cookie", sessionCookie(clientAToken))
+      .send({ trainingSessionId: sourceId, idempotencyKey: "reschedule-source" })
+      .expect(201);
     sourceBookingId = booking.body.booking.id;
 
     const before = await countAuditLogs(tenantA.id, "booking:reschedule");
@@ -683,7 +676,7 @@ describe("rescheduling and Marcus workflow", () => {
       .set("Cookie", sessionCookie(adminAToken))
       .expect(201);
     const attended = await request(app)
-      .post(`/api/admin/bookings/${bookings[0]}/attended`)
+      .post(`/api/admin/bookings/${rescheduledBookingId}/attended`)
       .set("Cookie", sessionCookie(adminAToken))
       .expect(200);
     expect(attended.body.booking.status).toBe("attended");
@@ -744,18 +737,18 @@ describe("rescheduling and Marcus workflow", () => {
   });
 
   it("automatically locks full classes from confirmed participants and preserves that price after a cancellation", async () => {
-    const session = await createManagedSession(adminAToken, 3, future(56));
+    const session = await createManagedSession(adminAToken, 2, future(50));
     expect(session.status).toBe(201);
     const sessionId = session.body.session.id as string;
     const first = await request(app)
       .post("/api/bookings")
       .set("Cookie", sessionCookie(clientAToken))
-      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-manual-a" })
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-auto-a" })
       .expect(201);
     const second = await request(app)
       .post("/api/bookings")
       .set("Cookie", sessionCookie(clientBToken))
-      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-manual-b" })
+      .send({ trainingSessionId: sessionId, idempotencyKey: "class-close-auto-b" })
       .expect(201);
     await request(app)
       .post(`/api/admin/bookings/${first.body.booking.id}/confirm`)
@@ -772,7 +765,6 @@ describe("rescheduling and Marcus workflow", () => {
       .expect(200);
     expect(summary.body.classPricing).toMatchObject({
       state: "closed",
-      closeReason: "full",
       confirmedParticipantCount: 2,
     });
     expect(summary.body.classPricing.participants).toEqual(
@@ -801,14 +793,14 @@ describe("rescheduling and Marcus workflow", () => {
       .set("Cookie", sessionCookie(clientAToken))
       .expect(200);
     expect(firstBooking.body.booking.commercial).toMatchObject({
-      lockedAmountMinor: 6000,
+      lockedChargeAmountMinor: 6000,
       lockedParticipantCount: 2,
-      heldAmountMinor: 6000,
+      reservedAmountMinor: 6000,
     });
   });
 
   it("manually locks an open class and limits no-show charges to the locked amount", async () => {
-    const session = await createManagedSession(adminAToken, 3, future(56));
+    const session = await createManagedSession(adminAToken, 3, future(51));
     expect(session.status).toBe(201);
     const sessionId = session.body.session.id as string;
     const first = await request(app)

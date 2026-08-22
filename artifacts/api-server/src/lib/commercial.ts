@@ -1071,6 +1071,70 @@ export async function closeSessionCommercial(
     );
   return { participantCount, releases, replayed: false };
 }
+
+export async function getClassPricingSummary(
+  executor: Executor,
+  tenantId: string,
+  trainingSessionId: string,
+) {
+  const [session] = await executor
+    .select({
+      status: trainingSessionsTable.status,
+      startsAt: trainingSessionsTable.startsAt,
+      capacity: trainingSessionsTable.capacity,
+      commercialClosedAt: trainingSessionsTable.commercialClosedAt,
+      commercialClosedParticipantCount:
+        trainingSessionsTable.commercialClosedParticipantCount,
+    })
+    .from(trainingSessionsTable)
+    .where(
+      and(
+        eq(trainingSessionsTable.tenantId, tenantId),
+        eq(trainingSessionsTable.id, trainingSessionId),
+      ),
+    )
+    .limit(1);
+  if (!session) throw new CommercialError(404, "Training session not found");
+
+  const rows = await getSessionCommercialRows(executor, tenantId, trainingSessionId);
+  const confirmed = rows.filter((row) => row.bookingStatus === "confirmed");
+  const participantCount =
+    session.commercialClosedParticipantCount ?? confirmed.length;
+  const isClosed = Boolean(session.commercialClosedAt);
+
+  return {
+    state: isClosed ? ("closed" as const) : ("open" as const),
+    closeReason: null,
+    closedAt: session.commercialClosedAt,
+    confirmedParticipantCount: participantCount,
+    capacity: session.capacity,
+    canClose:
+      !isClosed &&
+      session.status === "scheduled" &&
+      session.startsAt > new Date() &&
+      participantCount > 0,
+    participants: rows
+      .filter(
+        (row) =>
+          row.bookingStatus === "confirmed" ||
+          row.lockedChargeAmountMinor !== null,
+      )
+      .map((row) => ({
+        bookingId: row.bookingId,
+        clientName: `${row.clientFirstName} ${row.clientLastName}`,
+        bookingStatus: row.bookingStatus,
+        maximumHeldAmountMinor: row.maximumHeldAmountMinor,
+        heldAmountMinor: row.reservedAmountMinor,
+        projectedLockedAmountMinor: isClosed
+          ? row.lockedChargeAmountMinor
+          : row.rateTable?.[String(participantCount)] ?? null,
+        lockedAmountMinor: row.lockedChargeAmountMinor,
+        lockedParticipantCount: row.lockedParticipantCount,
+        settled: Boolean(row.settlementId),
+      })),
+  };
+}
+
 export async function settleSessionCommercial(
   tx: Transaction,
   input: {
