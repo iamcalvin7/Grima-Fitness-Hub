@@ -104,7 +104,7 @@ interface BalanceResponse {
 
 interface WalletActivityItem {
   id: string;
-  kind: 'training_value_added' | 'manual_adjustment' | 'booking_hold' | 'hold_released' | 'session_value_used' | 'no_show_charged' | 'no_show_waived';
+  kind: 'training_value_added' | 'stripe_top_up' | 'manual_adjustment' | 'booking_hold' | 'hold_released' | 'session_value_used' | 'no_show_charged' | 'no_show_waived';
   description: string;
   amountMinor: number;
   createdAt: string;
@@ -325,13 +325,30 @@ function TrainingWallet({
   loading,
   error,
   onRetry,
+  onStartTopUp,
 }: {
   balance: BalanceResponse | null;
   activity: WalletActivityItem[];
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  onStartTopUp: (amountMinor: 5000 | 10000 | 20000) => Promise<void>;
 }) {
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+  const [topUpAmount, setTopUpAmount] = useState<number | null>(null);
+
+  const beginTopUp = async (amountMinor: 5000 | 10000 | 20000) => {
+    setTopUpAmount(amountMinor);
+    setTopUpError(null);
+    try {
+      await onStartTopUp(amountMinor);
+    } catch (caught) {
+      setTopUpError(caught instanceof Error ? caught.message : 'Unable to start secure checkout.');
+      setTopUpAmount(null);
+    }
+  };
+
   return (
     <section className="mb-6 border border-white/8 bg-[#111111] p-5" data-testid="training-wallet">
       <div className="flex items-center justify-between gap-3">
@@ -342,7 +359,12 @@ function TrainingWallet({
             <p className="mt-1 text-xs text-foreground/40">Training value available for new bookings.</p>
           </div>
         </div>
-        {balance?.pricing && <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{balance.pricing.planName}</span>}
+        <div className="flex items-center gap-3">
+          {balance?.pricing && <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{balance.pricing.planName}</span>}
+          <button onClick={() => { setShowTopUp((visible) => !visible); setTopUpError(null); }} className="rounded border border-primary/35 bg-primary/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary/20" data-testid="wallet-top-up-button">
+            Add funds
+          </button>
+        </div>
       </div>
       {loading ? (
         <div className="py-8 text-center text-xs text-foreground/40">Loading wallet…</div>
@@ -363,6 +385,31 @@ function TrainingWallet({
               <p className="mt-2 text-xl font-black text-amber-300">{formatEur(balance.heldValueMinor)}</p>
             </div>
           </div>
+           {showTopUp && (
+             <div className="mt-4 border border-primary/20 bg-primary/[0.05] p-4" data-testid="wallet-top-up-options">
+               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                 <div>
+                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">Add training value</p>
+                   <p className="mt-1 text-xs leading-relaxed text-foreground/55">Secure Stripe Checkout in Test Mode. Card, Apple Pay, or Google Pay may appear when available for your device and Stripe account.</p>
+                 </div>
+                 <span className="mt-2 w-fit rounded bg-amber-400/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-300 sm:mt-0">Test mode</span>
+               </div>
+               <div className="mt-4 grid grid-cols-3 gap-2">
+                 {([5000, 10000, 20000] as const).map((amountMinor) => (
+                   <button
+                     key={amountMinor}
+                     onClick={() => void beginTopUp(amountMinor)}
+                     disabled={topUpAmount !== null}
+                     className="rounded border border-white/10 bg-white/[0.04] px-2 py-3 text-xs font-bold text-white hover:border-primary/40 hover:bg-primary/10 disabled:opacity-50"
+                     data-testid={`wallet-top-up-${amountMinor}`}
+                   >
+                     {topUpAmount === amountMinor ? <SpinnerGap className="mx-auto animate-spin" size={15} /> : formatEur(amountMinor)}
+                   </button>
+                 ))}
+               </div>
+               {topUpError && <p className="mt-3 text-xs text-red-200" role="alert">{topUpError}</p>}
+             </div>
+           )}
           <div className="mt-6 border-t border-white/8 pt-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/40">Wallet activity</p>
             {activity.length === 0 ? (
@@ -904,6 +951,7 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
   const [mutating, setMutating] = useState<string | null>(null);
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [bookingIntentNotice, setBookingIntentNotice] = useState(false);
+  const [topUpNotice, setTopUpNotice] = useState<string | null>(null);
   const [bookingListResolved, setBookingListResolved] = useState(false);
   const cancellationInFlight = useRef(false);
   const resolvedIntentId = useRef<string | null>(null);
@@ -974,6 +1022,37 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
     setLoading(true);
     await Promise.all([loadData(), loadWallet()]);
   };
+  const startWalletTopUp = async (amountMinor: 5000 | 10000 | 20000) => {
+    const result = await apiRequest<{ checkoutUrl: string }>('/commercial/wallet/top-ups/checkout', {
+      method: 'POST',
+      body: { amountMinor, idempotencyKey: createIdempotencyKey('wallet-top-up') },
+    });
+    if (!result.checkoutUrl) throw new Error('Secure checkout did not return a redirect URL.');
+    window.location.assign(result.checkoutUrl);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get('topup');
+    let retry: number | null = null;
+    if (outcome === 'success' || outcome === 'cancelled') {
+      setTopUpNotice(
+        outcome === 'success'
+          ? 'Payment received. Your Training Wallet will update as soon as Stripe confirms it.'
+          : 'Checkout was cancelled. No training value was added.',
+      );
+      params.delete('topup');
+      params.delete('top_up_id');
+      params.delete('session_id');
+      const query = params.toString();
+      window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    }
+    if (outcome === 'success') {
+      void loadWallet();
+      retry = window.setTimeout(() => void loadWallet(), 2_000);
+    }
+    return () => { if (retry !== null) window.clearTimeout(retry); };
+  }, [loadWallet]);
   const reconcileRejectedMutation = async (message: string) => {
     setActionError(message);
     await refreshData();
@@ -1122,6 +1201,13 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
       </header>
 
       {actionError && <ActionError message={actionError} onDismiss={() => setActionError(null)} />}
+      {topUpNotice && (
+        <div className="mx-5 mt-5 flex items-start gap-3 border border-primary/20 bg-primary/[0.06] px-4 py-3 text-sm text-white/75" role="status" data-testid="wallet-top-up-notice">
+          <CheckCircle size={17} className="mt-0.5 shrink-0 text-primary" weight="fill" />
+          <p className="flex-1">{topUpNotice}</p>
+          <button type="button" onClick={() => setTopUpNotice(null)} className="text-xs font-bold uppercase tracking-wider text-white/45 hover:text-white">Dismiss</button>
+        </div>
+      )}
       {bookingIntentNotice && (
         <div className="mx-5 mt-5 flex items-start gap-3 border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70" role="status" data-testid="status-booking-unavailable">
           <WarningCircle size={18} className="mt-0.5 shrink-0 text-white/50" />
@@ -1137,6 +1223,7 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
           loading={walletLoading}
           error={walletError}
           onRetry={() => void loadWallet()}
+          onStartTopUp={startWalletTopUp}
         />
         {loading ? <LoadingState /> : loadError ? <ErrorState message={loadError} onRetry={refreshData} /> : (
           <AnimatePresence mode="wait">

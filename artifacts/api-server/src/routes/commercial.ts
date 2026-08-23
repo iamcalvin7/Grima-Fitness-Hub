@@ -24,6 +24,7 @@ import {
   recordNoShowDecision,
   settleSessionCommercial,
 } from "../lib/commercial";
+import { listWalletTopUps } from "../lib/walletTopUps";
 
 const router: IRouter = Router();
 const UUID_RE =
@@ -195,6 +196,14 @@ router.use(
   requireAuth,
   requireCapability("payments:manage"),
 );
+
+router.get("/admin/commercial/wallet-top-ups", async (req, res) => {
+  try {
+    res.json({ topUps: await listWalletTopUps(req.user!.tenantId) });
+  } catch (error) {
+    sendError(res, error, "Failed to load wallet top-ups");
+  }
+});
 
 router.get("/admin/commercial/pricing-plans", async (req, res) => {
   try {

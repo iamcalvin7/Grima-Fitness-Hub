@@ -73,6 +73,18 @@ type RevenueActivityItem = {
   amountMinor: number;
   settledAt: string;
 };
+type WalletTopUp = {
+  id: string;
+  amountMinor: number;
+  currency: string;
+  status: 'created' | 'pending' | 'paid' | 'failed' | 'cancelled';
+  paidAt: string | null;
+  createdAt: string;
+  clientUserId: string;
+  clientFirstName: string;
+  clientLastName: string;
+  clientEmail: string;
+};
 type SessionRevenue = {
   settledRevenueMinor: number;
   settledCount: number;
@@ -118,13 +130,14 @@ export function CommercialHQ({
   actionId: string | null;
   sessions: ManagedSession[];
 }) {
-  const [tab, setTab] = useState<'clients' | 'plans' | 'classes' | 'settlements' | 'revenue'>('clients');
+  const [tab, setTab] = useState<'clients' | 'topups' | 'plans' | 'classes' | 'settlements' | 'revenue'>('clients');
 
   return (
     <div className="flex h-full flex-col bg-[#0A0A0A]">
       <div className="mb-6 flex w-fit max-w-full overflow-x-auto rounded border border-white/10 bg-white/5 p-1 text-sm">
         {([
           ['clients', 'Clients', Users],
+           ['topups', 'Wallet top-ups', CurrencyEur],
           ['plans', 'Pricing plans', Tag],
            ['classes', 'Class pricing', Lock],
           ['settlements', 'Settlements', Receipt],
@@ -143,6 +156,7 @@ export function CommercialHQ({
       </div>
       <AnimatePresence mode="wait">
         {tab === 'clients' && <ClientsView key="clients" execute={execute} actionId={actionId} />}
+        {tab === 'topups' && <WalletTopUpsView key="topups" />}
         {tab === 'plans' && <PlansView key="plans" execute={execute} actionId={actionId} />}
         {tab === 'classes' && <ClassPricingView key="classes" execute={execute} actionId={actionId} sessions={sessions} />}
         {tab === 'settlements' && (
@@ -151,6 +165,55 @@ export function CommercialHQ({
         {tab === 'revenue' && <RevenueView key="revenue" />}
       </AnimatePresence>
     </div>
+  );
+}
+
+function WalletTopUpsView() {
+  const [topUps, setTopUps] = useState<WalletTopUp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const refresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setTopUps((await apiRequest<{ topUps: WalletTopUp[] }>('/admin/commercial/wallet-top-ups')).topUps);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to load wallet top-ups.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { void refresh(); }, []);
+  if (loading) return <LoadingBlock />;
+  if (error) return <ErrorBlock message={error} retry={refresh} />;
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <div>
+        <h3 className="text-base font-bold text-white">Cash-backed wallet top-ups</h3>
+        <p className="mt-1 text-sm text-white/45">Stripe Checkout payments credit Training Wallets after verified confirmation. They are not session revenue.</p>
+      </div>
+      {topUps.length === 0 ? (
+        <EmptyBlock icon={<CurrencyEur size={30} weight="fill" />} label="No Stripe wallet top-ups yet." />
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/[0.01]">
+          <table className="w-full min-w-[680px] text-left text-sm">
+            <thead className="border-b border-white/10 bg-white/5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+              <tr><th className="p-4">Client</th><th className="p-4">Status</th><th className="p-4">Created</th><th className="p-4 text-right">Amount</th></tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {topUps.map((topUp) => (
+                <tr key={topUp.id}>
+                  <td className="p-4"><p className="font-bold text-white">{topUp.clientFirstName} {topUp.clientLastName}</p><p className="mt-0.5 text-xs text-white/40">{topUp.clientEmail}</p></td>
+                  <td className="p-4"><span className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${topUp.status === 'paid' ? 'bg-primary/15 text-primary' : topUp.status === 'failed' || topUp.status === 'cancelled' ? 'bg-red-400/10 text-red-200' : 'bg-amber-300/10 text-amber-200'}`}>{topUp.status}</span></td>
+                  <td className="p-4 text-xs text-white/55">{new Date(topUp.paidAt ?? topUp.createdAt).toLocaleString('en-GB', { timeZone: 'Europe/Malta', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</td>
+                  <td className="p-4 text-right font-bold text-white">{formatEur(topUp.amountMinor)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </motion.div>
   );
 }
 

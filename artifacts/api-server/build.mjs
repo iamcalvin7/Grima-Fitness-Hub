@@ -70,6 +70,7 @@ async function buildAll() {
       "@parcel/watcher",
       "@sentry/profiling-node",
       "@tree-sitter/*",
+      "stripe-replit-sync",
       "aws-sdk",
       "classic-level",
       "dd-trace",

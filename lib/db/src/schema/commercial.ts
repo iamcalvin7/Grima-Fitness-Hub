@@ -40,10 +40,19 @@ export const trainingValueMovementTypeEnum = pgEnum(
   [
     "manual_grant",
     "manual_adjustment",
+    "stripe_top_up",
     "attendance_charge",
     "no_show_charge",
   ],
 );
+
+export const walletTopUpStatusEnum = pgEnum("wallet_top_up_status", [
+  "created",
+  "pending",
+  "paid",
+  "failed",
+  "cancelled",
+]);
 
 export const pricingPlansTable = pgTable(
   "pricing_plans",
@@ -186,6 +195,7 @@ export const trainingValueLedgerTable = pgTable(
     bookingId: uuid("booking_id"),
     actorUserId: uuid("actor_user_id"),
     idempotencyKey: text("idempotency_key"),
+    externalReference: text("external_reference"),
     reason: text("reason"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
@@ -219,7 +229,60 @@ export const trainingValueLedgerTable = pgTable(
     uniqueIndex("training_value_ledger_actor_idempotency_unique")
       .on(table.tenantId, table.actorUserId, table.idempotencyKey)
       .where(sql`${table.idempotencyKey} is not null`),
+    uniqueIndex("training_value_ledger_external_reference_unique")
+      .on(table.tenantId, table.externalReference)
+      .where(sql`${table.externalReference} is not null`),
     check("training_value_ledger_amount_non_zero", sql`${table.amountMinor} <> 0`),
+  ],
+);
+
+export const walletTopUpsTable = pgTable(
+  "wallet_top_ups",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    clientUserId: uuid("client_user_id").notNull(),
+    amountMinor: integer("amount_minor").notNull(),
+    currency: text("currency").notNull().default("EUR"),
+    status: walletTopUpStatusEnum("status").notNull().default("created"),
+    clientIdempotencyKey: text("client_idempotency_key").notNull(),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    checkoutUrl: text("checkout_url"),
+    failureReason: text("failure_reason"),
+    paidAt: timestamp("paid_at", { withTimezone: true, mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.clientUserId],
+      foreignColumns: [usersTable.tenantId, usersTable.id],
+      name: "wallet_top_ups_tenant_client_fk",
+    }),
+    unique("wallet_top_ups_tenant_id_unique").on(table.tenantId, table.id),
+    unique("wallet_top_ups_client_idempotency_unique").on(
+      table.tenantId,
+      table.clientUserId,
+      table.clientIdempotencyKey,
+    ),
+    uniqueIndex("wallet_top_ups_stripe_checkout_session_unique")
+      .on(table.stripeCheckoutSessionId)
+      .where(sql`${table.stripeCheckoutSessionId} is not null`),
+    index("wallet_top_ups_tenant_created_idx").on(table.tenantId, table.createdAt),
+    index("wallet_top_ups_client_created_idx").on(
+      table.tenantId,
+      table.clientUserId,
+      table.createdAt,
+    ),
+    check("wallet_top_ups_amount_positive", sql`${table.amountMinor} > 0`),
+    check("wallet_top_ups_eur_only", sql`${table.currency} = 'EUR'`),
   ],
 );
 
@@ -446,6 +509,7 @@ export type PricingRate = typeof pricingRatesTable.$inferSelect;
 export type ClientPricingAssignment =
   typeof clientPricingAssignmentsTable.$inferSelect;
 export type TrainingValueLedgerEntry = typeof trainingValueLedgerTable.$inferSelect;
+export type WalletTopUp = typeof walletTopUpsTable.$inferSelect;
 export type BookingCommercial = typeof bookingCommercialsTable.$inferSelect;
 export type CommercialSettlement = typeof commercialSettlementsTable.$inferSelect;
 export type CommercialNoShowDecision =

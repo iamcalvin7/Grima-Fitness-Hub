@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { stripeWebhookRouter } from "./routes/walletTopUps";
 
 const app: Express = express();
 
@@ -52,6 +53,9 @@ app.use(
   }),
 );
 app.use(cookieParser());
+// Stripe signatures are calculated against the original bytes, so this route
+// must be registered before JSON parsing.
+app.use("/api", stripeWebhookRouter);
 app.use(express.json({ limit: "400kb" })); // headroom for avatar data URLs
 app.use(express.urlencoded({ extended: true }));
 

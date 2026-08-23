@@ -199,6 +199,7 @@ export type WalletActivityItem = {
   id: string;
   kind:
     | "training_value_added"
+    | "stripe_top_up"
     | "manual_adjustment"
     | "booking_hold"
     | "hold_released"
@@ -332,6 +333,8 @@ export async function getClientWalletActivity(
     const kind =
       row.movementType === "manual_grant"
         ? "training_value_added"
+        : row.movementType === "stripe_top_up"
+          ? "stripe_top_up"
         : row.movementType === "manual_adjustment"
           ? "manual_adjustment"
           : row.movementType === "attendance_charge"
@@ -343,6 +346,8 @@ export async function getClientWalletActivity(
       description:
         kind === "training_value_added"
           ? "Training value added"
+          : kind === "stripe_top_up"
+            ? "Wallet top-up by card"
           : kind === "manual_adjustment"
             ? "Manual adjustment"
             : kind === "session_value_used"
