@@ -223,7 +223,7 @@ export async function processWalletTopUpCheckout(
       .from(walletTopUpsTable)
       .where(eq(walletTopUpsTable.id, topUp.id))
       .limit(1);
-    if (!current || current.status === "paid") return { credited: false, ignored: false };
+    if (!current || current.status !== "pending") return { credited: false, ignored: false };
 
     const [entry] = await tx
       .insert(trainingValueLedgerTable)

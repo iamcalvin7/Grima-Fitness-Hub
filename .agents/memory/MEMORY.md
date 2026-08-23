@@ -5,3 +5,4 @@
 - [Post-merge schema synchronization](post-merge-schema-sync.md) — migrations use a non-interactive ledger runner, not Drizzle schema push.
 - [Weekly schedule & recurrence](weekly-schedule-transition.md) — dated sessions remain canonical; admin-managed weekly availability now materializes safe bookable sessions in the same table.
 - [Commercial value lifecycle](commercial-value-lifecycle.md) — immutable internal value snapshots, single active holds, and completed-session settlement rules.
+- [Stripe sandbox credentials](stripe-sandbox-credentials.md) — native connector may not expose raw API keys; Test Mode wallet checkout uses secure `sk_test_` and webhook secrets.
