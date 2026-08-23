@@ -173,6 +173,8 @@ export const clientPricingAssignmentsTable = pgTable(
 
 export const trainingValueLedgerTable = pgTable(
   "training_value_ledger",
+  // Ledger rows are append-only. Corrections must be represented by a new,
+  // auditable manual_adjustment entry rather than rewriting history.
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -320,6 +322,7 @@ export const bookingCommercialsTable = pgTable(
 
 export const commercialSettlementsTable = pgTable(
   "commercial_settlements",
+  // Settlements are historical facts and must remain append-only.
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")

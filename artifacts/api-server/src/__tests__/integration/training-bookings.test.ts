@@ -1,7 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { and, eq } from "drizzle-orm";
-import { bookingsTable, db, trainingSessionsTable } from "@workspace/db";
+import {
+  bookingsTable,
+  bookingCommercialsTable,
+  commercialSettlementsTable,
+  db,
+  trainingSessionsTable,
+  trainingValueLedgerTable,
+} from "@workspace/db";
 import {
   app,
   countAuditLogs,
@@ -958,6 +965,72 @@ describe("rescheduling and Marcus workflow", () => {
       expect.objectContaining({ kind: "hold_released", amountMinor: 4500 }),
       expect.objectContaining({ kind: "session_value_used", amountMinor: -4500 }),
     ]));
+
+    const [settledCommercial] = await db
+      .select()
+      .from(bookingCommercialsTable)
+      .where(eq(bookingCommercialsTable.bookingId, bookingIds[0]))
+      .limit(1);
+    const [settlement] = await db
+      .select()
+      .from(commercialSettlementsTable)
+      .where(eq(commercialSettlementsTable.bookingId, bookingIds[0]))
+      .limit(1);
+    const [ledgerEntry] = await db
+      .select()
+      .from(trainingValueLedgerTable)
+      .where(
+        and(
+          eq(trainingValueLedgerTable.bookingId, bookingIds[0]),
+          eq(trainingValueLedgerTable.movementType, "attendance_charge"),
+        ),
+      )
+      .limit(1);
+    expect(settledCommercial?.holdStatus).toBe("settled");
+    expect(settlement).toBeDefined();
+    expect(ledgerEntry).toBeDefined();
+
+    await expect(
+      db
+        .update(bookingCommercialsTable)
+        .set({ reservedAmountMinor: 1 })
+        .where(eq(bookingCommercialsTable.id, settledCommercial!.id)),
+    ).rejects.toThrow(/immutable/i);
+    await expect(
+      db
+        .delete(bookingCommercialsTable)
+        .where(eq(bookingCommercialsTable.id, settledCommercial!.id)),
+    ).rejects.toThrow(/immutable/i);
+    await expect(
+      db
+        .update(commercialSettlementsTable)
+        .set({ finalChargeAmountMinor: 1 })
+        .where(eq(commercialSettlementsTable.id, settlement!.id)),
+    ).rejects.toThrow(/immutable/i);
+    await expect(
+      db
+        .delete(commercialSettlementsTable)
+        .where(eq(commercialSettlementsTable.id, settlement!.id)),
+    ).rejects.toThrow(/immutable/i);
+    await expect(
+      db
+        .update(trainingValueLedgerTable)
+        .set({ amountMinor: -1 })
+        .where(eq(trainingValueLedgerTable.id, ledgerEntry!.id)),
+    ).rejects.toThrow(/immutable/i);
+    await expect(
+      db
+        .delete(trainingValueLedgerTable)
+        .where(eq(trainingValueLedgerTable.id, ledgerEntry!.id)),
+    ).rejects.toThrow(/immutable/i);
+
+    const revenueAfterMutationAttempts = await request(app)
+      .get("/api/admin/commercial/revenue/summary")
+      .set("Cookie", sessionCookie(adminAToken))
+      .expect(200);
+    expect(revenueAfterMutationAttempts.body.revenue.month.amountMinor).toBe(
+      revenueAfter.body.revenue.month.amountMinor,
+    );
 
     const waivedSession = await createManagedSession(adminAToken, 1, future(57));
     const waivedSessionId = waivedSession.body.session.id as string;
