@@ -1,0 +1,126 @@
+## End-to-End Result
+
+```text
+STRIPE TEST MODE €50 TOP-UP — PASS
+```
+
+A real **Stripe Sandbox/Test Mode** €50 checkout was completed using Stripe’s approved test card. The signed webhook was received and the server credited the correct development client exactly once.
+
+## Before / After
+
+```text
+Available before: €0.00
+Held before: €0.00
+
+Top-up: €50.00
+
+Available after: €50.00
+Held after: €0.00
+```
+
+The refreshed authoritative wallet API still returned:
+
+```text
+Total: €50.00
+Available: €50.00
+Held: €0.00
+```
+
+## Stripe State
+
+```text
+pending → paid
+```
+
+- The completed €50 Checkout session was Sandbox/Test Mode and EUR.
+- The API received `checkout.session.completed` at `/api/stripe/webhook`.
+- Signature validation and wallet processing succeeded.
+- Server log confirmed the event was processed with `credited: true`.
+- The server-owned top-up record matched the Checkout session, €50 amount, EUR currency, tenant, and client.
+
+## Ledger
+
+```text
+exactly one +€50 wallet credit
+```
+
+Database verification found:
+
+- **1** matching provider ledger entry
+- **€50.00** credited
+- **0** provider-linked credits for any other client
+
+## Wallet Activity
+
+The client UI displayed exactly one new activity item:
+
+```text
+Wallet top-up by card
++€50.00
+```
+
+The balance and activity remained correct after a browser refresh.
+
+## Revenue
+
+```text
+Marcus revenue before: €0.00
+Marcus revenue after: €0.00
+Change: €0.00
+```
+
+No commercial settlement was created by the wallet top-up.
+
+## Isolation
+
+Only the paying client received the credit:
+
+```text
+Other-client top-up rows near payment: 0
+```
+
+No tenant/client leakage was observed.
+
+## Idempotency
+
+The successful provider event was replayed through the existing server-side idempotency handler:
+
+```text
+credited: false
+```
+
+The wallet remained €50.00 and the provider reference still had exactly one ledger credit. No second payment or Checkout session was created for this replay.
+
+## Booking Usability
+
+The refreshed Sessions UI showed the newly available value as **Avail €50.00** and retained the normal booking action. No unnecessary booking or commercial records were created.
+
+## Defect Found and Fixed
+
+**Symptom:** The first Sandbox payment returned successfully from Stripe but left the wallet pending at €0.00.
+
+**Root cause:** A webhook secret was configured, so the application skipped managed-webhook registration. The Stripe Test Mode account had no active webhook endpoint, so Stripe never delivered the signed event.
+
+**Smallest fix:** The API now always registers/reuses the managed Stripe Test Mode webhook at startup and uses its stored endpoint-specific signing secret for validation.
+
+**Regression evidence:**
+
+- Managed Test Mode webhook verified as enabled.
+- API typecheck passed.
+- API production build passed.
+- Focused wallet safety suite: **8/8 passed**.
+- Full API integration suite: **124/124 passed**.
+- Final code review: passed with no release-blocking issue.
+
+The original failed attempt remains an uncredited **development-only** pending record; no manual credit was applied. A fresh independent Sandbox checkout was then completed successfully after the webhook fix.
+
+## Production
+
+Confirmed:
+
+- Stripe **Test Mode only**
+- Approved Stripe test card only; no real card or customer credentials
+- No live Stripe secret
+- No production migration
+- No deployment
+- No publishing
