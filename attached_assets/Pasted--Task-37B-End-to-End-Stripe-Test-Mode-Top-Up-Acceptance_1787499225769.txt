@@ -1,0 +1,406 @@
+# Task #37B — End-to-End Stripe Test Mode Top-Up Acceptance
+
+## Objective
+
+Perform the one remaining end-to-end acceptance test for Training Wallet top-ups.
+
+The goal is to prove the full Test Mode journey:
+
+```text
+Client wallet
+→ choose €50 top-up
+→ Stripe Sandbox Checkout
+→ complete with Stripe Test Mode payment details
+→ signed webhook received
+→ top-up becomes paid
+→ wallet increases by exactly €50
+→ wallet activity shows +€50
+→ Marcus session revenue remains unchanged
+```
+
+This is verification only.
+
+Do not add new payment features unless the test exposes a real defect.
+
+---
+
+## Risk
+
+**AMBER — Stripe Test Mode only**
+
+No live Stripe credentials.
+
+No real card/payment details.
+
+No production deployment.
+
+No production migration.
+
+---
+
+# 1. Pre-Test State
+
+Use an authorised development/test client.
+
+Record before payment:
+
+```text
+Available wallet value: €X
+Held value: €Y
+Marcus session revenue: €R
+```
+
+Also confirm there is no existing successful top-up using the same Checkout/top-up record.
+
+---
+
+# 2. Launch €50 Top-Up
+
+From the real client UI:
+
+```text
+Training Wallet
+→ Add Training Value
+→ €50
+```
+
+Verify:
+
+* only one Checkout session is created;
+* browser opens hosted `checkout.stripe.com`;
+* page is visibly marked Sandbox/Test Mode;
+* amount is exactly €50.00;
+* correct currency is EUR.
+
+---
+
+# 3. Complete Stripe Test Mode Checkout
+
+Use only Stripe-approved **Test Mode** payment details.
+
+Do not use:
+
+* a real card
+* real customer payment credentials
+* live Stripe mode
+
+Complete the €50 Sandbox transaction.
+
+Capture the resulting Checkout/session/provider reference for development evidence where useful.
+
+Do not expose secret keys or sensitive test/payment fields in the report.
+
+---
+
+# 4. Webhook Verification
+
+Verify the backend receives and validates the signed Stripe event.
+
+Expected transition:
+
+```text
+top-up:
+pending → paid
+```
+
+Confirm:
+
+* signature validation succeeds;
+* top-up resolves to correct tenant;
+* top-up resolves to correct client;
+* amount matches €50;
+* currency matches EUR;
+* Checkout/provider reference matches the server-created top-up.
+
+The frontend return alone must not credit the wallet.
+
+---
+
+# 5. Wallet Credit
+
+After the verified paid event:
+
+```text
+Before available = €X
+Top-up = €50
+After available = €X + €50
+```
+
+If the client has existing held value, held value should remain unchanged.
+
+Example:
+
+```text
+Before:
+Available €75
+Held €25
+
+After:
+Available €125
+Held €25
+```
+
+Verify exactly one wallet ledger credit exists for the top-up.
+
+---
+
+# 6. Client Return Experience
+
+After Checkout, verify the client returns to Marcus Fitness successfully.
+
+The UX should resolve the authoritative server status.
+
+Expected:
+
+```text
+€50 added to your Training Wallet
+```
+
+Then verify:
+
+* wallet summary refreshes;
+* new available value is visible;
+* no manual page-state balance calculation is being relied upon.
+
+Refresh the browser.
+
+The updated value must remain correct.
+
+---
+
+# 7. Wallet Activity
+
+Verify the client's wallet activity/history contains one new entry equivalent to:
+
+```text
+Training value added
++€50
+```
+
+Check:
+
+* amount
+* date/time
+* status if displayed
+
+There must not be two entries for the same top-up.
+
+---
+
+# 8. Duplicate Protection
+
+After successful payment, safely exercise idempotency using the existing deterministic/replay mechanism.
+
+Do not create a second real/Test Checkout payment.
+
+Replay the successful provider event where supported.
+
+Expected:
+
+```text
+wallet remains €X + €50
+```
+
+not:
+
+```text
+€X + €100
+```
+
+One payment → one wallet credit.
+
+---
+
+# 9. Revenue Isolation
+
+Record Marcus session revenue before and after.
+
+Expected:
+
+```text
+Before revenue = €R
+After €50 wallet top-up = €R
+```
+
+Difference:
+
+```text
+€0
+```
+
+The top-up is wallet funding, not settled training-session revenue.
+
+---
+
+# 10. Booking Usability
+
+After the wallet has been credited, verify the newly available value is usable by the existing booking commercial engine.
+
+A safe check is enough.
+
+For example:
+
+* open a bookable session;
+* confirm the UI now recognises sufficient available training value;
+* verify the correct maximum hold can be presented.
+
+Do not create unnecessary commercial test records if not required.
+
+---
+
+# 11. Cross-Client Safety
+
+Verify the €50 appears only for the client who made the Test Mode payment.
+
+Another client must show:
+
+```text
+wallet change = €0
+```
+
+No tenant/client leakage.
+
+---
+
+# 12. Failure Rule
+
+If Checkout appears successful but the wallet does not update:
+
+Do not manually grant the €50.
+
+Inspect in this order:
+
+1. top-up record
+2. Stripe event
+3. webhook signature result
+4. state transition
+5. ledger insertion
+6. wallet summary query
+
+Fix only the proven cause.
+
+---
+
+# 13. Regression
+
+After the browser payment acceptance:
+
+Run at minimum:
+
+* focused wallet/payment integration tests
+* API integration suite if runtime code changed
+* API typecheck if code changed
+* frontend tests/typecheck if frontend code changed
+
+If no code changes are required, do not rerun unrelated expensive checks solely for ceremony; retain the existing green regression evidence and report the acceptance result separately.
+
+---
+
+# 14. Completion Criteria
+
+This acceptance test passes only if all are true:
+
+| Requirement                            | Required |
+| -------------------------------------- | -------- |
+| €50 Sandbox payment submitted          | PASS     |
+| Signed webhook processed               | PASS     |
+| Correct top-up becomes paid            | PASS     |
+| Wallet increases exactly €50           | PASS     |
+| Exactly one ledger credit              | PASS     |
+| Wallet activity shows +€50             | PASS     |
+| Refresh retains balance                | PASS     |
+| Other client unaffected                | PASS     |
+| Marcus session revenue changes €0      | PASS     |
+| Duplicate event does not double-credit | PASS     |
+
+---
+
+# 15. Required Report
+
+Return:
+
+## End-to-End Result
+
+```text
+STRIPE TEST MODE €50 TOP-UP — PASS
+```
+
+or:
+
+```text
+STRIPE TEST MODE €50 TOP-UP — BLOCKED
+```
+
+## Before / After
+
+Show:
+
+```text
+Available before: €X
+Held before: €Y
+
+Top-up: €50
+
+Available after: €Z
+Held after: €Y
+```
+
+## Stripe State
+
+Report:
+
+```text
+pending → paid
+```
+
+and confirm the signed webhook was processed.
+
+## Ledger
+
+Confirm:
+
+```text
+exactly one +€50 wallet credit
+```
+
+## Wallet Activity
+
+Confirm the client-visible top-up entry.
+
+## Revenue
+
+Show:
+
+```text
+Marcus revenue before: €R
+Marcus revenue after: €R
+Change: €0
+```
+
+## Isolation
+
+Confirm no other client was credited.
+
+## Idempotency
+
+Confirm provider-event replay did not create another €50.
+
+## Defects
+
+If any defect was found:
+
+* symptom
+* root cause
+* smallest fix
+* regression evidence
+
+## Production
+
+Confirm:
+
+* Stripe Test Mode only
+* no real card/payment
+* no live Stripe secret
+* no production migration
+* no deployment
+* no publishing

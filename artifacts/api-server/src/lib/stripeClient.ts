@@ -9,7 +9,6 @@ export type StripeContext = {
 
 type StripeCredentials = {
   secretKey: string;
-  webhookSecret?: string;
 };
 
 let stripeSyncPromise: Promise<StripeSync> | null = null;
@@ -42,7 +41,6 @@ async function getStripeCredentials(): Promise<StripeCredentials> {
     }
     return {
       secretKey: configuredSecretKey,
-      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     };
   }
 
@@ -69,7 +67,6 @@ async function getStripeCredentials(): Promise<StripeCredentials> {
   }
   return {
     secretKey: settings.secret_key,
-    webhookSecret: settings.webhook_secret,
   };
 }
 
@@ -87,10 +84,9 @@ export async function getStripeSync(): Promise<StripeSync> {
     stripeSyncPromise = (async () => {
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) throw new Error("DATABASE_URL is required for Stripe webhook processing.");
-      const { secretKey, webhookSecret } = await getStripeCredentials();
+      const { secretKey } = await getStripeCredentials();
       return new StripeSync({
         stripeSecretKey: secretKey,
-        stripeWebhookSecret: webhookSecret,
         poolConfig: { connectionString: databaseUrl },
         logger,
       });
@@ -110,10 +106,8 @@ export async function initializeStripeSync(): Promise<void> {
 
   await runMigrations({ databaseUrl, logger });
   const stripeSync = await getStripeSync();
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() || process.env.REPLIT_DEV_DOMAIN;
-    if (!domain) throw new Error("A Replit domain is required to initialize a managed Stripe webhook.");
-    await stripeSync.findOrCreateManagedWebhook(`https://${domain}/api/stripe/webhook`);
-  }
+  const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() || process.env.REPLIT_DEV_DOMAIN;
+  if (!domain) throw new Error("A Replit domain is required to initialize a managed Stripe webhook.");
+  await stripeSync.findOrCreateManagedWebhook(`https://${domain}/api/stripe/webhook`);
   await stripeSync.syncBackfill();
 }
