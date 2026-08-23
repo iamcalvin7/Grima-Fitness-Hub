@@ -9,9 +9,14 @@ export type StripeContext = {
 
 type StripeCredentials = {
   secretKey: string;
+  webhookSecret?: string;
 };
 
 let stripeSyncPromise: Promise<StripeSync> | null = null;
+
+function isTestModeStripeSecretKey(value: string): boolean {
+  return value.startsWith("sk_test_");
+}
 
 async function getConnectorHeaders(): Promise<Record<string, string>> {
   if (process.env.REPL_IDENTITY) {
@@ -30,6 +35,17 @@ async function getConnectorHeaders(): Promise<Record<string, string>> {
 }
 
 async function getStripeCredentials(): Promise<StripeCredentials> {
+  const configuredSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (configuredSecretKey) {
+    if (!isTestModeStripeSecretKey(configuredSecretKey)) {
+      throw new Error("This feature accepts a Stripe Test Mode connection only.");
+    }
+    return {
+      secretKey: configuredSecretKey,
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    };
+  }
+
   const response = await fetch(
     `${resolveBaseUrl()}/api/v2/connection?include_secrets=true&connector_names=stripe`,
     {
@@ -48,10 +64,13 @@ async function getStripeCredentials(): Promise<StripeCredentials> {
   if (!settings?.secret_key) {
     throw new Error("The connected Stripe account is missing its Test Mode secret key.");
   }
-  if (!settings.secret_key.startsWith("sk_test_")) {
+  if (!isTestModeStripeSecretKey(settings.secret_key)) {
     throw new Error("This feature accepts a Stripe Test Mode connection only.");
   }
-  return { secretKey: settings.secret_key };
+  return {
+    secretKey: settings.secret_key,
+    webhookSecret: settings.webhook_secret,
+  };
 }
 
 export async function getStripeContext(): Promise<StripeContext> {
@@ -68,9 +87,10 @@ export async function getStripeSync(): Promise<StripeSync> {
     stripeSyncPromise = (async () => {
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) throw new Error("DATABASE_URL is required for Stripe webhook processing.");
-      const { secretKey } = await getStripeCredentials();
+      const { secretKey, webhookSecret } = await getStripeCredentials();
       return new StripeSync({
         stripeSecretKey: secretKey,
+        stripeWebhookSecret: webhookSecret,
         poolConfig: { connectionString: databaseUrl },
         logger,
       });
@@ -84,13 +104,16 @@ export async function getStripeSync(): Promise<StripeSync> {
 
 export async function initializeStripeSync(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
-  const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() || process.env.REPLIT_DEV_DOMAIN;
-  if (!databaseUrl || !domain) {
-    throw new Error("DATABASE_URL and a Replit domain are required to initialize Stripe webhooks.");
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is required to initialize Stripe webhooks.");
   }
 
   await runMigrations({ databaseUrl, logger });
   const stripeSync = await getStripeSync();
-  await stripeSync.findOrCreateManagedWebhook(`https://${domain}/api/stripe/webhook`);
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() || process.env.REPLIT_DEV_DOMAIN;
+    if (!domain) throw new Error("A Replit domain is required to initialize a managed Stripe webhook.");
+    await stripeSync.findOrCreateManagedWebhook(`https://${domain}/api/stripe/webhook`);
+  }
   await stripeSync.syncBackfill();
 }
