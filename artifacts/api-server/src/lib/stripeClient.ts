@@ -35,7 +35,7 @@ async function getConnectorHeaders(): Promise<Record<string, string>> {
 }
 
 async function getStripeCredentials(): Promise<StripeCredentials> {
-  const configuredSecretKey = process.env.STRIPE_SECRET_KEY;
+  const configuredSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
   if (configuredSecretKey) {
     if (!isTestModeStripeSecretKey(configuredSecretKey)) {
       throw new Error("This feature accepts a Stripe Test Mode connection only.");
