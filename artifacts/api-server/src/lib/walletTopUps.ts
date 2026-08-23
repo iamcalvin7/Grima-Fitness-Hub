@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   db,
   trainingValueLedgerTable,
@@ -218,6 +218,9 @@ export async function processWalletTopUpCheckout(
   }
 
   return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT id FROM wallet_top_ups WHERE id = ${topUp.id} FOR UPDATE`,
+    );
     const [current] = await tx
       .select()
       .from(walletTopUpsTable)

@@ -1,11 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import {
+  bookingCommercialsTable,
   clientPricingAssignmentsTable,
   bookingsTable,
   db,
   pricingPlansTable,
   pricingRatesTable,
+  trainingSessionsTable,
   trainingValueLedgerTable,
   usersTable,
 } from "@workspace/db";
@@ -14,6 +16,7 @@ import { writeAuditLog } from "../lib/audit";
 import {
   CommercialError,
   closeSessionCommercial,
+  createBookingCommercial,
   getClassPricingSummary,
   getClientWalletActivity,
   getCommercialSummary,
@@ -21,6 +24,7 @@ import {
   getRevenueSummary,
   getSessionRevenueSummary,
   getSessionCommercialRows,
+  lockCommercialClient,
   recordNoShowDecision,
   settleSessionCommercial,
 } from "../lib/commercial";
@@ -552,6 +556,25 @@ router.post("/admin/commercial/clients/:id/value", async (req, res) => {
         )
         .limit(1);
       if (!client) throw new CommercialError(404, "Client not found");
+      const balance =
+        amountMinor < 0
+          ? (await lockCommercialClient(tx, req.user!.tenantId, clientUserId),
+            await getCommercialSummary(
+              tx,
+              req.user!.tenantId,
+              clientUserId,
+            ))
+          : null;
+      if (balance && -amountMinor > balance.availableValueMinor) {
+        throw new CommercialError(
+          409,
+          "This adjustment would consume training value already held for bookings.",
+          {
+            availableValueMinor: balance.availableValueMinor,
+            requestedDebitMinor: -amountMinor,
+          },
+        );
+      }
       const [entry] = await tx
         .insert(trainingValueLedgerTable)
         .values({
@@ -575,11 +598,9 @@ router.post("/admin/commercial/clients/:id/value", async (req, res) => {
       );
       return {
         entry,
-        balance: await getCommercialSummary(
-          tx,
-          req.user!.tenantId,
-          clientUserId,
-        ),
+        balance:
+          balance ??
+          (await getCommercialSummary(tx, req.user!.tenantId, clientUserId)),
         replayed: false,
       };
     });
@@ -759,6 +780,101 @@ router.get("/admin/commercial/sessions/:id/settlement-preview", async (req, res)
     });
   } catch (error) {
     sendError(res, error, "Failed to load settlement preview");
+  }
+});
+
+router.post("/admin/commercial/bookings/:id/onboard-legacy", async (req, res) => {
+  const bookingId = uuidValue(req.params.id);
+  if (!bookingId) {
+    res.status(400).json({ error: "Invalid booking id" });
+    return;
+  }
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [initialBooking] = await tx
+        .select({ trainingSessionId: bookingsTable.trainingSessionId })
+        .from(bookingsTable)
+        .where(
+          and(
+            eq(bookingsTable.id, bookingId),
+            eq(bookingsTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .limit(1);
+      if (!initialBooking) throw new CommercialError(404, "Booking not found");
+
+      await tx.execute(
+        sql`SELECT id FROM training_sessions WHERE tenant_id = ${req.user!.tenantId} AND id = ${initialBooking.trainingSessionId} FOR UPDATE`,
+      );
+      const [booking] = await tx
+        .select({
+          id: bookingsTable.id,
+          clientUserId: bookingsTable.clientUserId,
+          status: bookingsTable.status,
+          sessionStatus: trainingSessionsTable.status,
+          sessionStartsAt: trainingSessionsTable.startsAt,
+          commercialClosedAt: trainingSessionsTable.commercialClosedAt,
+        })
+        .from(bookingsTable)
+        .innerJoin(
+          trainingSessionsTable,
+          and(
+            eq(trainingSessionsTable.id, bookingsTable.trainingSessionId),
+            eq(trainingSessionsTable.tenantId, bookingsTable.tenantId),
+          ),
+        )
+        .where(
+          and(
+            eq(bookingsTable.id, bookingId),
+            eq(bookingsTable.tenantId, req.user!.tenantId),
+          ),
+        )
+        .limit(1);
+      if (!booking) throw new CommercialError(404, "Booking not found");
+
+      if (
+        (booking.status !== "pending" && booking.status !== "confirmed") ||
+        booking.sessionStatus !== "scheduled" ||
+        booking.sessionStartsAt <= new Date() ||
+        booking.commercialClosedAt !== null
+      ) {
+        throw new CommercialError(
+          409,
+          "Only an open future booking can be onboarded into commercial tracking.",
+        );
+      }
+
+      await lockCommercialClient(tx, req.user!.tenantId, booking.clientUserId);
+      const [serializedExisting] = await tx
+        .select({ id: bookingCommercialsTable.id })
+        .from(bookingCommercialsTable)
+        .where(
+          and(
+            eq(bookingCommercialsTable.tenantId, req.user!.tenantId),
+            eq(bookingCommercialsTable.bookingId, booking.id),
+          ),
+        )
+        .limit(1);
+      if (serializedExisting) return { replayed: true };
+
+      const pricing = await createBookingCommercial(tx, {
+        tenantId: req.user!.tenantId,
+        bookingId: booking.id,
+        clientUserId: booking.clientUserId,
+      });
+      await writeAuditLog(
+        auditParams(req, "commercial_hold:onboard_legacy", "booking", booking.id, {
+          maximumHeldAmountMinor: pricing.maximumHoldAmountMinor,
+          pricingPlanId: pricing.planId,
+          pricingPlanVersion: pricing.planVersion,
+        }),
+        tx,
+      );
+      return { replayed: false };
+    });
+    res.status(result.replayed ? 200 : 201).json(result);
+  } catch (error) {
+    sendError(res, error, "Failed to onboard legacy booking");
   }
 });
 

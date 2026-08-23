@@ -38,6 +38,33 @@ let locationId: string;
 let sessionTypeId: string;
 let primarySessionId: string;
 
+function collectedErrorMessages(error: unknown): string {
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (
+    current &&
+    typeof current === "object" &&
+    !seen.has(current)
+  ) {
+    seen.add(current);
+    if ("message" in current && typeof current.message === "string") {
+      messages.push(current.message);
+    }
+    current = "cause" in current ? current.cause : null;
+  }
+  return messages.join("\n");
+}
+
+async function expectImmutable(operation: Promise<unknown>) {
+  try {
+    await operation;
+    throw new Error("Expected immutable database operation to reject");
+  } catch (error) {
+    expect(collectedErrorMessages(error)).toMatch(/immutable/i);
+  }
+}
+
 const future = (days: number, hours = 10) => {
   const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   date.setUTCHours(hours, 0, 0, 0);
@@ -990,39 +1017,39 @@ describe("rescheduling and Marcus workflow", () => {
     expect(settlement).toBeDefined();
     expect(ledgerEntry).toBeDefined();
 
-    await expect(
+    await expectImmutable(
       db
         .update(bookingCommercialsTable)
         .set({ reservedAmountMinor: 1 })
         .where(eq(bookingCommercialsTable.id, settledCommercial!.id)),
-    ).rejects.toThrow(/immutable/i);
-    await expect(
+    );
+    await expectImmutable(
       db
         .delete(bookingCommercialsTable)
         .where(eq(bookingCommercialsTable.id, settledCommercial!.id)),
-    ).rejects.toThrow(/immutable/i);
-    await expect(
+    );
+    await expectImmutable(
       db
         .update(commercialSettlementsTable)
         .set({ finalChargeAmountMinor: 1 })
         .where(eq(commercialSettlementsTable.id, settlement!.id)),
-    ).rejects.toThrow(/immutable/i);
-    await expect(
+    );
+    await expectImmutable(
       db
         .delete(commercialSettlementsTable)
         .where(eq(commercialSettlementsTable.id, settlement!.id)),
-    ).rejects.toThrow(/immutable/i);
-    await expect(
+    );
+    await expectImmutable(
       db
         .update(trainingValueLedgerTable)
         .set({ amountMinor: -1 })
         .where(eq(trainingValueLedgerTable.id, ledgerEntry!.id)),
-    ).rejects.toThrow(/immutable/i);
-    await expect(
+    );
+    await expectImmutable(
       db
         .delete(trainingValueLedgerTable)
         .where(eq(trainingValueLedgerTable.id, ledgerEntry!.id)),
-    ).rejects.toThrow(/immutable/i);
+    );
 
     const revenueAfterMutationAttempts = await request(app)
       .get("/api/admin/commercial/revenue/summary")

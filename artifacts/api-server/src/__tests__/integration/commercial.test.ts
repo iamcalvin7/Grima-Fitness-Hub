@@ -278,7 +278,7 @@ describe("commercial pricing, holds, and settlement", () => {
       .post(`/api/admin/commercial/sessions/${sessionId}/close`)
       .set("Cookie", sessionCookie(adminToken))
       .expect(200);
-    expect(close.body.close).toMatchObject({ participantCount: 4, replayed: true });
+    expect(close.body.classClose).toMatchObject({ participantCount: 4, replayed: true });
     const lockedHolds = await db
       .select({
         bookingId: bookingCommercialsTable.bookingId,
@@ -366,7 +366,7 @@ describe("commercial pricing, holds, and settlement", () => {
       .get(`/api/admin/commercial/sessions/${sessionId}/settlement-preview`)
       .set("Cookie", sessionCookie(adminToken))
       .expect(200);
-    expect(preview.body).toMatchObject({ attendanceCount: 4, unresolvedCount: 0, canSettle: true });
+    expect(preview.body).toMatchObject({ attendanceCount: 3, unresolvedCount: 0, canSettle: true });
     expect(
       preview.body.rows
         .map((row: { finalChargeAmountMinor: number }) => row.finalChargeAmountMinor)
@@ -439,8 +439,8 @@ describe("commercial pricing, holds, and settlement", () => {
       .post(`/api/admin/commercial/sessions/${sessionId}/close`)
       .set("Cookie", sessionCookie(adminToken))
       .expect(201);
-    expect(close.body.close).toMatchObject({ participantCount: 3, replayed: false });
-    expect(close.body.close.releases.map((row: { releasedAmountMinor: number }) => row.releasedAmountMinor)
+    expect(close.body.classClose).toMatchObject({ participantCount: 3, replayed: false });
+    expect(close.body.classClose.releases.map((row: { releasedAmountMinor: number }) => row.releasedAmountMinor)
       .sort((left: number, right: number) => left - right)).toEqual([500, 1000, 1000]);
 
     const noShowBookingId = bookings[2].body.booking.id as string;
@@ -464,6 +464,7 @@ describe("commercial pricing, holds, and settlement", () => {
     const session = await createManagedSession(2, 10).expect(201);
     const sessionId = session.body.session.id as string;
     const booking = await book(customClient, sessionId, "late-class-close");
+    expect(booking.status).toBe(201);
     await request(app)
       .post(`/api/admin/bookings/${booking.body.booking.id}/confirm`)
       .set("Cookie", sessionCookie(adminToken))
@@ -481,5 +482,78 @@ describe("commercial pricing, holds, and settlement", () => {
       .post(`/api/admin/commercial/sessions/${sessionId}/close`)
       .set("Cookie", sessionCookie(adminToken))
       .expect(409);
+  });
+
+  it("onboards a legacy booking exactly once when the admin retries in parallel", async () => {
+    const parallelClient = await createUser(tenant.id, { role: "client" });
+    await grant(parallelClient).expect(201);
+    const session = await createManagedSession(2, 12).expect(201);
+    const [legacyBooking] = await db
+      .insert(bookingsTable)
+      .values({
+        tenantId: tenant.id,
+        trainingSessionId: session.body.session.id,
+        clientUserId: parallelClient.id,
+        idempotencyKey: "parallel-legacy-onboard",
+        status: "pending",
+      })
+      .returning({ id: bookingsTable.id });
+    if (!legacyBooking) throw new Error("Legacy fixture booking was not created");
+
+    const [first, second] = await Promise.all([
+      request(app)
+        .post(`/api/admin/commercial/bookings/${legacyBooking.id}/onboard-legacy`)
+        .set("Cookie", sessionCookie(adminToken)),
+      request(app)
+        .post(`/api/admin/commercial/bookings/${legacyBooking.id}/onboard-legacy`)
+        .set("Cookie", sessionCookie(adminToken)),
+    ]);
+    const holds = await db
+      .select()
+      .from(bookingCommercialsTable)
+      .where(eq(bookingCommercialsTable.bookingId, legacyBooking.id));
+
+    expect([first.status, second.status].sort()).toEqual([200, 201]);
+    expect(holds).toHaveLength(1);
+  });
+
+  it("never leaves an active hold when legacy onboarding races booking cancellation", async () => {
+    const cancellingClient = await createUser(tenant.id, { role: "client" });
+    await grant(cancellingClient).expect(201);
+    const clientToken = (await createSession(cancellingClient.id)).token;
+    const session = await createManagedSession(2, 14).expect(201);
+    const [legacyBooking] = await db
+      .insert(bookingsTable)
+      .values({
+        tenantId: tenant.id,
+        trainingSessionId: session.body.session.id,
+        clientUserId: cancellingClient.id,
+        idempotencyKey: "cancelled-legacy-onboard",
+        status: "pending",
+      })
+      .returning({ id: bookingsTable.id });
+    if (!legacyBooking) throw new Error("Legacy fixture booking was not created");
+
+    const [onboarding, cancellation] = await Promise.all([
+      request(app)
+        .post(`/api/admin/commercial/bookings/${legacyBooking.id}/onboard-legacy`)
+        .set("Cookie", sessionCookie(adminToken)),
+      request(app)
+        .post(`/api/bookings/${legacyBooking.id}/cancel`)
+        .set("Cookie", sessionCookie(clientToken)),
+    ]);
+    const [savedBooking] = await db
+      .select({ status: bookingsTable.status })
+      .from(bookingsTable)
+      .where(eq(bookingsTable.id, legacyBooking.id));
+    const holds = await db
+      .select({ holdStatus: bookingCommercialsTable.holdStatus })
+      .from(bookingCommercialsTable)
+      .where(eq(bookingCommercialsTable.bookingId, legacyBooking.id));
+
+    expect(cancellation.status).toBe(200);
+    expect([201, 409]).toContain(onboarding.status);
+    expect(savedBooking?.status).toBe("cancelled");
+    expect(holds.some((hold) => hold.holdStatus === "active")).toBe(false);
   });
 });

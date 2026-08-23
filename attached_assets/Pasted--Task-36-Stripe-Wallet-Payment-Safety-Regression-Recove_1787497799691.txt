@@ -1,0 +1,398 @@
+# Task #36 — Stripe Wallet Payment Safety & Regression Recovery
+
+## Objective
+
+Complete the safety verification for Stripe Test Mode wallet top-ups and restore the commercial/API integration suite to a fully green state.
+
+Do not add new payment features.
+
+The current implementation already supports:
+
+* €50 / €100 / €200 wallet top-ups
+* hosted Stripe Test Mode Checkout
+* server-side wallet crediting
+* signed webhook processing
+* Test Mode secret enforcement
+* terminal-state protection
+* wallet top-ups excluded from session revenue
+
+This task proves financial integrity.
+
+---
+
+## Risk
+
+**AMBER — Test Mode financial-integrity verification**
+
+No production Stripe account.
+
+No live money.
+
+No production migration.
+
+---
+
+# 1. Successful Payment
+
+Using Stripe Test Mode, verify one successful €50 top-up.
+
+Expected:
+
+```text
+Top-up:
+pending → paid
+
+Wallet:
++€50 exactly once
+```
+
+Verify:
+
+* correct client
+* correct tenant
+* correct amount
+* correct currency
+* payment/provider reference stored
+* wallet activity created
+* no session revenue generated
+
+---
+
+# 2. Duplicate Success Event
+
+Replay the same successful Stripe event.
+
+Expected:
+
+```text
+Wallet before replay: +€50
+Wallet after replay:  +€50
+```
+
+Not:
+
+```text
++€100
+```
+
+There must be no duplicate ledger movement.
+
+---
+
+# 3. Failed Payment
+
+Process a failed payment event.
+
+Expected:
+
+```text
+wallet credit = €0
+```
+
+Top-up becomes the appropriate terminal failure state.
+
+---
+
+# 4. Expired Checkout
+
+Process an expired Checkout/session event.
+
+Expected:
+
+```text
+wallet credit = €0
+```
+
+The top-up must not remain eligible for later normal crediting.
+
+---
+
+# 5. Terminal → Late Success Protection
+
+Explicitly verify the recently corrected scenario.
+
+Example:
+
+```text
+pending
+→ failed / cancelled / expired
+→ later Stripe paid event arrives
+```
+
+Expected:
+
+```text
+top-up remains terminal
+wallet credit = €0
+```
+
+Only:
+
+```text
+pending → paid
+```
+
+may create wallet value.
+
+---
+
+# 6. Tenant / Client Isolation
+
+Create at least two clients.
+
+A Stripe top-up created for Client A must:
+
+* credit Client A only
+* not affect Client B
+* remain tenant-scoped
+* not be transferable by modifying client-facing request data
+
+Provider/payment metadata must resolve to the server-authoritative top-up record.
+
+---
+
+# 7. Revenue Separation
+
+Verify explicitly:
+
+```text
+€50 Stripe wallet top-up
+```
+
+changes:
+
+```text
+wallet purchased value: +€50
+```
+
+but does **not** change:
+
+```text
+Marcus settled session revenue
+```
+
+A wallet purchase is not training revenue under the current reporting model.
+
+---
+
+# 8. Wallet Activity
+
+After successful payment, verify the client sees an activity record equivalent to:
+
+```text
+Training value added
++€50
+```
+
+Use existing product terminology.
+
+Do not expose unnecessary Stripe internals.
+
+---
+
+# 9. Investigate Existing 500 Fixture Failures
+
+The full integration suite currently reports three fixture/setup failures involving:
+
+* commercial
+* notifications
+* training bookings
+
+where manual-value setup requests return `500`.
+
+Do not assume these are unrelated.
+
+For each failure:
+
+1. Reproduce it independently.
+2. Capture exact endpoint/request.
+3. Inspect server error/log.
+4. Establish root cause.
+5. Determine whether it was introduced by:
+
+   * wallet schema changes
+   * migration state
+   * fixture assumptions
+   * new commercial constraints
+   * unrelated pre-existing test setup
+
+Fix the smallest proven cause.
+
+Do not weaken commercial validation to make tests pass.
+
+---
+
+# 10. Regression Requirement
+
+After correction, run the complete relevant API integration suite.
+
+Target:
+
+```text
+0 unexpected failures
+```
+
+Skipped tests may remain skipped only if they were intentionally skipped before this work and have a documented reason.
+
+Do not classify a failing commercial fixture as acceptable because Stripe-specific tests pass.
+
+---
+
+# 11. Focused Payment Tests
+
+Add deterministic coverage for at least:
+
+| Scenario                     | Expected                      |
+| ---------------------------- | ----------------------------- |
+| Successful payment           | Credit exactly once           |
+| Duplicate success            | No duplicate credit           |
+| Failed payment               | €0 credit                     |
+| Expired payment              | €0 credit                     |
+| Cancelled/terminal then paid | €0 credit                     |
+| Wrong user/tenant            | No leakage                    |
+| Top-up                       | Excluded from session revenue |
+
+Use direct webhook/service testing where possible rather than depending entirely on browser automation.
+
+---
+
+# 12. Browser Verification
+
+Use Stripe Test Mode only.
+
+Verify:
+
+```text
+Client Wallet
+→ Add Training Value
+→ €50
+→ Stripe hosted Sandbox Checkout
+```
+
+A successful-payment browser completion may be performed only with approved Stripe Test Mode payment details.
+
+No real payment information.
+
+After success, verify:
+
+```text
+return to app
+→ wallet reflects +€50 after verified webhook
+→ wallet activity shows top-up
+```
+
+If full test-payment submission is intentionally not performed, mark that browser acceptance step BLOCKED rather than implying it passed.
+
+---
+
+# 13. No New Features
+
+Do not add:
+
+* withdrawals
+* refunds
+* subscriptions
+* recurring payments
+* promo codes
+* Apple Pay-specific integration
+* Revolut
+* invoices
+* VAT
+* live Stripe credentials
+* production webhook configuration
+
+---
+
+# 14. Required Checks
+
+Run:
+
+* shared DB typecheck
+* API typecheck
+* frontend typecheck
+* API production build if applicable
+* frontend production build
+* complete API integration suite
+* frontend regression suite
+* focused Stripe payment-safety tests
+
+---
+
+# 15. Required Report
+
+Return:
+
+## Payment Safety
+
+| Scenario                | Result |
+| ----------------------- | ------ |
+| Successful €50 credit   |        |
+| Duplicate webhook       |        |
+| Failed payment          |        |
+| Expired Checkout        |        |
+| Terminal → late success |        |
+| Client/tenant isolation |        |
+| Revenue exclusion       |        |
+
+## Fixture Failures
+
+For each previous `500`:
+
+* root cause
+* fix
+* regression evidence
+
+## Wallet Result
+
+Show:
+
+```text
+Before payment: €X
+Successful €50 top-up
+After webhook: €X + €50
+```
+
+## Revenue Result
+
+Confirm:
+
+```text
+Session revenue change from top-up = €0
+```
+
+## Test Totals
+
+Report:
+
+* API integration
+* focused payment tests
+* frontend tests
+* typechecks
+* builds
+
+## Verdict
+
+Use:
+
+```text
+STRIPE TEST MODE WALLET TOP-UPS — COMPLETE IN DEVELOPMENT
+```
+
+only if financial-integrity checks pass and the relevant integration suite has no unexplained failures.
+
+Otherwise:
+
+```text
+BLOCKED
+```
+
+## Production
+
+Confirm:
+
+* Test Mode only
+* no live Stripe secret
+* no real payment
+* no production migration
+* no deployment
+* no publishing

@@ -85,9 +85,11 @@ CREATE TYPE commercial_pricing_rule AS ENUM (
 CREATE TYPE training_value_movement_type AS ENUM (
   'manual_grant',
   'manual_adjustment',
+  'stripe_top_up',
   'attendance_charge',
   'no_show_charge'
 );
+CREATE TYPE wallet_top_up_status AS ENUM ('created', 'pending', 'paid', 'failed', 'cancelled');
 
 -- ── tenants ────────────────────────────────────────────────────────────────
 CREATE TABLE tenants (
@@ -364,6 +366,7 @@ CREATE TABLE training_value_ledger (
   booking_id UUID,
   actor_user_id UUID,
   idempotency_key TEXT,
+  external_reference TEXT,
   reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (tenant_id, id),
@@ -379,6 +382,38 @@ CREATE UNIQUE INDEX training_value_ledger_booking_movement_unique
 CREATE UNIQUE INDEX training_value_ledger_actor_idempotency_unique
   ON training_value_ledger(tenant_id, actor_user_id, idempotency_key)
   WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX training_value_ledger_external_reference_unique
+  ON training_value_ledger(tenant_id, external_reference)
+  WHERE external_reference IS NOT NULL;
+
+CREATE TABLE wallet_top_ups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  client_user_id UUID NOT NULL,
+  amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+  currency TEXT NOT NULL DEFAULT 'EUR' CHECK (currency = 'EUR'),
+  status wallet_top_up_status NOT NULL DEFAULT 'created',
+  client_idempotency_key TEXT NOT NULL,
+  stripe_checkout_session_id TEXT,
+  stripe_payment_intent_id TEXT,
+  checkout_url TEXT,
+  failure_reason TEXT,
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT wallet_top_ups_tenant_client_fk
+    FOREIGN KEY (tenant_id, client_user_id) REFERENCES users(tenant_id, id),
+  CONSTRAINT wallet_top_ups_tenant_id_unique UNIQUE (tenant_id, id),
+  CONSTRAINT wallet_top_ups_client_idempotency_unique
+    UNIQUE (tenant_id, client_user_id, client_idempotency_key)
+);
+CREATE UNIQUE INDEX wallet_top_ups_stripe_checkout_session_unique
+  ON wallet_top_ups(stripe_checkout_session_id)
+  WHERE stripe_checkout_session_id IS NOT NULL;
+CREATE INDEX wallet_top_ups_tenant_created_idx
+  ON wallet_top_ups(tenant_id, created_at DESC);
+CREATE INDEX wallet_top_ups_client_created_idx
+  ON wallet_top_ups(tenant_id, client_user_id, created_at DESC);
 
 CREATE TABLE booking_commercials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -431,6 +466,54 @@ CREATE TABLE commercial_settlements (
 );
 CREATE INDEX commercial_settlements_client_settled_idx
   ON commercial_settlements(tenant_id, client_user_id, settled_at);
+
+CREATE OR REPLACE FUNCTION prevent_training_value_ledger_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION
+    'training value ledger entries are immutable; record a compensating entry instead'
+    USING ERRCODE = '23514';
+END;
+$$;
+CREATE TRIGGER training_value_ledger_immutable
+  BEFORE UPDATE OR DELETE ON training_value_ledger
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_training_value_ledger_mutation();
+
+CREATE OR REPLACE FUNCTION prevent_commercial_settlement_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION
+    'commercial settlements are immutable; record a compensating entry instead'
+    USING ERRCODE = '23514';
+END;
+$$;
+CREATE TRIGGER commercial_settlements_immutable
+  BEFORE UPDATE OR DELETE ON commercial_settlements
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_commercial_settlement_mutation();
+
+CREATE OR REPLACE FUNCTION prevent_settled_booking_commercial_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF OLD.hold_status = 'settled' THEN
+    RAISE EXCEPTION
+      'settled booking commercial records are immutable; record a compensating entry instead'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER booking_commercials_settled_immutable
+  BEFORE UPDATE OR DELETE ON booking_commercials
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_settled_booking_commercial_mutation();
 
 CREATE TABLE commercial_no_show_decisions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
