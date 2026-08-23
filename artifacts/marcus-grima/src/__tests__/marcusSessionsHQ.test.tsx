@@ -13,6 +13,7 @@ vi.mock('framer-motion', () => ({
 import { MarcusSessionsHQ } from '@/pages/MarcusSessionsHQ';
 
 const location = { id: 'location-1', name: 'Sliema Studio', timezone: 'Europe/Malta', addressDetails: '1 Main Street', isActive: true };
+const newYorkLocation = { id: 'location-ny', name: 'New York Studio', timezone: 'America/New_York', addressDetails: '1 Broadway', isActive: true };
 const booking = {
   id: 'booking-1', trainingSessionId: 'session-1', clientUserId: 'client-1', status: 'pending', rejectionReason: null,
   createdAt: '2026-08-22T10:00:00.000Z', confirmedAt: null, attendanceAt: null,
@@ -96,7 +97,7 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     expect(screen.queryByRole('heading', { name: 'Booking details' })).not.toBeInTheDocument();
   });
 
-  it('renders every weekday group and navigates using the visible date range', async () => {
+  it('renders every weekday group and lets Marcus choose a week from the visible date range', async () => {
     useScheduleClock();
     mockAdminData({ sessions: [slot] });
     render(<MarcusSessionsHQ />);
@@ -107,12 +108,16 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     }
     expect(screen.getByTestId('text-no-availability-2026-08-17')).toHaveTextContent('No availability');
     expect(screen.getByTestId('text-week-range')).toHaveTextContent('17 Aug – 23 Aug 2026');
-    expect(screen.queryByLabelText('Week starting')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Week starting')).toHaveValue('2026-08-17');
+
+    await actEvent(() => fireEvent.change(screen.getByLabelText('Week starting'), { target: { value: '2026-08-27' } }));
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('24 Aug – 30 Aug 2026');
+    expect(screen.getByTestId('day-section-2026-08-24')).toBeInTheDocument();
 
     await actEvent(() => fireEvent.click(screen.getByTestId('button-next-week')));
-    expect(screen.getByTestId('text-week-range')).toHaveTextContent('24 Aug – 30 Aug 2026');
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('31 Aug 2026 – 6 Sept 2026');
     await actEvent(() => fireEvent.click(screen.getByTestId('button-previous-week')));
-    expect(screen.getByTestId('text-week-range')).toHaveTextContent('17 Aug – 23 Aug 2026');
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('24 Aug – 30 Aug 2026');
   });
 
   it('keeps a complete range label when the selected week crosses years', async () => {
@@ -123,6 +128,18 @@ describe('MarcusSessionsHQ weekly schedule', () => {
 
     expect(screen.getByTestId('text-week-range')).toHaveTextContent('28 Dec 2026 – 3 Jan 2027');
     expect(screen.getByTestId('day-section-2027-01-03')).toBeInTheDocument();
+  });
+
+  it('opens the current week in the schedule location timezone, not Malta', async () => {
+    // This instant is Monday in Malta but still Sunday evening in New York.
+    useScheduleClock('2026-08-17T00:30:00.000Z');
+    mockAdminData({ locations: [newYorkLocation] });
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+
+    expect(screen.getByLabelText('Week starting')).toHaveValue('2026-08-10');
+    expect(screen.getByTestId('text-week-range')).toHaveTextContent('10 Aug – 16 Aug 2026');
+    expect(screen.getByTestId('day-section-2026-08-16')).toBeInTheDocument();
   });
 
   it('creates a type-less bookable slot from the selected week', async () => {
@@ -146,6 +163,36 @@ describe('MarcusSessionsHQ weekly schedule', () => {
       startsAt: expect.stringMatching(/^2026-08-18T/),
       endsAt: expect.stringMatching(/^2026-08-18T/),
     });
+  });
+
+  it('keeps separate Malta calendar days separate when clock times match', async () => {
+    useScheduleClock();
+    mockAdminData();
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+
+    for (const dateKey of ['2026-08-19', '2026-08-20']) {
+      await actEvent(() => fireEvent.click(screen.getByTestId(`btn-create-session-${dateKey}`)));
+      fireEvent.change(screen.getByTestId(`input-slot-start-${dateKey}`), { target: { value: '10:00' } });
+      fireEvent.change(screen.getByTestId(`input-slot-end-${dateKey}`), { target: { value: '11:00' } });
+      await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
+    }
+
+    const posts = apiRequest.mock.calls
+      .filter(([path, options]) => path === '/admin/training-sessions' && (options as { method?: string } | undefined)?.method === 'POST')
+      .map(([, options]) => (options as { body: Record<string, unknown> }).body);
+    expect(posts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        startsAt: '2026-08-19T08:00:00.000Z',
+        endsAt: '2026-08-19T09:00:00.000Z',
+        sessionTypeId: null,
+      }),
+      expect.objectContaining({
+        startsAt: '2026-08-20T08:00:00.000Z',
+        endsAt: '2026-08-20T09:00:00.000Z',
+        sessionTypeId: null,
+      }),
+    ]));
   });
 
   it('defaults a current-week slot to a future type-less time instead of a past Monday', async () => {
@@ -183,6 +230,19 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     expect(screen.getByTestId('btn-duplicate-session-session-1')).not.toBeDisabled();
   });
 
+  it('shows the client and status that make a weekly row locked', async () => {
+    useScheduleClock();
+    mockAdminData({
+      sessions: [{ ...slot, reservedCapacity: 1, remainingCapacity: 3 }],
+      bookings: [booking],
+    });
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+
+    expect(screen.getByTestId('session-bookings-session-1')).toHaveTextContent('Calvin Test · pending');
+    expect(screen.getByText('Locked')).toBeInTheDocument();
+  });
+
   it('duplicates an unbooked row through the same explicit save form', async () => {
     useScheduleClock();
     mockAdminData({ sessions: [slot] });
@@ -194,6 +254,50 @@ describe('MarcusSessionsHQ weekly schedule', () => {
     expect(screen.getByText('Save Copy')).toBeInTheDocument();
     await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
     expect(apiRequest).toHaveBeenCalledWith('/admin/training-sessions', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('preserves an existing session’s own location date when the planner groups it under another day', async () => {
+    useScheduleClock('2026-08-17T08:00:00.000Z');
+    const crossTimezoneSlot = {
+      ...slot,
+      id: 'session-ny',
+      locationId: newYorkLocation.id,
+      location: newYorkLocation,
+      // Monday 20:00 in New York is Tuesday 02:00 in Malta, so the Malta
+      // planner shows this source-Monday slot under its Tuesday group.
+      startsAt: '2026-08-18T00:00:00.000Z',
+      endsAt: '2026-08-18T01:00:00.000Z',
+    };
+    mockAdminData({ sessions: [crossTimezoneSlot], locations: [location, newYorkLocation] });
+    render(<MarcusSessionsHQ />);
+    await openWeekSchedule();
+
+    expect(screen.getByTestId('day-section-2026-08-18')).toHaveTextContent('New York Studio');
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-session-actions-session-ny')));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-edit-session-session-ny')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
+
+    const editCall = apiRequest.mock.calls.find(([path, options]) =>
+      path === '/admin/training-sessions/session-ny' && (options as { method?: string } | undefined)?.method === 'PATCH',
+    )!;
+    expect((editCall[1] as { body: Record<string, unknown> }).body).toMatchObject({
+      startsAt: '2026-08-18T00:00:00.000Z',
+      endsAt: '2026-08-18T01:00:00.000Z',
+      locationId: newYorkLocation.id,
+    });
+
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-session-actions-session-ny')));
+    await actEvent(() => fireEvent.click(screen.getByTestId('btn-duplicate-session-session-ny')));
+    await actEvent(() => fireEvent.submit(screen.getByTestId('btn-save-session').closest('form')!));
+
+    const duplicateCall = apiRequest.mock.calls.find(([path, options]) =>
+      path === '/admin/training-sessions' && (options as { method?: string } | undefined)?.method === 'POST',
+    )!;
+    expect((duplicateCall[1] as { body: Record<string, unknown> }).body).toMatchObject({
+      startsAt: '2026-08-18T00:00:00.000Z',
+      endsAt: '2026-08-18T01:00:00.000Z',
+      locationId: newYorkLocation.id,
+    });
   });
 
   it('copies the previous week and reports server outcomes', async () => {

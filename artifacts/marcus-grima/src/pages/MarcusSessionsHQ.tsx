@@ -1141,7 +1141,7 @@ export function MarcusSessionsHQ({ openBookingId, onBookingIntentResolved }: { o
               transition={{ duration: 0.15, ease: 'easeOut' }}
             >
               {activeTab === 'requests' && <RequestsView bookings={data.bookings} execute={execute} actionId={actionId} openBookingId={openBookingId} loading={data.loading} onBookingIntentResolved={onBookingIntentResolved} />}
-              {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
+              {activeTab === 'schedule' && <WeeklySchedulePlanner sessions={data.sessions} bookings={data.bookings} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'availability' && <AvailabilityView rules={data.rules} exceptions={data.exceptions} occurrences={data.occurrences} locations={data.locations} sessionTypes={data.sessionTypes} execute={execute} actionId={actionId} />}
               {activeTab === 'commercial' && <CommercialHQ execute={execute} actionId={actionId} sessions={data.sessions} />}
             </motion.div>

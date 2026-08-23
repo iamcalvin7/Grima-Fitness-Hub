@@ -579,7 +579,11 @@ describe("Marcus session overlap validation", () => {
     const offsetEnd = `${dateKey(3)}T00:30:00+02:00`;
     const nextOffsetStart = `${dateKey(3)}T00:45:00+02:00`;
     const nextOffsetEnd = `${dateKey(3)}T01:45:00+02:00`;
-    await createTypeLessSlot(offsetStart, offsetEnd).expect(201);
+    const MaltaLateSlot = await createTypeLessSlot(offsetStart, offsetEnd).expect(201);
+    expect(MaltaLateSlot.body.session).toMatchObject({
+      startsAt: new Date(offsetStart).toISOString(),
+      endsAt: new Date(offsetEnd).toISOString(),
+    });
     await createTypeLessSlot(nextOffsetStart, nextOffsetEnd).expect(201);
 
     await request(app)
@@ -593,6 +597,30 @@ describe("Marcus session overlap validation", () => {
       .set("Cookie", sessionCookie(adminAToken))
       .send({ startsAt: at(0, 10, 15), endsAt: at(0, 10, 45) })
       .expect(409); // updating into another session must overlap
+  });
+
+  it("keeps overlap checks tenant-scoped for otherwise identical absolute ranges", async () => {
+    const start = new Date(Date.now() + 220 * 24 * 60 * 60 * 1000);
+    start.setUTCHours(10, 0, 0, 0);
+    const startsAt = start.toISOString();
+    const endsAt = new Date(start.getTime() + 60 * 60 * 1000).toISOString();
+    const tenantBLocation = await request(app)
+      .post("/api/admin/training-locations")
+      .set("Cookie", sessionCookie(adminBToken))
+      .send({ name: "Tenant B overlap isolation" })
+      .expect(201);
+
+    await createTypeLessSlot(startsAt, endsAt).expect(201);
+    await request(app)
+      .post("/api/admin/training-sessions")
+      .set("Cookie", sessionCookie(adminBToken))
+      .send({
+        locationId: tenantBLocation.body.location.id,
+        startsAt,
+        endsAt,
+        capacity: 4,
+      })
+      .expect(201);
   });
 });
 

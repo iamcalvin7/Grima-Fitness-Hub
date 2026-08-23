@@ -1,0 +1,848 @@
+# Task #38 — Wallet UX & Marcus Wallet Controls
+
+## Objective
+
+Complete the Training Wallet experience for both client and Marcus using the commercial engine and Stripe Test Mode infrastructure already built.
+
+This task is about **usability and operational control**, not new payment infrastructure.
+
+Keep Stripe in Test Mode.
+
+Do not add refunds, withdrawals, subscriptions, live payment configuration, or a production account switch.
+
+---
+
+## Risk
+
+**AMBER**
+
+This affects wallet presentation, manual value adjustments, booking/top-up UX, and commercial visibility.
+
+Preserve all existing ledger, pricing, hold, settlement, idempotency, and payment-safety rules.
+
+No production migration unless separately approved.
+
+---
+
+# 1. Client Wallet Summary
+
+Create/refine a clear Training Wallet summary.
+
+Show at minimum:
+
+```text
+TRAINING WALLET
+
+€125.00
+Available
+
+€25.00 held
+
+[ Add Training Value ]
+```
+
+The primary numbers are:
+
+* Available
+* Held
+
+Do not overwhelm the client with accounting terminology.
+
+---
+
+# 2. Client Wallet Activity
+
+Add a clear activity/history view based on the authoritative ledger.
+
+Map internal commercial movements into client-friendly language.
+
+Examples:
+
+```text
+Wallet top-up by card             +€50.00
+Booking hold                       €40.00 held
+Class price locked                 €15.00 released
+Session attended                  -€25.00
+No-show charged                   -€25.00
+No-show waived                     €25.00 released
+Training value added by Marcus    +€40.00
+```
+
+Each activity should show:
+
+* description
+* amount
+* date/time
+* session reference where relevant
+
+Do not expose raw ledger identifiers or Stripe internals.
+
+---
+
+# 3. Booking Commercial Visibility
+
+Inside the relevant booking/session detail, clearly show the booking’s commercial state.
+
+## Before class close
+
+```text
+Maximum value held
+€40.00
+```
+
+Supporting meaning:
+
+> Your final session value may decrease when the class price is locked.
+
+## After class close
+
+```text
+Locked session value
+€25.00
+```
+
+## After settlement
+
+```text
+Session value used
+€25.00
+```
+
+For a waived no-show:
+
+```text
+No-show charge
+Waived
+```
+
+---
+
+# 4. Insufficient Wallet Balance
+
+When a client cannot support the maximum booking hold:
+
+Do not return a generic failure.
+
+Example:
+
+```text
+You need €15.00 more training value to request this session.
+```
+
+Primary action:
+
+```text
+Add Training Value
+```
+
+Secondary:
+
+```text
+Cancel
+```
+
+Use the actual calculated shortfall.
+
+---
+
+# 5. Top-Up From Booking Flow
+
+If the client chooses **Add Training Value** because a booking requires more value:
+
+Preserve the intended session/booking context.
+
+Flow:
+
+```text
+Client selects session
+→ insufficient wallet value
+→ Add Training Value
+→ choose €50 / €100 / €200
+→ Stripe Test Mode Checkout
+→ successful verified top-up
+→ return to Marcus Fitness
+→ wallet refreshes
+→ return to selected session
+```
+
+Do not automatically create the booking after payment.
+
+The client should explicitly confirm the booking after returning.
+
+---
+
+# 6. Pending Top-Up Handling
+
+If the Stripe Checkout return occurs before the webhook completes:
+
+Show:
+
+```text
+Adding training value…
+```
+
+Do not locally increase the wallet.
+
+Use the authoritative server top-up status.
+
+If confirmation takes longer than the normal short wait:
+
+```text
+Payment confirmation is taking longer than expected.
+Your wallet will update once confirmation is received.
+```
+
+Actions:
+
+* Refresh status
+* Return to Wallet
+
+Do not encourage immediate duplicate payment.
+
+---
+
+# 7. Duplicate Checkout Protection
+
+Preserve Task #36/#37 safeguards.
+
+Rapid repeated clicking of a top-up amount must not produce a confusing duplicate checkout flow.
+
+Client-side:
+
+* disable while creating Checkout
+
+Server-side:
+
+* retain current idempotency/payment protections
+
+Do not weaken either.
+
+---
+
+# 8. Marcus — Client Wallet View
+
+Add a wallet section to the appropriate Marcus client-detail experience.
+
+Example:
+
+```text
+TRAINING WALLET
+
+Available       €125.00
+Held             €25.00
+
+[ Add Value ]   [ Adjust Value ]
+
+View activity
+```
+
+If the product already has a suitable Commercial client view, use it rather than creating another disconnected wallet page.
+
+---
+
+# 9. Marcus — Add Value
+
+Marcus must be able to manually grant training value.
+
+Example:
+
+```text
+Add Training Value
+
+Amount
+[ €40.00 ]
+
+Reason
+[ Complimentary session ]
+
+[ Add Value ]
+```
+
+Requirements:
+
+* amount required
+* reason required
+* authorised Marcus/admin only
+* immutable ledger movement
+* audit event
+* idempotent request handling
+
+This is **not a payment**.
+
+Do not create Stripe records for manual value grants.
+
+---
+
+# 10. Marcus — Negative Adjustment
+
+Marcus may reduce wallet value where legitimate.
+
+Example:
+
+```text
+Adjust Training Value
+
+Amount
+[ -€20.00 ]
+
+Reason
+[ Correction ]
+
+[ Apply Adjustment ]
+```
+
+Preserve the existing safety rule:
+
+> A negative manual adjustment cannot consume value already held against bookings.
+
+The adjustment must not make available training value negative.
+
+Use server-side enforcement.
+
+---
+
+# 11. Marcus — Restore / Comp
+
+If existing ledger controls already support these actions cleanly, expose useful shortcuts such as:
+
+* Restore value
+* Complimentary value
+* Comp session
+
+These should still resolve to audited ledger movements with a required reason.
+
+Do not create hidden balance mutations.
+
+If this would require new commercial policy, keep to Add/Adjust Value only and report the limitation.
+
+---
+
+# 12. Manual Adjustment Confirmation
+
+For meaningful wallet changes, show Marcus a confirmation summary.
+
+Example:
+
+```text
+Add €40.00 training value to Calvin?
+
+Reason:
+Complimentary session
+
+Current available: €75.00
+New available: €115.00
+```
+
+This helps prevent operator mistakes.
+
+---
+
+# 13. Marcus Wallet Activity
+
+Marcus should be able to inspect a client’s wallet history.
+
+Include:
+
+* top-ups
+* manual grants/adjustments
+* booking holds
+* releases
+* settlement
+* no-show decisions
+
+Show enough information to answer:
+
+> Why does this client have this balance?
+
+---
+
+# 14. Revenue Visibility
+
+Preserve the existing revenue model:
+
+```text
+settled training value
+→ Marcus session revenue
+```
+
+Wallet top-ups must remain excluded.
+
+Manual grants must not become revenue merely because Marcus added value.
+
+If the existing Revenue view from Task #35 is incomplete, surface the current settled revenue cleanly but do not redesign financial reporting in this task.
+
+---
+
+# 15. Marcus Revenue Summary
+
+At minimum, if already supported by the backend, expose:
+
+```text
+Today
+This week
+This month
+```
+
+and session-level settled revenue.
+
+Do not add forecasting or accounting reports.
+
+---
+
+# 16. Session Revenue Detail
+
+For a completed/settled class, Marcus should be able to see:
+
+| Client   | Outcome           | Settled value |
+| -------- | ----------------- | ------------: |
+| Client A | Attended          |           €25 |
+| Client B | Attended          |           €25 |
+| Client C | No-show · Charged |           €25 |
+| Client D | No-show · Waived  |            €0 |
+
+Then:
+
+```text
+Session revenue: €75
+```
+
+Use authoritative settlement data only.
+
+---
+
+# 17. Open-Class Revenue
+
+Do not treat held/locked value as recognised revenue.
+
+Example:
+
+```text
+3 clients
+€25 locked each
+```
+
+Before settlement:
+
+```text
+Revenue: €0
+```
+
+The UI may show projected/locked value separately if helpful.
+
+Use distinct terminology.
+
+---
+
+# 18. Navigation
+
+Make Wallet easy for clients to find.
+
+Prefer integrating it into the existing Sessions/client account structure rather than introducing excessive navigation.
+
+Possible entry points:
+
+* Sessions
+* Home wallet card
+* Account/Profile
+
+Use the existing navigation hierarchy.
+
+For Marcus:
+
+* Client detail
+* Commercial workspace
+
+---
+
+# 19. Mobile
+
+Verify the full wallet experience at 390px.
+
+Client:
+
+* balance readable
+* held value clear
+* top-up buttons easy to tap
+* activity rows readable
+* no horizontal scrolling
+
+Marcus:
+
+* balance controls usable
+* adjustment modal/sheet fits
+* activity readable
+* revenue rows usable
+
+---
+
+# 20. Empty States
+
+Client with no wallet activity:
+
+```text
+No wallet activity yet.
+```
+
+Client with zero value:
+
+```text
+€0.00 available
+```
+
+Provide **Add Training Value**.
+
+Marcus client with no ledger activity:
+
+```text
+No training value activity yet.
+```
+
+---
+
+# 21. Loading and Error States
+
+Implement intentional states for:
+
+* wallet summary loading
+* activity loading
+* top-up creation failure
+* top-up pending
+* manual adjustment failure
+* revenue fetch failure
+
+A wallet UI error must not corrupt or hide the underlying booking state.
+
+---
+
+# 22. Security
+
+Client can only view:
+
+* their own wallet
+* their own activity
+* their own commercial booking information
+
+Marcus/admin controls remain capability-protected server-side.
+
+Never trust a client-supplied user ID for:
+
+* wallet lookup
+* top-up credit
+* ledger activity
+* adjustment target
+
+Use authenticated/server-authorised context.
+
+---
+
+# 23. Audit
+
+Manual Marcus actions must be traceable.
+
+For each adjustment record:
+
+* actor
+* client
+* amount
+* reason
+* timestamp
+* ledger movement/reference
+
+Preserve existing audit conventions.
+
+---
+
+# 24. Core Browser Scenario — Client
+
+Use development/Test Mode:
+
+```text
+Client starts with €50 available
+↓
+Books session requiring max €40
+↓
+€40 held
+↓
+Class closes at €25
+↓
+€15 released
+↓
+Client sees:
+Available €25
+Held €25
+↓
+Marcus marks attended
+↓
+Client sees:
+Available €25
+Held €0
+Session value used €25
+```
+
+Verify activity history reflects the state changes coherently.
+
+---
+
+# 25. Core Browser Scenario — Top-Up
+
+Using the already-proven Test Mode flow:
+
+```text
+Client wallet
+→ Add Training Value
+→ €50
+→ Stripe Sandbox
+→ verified payment
+→ return
+→ wallet +€50
+→ activity +€50
+```
+
+Do not use real payment credentials.
+
+---
+
+# 26. Core Browser Scenario — Marcus Adjustment
+
+From Marcus HQ:
+
+```text
+Open client
+→ Training Wallet
+→ Add €40
+→ Reason: Complimentary session
+→ Confirm
+```
+
+Expected:
+
+```text
+Client available value +€40
+Held unchanged
+Revenue unchanged
+Activity/audit created
+```
+
+Refresh both Marcus and client experiences.
+
+The result must persist.
+
+---
+
+# 27. Negative Adjustment Test
+
+Given:
+
+```text
+Available €20
+Held €40
+```
+
+Marcus attempts:
+
+```text
+-€30
+```
+
+Expected:
+
+```text
+REJECTED
+```
+
+because only €20 is actually available.
+
+Held booking value must remain protected.
+
+---
+
+# 28. Revenue Isolation Test
+
+Test:
+
+```text
+€50 Stripe top-up
++€40 Marcus grant
+```
+
+Expected:
+
+```text
+Session revenue change = €0
+```
+
+Only later settled session consumption contributes to the current revenue report.
+
+---
+
+# 29. Automated Tests
+
+Add/extend coverage for:
+
+### Client wallet
+
+* summary
+* activity
+* booking hold labels
+* locked value labels
+* settled value labels
+* insufficient balance state
+
+### Top-up return
+
+* paid refresh
+* pending
+* cancelled
+* failed/expired where applicable
+* preserved booking return context
+
+### Marcus controls
+
+* authorised add value
+* reason required
+* negative available-value protection
+* held value protection
+* audit creation
+* cross-tenant protection
+
+### Revenue
+
+* top-up not revenue
+* manual grant not revenue
+* settled attended amount is revenue
+* charged no-show is revenue
+* waived no-show is €0
+
+---
+
+# 30. Regression
+
+Run:
+
+* shared DB build/typecheck equivalent
+* API typecheck
+* API integration suite
+* API production build
+* frontend typecheck
+* frontend test suite
+* frontend production build
+
+Preserve all current Stripe, booking, notifications, reminders, attendance and class-pricing tests.
+
+---
+
+# 31. Scope Protection
+
+Do not implement:
+
+* withdrawals
+* refunds
+* partial refunds
+* withdrawable balance
+* cash-backed provenance
+* subscriptions
+* recurring payments
+* Revolut
+* Apple Pay-specific integration
+* live Stripe account
+* live webhooks
+* production migration
+* invoices
+* VAT
+* tax/accounting exports
+
+Keep Stripe in Test Mode.
+
+---
+
+# 32. Required Report
+
+Return:
+
+## Client Wallet
+
+Show the final wallet experience.
+
+## Booking Commercial UX
+
+Show how max hold, locked value and final deduction are communicated.
+
+## Top-Up UX
+
+Confirm Test Mode flow and return behavior.
+
+## Marcus Wallet Controls
+
+List available actions and safeguards.
+
+## Revenue
+
+Confirm top-ups/manual grants remain excluded and settled session value remains authoritative.
+
+## Core Scenario
+
+Show one real example:
+
+```text
+€50 available
+→ €40 hold
+→ €25 locked
+→ €15 released
+→ €25 consumed
+```
+
+## Marcus Adjustment
+
+Show a successful manual grant and resulting wallet balance.
+
+## Held-Value Protection
+
+Show a rejected adjustment that would invade held value.
+
+## Files Changed
+
+Exact files and purpose.
+
+## Database
+
+Any migration/schema changes.
+
+## Browser Verification
+
+Desktop + 390px.
+
+## Tests
+
+Report:
+
+* API integration
+* frontend
+* typechecks
+* builds
+
+## Verdict
+
+Use:
+
+```text
+TASK #38 — COMPLETE IN DEVELOPMENT
+```
+
+only if the wallet experience is usable for both client and Marcus and regressions are green.
+
+Otherwise:
+
+```text
+BLOCKED
+```
+
+## Production
+
+Confirm:
+
+* Stripe Test Mode only
+* no live Stripe account
+* no withdrawals/refunds
+* no production migration
+* no deployment
+* no publishing

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CaretLeft, CaretRight, Plus, DotsThree, Trash, CopySimple, PencilSimple, MapPin, Users, WarningCircle
 } from '@phosphor-icons/react';
 import { apiRequest } from '@/lib/api';
-import type { Location, ManagedSession, SessionType } from '@/pages/MarcusSessionsHQ';
+import type { Location, ManagedBooking, ManagedSession, SessionType } from '@/pages/MarcusSessionsHQ';
 
 type Execute = (id: string, request: Promise<unknown>) => Promise<boolean>;
 
@@ -20,23 +20,21 @@ function localDateKey(iso: string, timezone = 'Europe/Malta') {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-function localDateTime(iso: string) {
-  const date = new Date(iso);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function mondayKey(value = new Date()) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return mondayKey();
-  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-  return localDateTime(date.toISOString()).slice(0, 10);
-}
-
 function addDays(dateKey: string, days: number) {
   const [year, month, day] = dateKey.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day + days));
   return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : dateKey;
+}
+
+function mondayForDateKey(dateKey: string) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (!Number.isFinite(date.getTime())) return mondayForDateKey(localDateKey(new Date().toISOString()));
+  return addDays(dateKey, -((date.getUTCDay() + 6) % 7));
+}
+
+function mondayKey(value = new Date(), timezone = 'Europe/Malta') {
+  return mondayForDateKey(localDateKey(value.toISOString(), timezone));
 }
 
 function displayDayLong(iso: string, timezone?: string | null) {
@@ -215,11 +213,20 @@ function InlineSlotForm({
 
   const [form, setForm] = useState(defaults);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const selectedLocation = locations.find((location) => location.id === form.locationId);
+  const formTimezone = selectedLocation?.timezone ?? timezone;
+  // The weekly grid has one planner timezone, but an existing session may be
+  // grouped under a different planner day than its own location day. Preserve
+  // that source-location calendar date when editing or duplicating so an
+  // unchanged save cannot move the absolute session range by a day.
+  const sourceDateKey = sourceSession
+    ? localDateKey(sourceSession.startsAt, sourceSession.location?.timezone ?? timezone)
+    : dateKey;
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
-    const startsAt = new Date(zonedDateTimeToIso(dateKey, form.startsAt, timezone));
-    const endsAt = new Date(zonedDateTimeToIso(dateKey, form.endsAt, timezone));
+    const startsAt = new Date(zonedDateTimeToIso(sourceDateKey, form.startsAt, formTimezone));
+    const endsAt = new Date(zonedDateTimeToIso(sourceDateKey, form.endsAt, formTimezone));
     const capacity = Number(form.capacity);
 
     if (!form.locationId) nextErrors.locationId = 'Required';
@@ -236,7 +243,6 @@ function InlineSlotForm({
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 10000) {
       nextErrors.capacity = '1-10000';
     }
-    console.log("Validation errors:", nextErrors, "for startsAt:", startsAt, "new Date:", new Date(), "endsAt:", endsAt);
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -247,8 +253,8 @@ function InlineSlotForm({
     void onSave({
       locationId: form.locationId,
       sessionTypeId: form.sessionTypeId || null,
-       startsAt: zonedDateTimeToIso(dateKey, form.startsAt, timezone),
-       endsAt: zonedDateTimeToIso(dateKey, form.endsAt, timezone),
+      startsAt: zonedDateTimeToIso(sourceDateKey, form.startsAt, formTimezone),
+      endsAt: zonedDateTimeToIso(sourceDateKey, form.endsAt, formTimezone),
       capacity: Number(form.capacity),
     });
   };
@@ -298,8 +304,12 @@ function InlineSlotForm({
   );
 }
 
-export function WeeklySchedulePlanner({ sessions, locations, sessionTypes, execute, actionId }: { sessions: ManagedSession[]; locations: Location[]; sessionTypes: SessionType[]; execute: Execute; actionId: string | null }) {
-  const [weekStart, setWeekStart] = useState(mondayKey);
+export function WeeklySchedulePlanner({ sessions, bookings, locations, sessionTypes, execute, actionId }: { sessions: ManagedSession[]; bookings: ManagedBooking[]; locations: Location[]; sessionTypes: SessionType[]; execute: Execute; actionId: string | null }) {
+  const activeLocations = locations.filter((location) => location.isActive);
+  const scheduleTimezone = activeLocations[0]?.timezone ?? 'Europe/Malta';
+  const [weekStart, setWeekStart] = useState(() => mondayKey(new Date(), scheduleTimezone));
+  const userSelectedWeek = useRef(false);
+  const priorScheduleTimezone = useRef(scheduleTimezone);
   const [creatingLocation, setCreatingLocation] = useState(false);
   const [copyReport, setCopyReport] = useState<string | null>(null);
 
@@ -311,9 +321,15 @@ export function WeeklySchedulePlanner({ sessions, locations, sessionTypes, execu
   const [activeForm, setActiveForm] = useState<FormState | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (priorScheduleTimezone.current === scheduleTimezone) return;
+    priorScheduleTimezone.current = scheduleTimezone;
+    if (!userSelectedWeek.current) {
+      setWeekStart(mondayKey(new Date(), scheduleTimezone));
+    }
+  }, [scheduleTimezone]);
+
   const weekEnd = addDays(weekStart, 6);
-  const activeLocations = locations.filter((location) => location.isActive);
-  const scheduleTimezone = activeLocations[0]?.timezone ?? 'Europe/Malta';
   const todayKey = localDateKey(new Date().toISOString(), scheduleTimezone);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -356,11 +372,21 @@ export function WeeklySchedulePlanner({ sessions, locations, sessionTypes, execu
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center bg-white/5 rounded-md border border-white/10 p-0.5">
-            <button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))} className="flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 rounded-sm transition-colors" aria-label="Previous week" data-testid="button-previous-week">
+            <button type="button" onClick={() => { userSelectedWeek.current = true; setWeekStart(addDays(weekStart, -7)); }} className="flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 rounded-sm transition-colors" aria-label="Previous week" data-testid="button-previous-week">
               <CaretLeft weight="bold" size={14} /> Previous
             </button>
+            <label className="sr-only" htmlFor="week-start">Week starting</label>
+            <input
+              id="week-start"
+              aria-label="Week starting"
+              type="date"
+              value={weekStart}
+              onChange={(event) => { userSelectedWeek.current = true; setWeekStart(mondayForDateKey(event.target.value)); }}
+              className="min-w-0 border-0 bg-transparent px-2 py-1.5 text-xs font-bold text-white outline-none [color-scheme:dark]"
+              data-testid="input-week-start"
+            />
             <span className="px-3 py-1.5 text-center text-sm font-bold text-white" data-testid="text-week-range">{displayWeekRange(weekStart, weekEnd)}</span>
-            <button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))} className="flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 rounded-sm transition-colors" aria-label="Next week" data-testid="button-next-week">
+            <button type="button" onClick={() => { userSelectedWeek.current = true; setWeekStart(addDays(weekStart, 7)); }} className="flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 rounded-sm transition-colors" aria-label="Next week" data-testid="button-next-week">
               Next <CaretRight weight="bold" size={14} />
             </button>
           </div>
@@ -423,6 +449,10 @@ export function WeeklySchedulePlanner({ sessions, locations, sessionTypes, execu
 
                 {daySlots.map(slot => {
                   const locked = slot.reservedCapacity > 0;
+                  const activeBookings = bookings.filter((booking) =>
+                    booking.trainingSessionId === slot.id &&
+                    (booking.status === 'pending' || booking.status === 'confirmed'),
+                  );
                   const isEditingThis = activeForm?.mode === 'edit' && activeForm.sourceSession?.id === slot.id;
                   const isDuplicatingThis = activeForm?.mode === 'duplicate' && activeForm.sourceSession?.id === slot.id;
 
@@ -471,6 +501,17 @@ export function WeeklySchedulePlanner({ sessions, locations, sessionTypes, execu
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-500/20 text-green-300">Open</span>
                           )}
                         </div>
+                        {locked && (
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-amber-100/75" data-testid={`session-bookings-${slot.id}`}>
+                            {activeBookings.length > 0 ? activeBookings.map((booking) => (
+                              <span key={booking.id}>
+                                {booking.client?.firstName} {booking.client?.lastName} · {booking.status}
+                              </span>
+                            )) : (
+                              <span>Active booking details are loading.</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="absolute right-3 top-2.5 md:relative md:top-auto flex items-center justify-end">
