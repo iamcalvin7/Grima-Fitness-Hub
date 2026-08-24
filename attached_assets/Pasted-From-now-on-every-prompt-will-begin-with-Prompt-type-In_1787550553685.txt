@@ -1,0 +1,722 @@
+From now on, every prompt will begin with:
+
+* Prompt type: Inspection / Build / Validation / Fix / Release
+* Changes allowed: Yes or No
+* Risk level: Green / Amber / Red
+
+The prompt below is an inspection only. It does not authorise coding or changes.
+
+WORKOUTS & PROGRAMMING ENGINE — GATE 0
+
+PROMPT CLASSIFICATION
+
+Prompt type: INSPECTION
+Changes allowed: NO
+Operating mode: READ-ONLY
+Risk level: AMBER
+Environment: Development inspection only
+Production access: Not authorised
+Implementation: Not authorised
+
+This prompt authorises inspection and reporting only.
+
+Do not create, edit, delete, rename or format any files. Do not change code, schema, data, configuration, dependencies or environments. Do not run migrations, seeds or destructive commands.
+
+Follow the Universal Product & App Build Operating System.
+
+⸻
+
+1. Purpose
+
+Inspect the existing Grima Fitness Hub implementation before designing or building the new Workouts & Programming Engine.
+
+The future system must support:
+
+1. Programmes created by Marcus and published for all eligible clients.
+2. Programmes created by Marcus and assigned to selected clients.
+3. Workouts created by clients from an approved exercise library.
+4. AI-generated workouts using the same approved exercise library.
+5. Persistent set-by-set workout logging.
+6. Personal bests for individual exercises.
+7. Progressive-overload recommendations.
+8. Context-aware alternative exercises.
+9. Marcus-side review of client workout performance and progression.
+
+Do not design from memory or rely solely on old reports. The actual codebase, database schema, routes, configuration and tests are the source of truth.
+
+⸻
+
+2. Known Starting Point to Verify
+
+Previous project documentation suggests:
+
+* Training Programme screens exist but programme data is largely demonstrative.
+* Active Workout has some local interaction for sets, weights and rest timing.
+* Workout persistence and complete workout history are missing or incomplete.
+* Body-map muscle data may be hard-coded.
+* Marcus HQ does not yet contain a complete programme-management system.
+* Core data models for exercises, workouts, programmes, assignments and completions may not exist.
+
+Treat these as assumptions requiring verification, not confirmed facts.
+
+⸻
+
+3. Target Product Architecture
+
+The eventual engine is expected to contain the following connected domains.
+
+3.1 Exercise Library
+
+A Marcus-managed catalogue of approved exercises containing sufficient information for:
+
+* Marcus-created workouts
+* Client-created workouts
+* AI-generated workouts
+* Workout logging
+* Personal-best calculation
+* Progressive overload
+* Exercise substitutions
+* Muscle and body-map displays
+
+Potential exercise information includes:
+
+* Exercise name
+* Description and instructions
+* Demonstration media
+* Primary and secondary muscles
+* Movement pattern
+* Equipment requirements
+* Difficulty
+* Unilateral or bilateral classification
+* Bodyweight, weighted, assisted, timed or distance-based classification
+* Safety notes
+* Contraindication or limitation information
+* Supported performance metrics
+* Alternative exercises
+* Active or archived status
+
+This list is a target for gap analysis. Do not implement it during this gate.
+
+3.2 Workout Templates
+
+Reusable ordered collections of exercises that may define:
+
+* Exercise order
+* Sets
+* Repetition targets or ranges
+* Weight guidance
+* Rest duration
+* Tempo
+* Effort or repetitions-in-reserve target
+* Warm-up versus working sets
+* Trainer instructions
+* Optional or required exercises
+
+3.3 Programmes
+
+Structured collections of workout templates arranged across days and weeks.
+
+The future system may require:
+
+* Draft, published and archived states
+* Programme versions
+* Public availability
+* Client-specific assignment
+* Start date
+* Expected training days
+* Progress through the programme
+* Assignment status
+* Completion history
+
+Published or assigned programme versions must not be silently altered by later Marcus edits.
+
+3.4 Personal Workouts
+
+Clients must eventually be able to create their own workouts from Marcus’s approved exercise library.
+
+Personal workouts should:
+
+* Use the same workout structure as Marcus-created workouts
+* Be private from other clients
+* Be visible to Marcus in his coaching role
+* Support duplication and editing
+* Support normal workout logging
+* Contribute to personal bests and progression history
+
+3.5 AI-Generated Workouts
+
+AI-generated workouts must use the same workout and exercise structures as all other workouts.
+
+The eventual AI builder should consider:
+
+* Client goals
+* Training experience
+* Available time
+* Selected training location
+* Available equipment
+* Injuries and limitations
+* Requested muscle groups
+* Recent training activity
+* Recovery
+* Previous exercise performance
+* Existing assigned programme
+* Exercise preferences and exclusions
+
+AI must select only from approved exercises and its output must be validated by the server before being saved or started.
+
+Do not build or connect an AI provider during this gate.
+
+3.6 Workout Execution
+
+Every workout source must eventually use one shared execution system:
+
+* Marcus programme
+* Public programme
+* Client-created workout
+* AI-generated workout
+
+Workout execution should ultimately distinguish between:
+
+* Planned workout
+* Workout actually performed
+* Planned exercise
+* Exercise actually performed
+* Planned sets
+* Completed sets
+* Warm-up sets
+* Working sets
+* Failed or abandoned sets
+* Exercise substitutions
+* Actual repetitions
+* Actual weight
+* Rest duration
+* Effort
+* Pain or discomfort
+* Completion state
+
+3.7 Personal Bests
+
+The system must eventually recognise personal bests for individual exercises using authoritative completed workout data.
+
+Potential personal-best types include:
+
+* Heaviest successful working set
+* Most repetitions completed at a recorded weight
+* Estimated one-repetition maximum
+* Highest completed workout volume for the exercise
+* Maximum repetitions for bodyweight exercises
+* Longest duration for timed exercises
+* Distance or pace records where relevant
+
+Not every record type applies to every exercise. The exercise definition should eventually determine which performance metrics are valid.
+
+The authoritative personal best should be derived from completed workout history. A separate auditable personal-best event may be stored for celebrations, notifications and progress timelines.
+
+3.8 Progressive Overload
+
+The future progression engine should use actual workout performance rather than increasing weight automatically.
+
+It may need to consider:
+
+* Prescribed repetition range
+* Actual repetitions
+* Actual weight
+* Effort or repetitions in reserve
+* Performance across every set
+* Rest duration
+* Form breakdown
+* Failed sets
+* Pain or discomfort
+* Recent exercise history
+* Previous personal bests
+* Available equipment increments
+
+Progression should begin as deterministic, testable rules. AI may later explain recommendations but should not be the authoritative calculation engine.
+
+3.9 Exercise Alternatives
+
+Alternative exercises should eventually be evaluated using more than the primary muscle.
+
+Potential matching information includes:
+
+* Movement pattern
+* Primary and secondary muscles
+* Equipment availability
+* Difficulty
+* Unilateral or bilateral movement
+* Client limitations
+* Exercise contraindications
+* Reason for requesting the replacement
+
+Workout history must retain both the planned exercise and the exercise actually performed.
+
+⸻
+
+4. Inspection Scope
+
+Inspect all code and configuration relevant to the following areas.
+
+4.1 Client Workouts Experience
+
+Inspect:
+
+* Workouts page
+* Programme page
+* Programme detail
+* Active Workout
+* Workout completion
+* Workout history
+* Exercise detail
+* Exercise search or selection
+* Body map
+* Progress displays
+* Personal-best displays
+* Rest timer
+* Set, repetition and weight controls
+* Workout navigation and deep links
+* Mobile and desktop behaviour
+
+For each area, establish whether it is:
+
+* Fully functional
+* Partially functional
+* Hard-coded
+* Local-state only
+* Connected to persistent data
+* Unused or unreachable
+
+4.2 Marcus and Admin Experience
+
+Inspect all trainer, Marcus HQ and admin surfaces relating to:
+
+* Exercises
+* Workouts
+* Programmes
+* Client assignments
+* Client workout history
+* Client performance
+* Personal bests
+* Progression
+* Client goals and limitations
+
+Identify whether these capabilities exist, are partial, are simulated or are absent.
+
+4.3 Exercise Data
+
+Locate every current source of exercise information, including:
+
+* Database records
+* Seed data
+* TypeScript objects
+* JSON files
+* Component-level arrays
+* Static assets
+* Muscle mappings
+* Body-map configuration
+* Exercise videos or images
+
+Identify duplicate or competing exercise catalogues.
+
+4.4 Programme and Workout Data
+
+Locate every existing representation of:
+
+* Programmes
+* Programme weeks
+* Workout days
+* Workout templates
+* Workout exercises
+* Active workouts
+* Completed workouts
+* Completed exercises
+* Sets
+* Repetitions
+* Weights
+* Rest periods
+* Exercise notes
+* Workout completion
+* Workout history
+
+Determine what persists after refresh and what exists only in frontend state.
+
+4.5 Client Profile and Onboarding Data
+
+Inspect available data relating to:
+
+* Fitness goals
+* Weight and measurements
+* Training experience
+* Preferred training frequency
+* Available days
+* Training location
+* Available equipment
+* Injuries
+* Limitations
+* Exercise preferences
+* Exercise exclusions
+* Readiness or health information
+
+Report which fields currently exist, where they are stored, who can access them and whether they are sufficiently structured for future workout generation.
+
+Do not expose sensitive client data in the report. Report structures and representative field names only.
+
+4.6 Database
+
+Inspect:
+
+* Schema definitions
+* Existing migrations
+* Physical development database state, if read-only inspection is safely available
+* Seed files
+* Constraints
+* Indexes
+* Foreign keys
+* Tenant or organisation boundaries
+* Ownership fields
+* Audit fields
+* Soft-delete or archival patterns
+* Existing naming conventions
+
+Do not create or apply migrations.
+
+4.7 APIs and Validation
+
+Inspect:
+
+* Workout-related API routes
+* Programme-related routes
+* Exercise-related routes
+* Progress and profile routes
+* Request and response contracts
+* Input validation
+* Error handling
+* Idempotency patterns
+* Pagination and filtering
+* Ownership enforcement
+* Role and capability checks
+
+4.8 Authentication and Permissions
+
+Determine who can currently:
+
+* View exercises
+* Create exercises
+* Edit exercises
+* Delete or archive exercises
+* Create workouts
+* Edit workouts
+* Publish programmes
+* Assign programmes
+* View client workouts
+* View client health or limitation information
+* Correct completed workout records
+* View personal bests
+
+Confirm whether permissions are enforced by the server rather than only hidden in the interface.
+
+4.9 Existing Tests
+
+Locate and report tests covering:
+
+* Workouts
+* Programmes
+* Exercises
+* Active workout
+* Workout completion
+* Workout history
+* Body map
+* Client profiles
+* Role permissions
+* Tenant isolation
+* Mobile interaction
+* Persistence after refresh
+
+Report what is covered and what is not covered.
+
+Do not alter tests during this gate.
+
+4.10 Connected Features
+
+Inspect dependencies involving:
+
+* Home or Today screen
+* Client goals
+* Onboarding
+* Progress tracking
+* Body measurements
+* Sessions and attendance
+* Notifications
+* Client profiles
+* Analytics
+* Wallet or commercial functionality
+* Navigation and routing
+
+Identify what could be affected by replacing demo workout data with a persistent domain.
+
+⸻
+
+5. Personal-Best Inspection
+
+Determine whether the existing app stores, calculates or displays exercise-specific personal bests.
+
+Establish whether the current data can distinguish:
+
+* Working sets from warm-up sets
+* Completed sets from failed or abandoned sets
+* Bodyweight exercises from externally loaded exercises
+* Added-weight bodyweight exercises from unweighted versions
+* Assisted exercises from unassisted versions
+* Planned exercises from performed substitutions
+* Actual one-repetition maximums from estimated values
+* Timed exercises from repetition-based exercises
+* Corrected logs from original logs
+* Deleted or invalidated results
+* Equivalent exercise variations from genuinely different exercises
+
+Determine whether existing data could support:
+
+* Heaviest successful working set
+* Most repetitions at a recorded weight
+* Estimated one-repetition maximum
+* Highest exercise volume in one workout
+* Maximum repetitions for bodyweight exercises
+* Duration-based personal bests
+* Personal-best date
+* Originating workout and set
+* Historical personal-best progression
+* Marcus-side visibility
+* Client-side celebrations
+* Notifications
+* Recalculation following an authorised correction
+
+Assess the safest future architecture for:
+
+1. Calculating authoritative records from completed-set history.
+2. Storing auditable personal-best events.
+3. Preventing duplicate personal-best celebrations.
+4. Recalculating records after legitimate workout corrections.
+5. Keeping personal bests tenant-safe and client-owned.
+
+Do not implement personal-best calculations during Gate 0.
+
+⸻
+
+6. Domain Gap Analysis
+
+Compare the current implementation against these required concepts:
+
+* Exercise catalogue
+* Exercise metadata
+* Exercise media
+* Exercise muscle mappings
+* Exercise performance type
+* Exercise alternatives
+* Workout templates
+* Programme versions
+* Programme weeks and days
+* Public programme availability
+* Client assignments
+* Client-created workouts
+* AI-generated workouts
+* Workout sessions
+* Exercise attempts
+* Completed sets
+* Warm-up and working-set distinction
+* Planned versus actual performance
+* Exercise substitutions
+* Effort or repetitions-in-reserve feedback
+* Pain or discomfort feedback
+* Personal-best calculation
+* Personal-best events
+* Personal-best history
+* Progression recommendations
+* AI generation provenance
+
+For each concept, classify it as:
+
+* Existing and reusable
+* Existing but incomplete
+* Existing but incompatible
+* Missing
+* Unknown or blocked
+
+⸻
+
+7. Dependency and Impact Map
+
+Document:
+
+Inputs
+
+What profile information, exercises, assignments or client actions enter the system?
+
+Upstream Dependencies
+
+What must exist before each workout capability can function?
+
+Outputs
+
+What records, events, recommendations and progress information will be produced?
+
+Downstream Consumers
+
+Which pages or features will use workout history, personal bests or progression information?
+
+Shared Data
+
+Which records will be used by multiple features?
+
+Integrations
+
+Which current or future external services may be involved?
+
+Notifications
+
+Which assignment, completion, personal-best or progression events may require notifications?
+
+Permissions
+
+Who may view, create, edit, publish, assign, perform, correct or archive each record type?
+
+Analytics
+
+What product and coaching events should eventually be measured?
+
+Regression Surface
+
+What existing behaviour could break when the workout domain becomes persistent?
+
+⸻
+
+8. Required Architectural Assessment
+
+Without implementing anything, recommend appropriate future boundaries for:
+
+* Exercise catalogue
+* Workout templates
+* Programmes
+* Programme versions
+* Programme assignments
+* Personal workouts
+* Workout sessions
+* Exercise attempts
+* Completed sets
+* Substitutions
+* Personal-best records and events
+* Progression recommendations
+* AI-generated workouts
+
+Do not finalise table names or migration details unless they follow an already established project convention.
+
+Clearly separate:
+
+* Confirmed findings from the codebase
+* Inferences
+* Recommendations
+* Product decisions still required
+
+⸻
+
+9. Protected Behaviour
+
+Do not change or regress:
+
+* Sessions and Booking
+* Attendance and completion
+* Wallet balances
+* Pricing
+* Holds
+* Settlement
+* Stripe top-ups
+* Authentication
+* Existing role behaviour
+* Notifications
+* Client profiles
+* Existing database records
+* Production configuration
+* Production schema
+* Published environments
+
+No production access, deployment or publishing is authorised.
+
+⸻
+
+10. Stop Conditions
+
+Stop and report immediately if:
+
+* The real workout implementation cannot be located.
+* Multiple incompatible workout models already exist.
+* Existing workout data could be lost through the proposed direction.
+* Exercise identity is inconsistent across current features.
+* Tenant, organisation or ownership boundaries are unclear.
+* Sensitive profile information lacks a clear permission boundary.
+* Existing personal-best data cannot be traced to authoritative workout results.
+* Inspection requires production access or mutation.
+* Inspection would require installing or changing dependencies.
+* Unrelated working-tree changes overlap the relevant files.
+* The feature is materially higher risk than AMBER.
+
+Do not solve a stop condition by changing the app.
+
+⸻
+
+11. Required Evidence
+
+The report must reference:
+
+* Exact inspected files
+* Relevant routes
+* Relevant schema definitions
+* Relevant tests
+* Existing data sources
+* Current permission patterns
+* Current persistence behaviour
+* Confirmed gaps
+* Unverified assumptions
+
+Do not use vague statements such as “appears complete” without supporting evidence.
+
+⸻
+
+12. Required Gate 0 Report
+
+Return a structured inspection report containing:
+
+1. Executive summary
+2. Confirmed current state
+3. Current client workflow
+4. Current Marcus/admin workflow
+5. Exercise-library findings
+6. Programme and workout findings
+7. Active-workout and logging findings
+8. Personal-best findings
+9. Client profile and AI-input readiness
+10. Current data model and persistence
+11. Current APIs and validation
+12. Current permissions and tenant boundaries
+13. Current tests
+14. Demo, static or hard-coded behaviour
+15. Reusable components and patterns
+16. Dependency and impact map
+17. Gap analysis against the target architecture
+18. Recommended domain boundaries
+19. Product decisions still required
+20. Proposed gated implementation sequence
+21. Risks and stop conditions
+22. Exact files likely to be affected in later gates
+23. Confirmation that no files, data, schema, configuration or environments were changed
+
+End with exactly one verdict:
+
+READY FOR GATE 1
+
+or
+
+BLOCKED — PRODUCT DECISION REQUIRED
+
+or
+
+BLOCKED — TECHNICAL RISK
+
+Do not begin Gate 1 without explicit Product Owner approval.
