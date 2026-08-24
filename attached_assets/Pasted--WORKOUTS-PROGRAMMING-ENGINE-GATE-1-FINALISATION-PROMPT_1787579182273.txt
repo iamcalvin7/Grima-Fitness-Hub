@@ -1,0 +1,346 @@
+# WORKOUTS & PROGRAMMING ENGINE — GATE 1 FINALISATION
+
+## PROMPT CLASSIFICATION
+
+**Prompt type:** SPECIFICATION FINALISATION
+**Changes allowed:** NO
+**Operating mode:** READ-ONLY DESIGN
+**Risk level:** AMBER
+**Code changes:** Not authorised
+**Schema or migration changes:** Not authorised
+**Data changes:** Not authorised
+**Production access:** Not authorised
+**Publishing:** Not authorised
+
+This is not a build prompt.
+
+Do not edit files or implement any application, database, UI, API, test, configuration or dependency changes.
+
+The Product Owner has approved all technical recommendations below. Incorporate them into the Gate 1 specification and close the remaining decision blockers.
+
+---
+
+## 1. Completion and programme progress
+
+1. An explicitly finished partial workout advances the programme pointer but remains marked **partially completed**.
+2. An abandoned workout does not contribute to completion or adherence. It remains recorded as an abandoned attempt.
+3. Optional exercises are excluded from the adherence denominator.
+4. Completed optional exercises remain recorded as additional work.
+5. If no safe alternative exists for a required exercise, the client may skip it, record the reason and finish the workout partially.
+6. An abandoned workout is terminal and cannot be resumed.
+7. An in-progress workout does not silently expire in version one.
+8. The client must explicitly resume, finish or abandon an in-progress workout.
+9. Marcus/admin may invalidate a permanently stuck session only through an audited action.
+
+---
+
+## 2. Personal-best calculations
+
+10. Use the Epley estimated 1RM formula only for valid working sets containing **2–10 repetitions**.
+11. A one-repetition result is an actual performance, not an estimated 1RM.
+12. Sets above 10 repetitions do not create an estimated 1RM in version one.
+13. Estimated and actual records must remain visibly distinct.
+14. Normalise:
+
+    * Load and assistance to kilograms
+    * Distance to metres
+    * Duration and time to seconds
+15. Version-one input limits:
+
+    * Load or assistance: greater than 0 and no more than 1,000 kg
+    * Repetitions: 1–500
+    * Duration: 1 second to 86,400 seconds
+    * Distance: greater than 0 and no more than 1,000,000 metres
+16. Pain-flagged sets remain visible in workout history but are excluded from PBs and intensity-increase recommendations.
+17. Bodyweight is optional context for added-weight exercises.
+18. Added-weight PBs use external added load and repetitions as their authoritative values.
+19. Missing bodyweight must not block a valid added-weight set.
+20. Actual and estimated records may appear on the same exercise page but in separate, clearly labelled sections.
+
+---
+
+## 3. Progression rules
+
+21. A later-set deterioration signal requires:
+
+    * At least three comparable working sets
+    * The same load
+    * A decline of at least 20% from the first valid working set to later-set performance
+22. One deterioration signal does not automatically change the prescription.
+23. Prefer confirmation across two comparable workouts before recommending a change.
+24. The default rest increase is 30 seconds, subject to exercise-level limits.
+25. Volume may be reduced independently from load.
+26. Replace the Boolean form-breakdown input with:
+
+    * `good`
+    * `slipping`
+    * `broke_down`
+27. The client-facing labels should be:
+
+    * Good
+    * Slipping
+    * Broke down
+28. Only Marcus/admin may clear a `stop_and_consult_marcus` state.
+29. The client may continue recording activity, but the engine must not recommend increased intensity until the state is cleared.
+
+---
+
+## 4. Corrections
+
+30. Marcus/admin corrections apply immediately.
+31. No second approval is required in version one.
+32. Every correction requires:
+
+    * Authorised capability
+    * Mandatory reason
+    * Original value
+    * Corrected value
+    * Actor
+    * Timestamp
+    * Audit record
+33. The corrected value becomes the effective result.
+34. The original value remains immutable and recoverable.
+35. PB and progression recalculation occur transactionally with the correction.
+36. Notify the client when a correction changes:
+
+    * A completed result
+    * A personal best
+    * A progression recommendation
+37. Preserve correction history for the life of the related workout record, subject to future approved account-deletion and privacy policies.
+
+---
+
+## 5. Roles and sensitive information
+
+38. Marcus operates through the existing Admin role in version one.
+39. Use capabilities rather than creating a new workout-specific Marcus role.
+40. Legacy trainers receive no workout access by default.
+41. Future trainer access requires explicit capabilities.
+42. Training limitations require a dedicated capability such as:
+
+    * `client-training-health:read`
+43. Training limitations are not automatically visible to every administrator.
+44. Marcus receives the capability required for coaching.
+45. Every sensitive limitation read must create an access-audit record.
+46. If the audit write fails, the limitation read must fail closed.
+47. Retain limitation-access audit records for at least 24 months, with the period configurable later.
+48. Audit-log visibility is limited to authorised administrators.
+
+Use capability naming consistent with the existing project vocabulary. Inspect the existing colon/hyphen convention before finalising the literal capability name.
+
+---
+
+## 6. Static-content migration
+
+49. Import existing useful programme content as unpublished drafts.
+50. Treat `peters-split` as a client-specific draft candidate.
+51. Treat `hotel-room` and `pre-beach-pump` as public-programme draft candidates.
+52. Marcus must review all imported drafts before publication.
+53. The implementation must produce an exercise duplicate/mapping report.
+54. Marcus resolves ambiguous exercise identities.
+55. Never merge ambiguous exercises automatically.
+56. Keep the static programme source only until server-backed content passes parity validation.
+57. Do not operate two authoritative catalogues simultaneously.
+58. Do not migrate `mg_unlocked`.
+59. Browser unlock state grants no entitlement.
+60. Remove or ignore browser unlock state after server-backed cutover.
+61. Existing displayed prices do not create approved monetisation.
+
+---
+
+## 7. Required architectural corrections
+
+Update the Gate 1 specification with these corrections.
+
+### 7.1 Shared workout structure
+
+Marcus templates, personal workouts, copied workouts and confirmed AI workouts must reuse one underlying workout-definition structure.
+
+Do not create separate incompatible child structures for each source.
+
+A client-owned personal workout may use the shared template structure with:
+
+* Client ownership
+* Private visibility
+* Appropriate source type
+* Client-specific permissions
+
+If a separate `personal_workouts` wrapper remains, it must reference the shared template structure rather than duplicate exercises and prescriptions.
+
+### 7.2 Immutable programme snapshots
+
+Remove the unresolved phrase:
+
+> embedded immutable prescription snapshot or child snapshot references
+
+Choose an exact normalized snapshot model.
+
+Define dedicated immutable records for:
+
+* Programme-version workouts
+* Programme-version exercises
+* Programme-version set prescriptions
+
+Published snapshot records cannot point to mutable template content as their authoritative prescription.
+
+### 7.3 Current published version
+
+Multiple historical published versions may exist.
+
+For a public programme:
+
+* Only one version may be marked as the current public version.
+* Existing assignments may remain pinned to older published versions.
+* Retiring a version does not destroy historical readability.
+* Publishing a new version does not silently update assignments.
+
+### 7.4 Programme position
+
+Programme progress must derive from authoritative completed workout history where practical.
+
+Avoid maintaining `currentWeek` and `currentDay` as competing manually updated truth.
+
+A cached progress projection is permitted only when it can be deterministically rebuilt from assignments and completed sessions.
+
+### 7.5 Effective corrected values
+
+Define how reads obtain the authoritative effective set result after correction.
+
+The design must make clear that:
+
+* Original completed values remain immutable.
+* Applied corrections form an ordered correction history.
+* The latest valid applied correction supplies the effective value.
+* PB and progression services use the effective value.
+* Recalculation can be repeated deterministically.
+* Invalidated values remain historically visible.
+
+### 7.6 Stable planned-set identity
+
+Define immutable planned-set snapshot records for a workout session.
+
+Every active set write must target a stable planned-set identity or create an explicitly additional set.
+
+Specify:
+
+* Planned set ID
+* Completed/effective set relationship
+* Additional client-added sets
+* Idempotency key
+* Revision
+* Concurrent-device conflict behavior
+
+The existing `:setId` API contract must not remain ambiguous.
+
+### 7.7 PB comparison keys
+
+`metricType` alone is insufficient for every personal-best record.
+
+For records such as “most repetitions at a specific weight,” define a comparison key or qualifier containing the normalized load.
+
+The uniqueness rule must include the applicable comparison dimension.
+
+Examples:
+
+* Exercise + heaviest load
+* Exercise + repetitions at 80 kg
+* Exercise + fastest time at 5,000 metres
+* Exercise + repetitions at 20 kg assistance
+
+### 7.8 Assisted-exercise records
+
+Support at least:
+
+* Lowest assistance achieved while satisfying a valid repetition target
+* Most repetitions at a particular assistance level
+
+Do not allow one repetition at very low assistance to erase all useful assisted-performance context.
+
+### 7.9 Form feedback
+
+Replace `formBreakdownReported: boolean` with the approved three-state form-quality value.
+
+Preserve an optional client note without requiring free text after every set.
+
+### 7.10 Sensitive-read audit
+
+A training-limitation API response must not be returned unless its required audit record is successfully persisted.
+
+Define the transaction or fail-closed mechanism.
+
+### 7.11 Gate risk labelling
+
+Do not label a development build gate “Amber/Red.”
+
+Use:
+
+* **AMBER** for approved development-only workout builds
+* **RED** for production migrations, production data operations, secrets, external AI connection or publishing
+
+If risk escalates, stop and reclassify.
+
+### 7.12 Final integration gates
+
+Split the previous mixed final gate into:
+
+1. **BUILD — Connected Features**
+
+   * Home/Today
+   * Progress
+   * Body map
+   * Notifications
+   * Analytics
+   * Navigation and deep links
+
+2. **VALIDATION — Full Workout Engine**
+
+   * Typecheck
+   * Production build
+   * Complete tests
+   * Tenant and permission verification
+   * Mobile and desktop workflows
+   * Accessibility
+   * Persistence
+   * Direct/deep-link checks
+   * Regression testing
+
+3. Any defects discovered during validation receive separately scoped **FIX** prompts.
+
+No fix should be silently included inside a validation prompt.
+
+---
+
+## 8. Required finalisation output
+
+Return a concise Gate 1 finalisation report containing:
+
+1. Confirmation that all product and technical decisions are resolved
+2. Updated domain-model decisions
+3. Updated immutable snapshot model
+4. Updated shared workout-definition model
+5. Updated correction/effective-value model
+6. Updated planned-set and completed-set model
+7. Updated PB comparison-key design
+8. Final PB calculation rules
+9. Final progression thresholds
+10. Final permissions decisions
+11. Final migration decisions
+12. Final clearly labelled gate sequence
+13. Any genuinely new blocker discovered
+14. Confirmation that no files, code, schema, data, dependencies, configuration or environments changed
+
+Do not repeat the entire unchanged Gate 1 specification. Produce a focused finalisation addendum that, together with the existing Gate 1 technical specification, becomes the approved implementation contract.
+
+End with exactly one verdict:
+
+**READY FOR GATE 2 BUILD PROMPT**
+
+or
+
+**BLOCKED — NEW TECHNICAL RISK**
+
+or
+
+**BLOCKED — SAFETY OR DATA RISK**
+
+Do not begin Gate 2 implementation.
