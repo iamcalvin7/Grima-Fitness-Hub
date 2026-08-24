@@ -1,0 +1,42 @@
+Gate 0 review
+
+Prompt type completed: INSPECTION
+Result: PASS
+Changes made: None
+Risk: AMBER
+Current status: BLOCKED — PRODUCT DECISIONS REQUIRED
+Next step: PRODUCT DECISION / SPECIFICATION — not a build
+
+The inspection is strong, evidence-based and correctly identifies the current Workouts area as a frontend prototype. The blocker is expected—it is not a failed inspection.
+
+I recommend approving the following decisions.
+
+#	Product decision	Recommended rule
+1	Programme ownership	Every programme is tenant-owned by Marcus’s business. No cross-tenant global catalogue.
+2	Editing assigned workouts	Clients cannot edit Marcus’s assigned programme. They can substitute an exercise or copy it into a personal workout.
+3	Published versions	Published programme versions are immutable.
+4	Assignment updates	Marcus assigns a new version explicitly. Historical workouts remain attached to the original version. No silent updates.
+5	Personal workouts	Clients can create private workouts using approved exercises.
+6	Marcus visibility	Marcus can view client-created workouts and their results, but cannot silently edit the client’s template.
+7	Health-data access	Marcus can view training-relevant limitations shared by the client within the same tenant. Access is server-enforced and audited.
+8	Limitations	The client must answer the limitations question, with “No known limitations” available. Trainer verification is optional.
+9	Workout completion	The client explicitly finishes the workout. At least one valid working set is required. Store full versus partial completion and adherence percentage.
+10	Resume	In-progress workouts can be resumed after refresh or device change. Do not silently discard them.
+11	Client corrections	Clients can edit sets freely before finishing. Completed workouts become locked.
+12	Authorised corrections	Marcus/admin can correct a completed result with a mandatory reason and audit record. Personal bests are recalculated.
+13	Performance types	Support weight/reps, bodyweight reps, added-weight reps, assisted reps, duration, and distance/time.
+14	Exercise variations	Variations have separate personal bests by default. Marcus may deliberately define comparable exercise families later.
+15	Assisted/bodyweight records	Assisted, bodyweight and added-weight versions remain separate.
+16	Programme access	Version one supports Public and Assigned programmes. Paid programmes are deferred.
+17	Monetisation	Programme monetisation remains separate from session wallets and Stripe top-ups. Remove browser storage as an authority.
+18	Notifications	Notify clients when assigned or materially updated. Show PB celebrations in the workout summary. Show completions in Marcus HQ activity rather than sending constant notifications.
+19	Connected metrics	Completed workouts may update Home later. Challenges and leaderboards remain disconnected until anti-abuse rules exist.
+20	Wearables	Out of scope for this implementation phase.
+21	AI timing	AI cannot launch until the approved exercise catalogue, limitations model and workout validator exist.
+22	AI safety	Server-side validation, approved exercises, limitation filtering and client confirmation are mandatory. Flagged safety cases block generation and direct the client to Marcus.
+
+Additional recommended rule: only one workout should be actively in progress per client. Starting another should require the client to resume, finish or abandon the existing workout.
+
+If you approve these recommendations, reply “Approve all”. If you want changes, list the decision numbers. I’ll then prepare the next prompt clearly labelled:
+
+PRODUCT DECISION / SPECIFICATION — NO CODE OR SCHEMA CHANGES.
