@@ -1,0 +1,840 @@
+Replit’s response is accurate but incomplete. It mainly repeated the approved decisions and omitted most of the required technical specification.
+
+Missing items include:
+
+* Entity fields and relationships
+* State machines
+* Permissions matrix
+* API contracts
+* Personal-best formulas
+* Progression rules
+* Alternative-exercise rules
+* Completion and correction contracts
+* Migration plan
+* Testing matrix
+* Detailed gate definitions
+
+Therefore, **Gate 1 has not passed**, and we should not issue a build prompt yet.
+
+# WORKOUTS & PROGRAMMING ENGINE — GATE 1 COMPLETION
+
+## PROMPT CLASSIFICATION
+
+**Prompt type:** SPECIFICATION CORRECTION / COMPLETION
+**Changes allowed:** NO
+**Operating mode:** READ-ONLY DESIGN
+**Risk level:** AMBER
+**Application changes:** Not authorised
+**Schema or migration changes:** Not authorised
+**Production access:** Not authorised
+**Publishing:** Not authorised
+
+This is a correction of the Gate 1 specification response, not a correction of the application.
+
+Do not create, edit, delete or format files. Do not implement code, schema, migrations, tests, dependencies, configuration or UI.
+
+---
+
+## 1. Previous response assessment
+
+Your previous response correctly preserved the approved product rules, but it did not fulfil the required Gate 1 output.
+
+It returned a product-decision summary rather than an implementation-ready technical specification.
+
+The following required sections were missing or insufficient:
+
+1. Domain glossary
+2. Domain relationship map
+3. Field-level entity specifications
+4. Lifecycle state machines
+5. Complete invariants and database constraints
+6. Permissions and capabilities matrix
+7. Proposed API contracts
+8. Workout completion contract
+9. Workout correction contract
+10. Personal-best calculation contract
+11. Deterministic progression rule contract
+12. Alternative-exercise contract
+13. AI safety and validation contract
+14. Client UX specification
+15. Marcus HQ specification
+16. Notifications and analytics contract
+17. Migration and content-preservation plan
+18. Testing matrix
+19. Detailed implementation-gate plan
+20. Remaining technical questions
+21. Required final verdict
+
+Do not repeat only the approved product rules again. Use them as fixed inputs and complete the missing technical specification.
+
+---
+
+## 2. Approved decisions remain binding
+
+All product decisions in the previous response remain approved.
+
+Do not reopen or weaken them.
+
+In particular:
+
+* Tenant ownership is mandatory.
+* Published programme versions are immutable.
+* Historical workouts remain connected to their original programme version.
+* Clients cannot edit assigned programmes.
+* Personal workouts are client-owned and private from other clients.
+* Marcus may view but not silently edit client-owned workouts.
+* One active workout per client is mandatory.
+* Active workouts must be resumable.
+* Completed workouts are client-locked.
+* Corrections require Marcus/admin authority, a reason and an audit record.
+* Personal bests derive from authoritative completed-set history.
+* Progression is deterministic.
+* Paid programmes are deferred.
+* Wearables are out of scope.
+* AI is deferred until its dependencies and safety controls exist.
+* Workout completion remains separate from bookings, attendance, wallets and settlement.
+
+---
+
+## 3. Domain glossary and relationship map
+
+Define every major term unambiguously:
+
+* Exercise
+* Exercise variation
+* Exercise alternative
+* Comparable exercise family
+* Workout template
+* Template exercise
+* Programme
+* Programme draft
+* Programme version
+* Programme assignment
+* Personal workout
+* Workout session
+* Exercise attempt
+* Exercise substitution
+* Planned set
+* Completed set
+* Working set
+* Warm-up set
+* Personal-best record
+* Personal-best event
+* Progression recommendation
+* Training limitation
+* AI generation request
+* AI-generated workout provenance
+
+Then provide a relationship map showing:
+
+* Ownership
+* Parent/child relationships
+* Immutable snapshot boundaries
+* Historical references
+* Tenant boundaries
+* Client boundaries
+* Shared exercise references
+
+A Mermaid entity-relationship diagram may be used, but it must be accompanied by a written explanation.
+
+---
+
+## 4. Field-level entity specifications
+
+For every proposed entity, define:
+
+* Purpose
+* Recommended table/module name
+* Primary key
+* Tenant ownership
+* Client ownership where relevant
+* Required fields
+* Optional fields
+* Enums
+* Foreign keys
+* Composite tenant-safe foreign keys
+* Unique constraints
+* Check constraints
+* Indexes
+* Created/updated timestamps
+* Archival behavior
+* Immutability rules
+* Audit requirements
+* Historical behavior
+* Deletion policy
+
+Cover at minimum:
+
+1. Exercises
+2. Exercise muscle mappings
+3. Exercise equipment mappings
+4. Exercise alternatives
+5. Workout templates
+6. Template exercises
+7. Template set prescriptions
+8. Programmes
+9. Programme versions
+10. Programme-version workouts
+11. Programme assignments
+12. Personal workouts
+13. Workout sessions
+14. Exercise attempts
+15. Completed sets
+16. Set corrections or correction history
+17. Personal-best records
+18. Personal-best events
+19. Progression recommendations
+20. Training limitations
+21. Limitation-access audit records
+22. AI generation requests and provenance
+
+Avoid a design where all important workout information is stored in unvalidated JSON.
+
+Clearly identify fields that may reasonably use structured JSON and explain why.
+
+---
+
+## 5. Lifecycle state machines
+
+Define allowed states and transitions for:
+
+* Exercise lifecycle
+* Workout-template lifecycle
+* Programme lifecycle
+* Programme-version lifecycle
+* Programme-assignment lifecycle
+* Personal-workout lifecycle
+* Workout-session lifecycle
+* Exercise-attempt lifecycle
+* Completed-set correction lifecycle
+* Personal-best event lifecycle
+* Progression-recommendation lifecycle
+* AI-generation request lifecycle
+
+For every transition specify:
+
+* Starting state
+* Resulting state
+* Actor
+* Required capability
+* Preconditions
+* Invalid-transition response
+* Audit requirement
+* Idempotency behavior
+
+Explicitly define terminal states.
+
+---
+
+## 6. Invariants and constraints
+
+Provide a complete invariant list and identify whether each invariant is enforced through:
+
+* Database constraint
+* Transactional server logic
+* API validation
+* Authorization
+* Background recalculation
+* Frontend assistance only
+
+Include:
+
+* Tenant isolation
+* Server-derived ownership
+* Programme-version immutability
+* Historical snapshot preservation
+* One active workout per client
+* At least one valid working set for completion
+* Valid numeric ranges
+* Performance-type-specific validation
+* Client lock after completion
+* Correction auditability
+* Planned versus performed exercise preservation
+* Personal-best source traceability
+* PB event deduplication
+* Recommendation rule versioning
+* No wallet/attendance coupling
+* No browser-authoritative entitlement
+
+Frontend validation must never be presented as the sole enforcement mechanism.
+
+---
+
+## 7. Permissions and capabilities matrix
+
+Produce a matrix for:
+
+* Client
+* Marcus/operator
+* Admin
+* Legacy trainer, if retained
+
+Cover:
+
+* Exercise viewing
+* Exercise creation/editing/archiving
+* Alternative management
+* Template management
+* Programme management
+* Programme publication
+* Assignment management
+* Personal-workout creation
+* Personal-workout viewing
+* Workout execution
+* Exercise substitution
+* Workout completion
+* Workout abandonment
+* Completed-result correction
+* Personal-best viewing
+* Progression viewing
+* Client-performance review
+* Training-limitation access
+* AI generation
+* AI provenance review
+
+Recommend exact capability names.
+
+State which existing capability can be reused and which new capabilities are required.
+
+---
+
+## 8. API contract plan
+
+Define the proposed API without implementing it.
+
+For every endpoint provide:
+
+* HTTP method
+* Path
+* User/role
+* Required capability
+* Request fields
+* Response shape
+* Tenant and ownership derivation
+* Validation
+* Idempotency behavior
+* Audit event
+* Main error responses
+
+Cover:
+
+### Exercise catalogue
+
+* List and search
+* View
+* Create
+* Update
+* Archive
+* Manage alternatives
+
+### Templates and programmes
+
+* Create programme
+* Create/edit draft
+* Add/reorder workouts
+* Publish version
+* List versions
+* Archive programme
+* Assign version
+* Replace/pause/end assignment
+
+### Client access
+
+* List public programmes
+* List assignments
+* View authorised programme version
+* View programme progress
+
+### Personal workouts
+
+* Create
+* View
+* Update
+* Duplicate
+* Archive
+* List own workouts
+
+### Workout execution
+
+* Start
+* Resume
+* Submit or update an active set
+* Substitute exercise
+* Skip exercise
+* Finish
+* Abandon
+* View history
+* View completed workout
+
+### Performance
+
+* View personal bests
+* View PB history
+* View progression
+* Accept/reject a recommendation
+* View client performance in Marcus HQ
+* Correct a completed result
+
+### Future AI
+
+Define contracts only. Do not connect an AI provider.
+
+---
+
+## 9. Workout completion contract
+
+Define precisely:
+
+* Valid working set
+* Valid warm-up set
+* Failed set
+* Skipped set
+* Abandoned exercise
+* Full completion
+* Partial completion
+* Abandoned workout
+* Invalidated workout
+* Adherence percentage
+* Programme progress contribution
+
+Resolve:
+
+* Whether optional exercises affect adherence
+* Whether warm-up sets affect adherence
+* How skipped required exercises are scored
+* How substituted exercises are scored
+* How partially completed prescribed sets are scored
+* Whether abandoned workouts contribute to programme progress
+* How duplicate finish requests behave
+* How concurrent device submissions behave
+
+---
+
+## 10. Correction contract
+
+Define:
+
+* What clients may change before completion
+* What becomes locked after completion
+* Who may correct completed results
+* Mandatory correction reason
+* Original-value preservation
+* Audit structure
+* Correction transaction boundary
+* PB recalculation
+* Progression recalculation
+* Notification requirements
+* Correction failure and retry behavior
+* Whether invalidated sets remain visible in history
+* Whether a correction may remove a previously awarded PB
+
+Corrections must not silently destroy historical facts.
+
+---
+
+## 11. Personal-best calculation contract
+
+Define exact eligibility and calculations by performance type.
+
+### Weight and repetitions
+
+Specify:
+
+* Heaviest successful working set
+* Most repetitions at a given load
+* Estimated one-repetition maximum
+* Approved estimation formula
+* Valid repetition range
+* Tie-breaking rules
+* Formula-version storage
+
+### Bodyweight repetitions
+
+Specify:
+
+* Maximum repetitions
+* Treatment of recorded bodyweight
+* Separation from added-weight performance
+
+### Added-weight repetitions
+
+Specify:
+
+* External load record
+* Repetitions
+* Whether total system weight is calculated
+* Bodyweight snapshot requirements
+
+### Assisted repetitions
+
+Specify:
+
+* Assistance value
+* Repetitions
+* How lower assistance represents improvement
+* Tie-breaking rules
+
+### Duration
+
+Specify:
+
+* Longest-duration records
+* Exercise-specific exceptions where shorter time is better
+
+### Distance and time
+
+Specify:
+
+* Longest distance
+* Fastest time for a defined distance
+* Unit normalization
+
+For all PB types define:
+
+* Working-set eligibility
+* Warm-up exclusion
+* Failed-set exclusion
+* Pain/discomfort treatment
+* Correction behavior
+* Deduplication
+* Event creation
+* Celebration behavior
+* Historical display
+* Recalculation
+* Invalidated or superseded records
+
+Estimated PBs must be visibly different from actual performance records.
+
+---
+
+## 12. Deterministic progression contract
+
+Define a version-one rule engine that can recommend:
+
+* Increase load
+* Increase repetitions
+* Maintain
+* Increase rest
+* Reduce load
+* Reduce volume
+* Repeat before deciding
+* No recommendation
+* Stop and consult Marcus
+
+Define behavior when:
+
+* Every set reaches the top of the range comfortably
+* Every set reaches the target but at high effort
+* Performance remains inside the range
+* The first set succeeds and later sets deteriorate
+* Rest appears insufficient
+* Sets repeatedly fall below the lower boundary
+* Form breaks down
+* Pain/discomfort is reported
+* Data is missing
+* Only one workout exists
+* A single session conflicts with the longer trend
+* Equipment increments prevent the ideal increase
+
+Specify:
+
+* Minimum history
+* Eligible sets
+* RIR/effort interpretation
+* Rule priority
+* Conflicting-signal resolution
+* Rule version
+* Recommendation expiry
+* Acceptance/rejection
+* Correction-triggered recalculation
+* Client explanation
+* Marcus explanation
+
+Pain must never generate an automatic recommendation to increase intensity.
+
+---
+
+## 13. Exercise-alternative contract
+
+Define:
+
+* Marcus-curated alternatives
+* Directional versus reciprocal alternatives
+* Required matching metadata
+* Equipment filtering
+* Difficulty filtering
+* Limitation filtering
+* Contraindication filtering
+* Ranking
+* No-safe-alternative behavior
+* Substitution reasons
+* Active-workout substitution flow
+* Prescription reset or adjustment
+* Personal-best behavior
+* Progression behavior
+* Historical planned-versus-performed display
+
+Do not transfer weight automatically between different exercises.
+
+---
+
+## 14. AI safety and validation contract
+
+Define the future contract only.
+
+Include:
+
+* Required client inputs
+* Minimum profile completeness
+* Exercise candidate filtering
+* Limitation filtering
+* Recent-workload checks
+* Recovery checks
+* Server validation
+* Structured output schema
+* Rejection reasons
+* Blocked-safety flow
+* Client confirmation
+* Provenance
+* Provider/model version
+* Prompt/rule version
+* Sensitive-data minimisation
+* Logging exclusions
+* Audit requirements
+
+Clearly separate:
+
+* AI suggestion
+* Deterministic validation
+* Client confirmation
+* Authoritative saved workout
+
+---
+
+## 15. Client and Marcus UX specification
+
+Define the client information architecture:
+
+* Today
+* My Programme
+* Explore
+* My Workouts
+* AI Builder
+* History
+* Personal Bests
+
+Define the Marcus HQ structure:
+
+* Exercise Library
+* Workout Templates
+* Programmes
+* Assignments
+* Client Performance
+* Personal Bests
+* Progression Review
+* Corrections
+* Activity
+
+For every area define:
+
+* Primary actions
+* Empty state
+* Loading state
+* Error state
+* Retry state
+* Permission failure
+* Mobile behavior
+* Desktop behavior
+* Deep-link behavior
+
+Do not redesign unrelated application areas.
+
+---
+
+## 16. Notifications and analytics contract
+
+Define notification behavior for:
+
+* Programme assignment
+* Material assignment update
+
+Define in-product behavior for:
+
+* Workout completion
+* Personal-best celebration
+* Progression recommendation
+* Marcus activity feed
+
+Define analytics events for:
+
+* Programme viewed
+* Programme started
+* Workout started
+* Workout resumed
+* Set completed
+* Exercise substituted
+* Pain reported
+* Workout partially completed
+* Workout fully completed
+* Workout abandoned
+* Personal best achieved
+* Recommendation shown
+* Recommendation accepted/rejected
+* AI requested
+* AI blocked
+* AI confirmed
+
+Specify:
+
+* Deduplication
+* Actor
+* Tenant
+* Safe metadata
+* Sensitive values that must never enter analytics
+
+---
+
+## 17. Migration and preservation plan
+
+Provide a no-execution migration plan for:
+
+* `data/programs.ts`
+* Existing exercise identifiers
+* Programme content
+* Exercise media
+* Muscle mappings
+* Body-map terms
+* Legacy session exercise names
+* Simulated premium programmes
+* `localStorage` unlock state
+
+The plan must:
+
+* Preserve useful content.
+* Establish stable exercise identities.
+* Identify duplicates requiring Marcus review.
+* Avoid importing local set interactions as completed history.
+* Avoid granting access from browser storage.
+* Avoid importing fabricated health/profile statistics.
+* Preserve booking and wallet boundaries.
+* Remain additive and development-first.
+* Require a separate build and migration approval.
+
+---
+
+## 18. Testing matrix
+
+Provide a test matrix covering:
+
+* Unit tests
+* API integration tests
+* Frontend tests
+* Tenant-isolation tests
+* Capability tests
+* Idempotency tests
+* Concurrency tests
+* State-transition tests
+* Personal-best recalculation
+* Progression rules
+* Correction behavior
+* Mobile interaction
+* Accessibility
+* Regression tests
+
+For each test area specify:
+
+* Behavior under test
+* Required setup
+* Expected result
+* Gate where it must be introduced
+
+Include regressions for:
+
+* Sessions
+* Booking
+* Attendance
+* Notifications
+* Wallet
+* Holds
+* Settlement
+* Stripe top-ups
+* Profile
+* Home
+* Navigation
+
+---
+
+## 19. Detailed implementation gates
+
+Refine the implementation sequence beginning with:
+
+1. Exercise catalogue foundation
+2. Workout templates and programme versions
+3. Assignments and client programme access
+4. Workout execution and persistence
+5. Personal workouts and substitutions
+6. Personal bests and deterministic progression
+7. Marcus performance review and corrections
+8. AI generation
+9. Connected features and hardening
+
+Split any gate that is too large for safe implementation.
+
+For every gate provide:
+
+* Prompt type
+* Risk
+* Exact scope
+* Dependencies
+* Changes allowed
+* Protected behavior
+* Stop conditions
+* Required tests
+* Required evidence
+* Definition of done
+
+---
+
+## 20. Required response format
+
+Return the complete Gate 1 technical specification with these sections:
+
+1. Executive decision summary
+2. Domain glossary
+3. Domain relationship map
+4. Entity specifications
+5. State machines
+6. Invariants and enforcement
+7. Permissions matrix
+8. API contracts
+9. Workout completion contract
+10. Correction contract
+11. Personal-best contract
+12. Progression contract
+13. Exercise-alternative contract
+14. AI safety contract
+15. Client UX
+16. Marcus HQ UX
+17. Notifications and analytics
+18. Migration plan
+19. Testing matrix
+20. Detailed implementation gates
+21. Remaining technical questions
+22. Risks and stop conditions
+23. Confirmation that no changes were made
+
+Label unresolved points clearly. Do not silently invent a product rule that contradicts the approved decisions.
+
+End with exactly one verdict:
+
+**READY FOR GATE 2 BUILD PROMPT**
+
+or
+
+**BLOCKED — TECHNICAL DECISION REQUIRED**
+
+or
+
+**BLOCKED — SAFETY OR DATA RISK**
+
+Do not begin implementation after returning the specification.
