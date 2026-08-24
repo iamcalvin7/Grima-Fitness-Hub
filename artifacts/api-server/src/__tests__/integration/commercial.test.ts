@@ -255,6 +255,33 @@ describe("commercial pricing, holds, and settlement", () => {
     });
   });
 
+  it("shows Marcus a client wallet detail without leaking it across tenants", async () => {
+    const detail = await request(app)
+      .get(`/api/admin/commercial/clients/${standardA.id}/wallet`)
+      .set("Cookie", sessionCookie(adminToken))
+      .expect(200);
+    expect(detail.body).toMatchObject({
+      client: { id: standardA.id },
+      balance: {
+        availableValueMinor: expect.any(Number),
+        heldValueMinor: expect.any(Number),
+      },
+      activity: expect.any(Array),
+    });
+    expect(detail.body.activity[0]).toHaveProperty("reason");
+
+    const foreignTenant = await createTenant({
+      slug: `commercial-wallet-isolation-${crypto.randomUUID().slice(0, 8)}`,
+      name: "Commercial wallet isolation",
+    });
+    const foreignAdmin = await createUser(foreignTenant.id, { role: "admin" });
+    const foreignToken = (await createSession(foreignAdmin.id)).token;
+    await request(app)
+      .get(`/api/admin/commercial/clients/${standardA.id}/wallet`)
+      .set("Cookie", sessionCookie(foreignToken))
+      .expect(404);
+  });
+
   it("locks class-close rates, releases excess holds, and settles attendance retry-safely", async () => {
     const session = await createManagedSession(4, 7).expect(201);
     const sessionId = session.body.session.id as string;

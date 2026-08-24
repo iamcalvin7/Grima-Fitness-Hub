@@ -10,12 +10,20 @@ export class ApiError extends Error {
   readonly status: number;
   /** Optional per-field validation details from the server. */
   readonly fields?: Record<string, string>;
+  /** Structured details for recoverable business conflicts. */
+  readonly details?: Record<string, unknown>;
 
-  constructor(status: number, message: string, fields?: Record<string, string>) {
+  constructor(
+    status: number,
+    message: string,
+    fields?: Record<string, string>,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.fields = fields;
+    this.details = details;
   }
 }
 
@@ -46,12 +54,19 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try { data = await res.json(); } catch { /* non-JSON response body */ }
 
   if (!res.ok) {
-    const obj = (data && typeof data === 'object') ? data as { error?: unknown; fields?: unknown } : null;
+    const obj = (data && typeof data === 'object') ? data as {
+      error?: unknown;
+      fields?: unknown;
+      details?: unknown;
+    } : null;
     const message = typeof obj?.error === 'string' ? obj.error : 'Something went wrong. Please try again.';
     const fields = (obj?.fields && typeof obj.fields === 'object')
       ? obj.fields as Record<string, string>
       : undefined;
-    throw new ApiError(res.status, message, fields);
+    const details = (obj?.details && typeof obj.details === 'object')
+      ? obj.details as Record<string, unknown>
+      : undefined;
+    throw new ApiError(res.status, message, fields, details);
   }
 
   return data as T;

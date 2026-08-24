@@ -5,12 +5,15 @@ import { logger } from "../lib/logger";
 import { getStripeSync } from "../lib/stripeClient";
 import {
   createWalletTopUpCheckout,
+  getClientWalletTopUp,
   processWalletTopUpCheckout,
   WALLET_TOP_UP_AMOUNTS,
   WalletTopUpError,
 } from "../lib/walletTopUps";
 
 const MAX_IDEMPOTENCY_KEY_LENGTH = 200;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function idempotencyKey(req: Request): string | null {
   const value = req.body?.idempotencyKey ?? req.get("Idempotency-Key");
@@ -38,6 +41,11 @@ topUpRouter.post(
   async (req, res) => {
     const amountMinor = Number(req.body?.amountMinor);
     const key = idempotencyKey(req);
+    const bookingSessionId =
+      typeof req.body?.bookingSessionId === "string" &&
+      UUID_RE.test(req.body.bookingSessionId)
+        ? req.body.bookingSessionId
+        : undefined;
     if (!Number.isInteger(amountMinor) || !WALLET_TOP_UP_AMOUNTS.includes(amountMinor as 5_000 | 10_000 | 20_000) || !key) {
       res.status(400).json({ error: "Choose €50, €100, or €200 and provide a request key." });
       return;
@@ -48,6 +56,7 @@ topUpRouter.post(
         clientUserId: req.user!.id,
         amountMinor: amountMinor as 5_000 | 10_000 | 20_000,
         idempotencyKey: key,
+        bookingSessionId,
       });
       res.status(result.replayed ? 200 : 201).json({
         checkoutUrl: result.checkoutUrl,
@@ -57,6 +66,31 @@ topUpRouter.post(
           status: result.topUp.status,
         },
       });
+    } catch (error) {
+      sendError(res, error);
+    }
+  },
+);
+
+topUpRouter.get(
+  "/commercial/wallet/top-ups/:id",
+  attachUser,
+  requireAuth,
+  requireRole("client"),
+  async (req, res) => {
+    const topUpId = typeof req.params.id === "string" ? req.params.id : null;
+    if (!topUpId || !UUID_RE.test(topUpId)) {
+      res.status(400).json({ error: "Invalid wallet top-up id." });
+      return;
+    }
+    try {
+      res.json(
+        await getClientWalletTopUp(
+          req.user!.tenantId,
+          req.user!.id,
+          topUpId,
+        ),
+      );
     } catch (error) {
       sendError(res, error);
     }

@@ -208,6 +208,7 @@ export type WalletActivityItem = {
     | "no_show_waived";
   description: string;
   amountMinor: number;
+  reason: string | null;
   createdAt: Date;
   bookingId: string | null;
   session: {
@@ -242,6 +243,7 @@ export async function getClientWalletActivity(
       amountMinor: trainingValueLedgerTable.amountMinor,
       movementType: trainingValueLedgerTable.movementType,
       bookingId: trainingValueLedgerTable.bookingId,
+      reason: trainingValueLedgerTable.reason,
       createdAt: trainingValueLedgerTable.createdAt,
       sessionId: trainingSessionsTable.id,
       sessionName: trainingSessionTypesTable.name,
@@ -354,6 +356,7 @@ export async function getClientWalletActivity(
               ? "Session value used"
               : "No-show charged",
       amountMinor: row.amountMinor,
+      reason: row.reason,
       createdAt: row.createdAt,
       bookingId: row.bookingId,
       session: sessionActivityDetails(row),
@@ -368,6 +371,7 @@ export async function getClientWalletActivity(
         kind: "booking_hold",
         description: "Booking hold",
         amountMinor: -row.maximumHeldAmountMinor,
+        reason: null,
         createdAt: row.holdCreatedAt,
         bookingId: row.bookingId,
         session,
@@ -386,6 +390,7 @@ export async function getClientWalletActivity(
         kind: "hold_released",
         description: "Hold released",
         amountMinor: lockedRelease,
+        reason: null,
         createdAt: releaseAt,
         bookingId: row.bookingId,
         session,
@@ -407,6 +412,7 @@ export async function getClientWalletActivity(
             ? "No-show waived"
             : "Hold released",
         amountMinor: row.releasedAmountMinor,
+        reason: null,
         createdAt: row.holdReleasedAt,
         bookingId: row.bookingId,
         session,

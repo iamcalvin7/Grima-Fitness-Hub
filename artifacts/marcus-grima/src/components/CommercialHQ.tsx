@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiRequest } from '@/lib/api';
 import { ManagedSession } from '@/pages/MarcusSessionsHQ';
@@ -42,6 +42,21 @@ type CommercialClient = {
     availableValueMinor: number;
     pricing: { planName: string; planVersion: number } | null;
   };
+};
+type WalletActivityItem = {
+  id: string;
+  kind: string;
+  description: string;
+  amountMinor: number;
+  reason: string | null;
+  createdAt: string;
+  bookingId: string | null;
+  session: { id: string; name: string; startsAt: string } | null;
+};
+type ClientWalletDetail = {
+  client: Pick<CommercialClient, 'id' | 'firstName' | 'lastName' | 'email'>;
+  balance: CommercialClient['balance'];
+  activity: WalletActivityItem[];
 };
 type PreviewRow = {
   bookingId: string;
@@ -224,6 +239,7 @@ function ClientsView({ execute, actionId }: { execute: AsyncAction; actionId: st
   const [error, setError] = useState<string | null>(null);
   const [assigning, setAssigning] = useState<CommercialClient | null>(null);
   const [adjusting, setAdjusting] = useState<CommercialClient | null>(null);
+  const [walletClient, setWalletClient] = useState<CommercialClient | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -269,6 +285,7 @@ function ClientsView({ execute, actionId }: { execute: AsyncAction; actionId: st
                   <td className="p-4 text-right font-bold text-white">{formatEur(client.balance.availableValueMinor)}</td>
                   <td className="p-4 text-right text-amber-400/85">{formatEur(client.balance.heldValueMinor)}</td>
                   <td className="p-4 text-right"><div className="flex justify-end gap-2">
+                    <button onClick={() => setWalletClient(client)} className="rounded bg-white/5 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">Wallet</button>
                     <button onClick={() => setAssigning(client)} className="rounded bg-white/5 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">Plan</button>
                     <button onClick={() => setAdjusting(client)} className="rounded bg-white px-3 py-1.5 text-xs font-bold text-black hover:bg-white/90">Adjust value</button>
                   </div></td>
@@ -280,8 +297,66 @@ function ClientsView({ execute, actionId }: { execute: AsyncAction; actionId: st
       )}
       {assigning && <AssignPlanModal client={assigning} plans={plans} onClose={() => setAssigning(null)} execute={execute} actionId={actionId} onSuccess={refresh} />}
       {adjusting && <AdjustValueModal client={adjusting} onClose={() => setAdjusting(null)} execute={execute} actionId={actionId} onSuccess={refresh} />}
+      {walletClient && <ClientWalletModal client={walletClient} onClose={() => setWalletClient(null)} />}
     </motion.div>
   );
+}
+
+function ClientWalletModal({ client, onClose }: { client: CommercialClient; onClose: () => void }) {
+  const [detail, setDetail] = useState<ClientWalletDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const refresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setDetail(await apiRequest<ClientWalletDetail>(`/admin/commercial/clients/${client.id}/wallet`));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to load the client wallet.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { void refresh(); }, [client.id]);
+  return <Modal title={`Training wallet: ${client.firstName} ${client.lastName}`} onClose={onClose} wide>
+    {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} retry={refresh} /> : detail && <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <ValueCard label="Available" value={detail.balance.availableValueMinor} tone="primary" />
+        <ValueCard label="Held" value={detail.balance.heldValueMinor} tone="amber" />
+        <ValueCard label="Total training value" value={detail.balance.totalValueMinor} tone="neutral" />
+      </div>
+      <p className="text-xs leading-relaxed text-white/45">
+        Wallet movements are internal training value. Stripe top-ups, manual grants, and held value are not recognised session revenue.
+      </p>
+      <div className="rounded border border-white/10">
+        <div className="border-b border-white/10 p-4"><p className="text-xs font-bold uppercase tracking-wider text-white/60">Wallet activity</p></div>
+        {detail.activity.length === 0 ? <p className="p-8 text-center text-sm text-white/40">No wallet activity yet.</p> : (
+          <div className="divide-y divide-white/8">
+            {detail.activity.slice(0, 30).map((item) => <div key={item.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="font-bold text-white">{item.description}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {new Date(item.createdAt).toLocaleString('en-GB', { timeZone: 'Europe/Malta', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                  {item.session ? ` · ${item.session.name}` : ''}
+                </p>
+                {item.reason && <p className="mt-1 text-xs text-white/55">Reason: {item.reason}</p>}
+              </div>
+              <p className={`shrink-0 font-bold ${item.amountMinor > 0 ? 'text-primary' : item.kind === 'booking_hold' ? 'text-amber-300' : 'text-white'}`}>{item.amountMinor > 0 ? '+' : ''}{formatEur(item.amountMinor)}</p>
+            </div>)}
+          </div>
+        )}
+      </div>
+    </div>}
+  </Modal>;
+}
+
+function ValueCard({ label, value, tone }: { label: string; value: number; tone: 'primary' | 'amber' | 'neutral' }) {
+  const colors = tone === 'primary'
+    ? 'border-primary/25 bg-primary/[0.06] text-primary'
+    : tone === 'amber'
+      ? 'border-amber-400/20 bg-amber-400/[0.06] text-amber-300'
+      : 'border-white/10 bg-white/[0.03] text-white';
+  return <div className={`rounded border p-4 ${colors}`}><p className="text-[10px] font-bold uppercase tracking-wider opacity-65">{label}</p><p className="mt-2 text-xl font-black">{formatEur(value)}</p></div>;
 }
 
 function AssignPlanModal({ client, plans, onClose, execute, actionId, onSuccess }: { client: CommercialClient; plans: PricingPlan[]; onClose: () => void; execute: AsyncAction; actionId: string | null; onSuccess: () => Promise<void> }) {
@@ -308,22 +383,50 @@ function AssignPlanModal({ client, plans, onClose, execute, actionId, onSuccess 
 function AdjustValueModal({ client, onClose, execute, actionId, onSuccess }: { client: CommercialClient; onClose: () => void; execute: AsyncAction; actionId: string | null; onSuccess: () => Promise<void> }) {
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const idempotencyKey = useRef<string>(crypto.randomUUID());
   const action = `adjust-value-${client.id}`;
+  const amountMinor = parseEur(amount);
+  const newAvailableValue = amountMinor === null ? null : client.balance.availableValueMinor + amountMinor;
+  const submitAdjustment = async () => {
+    if (amountMinor === null || amountMinor === 0 || !reason.trim()) return;
+    const ok = await execute(action, apiRequest(`/admin/commercial/clients/${client.id}/value`, {
+      method: 'POST',
+      body: {
+        amountMinor,
+        reason: reason.trim(),
+        idempotencyKey: idempotencyKey.current,
+      },
+    }));
+    if (ok) { await onSuccess(); onClose(); }
+  };
   return <Modal title={`Adjust training value: ${client.firstName}`} onClose={onClose}>
-    <form onSubmit={async (event) => {
+    <form onSubmit={(event) => {
       event.preventDefault();
-      const amountMinor = parseEur(amount);
       if (amountMinor === null || amountMinor === 0 || !reason.trim()) return;
-      const ok = await execute(action, apiRequest(`/admin/commercial/clients/${client.id}/value`, { method: 'POST', body: { amountMinor, reason: reason.trim(), idempotencyKey: crypto.randomUUID() } }));
-      if (ok) { await onSuccess(); onClose(); }
+      setConfirming(true);
     }} className="space-y-5">
-      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60">Amount (EUR)
-        <input type="number" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="e.g. 50.00 or -10.00" required className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30" />
-      </label>
-      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60">Reason
-        <input value={reason} onChange={(event) => setReason(event.target.value)} required maxLength={500} placeholder="Why this adjustment was made" className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30" />
-      </label>
-      <ModalActions onClose={onClose} busy={actionId === action} label="Save adjustment" />
+      {!confirming ? <>
+        <div className="rounded border border-white/10 bg-white/[0.03] p-4 text-xs text-white/55">Positive amounts add training value. Negative amounts reduce only currently available value; value already held for bookings cannot be consumed.</div>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60">Amount (EUR)
+          <input type="number" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="e.g. 50.00 or -10.00" required className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30" />
+        </label>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60">Reason
+          <input value={reason} onChange={(event) => setReason(event.target.value)} required maxLength={500} placeholder="Why this adjustment was made" className="mt-2 w-full rounded border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30" />
+        </label>
+        <ModalActions onClose={onClose} busy={false} label="Review adjustment" />
+      </> : <>
+        <div className="rounded border border-amber-400/25 bg-amber-400/[0.06] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Confirm adjustment</p>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-4"><dt className="text-white/55">Current available</dt><dd className="font-bold text-white">{formatEur(client.balance.availableValueMinor)}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-white/55">Change</dt><dd className={`font-bold ${amountMinor && amountMinor > 0 ? 'text-primary' : 'text-red-300'}`}>{amountMinor && amountMinor > 0 ? '+' : ''}{formatEur(amountMinor)}</dd></div>
+            <div className="flex justify-between gap-4 border-t border-white/10 pt-2"><dt className="text-white/55">New available</dt><dd className="font-bold text-white">{formatEur(newAvailableValue)}</dd></div>
+          </dl>
+          <p className="mt-3 text-xs leading-relaxed text-white/55">Reason: {reason.trim()}. This records you as the actor in the immutable audit trail.</p>
+        </div>
+        <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={() => setConfirming(false)} disabled={actionId === action} className="px-4 py-2 text-xs font-bold text-white/60 hover:text-white">Back</button><button type="button" onClick={() => void submitAdjustment()} disabled={actionId === action} className="flex min-w-32 items-center justify-center rounded bg-white px-4 py-2 text-xs font-bold text-black disabled:opacity-50">{actionId === action ? <SpinnerGap className="animate-spin" /> : 'Confirm adjustment'}</button></div>
+      </>}
     </form>
   </Modal>;
 }

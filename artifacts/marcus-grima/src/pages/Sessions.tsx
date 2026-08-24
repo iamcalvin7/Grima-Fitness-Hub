@@ -84,8 +84,13 @@ interface Booking {
     holdStatus: string;
     settlement?: {
       attendanceCount: number;
+      heldAmountMinor: number;
       finalChargeAmountMinor: number;
       releasedAmountMinor: number;
+    } | null;
+    noShowDecision?: {
+      selectedChargeAmountMinor: number;
+      waived: boolean;
     } | null;
   } | null;
 }
@@ -115,6 +120,32 @@ interface WalletActivityItem {
 interface BalanceApiResponse {
   balance: BalanceResponse;
   activity?: WalletActivityItem[];
+}
+
+interface TopUpStatus {
+  id: string;
+  amountMinor: number;
+  currency: string;
+  status: 'created' | 'pending' | 'paid' | 'failed' | 'cancelled';
+  failureReason: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function topUpStatusNotice(status: TopUpStatus): string {
+  if (status.status === 'paid') {
+    return `Payment received. ${formatEur(status.amountMinor)} was added to your Training Wallet.`;
+  }
+  if (status.status === 'failed') {
+    return 'Payment was not completed. No training value was added.';
+  }
+  if (status.status === 'cancelled') {
+    return status.failureReason === 'checkout.session.expired'
+      ? 'Checkout expired before payment completed. No training value was added.'
+      : 'Checkout was cancelled. No training value was added.';
+  }
+  return 'Checkout status is still being confirmed. Refresh your wallet in a moment.';
 }
 
 interface SessionsResponse {
@@ -332,7 +363,7 @@ function TrainingWallet({
   loading: boolean;
   error: string | null;
   onRetry: () => void;
-  onStartTopUp: (amountMinor: 5000 | 10000 | 20000) => Promise<void>;
+  onStartTopUp: (amountMinor: 5000 | 10000 | 20000, bookingSessionId?: string) => Promise<void>;
 }) {
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpError, setTopUpError] = useState<string | null>(null);
@@ -520,6 +551,9 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
                 <div>
                   <p className="text-[9px] font-bold tracking-[0.2em] text-green-500/50 uppercase mb-1">Final value used</p>
                   <p className="text-sm font-bold text-green-400">{formatEur(booking.commercial.settlement.finalChargeAmountMinor)}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/45">
+                    {formatEur(booking.commercial.settlement.releasedAmountMinor)} released from the original hold.
+                  </p>
                 </div>
               )}
               {booking.commercial.settlement && booking.status === 'no_show' && (
@@ -530,6 +564,27 @@ function SessionDetail({ booking, onBack }: { booking: Booking; onBack: () => vo
                       ? formatEur(booking.commercial.settlement.finalChargeAmountMinor)
                       : 'Waived'}
                   </p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/45">
+                    {formatEur(booking.commercial.settlement.releasedAmountMinor)} released from the original hold.
+                  </p>
+                </div>
+              )}
+              {booking.commercial.settlement && (
+                <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4">
+                  <div>
+                    <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-1">Original maximum hold</p>
+                    <p className="text-sm font-bold">{formatEur(booking.commercial.settlement.heldAmountMinor)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-1">Value released</p>
+                    <p className="text-sm font-bold text-primary">{formatEur(booking.commercial.settlement.releasedAmountMinor)}</p>
+                  </div>
+                </div>
+              )}
+              {booking.commercial.noShowDecision && !booking.commercial.settlement && booking.status === 'no_show' && (
+                <div className="border-t border-white/5 pt-4">
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-foreground/35 uppercase mb-1">No-show outcome</p>
+                  <p className="text-sm font-bold">{booking.commercial.noShowDecision.waived ? 'Waived' : `Charged ${formatEur(booking.commercial.noShowDecision.selectedChargeAmountMinor)}`}</p>
                 </div>
               )}
             </div>
@@ -548,17 +603,22 @@ interface BookingSheetProps {
   onClose: () => void;
   onBook: (sessionId: string, idempotencyKey: string) => Promise<BookingMutationResponse>;
   onMutationRejected: (message: string) => Promise<void>;
+  onStartTopUp: (amountMinor: 5000 | 10000 | 20000, bookingSessionId: string) => Promise<void>;
+  initialSessionId?: string | null;
+  onInitialSessionConsumed?: () => void;
 }
 
 type BookingStep = 'date' | 'time' | 'confirm' | 'done';
 
-function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutationRejected }: BookingSheetProps) {
+function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutationRejected, onStartTopUp, initialSessionId, onInitialSessionConsumed }: BookingSheetProps) {
   const [step, setStep] = useState<BookingStep>('date');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [shortfallMinor, setShortfallMinor] = useState<number | null>(null);
+  const [topUpAmount, setTopUpAmount] = useState<number | null>(null);
   const keyRef = useRef<string | null>(null);
   const submissionInFlight = useRef(false);
 
@@ -607,6 +667,17 @@ function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutation
     ? formatDate(selectedSessions[0].startsAt, selectedTimezone)
     : selectedDate || '';
 
+  useEffect(() => {
+    if (!initialSessionId || selectedSession || sessions.length === 0) return;
+    const initialSession = sessions.find((session) => session.id === initialSessionId);
+    if (!initialSession) return;
+    const timezone = initialSession.location?.timezone ?? DEFAULT_TIMEZONE;
+    setSelectedSession(initialSession);
+    setSelectedDate(dateKeyForValue(initialSession.startsAt, timezone));
+    setStep('confirm');
+    onInitialSessionConsumed?.();
+  }, [initialSessionId, onInitialSessionConsumed, selectedSession, sessions]);
+
   const selectDate = (key: string) => {
     setSelectedDate(key);
     setSelectedSession(null);
@@ -615,6 +686,11 @@ function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutation
 
   const submit = async () => {
     if (!selectedSession || submitting || submissionInFlight.current) return;
+    const required = balance?.pricing?.maximumHoldAmountMinor;
+    if (required !== undefined && balance && balance.availableValueMinor < required) {
+      setShortfallMinor(required - balance.availableValueMinor);
+      return;
+    }
     submissionInFlight.current = true;
     setSubmitting(true);
     setError(null);
@@ -625,6 +701,21 @@ function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutation
       setStep('done');
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'We couldn’t send your request. Please try again.';
+      if (
+        submitError instanceof ApiError &&
+        submitError.status === 409 &&
+        typeof submitError.details?.availableValueMinor === 'number' &&
+        typeof submitError.details?.requiredHoldAmountMinor === 'number'
+      ) {
+        setShortfallMinor(
+          Math.max(
+            0,
+            submitError.details.requiredHoldAmountMinor -
+              submitError.details.availableValueMinor,
+          ),
+        );
+        return;
+      }
       setError(message);
       await onMutationRejected(message);
       onClose();
@@ -760,12 +851,45 @@ function BookingSheet({ sessions, bookings, balance, onClose, onBook, onMutation
                   ))}
                 </div>
               </div>
-              {error && <p className="text-xs text-red-300/80 leading-relaxed mb-5" role="alert">{error}</p>}
+               {error && <p className="text-xs text-red-300/80 leading-relaxed mb-5" role="alert">{error}</p>}
               {balance?.pricing && (
                 <div className="mb-4 border border-amber-500/20 bg-amber-500/10 p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400/70">Maximum session cost</p>
                   <p className="mt-1 text-base font-bold text-amber-300">{formatEur(balance.pricing.maximumHoldAmountMinor)}</p>
                   <p className="mt-1 text-[11px] leading-relaxed text-amber-100/60">This amount is reserved when your request is accepted. Your final price may be lower, depending on attendance.</p>
+                </div>
+              )}
+              {shortfallMinor !== null && (
+                <div className="mb-5 border border-red-400/25 bg-red-500/[0.08] p-4" role="alert" data-testid="booking-shortfall">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-200/80">Training value shortfall</p>
+                  <p className="mt-2 text-sm font-bold text-red-100">
+                    Add at least {formatEur(shortfallMinor)} to request this session.
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-red-100/60">
+                    No booking was created. Add training value first, then return here to confirm the booking yourself.
+                  </p>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {([5000, 10000, 20000] as const).map((amountMinor) => (
+                      <button
+                        key={amountMinor}
+                        type="button"
+                        onClick={async () => {
+                          setTopUpAmount(amountMinor);
+                          try {
+                            await onStartTopUp(amountMinor, selectedSession.id);
+                          } catch (caught) {
+                            setError(caught instanceof Error ? caught.message : 'Unable to start secure checkout.');
+                            setTopUpAmount(null);
+                          }
+                        }}
+                        disabled={topUpAmount !== null}
+                        className="rounded border border-primary/30 bg-primary/10 px-2 py-2.5 text-xs font-bold text-primary disabled:opacity-50"
+                        data-testid={`booking-top-up-${amountMinor}`}
+                      >
+                        {topUpAmount === amountMinor ? <SpinnerGap className="mx-auto animate-spin" size={14} /> : `Add ${formatEur(amountMinor)}`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               <p className="text-xs text-foreground/40 leading-relaxed mb-6">Marcus will receive your request and confirm shortly. Your place is held only when the server accepts the request.</p>
@@ -1022,10 +1146,29 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
     setLoading(true);
     await Promise.all([loadData(), loadWallet()]);
   };
-  const startWalletTopUp = async (amountMinor: 5000 | 10000 | 20000) => {
+  const [bookingReturnSessionId, setBookingReturnSessionId] = useState<string | null>(null);
+  const [topUpReturnId, setTopUpReturnId] = useState<string | null>(null);
+  const refreshTopUpStatus = useCallback(async (topUpId: string) => {
+    try {
+      const status = (await apiRequest<{ topUp: TopUpStatus; terminal: boolean }>(
+        `/commercial/wallet/top-ups/${topUpId}`,
+      )).topUp;
+      setTopUpNotice(topUpStatusNotice(status));
+      await loadWallet();
+      return status;
+    } catch {
+      setTopUpNotice('We could not confirm this checkout yet. Refresh your wallet in a moment.');
+      return null;
+    }
+  }, [loadWallet]);
+  const startWalletTopUp = async (amountMinor: 5000 | 10000 | 20000, bookingSessionId?: string) => {
     const result = await apiRequest<{ checkoutUrl: string }>('/commercial/wallet/top-ups/checkout', {
       method: 'POST',
-      body: { amountMinor, idempotencyKey: createIdempotencyKey('wallet-top-up') },
+      body: {
+        amountMinor,
+        idempotencyKey: createIdempotencyKey('wallet-top-up'),
+        ...(bookingSessionId ? { bookingSessionId } : {}),
+      },
     });
     if (!result.checkoutUrl) throw new Error('Secure checkout did not return a redirect URL.');
     window.location.assign(result.checkoutUrl);
@@ -1034,25 +1177,34 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const outcome = params.get('topup');
-    let retry: number | null = null;
-    if (outcome === 'success' || outcome === 'cancelled') {
-      setTopUpNotice(
-        outcome === 'success'
-          ? 'Payment received. Your Training Wallet will update as soon as Stripe confirms it.'
-          : 'Checkout was cancelled. No training value was added.',
-      );
+    const topUpId = params.get('top_up_id');
+    const bookingSessionId = params.get('booking_session_id');
+    let poll: number | null = null;
+    const clearTopUpQuery = () => {
       params.delete('topup');
       params.delete('top_up_id');
       params.delete('session_id');
+      params.delete('booking_session_id');
       const query = params.toString();
       window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    };
+    if ((outcome === 'success' || outcome === 'cancelled') && topUpId) {
+      if (bookingSessionId) setBookingReturnSessionId(bookingSessionId);
+      setTopUpReturnId(topUpId);
+      void (async () => {
+        const status = await refreshTopUpStatus(topUpId);
+        if (status?.status === 'created' || status?.status === 'pending') {
+          poll = window.setTimeout(async () => {
+            await refreshTopUpStatus(topUpId);
+          }, 2_000);
+        }
+        clearTopUpQuery();
+      })();
     }
-    if (outcome === 'success') {
-      void loadWallet();
-      retry = window.setTimeout(() => void loadWallet(), 2_000);
-    }
-    return () => { if (retry !== null) window.clearTimeout(retry); };
-  }, [loadWallet]);
+    return () => {
+      if (poll !== null) window.clearTimeout(poll);
+    };
+  }, [refreshTopUpStatus]);
   const reconcileRejectedMutation = async (message: string) => {
     setActionError(message);
     await refreshData();
@@ -1205,7 +1357,9 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
         <div className="mx-5 mt-5 flex items-start gap-3 border border-primary/20 bg-primary/[0.06] px-4 py-3 text-sm text-white/75" role="status" data-testid="wallet-top-up-notice">
           <CheckCircle size={17} className="mt-0.5 shrink-0 text-primary" weight="fill" />
           <p className="flex-1">{topUpNotice}</p>
-          <button type="button" onClick={() => setTopUpNotice(null)} className="text-xs font-bold uppercase tracking-wider text-white/45 hover:text-white">Dismiss</button>
+          <button type="button" onClick={() => topUpReturnId ? void refreshTopUpStatus(topUpReturnId) : void loadWallet()} className="shrink-0 text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80" data-testid="refresh-wallet">Refresh wallet</button>
+          {bookingReturnSessionId && <button type="button" onClick={() => setShowBooking(true)} className="shrink-0 text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80" data-testid="return-to-booking">Return to booking</button>}
+          <button type="button" onClick={() => { setTopUpNotice(null); setTopUpReturnId(null); setBookingReturnSessionId(null); }} className="text-xs font-bold uppercase tracking-wider text-white/45 hover:text-white">Dismiss</button>
         </div>
       )}
       {bookingIntentNotice && (
@@ -1246,7 +1400,7 @@ export const Sessions = ({ setPage, openSessionId, onBookingIntentResolved }: Se
 
       <AnimatePresence>
         {detailBooking && <SessionDetail booking={detailBooking} onBack={closeDetail} />}
-        {showBooking && <><motion.div className="fixed inset-0 bg-black/70 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBooking(false)} /><BookingSheet sessions={sessions} bookings={bookings} balance={balance} onClose={() => setShowBooking(false)} onBook={createBooking} onMutationRejected={reconcileRejectedMutation} /></>}
+        {showBooking && <><motion.div className="fixed inset-0 bg-black/70 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBooking(false)} /><BookingSheet sessions={sessions} bookings={bookings} balance={balance} initialSessionId={bookingReturnSessionId} onInitialSessionConsumed={() => setBookingReturnSessionId(null)} onClose={() => setShowBooking(false)} onBook={createBooking} onMutationRejected={reconcileRejectedMutation} onStartTopUp={startWalletTopUp} /></>}
         {rescheduleBooking && <><motion.div className="fixed inset-0 bg-black/70 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!mutating) setRescheduleBooking(null); }} /><RescheduleSheet booking={rescheduleBooking} sessions={sessions} bookings={bookings} onClose={() => setRescheduleBooking(null)} onReschedule={reschedule} onMutationRejected={reconcileRejectedMutation} /></>}
         {confirmingCancel && (
           <motion.div className="fixed inset-0 bg-black/75 z-[60] flex items-center justify-center px-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-labelledby="cancel-title">

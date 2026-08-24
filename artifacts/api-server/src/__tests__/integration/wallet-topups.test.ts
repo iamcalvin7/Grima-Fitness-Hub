@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import type Stripe from "stripe";
+import request from "supertest";
 import {
   db,
   trainingValueLedgerTable,
@@ -13,8 +14,11 @@ import {
 } from "../../lib/commercial";
 import { processWalletTopUpCheckout } from "../../lib/walletTopUps";
 import {
+  app,
+  createSession,
   createTenant,
   createUser,
+  sessionCookie,
   type Tenant,
   type User,
 } from "./harness";
@@ -275,5 +279,37 @@ describe("Stripe Test Mode wallet top-up safety", () => {
     expect(clientBSummary.totalValueMinor).toBe(0);
     expect(ledger).toHaveLength(1);
     expect(ledger[0]?.clientUserId).toBe(clientA.id);
+  });
+
+  it("returns an authoritative top-up status only to the owning client", async () => {
+    const topUp = await createPendingTopUp(clientA, "status");
+    const clientAToken = (await createSession(clientA.id)).token;
+    const clientBToken = (await createSession(clientB.id)).token;
+
+    const pending = await request(app)
+      .get(`/api/commercial/wallet/top-ups/${topUp.id}`)
+      .set("Cookie", sessionCookie(clientAToken))
+      .expect(200);
+    expect(pending.body).toMatchObject({
+      terminal: false,
+      topUp: { id: topUp.id, status: "pending", amountMinor: 5_000 },
+    });
+
+    await request(app)
+      .get(`/api/commercial/wallet/top-ups/${topUp.id}`)
+      .set("Cookie", sessionCookie(clientBToken))
+      .expect(404);
+
+    await processWalletTopUpCheckout(
+      checkoutEvent(topUp, "checkout.session.expired"),
+    );
+    const expired = await request(app)
+      .get(`/api/commercial/wallet/top-ups/${topUp.id}`)
+      .set("Cookie", sessionCookie(clientAToken))
+      .expect(200);
+    expect(expired.body).toMatchObject({
+      terminal: true,
+      topUp: { status: "cancelled", failureReason: "checkout.session.expired" },
+    });
   });
 });

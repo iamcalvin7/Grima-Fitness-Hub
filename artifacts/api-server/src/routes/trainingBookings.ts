@@ -20,6 +20,7 @@ import {
   db,
   bookingCommercialsTable,
   commercialSettlementsTable,
+  commercialNoShowDecisionsTable,
   bookingsTable,
   trainingLocationsTable,
   trainingSessionsTable,
@@ -510,6 +511,12 @@ async function getBooking(
         commercialSettlementsTable.finalChargeAmountMinor,
       commercialReleasedAmountMinor: commercialSettlementsTable.releasedAmountMinor,
       commercialAttendanceCount: commercialSettlementsTable.attendanceCount,
+       commercialSettledHeldAmountMinor:
+         commercialSettlementsTable.heldAmountMinor,
+       commercialNoShowDecisionId: commercialNoShowDecisionsTable.id,
+       commercialNoShowChargeAmountMinor:
+         commercialNoShowDecisionsTable.selectedChargeAmountMinor,
+       commercialNoShowWaived: commercialNoShowDecisionsTable.waived,
     })
     .from(bookingsTable)
     .innerJoin(
@@ -554,6 +561,13 @@ async function getBooking(
         eq(commercialSettlementsTable.tenantId, bookingsTable.tenantId),
       ),
     )
+    .leftJoin(
+      commercialNoShowDecisionsTable,
+      and(
+        eq(commercialNoShowDecisionsTable.bookingId, bookingsTable.id),
+        eq(commercialNoShowDecisionsTable.tenantId, bookingsTable.tenantId),
+      ),
+    )
     .where(
       and(eq(bookingsTable.id, id), eq(bookingsTable.tenantId, tenantId)),
     )
@@ -591,10 +605,18 @@ function bookingOutput(row: Awaited<ReturnType<typeof getBooking>>) {
           settlement: row.commercialSettlementId
             ? {
                 attendanceCount: row.commercialAttendanceCount,
+                 heldAmountMinor: row.commercialSettledHeldAmountMinor,
                 finalChargeAmountMinor: row.commercialFinalChargeAmountMinor,
                 releasedAmountMinor: row.commercialReleasedAmountMinor,
               }
             : null,
+           noShowDecision: row.commercialNoShowDecisionId
+             ? {
+                 selectedChargeAmountMinor:
+                   row.commercialNoShowChargeAmountMinor,
+                 waived: row.commercialNoShowWaived,
+               }
+             : null,
         }
       : null,
     session: {

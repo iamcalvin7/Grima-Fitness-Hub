@@ -68,6 +68,7 @@ export async function createWalletTopUpCheckout(input: {
   clientUserId: string;
   amountMinor: WalletTopUpAmount;
   idempotencyKey: string;
+  bookingSessionId?: string;
 }) {
   const [client] = await db
     .select({ id: usersTable.id, email: usersTable.email })
@@ -124,6 +125,9 @@ export async function createWalletTopUpCheckout(input: {
   }
   const price = await ensureTopUpPrice(stripe, input.amountMinor);
   const baseUrl = applicationBaseUrl();
+  const bookingReturnQuery = input.bookingSessionId
+    ? `&booking_session_id=${encodeURIComponent(input.bookingSessionId)}`
+    : "";
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
@@ -131,8 +135,8 @@ export async function createWalletTopUpCheckout(input: {
       customer_email: client.email,
       client_reference_id: topUp.id,
       line_items: [{ price, quantity: 1 }],
-      success_url: `${baseUrl}/?topup=success&top_up_id=${topUp.id}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/?topup=cancelled&top_up_id=${topUp.id}`,
+      success_url: `${baseUrl}/?topup=success&top_up_id=${topUp.id}&session_id={CHECKOUT_SESSION_ID}${bookingReturnQuery}`,
+      cancel_url: `${baseUrl}/?topup=cancelled&top_up_id=${topUp.id}${bookingReturnQuery}`,
       metadata: {
         wallet_top_up_id: topUp.id,
         tenant_id: input.tenantId,
@@ -162,6 +166,38 @@ export async function createWalletTopUpCheckout(input: {
     .returning();
   if (!saved) throw new Error("Unable to save the Checkout Session.");
   return { topUp: saved, checkoutUrl: session.url, replayed: false };
+}
+
+export async function getClientWalletTopUp(
+  tenantId: string,
+  clientUserId: string,
+  topUpId: string,
+) {
+  const [topUp] = await db
+    .select({
+      id: walletTopUpsTable.id,
+      amountMinor: walletTopUpsTable.amountMinor,
+      currency: walletTopUpsTable.currency,
+      status: walletTopUpsTable.status,
+      failureReason: walletTopUpsTable.failureReason,
+      paidAt: walletTopUpsTable.paidAt,
+      createdAt: walletTopUpsTable.createdAt,
+      updatedAt: walletTopUpsTable.updatedAt,
+    })
+    .from(walletTopUpsTable)
+    .where(
+      and(
+        eq(walletTopUpsTable.id, topUpId),
+        eq(walletTopUpsTable.tenantId, tenantId),
+        eq(walletTopUpsTable.clientUserId, clientUserId),
+      ),
+    )
+    .limit(1);
+  if (!topUp) throw new WalletTopUpError(404, "Wallet top-up not found.");
+  return {
+    topUp,
+    terminal: topUp.status === "paid" || topUp.status === "failed" || topUp.status === "cancelled",
+  };
 }
 
 function paymentIntentId(session: Stripe.Checkout.Session): string | null {

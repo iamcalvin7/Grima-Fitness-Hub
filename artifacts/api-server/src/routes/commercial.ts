@@ -428,6 +428,44 @@ router.get("/admin/commercial/clients", async (req, res) => {
   }
 });
 
+router.get("/admin/commercial/clients/:id/wallet", async (req, res) => {
+  const clientUserId = uuidValue(req.params.id);
+  if (!clientUserId) {
+    res.status(400).json({ error: "Invalid client id" });
+    return;
+  }
+  try {
+    const [client] = await db
+      .select({
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        email: usersTable.email,
+      })
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.id, clientUserId),
+          eq(usersTable.tenantId, req.user!.tenantId),
+          eq(usersTable.role, "client"),
+        ),
+      )
+      .limit(1);
+    if (!client) throw new CommercialError(404, "Client not found");
+    res.json({
+      client,
+      balance: await getCommercialSummary(db, req.user!.tenantId, clientUserId),
+      activity: await getClientWalletActivity(
+        db,
+        req.user!.tenantId,
+        clientUserId,
+      ),
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to load client wallet detail");
+  }
+});
+
 router.put("/admin/commercial/clients/:id/pricing", async (req, res) => {
   const clientUserId = uuidValue(req.params.id);
   const pricingPlanId = uuidValue(req.body?.pricingPlanId);

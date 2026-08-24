@@ -106,6 +106,7 @@ describe('Sessions booking integration', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.clearAllMocks();
+    window.history.replaceState({}, '', '/');
   });
 
   it('shows a loading state before rendering real server availability', async () => {
@@ -180,10 +181,12 @@ describe('Sessions booking integration', () => {
 
   it('uses the session location timezone to make a date selectable', async () => {
     const locationTimezone = 'America/Los_Angeles';
+    const startsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    startsAt.setUTCHours(0, 30, 0, 0);
     const liveSession = {
       ...makeSession(),
-      startsAt: '2026-08-24T00:30:00.000Z',
-      endsAt: '2026-08-24T01:30:00.000Z',
+      startsAt: startsAt.toISOString(),
+      endsAt: new Date(startsAt.getTime() + 60 * 60 * 1000).toISOString(),
       location: { id: 'location-2', name: 'Pacific Studio', timezone: locationTimezone },
     };
     const locationDate = dateKey(liveSession.startsAt, locationTimezone);
@@ -273,6 +276,101 @@ describe('Sessions booking integration', () => {
     expect(body).not.toHaveProperty('clientUserId');
     expect(body).not.toHaveProperty('tenantId');
     expect(body).toHaveProperty('idempotencyKey');
+  });
+
+  it('shows the exact wallet shortfall before creating a booking', async () => {
+    const liveSession = makeSession();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response({ sessions: [liveSession] }))
+      .mockResolvedValueOnce(response({ bookings: [] }))
+      .mockResolvedValueOnce(response({
+        balance: {
+          currency: 'EUR',
+          totalValueMinor: 3000,
+          heldValueMinor: 0,
+          availableValueMinor: 3000,
+          pricing: { planName: 'Standard', maximumHoldAmountMinor: 4000 },
+        },
+      }));
+
+    renderSessions();
+    await waitForInitialLoad();
+    await openBookingFor(liveSession);
+    fireEvent.click(screen.getByTestId('confirm-booking-button'));
+
+    expect(await screen.findByTestId('booking-shortfall')).toHaveTextContent('Add at least €10.00');
+    expect(screen.getByText(/No booking was created/i)).toBeInTheDocument();
+    const bookingPosts = vi.mocked(fetch).mock.calls.filter(([url, options]) =>
+      String(url).includes('/bookings') && (options as RequestInit | undefined)?.method === 'POST',
+    );
+    expect(bookingPosts).toHaveLength(0);
+  });
+
+  it('trusts a paid top-up status over a cancelled return query and restores the selected booking', async () => {
+    const liveSession = makeSession();
+    const topUpId = '63eec346-e9d8-47eb-89dd-8f73be9e1f6a';
+    window.history.replaceState(
+      {},
+      '',
+      `/?topup=cancelled&top_up_id=${topUpId}&booking_session_id=${liveSession.id}`,
+    );
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes(`/commercial/wallet/top-ups/${topUpId}`)) {
+        return Promise.resolve(response({
+          topUp: {
+            id: topUpId,
+            amountMinor: 5000,
+            currency: 'EUR',
+            status: 'paid',
+            failureReason: null,
+            paidAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          terminal: true,
+        }));
+      }
+      if (url.includes('/training-sessions')) return Promise.resolve(response({ sessions: [liveSession] }));
+      if (url.includes('/bookings')) return Promise.resolve(response({ bookings: [] }));
+      if (url.includes('/commercial/balance')) return Promise.resolve(balanceResponse());
+      return Promise.resolve(response({}));
+    });
+
+    renderSessions();
+    expect(await screen.findByTestId('wallet-top-up-notice')).toHaveTextContent('Payment received. €50.00');
+    expect(screen.queryByText(/Checkout was cancelled/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('return-to-booking'));
+    expect(await screen.findByTestId('confirm-booking-button')).toBeInTheDocument();
+  });
+
+  it('refreshes a pending top-up return from the authoritative terminal status', async () => {
+    const topUpId = 'cb57424f-fbe9-4da5-9a9b-d4e90df79e6e';
+    let status = 'pending';
+    window.history.replaceState({}, '', `/?topup=success&top_up_id=${topUpId}`);
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes(`/commercial/wallet/top-ups/${topUpId}`)) {
+        return Promise.resolve(response({
+          topUp: {
+            id: topUpId, amountMinor: 5000, currency: 'EUR', status,
+            failureReason: status === 'failed' ? 'checkout.session.async_payment_failed' : null,
+            paidAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          },
+          terminal: status !== 'pending',
+        }));
+      }
+      if (url.includes('/training-sessions')) return Promise.resolve(response({ sessions: [] }));
+      if (url.includes('/bookings')) return Promise.resolve(response({ bookings: [] }));
+      if (url.includes('/commercial/balance')) return Promise.resolve(balanceResponse());
+      return Promise.resolve(response({}));
+    });
+
+    renderSessions();
+    expect(await screen.findByTestId('wallet-top-up-notice')).toHaveTextContent('still being confirmed');
+    status = 'failed';
+    fireEvent.click(screen.getByTestId('refresh-wallet'));
+    await waitFor(() => expect(screen.getByTestId('wallet-top-up-notice')).toHaveTextContent('Payment was not completed'));
   });
 
   it('does not show booking success when capacity is rejected by the server', async () => {
