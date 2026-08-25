@@ -12,6 +12,7 @@ import { Memberships }        from '@/pages/Memberships';
 import { Team }               from '@/pages/Team';
 import { Feed }               from '@/pages/Feed';
 import { ContentAdminGuard }  from '@/components/ContentAdminGuard';
+import { ExerciseLibraryGuard } from '@/components/ExerciseLibraryGuard';
 import { Proposal }           from '@/pages/Proposal';
 import { ClientLanding }      from '@/pages/ClientLanding';
 import { AccountSecurity }    from '@/pages/AccountSecurity';
@@ -29,14 +30,19 @@ import { LANDING_ONLY } from '@/config';
 export type Page =
   | 'home' | 'sessions' | 'workouts' | 'meals' | 'messages'
   | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team'
-  | 'security' | 'active-sessions' | 'delete-account'
+  | 'security' | 'active-sessions' | 'delete-account' | 'exercise-library'
   | 'feed' | 'content-admin';
 
 /* Standalone proposal page: lives at its own URL under the app base path. */
 export const PROPOSAL_PATH = `${import.meta.env.BASE_URL}proposal`;
+export const EXERCISE_LIBRARY_PATH = `${import.meta.env.BASE_URL}exercise-library`;
 
 function isProposalEntry(): boolean {
   return window.location.pathname.replace(/\/+$/, '') === PROPOSAL_PATH.replace(/\/+$/, '');
+}
+
+function isExerciseLibraryEntry(): boolean {
+  return window.location.pathname.replace(/\/+$/, '') === EXERCISE_LIBRARY_PATH.replace(/\/+$/, '');
 }
 
 /* ── Query-parameter entry points ─────────────────────────────────────── */
@@ -104,7 +110,7 @@ function App() {
 function FullApp() {
   const { isLoading, isAuthenticated, isProfileLoading, profile, user, signOut } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
-  const [activePage,    setActivePage]    = useState<Page>('home');
+  const [activePage,    setActivePage]    = useState<Page>(() => isExerciseLibraryEntry() ? 'exercise-library' : 'home');
   const [sessionFocus,  setSessionFocus]  = useState<string | number | undefined>(undefined);
   const [bookingIntent, setBookingIntent] = useState<BookingIntent | null>(() => readBookingIntent());
 
@@ -138,6 +144,16 @@ function FullApp() {
     }
   }, [isLoading, isAuthenticated, authResolved]);
 
+  // The Exercise Library has a stable URL while the rest of Marcus HQ uses
+  // in-app page state. Keep browser back/forward navigation in sync with it.
+  useEffect(() => {
+    const syncPageFromHistory = () => {
+      setActivePage(isExerciseLibraryEntry() ? 'exercise-library' : 'home');
+    };
+    window.addEventListener('popstate', syncPageFromHistory);
+    return () => window.removeEventListener('popstate', syncPageFromHistory);
+  }, []);
+
   // If the session ends (logout or expiry detected), fall back to onboarding.
   useEffect(() => {
     if (authResolved && !isAuthenticated && enteredApp) {
@@ -170,6 +186,11 @@ function FullApp() {
     if (page !== 'sessions') {
       setSessionFocus(undefined);
       if (bookingIntent) resolveBookingIntent();
+    }
+    if (page === 'exercise-library') {
+      window.history.pushState({}, '', EXERCISE_LIBRARY_PATH);
+    } else if (window.location.pathname.replace(/\/+$/, '') === EXERCISE_LIBRARY_PATH.replace(/\/+$/, '')) {
+      window.history.pushState({}, '', import.meta.env.BASE_URL);
     }
     setActivePage(page);
   };
@@ -262,6 +283,12 @@ function FullApp() {
     return <Proposal />;
   }
 
+  /* Standalone Exercise Library URL is guarded before the protected page mounts. */
+  if (isExerciseLibraryEntry() && user?.role !== 'admin') {
+    window.location.replace(import.meta.env.BASE_URL);
+    return null;
+  }
+
   /* ── Main app ────────────────────────────────────────────────────────── */
 
   /* Full-screen security sub-pages: rendered outside Layout to avoid nav. */
@@ -311,6 +338,7 @@ function FullApp() {
       {activePage === 'memberships' && <Memberships setPage={handleSetPage} />}
       {activePage === 'team'          && <Team />}
       {activePage === 'feed'          && <Feed />}
+      <ExerciseLibraryGuard activePage={activePage} setActivePage={handleSetPage} user={user} />
       <ContentAdminGuard activePage={activePage} setActivePage={handleSetPage} user={user} />
     </Layout>
   );

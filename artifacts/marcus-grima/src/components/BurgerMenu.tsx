@@ -93,6 +93,14 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
           accent: '#4ade80',
           badge: undefined as string | undefined,
         },
+        {
+          id: 'exercise-library' as Page,
+          label: 'Exercise Library',
+          sub: 'Build the approved movement catalogue',
+          icon: <Dumbbell size={26} weight="fill" />,
+          accent: '#4ade80',
+          badge: undefined as string | undefined,
+        },
       ]
     : MENU_ITEMS;
 
