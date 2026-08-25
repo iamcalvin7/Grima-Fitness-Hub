@@ -1,0 +1,303 @@
+# VALIDATION — Gate 2B Marcus Exercise Library UI
+
+## Prompt classification
+
+* **Prompt type:** VALIDATION
+* **Gate:** Gate 2B — Marcus Exercise Library UI
+* **Mode:** Independent, read-only validation
+* **Implementation changes:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Production/deployment:** Not authorized
+* **Next gate:** Must not start
+
+## Objective
+
+Independently validate Task #44 against the approved Gate 2B build prompt and the authoritative Gate 2A API contract.
+
+Do not rely only on the build report. Inspect the actual diff, implementation, tests, builds, and available runtime behavior.
+
+If a defect is found, report it without fixing it. A separate **FIX** prompt will be issued.
+
+## Permitted actions
+
+You may:
+
+* Inspect source, Git status, and diffs.
+* Run existing tests, typechecks, and builds.
+* Inspect API contracts and capabilities.
+* Use the existing development preview.
+* Use an existing safe Marcus/admin session if one is already available.
+* Perform read-only browser inspection.
+* Conduct an independent code and accessibility review.
+
+You must not:
+
+* Edit files.
+* Add tests or fix defects.
+* Change accounts, roles, permissions, schema, migrations, or data.
+* Forge an admin session.
+* Create exercise records during validation.
+* Access production.
+* Deploy or publish.
+* Begin the next gate.
+
+---
+
+## 1. Scope and file ledger
+
+Confirm the implementation is limited to:
+
+* Exercise Library route and page
+* Marcus/admin navigation
+* Frontend guard
+* BodyMap-compatible selection
+* Focused frontend tests
+
+Confirm no changes occurred to:
+
+* Database schema or migrations
+* Gate 2A API behavior
+* Programmes or workout templates
+* Workout execution
+* Alternatives
+* Personal bests
+* Progressive overload
+* AI
+* Booking, wallet, commercial, notifications, or profile behavior
+* Production/deployment configuration
+
+Report the exact tracked and untracked file ledger and run `git diff --check`.
+
+---
+
+## 2. Authorization and navigation
+
+Validate:
+
+* `/exercise-library` is stable across direct navigation and browser back/forward.
+* Desktop Sidebar exposes it only to authorized admin users.
+* Mobile Burger Menu follows the same rule.
+* Client and legacy-trainer users cannot access the management screen.
+* The route guard fails closed while auth state is loading or unavailable.
+* Direct URL access does not briefly expose protected management content.
+* Frontend protection does not replace server authorization.
+* No role or tenant identity is accepted from form state.
+
+---
+
+## 3. API-contract adherence
+
+Compare every request and response used by the page with the actual Gate 2A API.
+
+Confirm:
+
+* Correct admin list and detail endpoints
+* Correct create and patch payloads
+* Correct activate, archive, and restore endpoints
+* Correct pagination and filter parameters
+* Only the six approved performance types
+* Only canonical server muscle keys
+* Correct equipment structure
+* Correct media-reference behavior
+* Current version included in mutations
+* `409` conflicts handled without automatic overwrite
+* No static programme data or browser storage used as authority
+* No invented frontend-only persistent fields
+
+---
+
+## 4. Catalogue experience
+
+Validate the server-backed list for:
+
+* Loading
+* Empty catalogue
+* No search results
+* API failure and retry
+* Search
+* Status filter
+* Performance-type filter
+* Muscle filter
+* Equipment filter
+* Filter clearing
+* Pagination
+* Draft, active, and archived distinctions
+* Missing or broken media
+* Long names and metadata
+
+Confirm status is not communicated through colour alone.
+
+---
+
+## 5. Create and edit flows
+
+Validate:
+
+* New exercises are created as drafts.
+* Creation does not automatically activate.
+* Duplicate submissions are prevented.
+* Backend validation is presented clearly.
+* Recoverable errors preserve entered values.
+* Existing records load from the server.
+* Save and activate remain separate actions.
+* Successful mutations refresh the current version.
+* Unsaved-change protection covers editor closing, refresh, and relevant navigation.
+* Raw database or internal errors are never displayed.
+
+---
+
+## 6. BodyMap, muscle, equipment, and performance metadata
+
+Confirm:
+
+* Existing BodyMap vocabulary is adapted to canonical server keys.
+* No second muscle vocabulary was introduced.
+* Primary and secondary muscles remain distinguishable.
+* Duplicate mappings are prevented.
+* BodyMap and form controls remain synchronized.
+* Front/back views work.
+* Non-visual accessible controls exist.
+* Keyboard and touch interaction remain possible.
+* Equipment duplicates are prevented.
+* Performance types retain their approved distinctions.
+* No personal-best or workout-logging logic was added.
+
+---
+
+## 7. Lifecycle and concurrency
+
+Inspect implementation and directly run the focused tests proving:
+
+* Complete draft activation succeeds.
+* Incomplete activation returns readable validation feedback.
+* Archive requires confirmation.
+* Archive reason cannot be empty.
+* Confirmed archive sends the reason.
+* Archived exercise restores to draft.
+* Lifecycle actions use the current version.
+* Lifecycle `409` preserves the editor and displays an explicit reload option.
+* Conflicting changes are not silently merged or retried.
+* The UI does not claim success before server confirmation.
+
+---
+
+## 8. Responsive and accessibility review
+
+Review desktop, tablet, and narrow-mobile behavior through available deterministic rendering or browser inspection.
+
+Check:
+
+* No unintended horizontal scrolling
+* Touch-friendly controls
+* Long-content handling
+* Visible focus states
+* Programmatically associated labels
+* Accessible names for icon-only actions
+* Keyboard-operable dialogs and BodyMap controls
+* Dialog focus management
+* Status not conveyed only by colour
+* Useful loading and error announcements
+* No hover-only critical actions
+
+Report any accessibility or visual defect with severity.
+
+---
+
+## 9. Test and build verification
+
+Run and report exact results for:
+
+* Focused Exercise Library tests
+* Complete frontend regression suite
+* Complete API regression suite
+* Client typecheck
+* API typecheck
+* Client production build
+* API production build
+* `git diff --check`
+
+Confirm required lifecycle tests are part of the committed Gate 2B suite and not deferred follow-up work.
+
+Do not modify code if anything fails.
+
+---
+
+## 10. Runtime qualification
+
+Attempt only safe, authorized runtime verification.
+
+If an existing Marcus/admin session is available, inspect:
+
+* Navigation entry
+* Catalogue page rendering
+* Responsive layout
+* Console errors
+* Read-only loading behavior
+
+Do not create or mutate exercises during validation.
+
+If no admin session is safely available:
+
+* Do not create an account.
+* Do not change a role.
+* Do not forge authentication.
+* Confirm the unauthenticated/member boundary.
+* Use deterministic tests and source inspection for the authenticated UI.
+* Explicitly record that a real authenticated Marcus browser walkthrough remains unperformed.
+* Decide whether this is a blocking defect or a documented validation limitation, with reasoning.
+
+Do not describe an unavailable browser flow as verified.
+
+---
+
+## 11. Independent review
+
+Perform an independent review covering:
+
+* Capability and route guarding
+* API-contract accuracy
+* Lifecycle correctness
+* Concurrency handling
+* BodyMap vocabulary consistency
+* Accessibility
+* Responsive behavior
+* Unsaved-data protection
+* Scope leakage
+* Regression risk
+
+List every finding with:
+
+* Severity
+* Evidence
+* Blocking status
+
+Do not fix findings.
+
+---
+
+## Required final report
+
+Return:
+
+1. Prompt classification
+2. Scope and file ledger
+3. Navigation and authorization result
+4. API-contract result
+5. Catalogue experience result
+6. Create/edit result
+7. BodyMap and metadata result
+8. Lifecycle and concurrency result
+9. Responsive and accessibility result
+10. Tests, typechecks, and builds
+11. Runtime result and admin-session qualification
+12. Independent-review findings
+13. Remaining risks or deferred work
+14. Production/deployment confirmation
+15. Final verdict
+
+The verdict must be exactly one of:
+
+* `PASS — GATE 2B COMPLETE`
+* `BLOCKED — GATE 2B FIX REQUIRED`
+
+Do not start the next gate.
