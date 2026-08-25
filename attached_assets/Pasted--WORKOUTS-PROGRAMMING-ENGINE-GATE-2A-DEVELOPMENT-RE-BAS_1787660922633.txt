@@ -1,0 +1,274 @@
+# WORKOUTS & PROGRAMMING ENGINE — GATE 2A DEVELOPMENT RE-BASELINE
+
+## PROMPT CLASSIFICATION
+
+**Prompt type:** FIX
+**Scope:** Development-only exercise migration re-baseline
+**Changes allowed:** YES — exact scope below
+**Risk level:** AMBER — controlled empty development schema reset
+**Production access:** Not authorised
+**Production migration:** Not authorised
+**Deployment/publishing:** Not authorised
+**Gate 2B:** Not authorised
+
+The original pre-amendment `0011` cannot be recovered. Do not continue Task #43 and do not roll back the entire checkpoint.
+
+The exercise tables contain zero records, the migration has not reached production, and the final migration is reproducible. Therefore, authorisation is granted to re-baseline only the empty Gate 2A exercise schema and its development-ledger entries.
+
+Preserve the completed exercise application implementation.
+
+---
+
+## 1. Mandatory preconditions
+
+Before changing anything, verify again:
+
+* `exercises` contains exactly 0 records.
+* `exercise_muscles` contains exactly 0 records.
+* `exercise_equipment` contains exactly 0 records.
+* No programme, workout or other persistent table references these exercise tables.
+* No production database has received `0011` or `0012`.
+* No shared external environment has received `0011` or `0012`.
+* No exercise catalogue data needs preservation.
+* The final Drizzle schema is correct.
+* The final intended `0011` cleanly creates the complete version-aware schema.
+* The working tree contains only the two authorised migration changes and user-provided prompt attachments.
+
+Stop without mutation if any precondition fails.
+
+---
+
+## 2. Backup
+
+Before the development reset:
+
+1. Create a fresh development database backup using the established project process.
+2. Record:
+
+   * Backup name
+   * Timestamp
+   * Size
+   * Non-empty verification
+3. Verify the backup completed successfully.
+4. Store it outside the Git working tree.
+5. Do not expose credentials in logs or the report.
+
+Do not continue if backup creation or verification fails.
+
+---
+
+## 3. Canonical source migration
+
+Make the final migration history:
+
+```text
+0011_exercise_catalogue.sql
+```
+
+`0011` must contain the complete final Gate 2A schema, including:
+
+* Five exercise enums
+* Exercises table
+* Exercise-muscle table
+* Exercise-equipment table
+* Version column
+* Version default
+* Version positivity constraint
+* Tenant-safe foreign keys
+* Canonical-key checks
+* Unique constraints
+* Required indexes
+
+Remove:
+
+```text
+0012_exercise_catalogue_concurrency_version.sql
+```
+
+The resulting source migration directory must contain the canonical sequence:
+
+```text
+0001 → 0011
+```
+
+Do not modify migrations `0001` through `0010`.
+
+The final `0011` becomes immutable after this re-baseline.
+
+---
+
+## 4. Exact development reset
+
+Perform the reset transactionally and only after all preconditions and backup checks pass.
+
+The reset may target only:
+
+```text
+exercise_equipment
+exercise_muscles
+exercises
+```
+
+and their dedicated exercise enums:
+
+```text
+exercise_status
+exercise_performance_type
+exercise_difficulty
+exercise_laterality
+exercise_muscle_role
+```
+
+It may also remove exactly these development migration-ledger entries:
+
+```text
+0011_exercise_catalogue.sql
+0012_exercise_catalogue_concurrency_version.sql
+```
+
+Rules:
+
+* Do not drop any other table.
+* Do not drop any other enum.
+* Do not delete any other migration-ledger entry.
+* Preserve the two pre-existing legacy ledger entries.
+* Do not reset the full development database.
+* Do not use a broad checkpoint rollback.
+* Do not alter booking, wallet, notification, profile, session or commercial records.
+* Abort if an exercise table or enum has an unexpected external dependency.
+* Abort if any exercise table becomes non-empty before execution.
+* Log the exact targets before executing the transaction.
+* Confirm the transaction affected only the approved objects.
+
+---
+
+## 5. Reapply canonical `0011`
+
+After the exact reset:
+
+1. Run the established migration runner.
+2. Allow it to apply the final canonical `0011`.
+3. Confirm the ledger records `0011` exactly once.
+4. Confirm no `0012` ledger row remains.
+5. Confirm no manual SQL is required after the runner.
+6. Confirm all exercise tables remain empty.
+7. Confirm the application implementation continues to match the schema.
+
+The two legacy ledger entries remain documented pre-existing history. Do not delete or rewrite them.
+
+---
+
+## 6. Reproducibility verification
+
+Using an isolated disposable schema or database:
+
+1. Apply the current source migration chain `0001` through canonical `0011`.
+2. Confirm all migrations succeed in order.
+3. Confirm the final disposable schema matches development.
+4. Confirm both match the Drizzle declarations.
+5. Confirm the version column is:
+
+   * Integer
+   * Non-null
+   * Default `1`
+   * Protected by the positive constraint
+6. Confirm all expected foreign keys, checks, unique constraints and indexes.
+7. Confirm no `0012` dependency exists.
+8. Drop only the disposable validation environment.
+
+---
+
+## 7. Tests and builds
+
+Run:
+
+* Exercise unit tests
+* Exercise integration tests
+* Concurrency tests
+* Full API regression suite
+* API typecheck
+* Client typecheck
+* API production build
+* Client production build with required build environment values
+* API runtime restart
+* Unauthenticated exercise-boundary check
+* Diff hygiene
+* Working-tree inspection
+
+Report exact pass/fail totals.
+
+Do not fix unrelated failures under this prompt.
+
+---
+
+## 8. Independent review
+
+Request an independent review focused on:
+
+* Backup evidence
+* Exact reset targets
+* Confirmation that all three exercise tables were empty
+* Confirmation that no external foreign keys existed
+* Canonical `0011` completeness
+* Removal of `0012`
+* Exact ledger changes
+* Development/disposable/Drizzle parity
+* Absence of unrelated data or source changes
+* Confirmation that no production environment was touched
+
+Any blocking or high-severity finding prevents completion.
+
+---
+
+## 9. Required completion report
+
+Return:
+
+1. Prompt classification
+2. Why re-baselining was selected
+3. Preconditions and results
+4. Backup evidence
+5. Record counts before reset
+6. External-dependency inspection
+7. Exact database objects removed
+8. Exact ledger rows removed
+9. Exact source migration changes
+10. Canonical `0011` summary
+11. Development reapplication result
+12. Final development ledger
+13. Clean replay result
+14. Development/disposable/Drizzle parity
+15. Record counts after reapplication
+16. Test results
+17. Build results
+18. Runtime result
+19. Independent-review verdict
+20. Exact file ledger
+21. Working-tree status
+22. Legacy-ledger qualification
+23. Confirmation that no exercise application behavior changed
+24. Confirmation that no unrelated data was changed
+25. Confirmation that no production, deployment or publishing action occurred
+26. Confirmation that Gate 2B did not start
+
+End with exactly one verdict:
+
+**READY FOR GATE 2A RE-VALIDATION**
+
+or
+
+**BLOCKED — PRECONDITION FAILED**
+
+or
+
+**BLOCKED — BACKUP FAILED**
+
+or
+
+**BLOCKED — RE-BASELINE FAILED**
+
+or
+
+**BLOCKED — SCOPE OR ENVIRONMENT**
+
+Do not begin Gate 2B.

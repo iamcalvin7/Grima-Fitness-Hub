@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS exercises (
   name TEXT NOT NULL,
   slug TEXT NOT NULL,
   status exercise_status NOT NULL DEFAULT 'draft',
+  version INTEGER NOT NULL DEFAULT 1,
   performance_type exercise_performance_type,
   movement_pattern TEXT,
   laterality exercise_laterality,
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     FOREIGN KEY (tenant_id, updated_by_user_id) REFERENCES users(tenant_id, id),
   CONSTRAINT exercises_default_rest_bounds
     CHECK (default_rest_seconds IS NULL OR (default_rest_seconds > 0 AND default_rest_seconds <= 3600)),
+  CONSTRAINT exercises_version_positive CHECK (version > 0),
   CONSTRAINT exercises_slug_format
     CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
 );
