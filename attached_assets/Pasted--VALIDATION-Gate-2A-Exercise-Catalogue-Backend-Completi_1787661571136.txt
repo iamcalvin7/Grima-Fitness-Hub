@@ -1,0 +1,304 @@
+# VALIDATION — Gate 2A Exercise Catalogue Backend Completion
+
+## Prompt classification
+
+* **Prompt type:** VALIDATION
+* **Gate:** Gate 2A — Exercise Catalogue Backend
+* **Mode:** Independent, read-only validation
+* **Implementation changes:** Not authorized
+* **Development-schema changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+* **Gate 2B:** Must not start
+
+## Objective
+
+Independently validate the completed Gate 2A Exercise Catalogue Backend and its development-only migration re-baseline.
+
+Do not rely solely on previous reports. Inspect the actual repository, migration chain, development schema, API implementation, tests, builds, and working-tree diff.
+
+This prompt authorizes inspection and validation only.
+
+## Permitted actions
+
+You may:
+
+* Inspect source files and Git history/status/diffs.
+* Inspect the development migration ledger and physical schema.
+* Run existing typechecks, tests, builds, and non-destructive diagnostic commands.
+* Replay migrations in a new disposable validation schema.
+* Drop only the disposable schema you created.
+* Inspect runtime logs and authenticated/unauthenticated API boundaries.
+* Use an independent reviewer or task agent for read-only review.
+
+You must not:
+
+* Edit, create, delete, rename, or format repository files.
+* Repair or amend migrations.
+* Modify the existing development schema or ledger.
+* Seed or alter exercise records.
+* Access production or shared external environments.
+* Deploy or publish.
+* Start Gate 2B.
+* Convert a discovered problem into an implementation fix during this validation.
+
+If any problem is found, stop and report it. A separate **FIX** prompt will be issued.
+
+---
+
+# 1. Validate scope and working-tree hygiene
+
+Confirm:
+
+* Gate 2A changes remain limited to the exercise-catalogue backend foundation.
+* No frontend workout or Marcus exercise-management UI was added.
+* No programme, workout-template, assignment, workout-session, completed-set, personal-best, progression, alternative-exercise, or AI domain was started.
+* No booking, attendance, wallet, commercial, Stripe, notification, profile, or session behavior was changed.
+* No production or deployment configuration was changed.
+* The user-provided attached prompt is not treated as product source.
+* `git diff --check` passes.
+* There are no unexplained source changes or temporary validation files.
+
+Report the exact tracked and untracked file ledger.
+
+---
+
+# 2. Validate the canonical migration chain
+
+Inspect the source migration directory and confirm:
+
+* The current canonical chain ends at `0011_exercise_catalogue.sql`.
+* `0011_exercise_catalogue.sql` contains the complete final exercise schema.
+* The exercise `version` column is created by `0011` as:
+
+  * `INTEGER`
+  * `NOT NULL`
+  * Default `1`
+* `0011` creates exactly one positive-version constraint.
+* `0012_exercise_catalogue_concurrency_version.sql` does not exist.
+* No source file or script still references the removed `0012`.
+* Migrations `0001` through `0010` were not altered as part of the re-baseline.
+
+Inspect the development migration ledger and confirm:
+
+* Every current source migration from `0001` through `0011` is recorded.
+* `0011_exercise_catalogue.sql` appears exactly once.
+* `0012_exercise_catalogue_concurrency_version.sql` is absent.
+* The two documented legacy ledger names remain preserved:
+
+  * `0006_booking_notification_context.sql`
+  * `0007_class_close_dynamic_pricing.sql`
+* Those legacy rows do not replace, obscure, or prevent the complete current source chain.
+
+Do not modify the ledger.
+
+---
+
+# 3. Validate physical-schema parity
+
+Compare all three representations:
+
+1. Drizzle exercise declarations
+2. Current development physical schema
+3. A clean disposable replay of migrations `0001 → 0011`
+
+Confirm parity for:
+
+* Exercise tables
+* Exercise enums
+* Columns and data types
+* Nullability
+* Defaults
+* Primary keys
+* Unique constraints
+* Check constraints
+* Composite tenant-safe foreign keys
+* Indexes
+* Exercise version definition
+* Muscle mappings
+* Equipment mappings
+
+Specifically confirm:
+
+* Three exercise tables exist.
+* Five exercise enums exist.
+* Exercise version is positive, integer, non-null, and defaults to `1`.
+* The positive-version constraint exists exactly once.
+* No duplicate or differently named version-related constraint introduces conflicting behavior.
+* No external persistent table, view, or foreign key unexpectedly depends on the exercise tables.
+* Tenant-safe relationships cannot connect records across tenants.
+
+Create any replay schema with a unique validation-only name and remove it after inspection. Do not modify the existing development schema.
+
+---
+
+# 4. Validate exercise-domain behavior
+
+Inspect the actual implementation and confirm that Gate 2A provides:
+
+* Stable, tenant-owned exercise identities.
+* Marcus/admin exercise creation and management endpoints.
+* Draft, active, and archived lifecycle behavior.
+* Required activation validation.
+* Approved performance types.
+* Muscle and equipment mappings.
+* Canonical body-map muscle keys.
+* Admin and client response projections separated at the API boundary.
+* Client reads exposing only permitted active exercises.
+* Search and filter behavior supported by the implemented contract.
+* Stable validation and conflict responses.
+* No browser storage acting as authority.
+* No dependency on the bundled frontend programme catalogue.
+
+Confirm nullable draft fields cannot allow an incomplete exercise to become active.
+
+---
+
+# 5. Validate authentication, authorization, and tenant isolation
+
+Confirm server-side enforcement for:
+
+* Authentication on all exercise routes.
+* Exercise-management capabilities on Marcus/admin mutations.
+* Client inability to create, edit, activate, archive, or restore exercises.
+* Server-derived tenant ownership.
+* Cross-tenant exercise access returning no unauthorized data.
+* Cross-tenant mutation being rejected.
+* Cross-tenant muscle or equipment mappings being impossible.
+* Direct payload attempts to override tenant or owner identifiers being ignored or rejected.
+* Capability checks failing closed.
+
+Do not accept frontend role gates as proof of authorization.
+
+---
+
+# 6. Validate lifecycle, auditing, and transactional behavior
+
+Confirm:
+
+* Create, update, activate, archive, and restore operations follow the approved lifecycle.
+* Required audit records are written for management mutations.
+* Audit failure rolls back the associated mutation.
+* Exercise and child-mapping changes are atomic.
+* Duplicate tenant/slug conflicts return the intended stable response.
+* Invalid status transitions are rejected.
+* Archived exercises are handled consistently by admin and client projections.
+
+Verify these behaviors through existing tests and direct source inspection.
+
+---
+
+# 7. Validate concurrency protection
+
+Inspect and validate the database-backed monotonic exercise-version mechanism.
+
+Confirm:
+
+* Every successful exercise mutation increments the version atomically.
+* Stale updates return a conflict response.
+* Scalar and mapping updates cannot both silently overwrite each other.
+* Lifecycle transitions use the same compare-and-set protection.
+* Activation validates the same version it commits.
+* A concurrent invalidating edit and activation cannot produce an incomplete active exercise.
+* Losing concurrent requests do not produce audit records or partial child-mapping changes.
+* The version column and constraint used by the application are created entirely by canonical `0011`.
+
+Run the existing deterministic concurrency tests.
+
+---
+
+# 8. Run complete verification
+
+Run the established project commands for:
+
+* Full API unit and integration regression suite
+* API typecheck
+* Client typecheck
+* API production build
+* Client production build
+* Diff hygiene
+
+Use the required non-runtime client build environment values if the Vite configuration requires them.
+
+Report:
+
+* Exact commands
+* Passed and failed test totals
+* Typecheck results
+* Build results
+* Any warnings
+* Whether failures are implementation failures or environment-only failures
+
+Do not modify source to make validation pass.
+
+---
+
+# 9. Runtime boundary check
+
+Without changing application behavior, confirm:
+
+* The API starts successfully on the final build.
+* Migrations complete without attempting to apply `0012`.
+* No exercise migration or schema error appears in runtime logs.
+* Unauthenticated `GET /api/exercises` returns the expected authentication failure.
+* No secret, token, credential, or sensitive connection value is included in the report.
+
+Do not deploy or access production.
+
+---
+
+# 10. Independent review
+
+Perform an independent review focused on:
+
+* Migration reproducibility
+* Schema parity
+* Tenant isolation
+* Capability enforcement
+* Lifecycle correctness
+* Transactional auditing
+* Concurrent mutation safety
+* Client/admin projection safety
+* Scope leakage
+* Regression risk
+
+Report every finding with:
+
+* Severity
+* Evidence
+* Whether it blocks Gate 2A completion
+
+Do not fix findings during this prompt.
+
+---
+
+# Required final report
+
+Return a structured validation report containing:
+
+1. Prompt classification
+2. Scope and file-ledger result
+3. Canonical migration-chain result
+4. Development-ledger result
+5. Clean-replay result
+6. Physical-schema and Drizzle parity
+7. Exercise-domain behavior result
+8. Authentication and capability result
+9. Tenant-isolation result
+10. Lifecycle and audit result
+11. Concurrency result
+12. Tests, typechecks, and builds
+13. Runtime result
+14. Independent-review findings
+15. Remaining risks or technical debt
+16. Production/deployment confirmation
+17. Gate verdict
+
+The verdict must be exactly one of:
+
+* `PASS — GATE 2A COMPLETE`
+* `BLOCKED — GATE 2A FIX REQUIRED`
+
+A pass requires all blocking checks to succeed.
+
+Do not begin Gate 2B even if Gate 2A passes.
