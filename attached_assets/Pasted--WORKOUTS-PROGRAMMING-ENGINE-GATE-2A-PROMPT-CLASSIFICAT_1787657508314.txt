@@ -1,0 +1,641 @@
+# WORKOUTS & PROGRAMMING ENGINE — GATE 2A
+
+## PROMPT CLASSIFICATION
+
+**Prompt type:** BUILD
+**Feature:** Exercise Catalogue Backend Foundation
+**Changes allowed:** YES — approved development scope only
+**Risk level:** AMBER
+**Production access:** Not authorised
+**Production migration:** Not authorised
+**Publishing/deployment:** Not authorised
+**Next gate:** Not authorised
+
+This is the first implementation gate.
+
+Build only the server-authoritative exercise-catalogue foundation. Do not build Marcus UI, client workout UI, programmes, workout logging, alternatives, personal bests, progression or AI.
+
+Follow the Universal Product & App Build Operating System and the approved Gate 1 specification and finalisation addendum.
+
+---
+
+## 1. Required pre-build inspection
+
+Before editing:
+
+1. Inspect the current working tree.
+2. Identify any existing unrelated or overlapping changes.
+3. Confirm the latest migration number.
+4. Reinspect:
+
+   * Database schema conventions
+   * Tenant-safe composite foreign keys
+   * Capability vocabulary and role mappings
+   * API router registration
+   * Request-validation patterns
+   * Audit-log helpers
+   * Integration-test setup
+   * Existing exercise and BodyMap terminology
+5. Confirm the smallest safe implementation surface.
+
+Stop before implementation if:
+
+* Unrelated changes overlap the required files.
+* The migration state differs materially from Gate 0.
+* The existing tenant or capability architecture has changed.
+* A persistent exercise domain now exists elsewhere.
+* The approved schema cannot follow existing database conventions.
+* Production access would be required.
+
+Report the blocker without changing files if any stop condition applies.
+
+---
+
+## 2. Scope
+
+Build the backend foundation for a tenant-owned exercise catalogue.
+
+This gate includes:
+
+* Exercise database schema
+* Exercise-muscle mappings
+* Exercise-equipment mappings
+* Exercise lifecycle
+* Exercise performance types
+* Tenant-safe constraints and indexes
+* Exercise capabilities
+* Authenticated client read API
+* Marcus/admin management API
+* Server-side validation
+* Audit events
+* Development migration
+* Unit and integration tests
+* Physical development-schema verification
+
+This gate does not include:
+
+* Marcus Exercise Library UI
+* Client exercise-search UI
+* Exercise alternatives
+* Comparable exercise families
+* Programme creation
+* Workout templates
+* Programme versions
+* Assignments
+* Workout execution
+* Personal workouts
+* Workout history
+* Personal bests
+* Progression
+* Training limitations
+* AI generation
+* Static programme import
+* Media upload infrastructure
+* Home or BodyMap integration
+* Notifications
+* Analytics
+* Paid programme access
+
+Do not modify the existing Workouts frontend or replace its static data during Gate 2A.
+
+---
+
+## 3. Exercise domain
+
+Create an additive tenant-owned exercise domain following existing Drizzle/PostgreSQL conventions.
+
+Recommended schema module:
+
+```text
+lib/db/src/schema/exercises.ts
+```
+
+Use the actual project naming conventions if they differ.
+
+### 3.1 Exercise record
+
+The exercise record must support:
+
+* UUID identity
+* Tenant ownership
+* Name
+* Tenant-unique slug
+* Lifecycle status
+* Performance type
+* Movement pattern
+* Unilateral/bilateral classification
+* Description
+* Client-visible instructions
+* Difficulty
+* Default rest duration
+* Client-visible safety notes
+* Internal Marcus notes
+* Optional media reference
+* Created-by actor
+* Updated-by actor
+* Created timestamp
+* Updated timestamp
+
+Lifecycle:
+
+```text
+draft → active → archived
+archived → draft → active
+```
+
+Rules:
+
+* A restored exercise returns to `draft`.
+* Activation requires explicit validation.
+* No hard-delete API is permitted.
+* Archived exercises remain readable through Marcus/admin APIs.
+* Archived exercises are excluded from normal client discovery.
+* UUID is the authoritative exercise identity.
+* Slug must be unique within the tenant.
+* Slug may change while draft.
+* Once activated, slug should remain stable unless a separately audited administrative correction is required.
+
+Adapt nullable fields carefully so draft creation is practical, while activation still requires a complete valid record.
+
+### 3.2 Performance types
+
+Support exactly these version-one performance types:
+
+```text
+weight_reps
+bodyweight_reps
+added_weight_reps
+assisted_reps
+duration
+distance_time
+```
+
+The API must reject unknown performance types.
+
+This gate does not calculate PBs, but the exercise type must be suitable for later performance-specific validation.
+
+### 3.3 Difficulty
+
+Use an explicit validated value consistent with the existing project’s enum conventions.
+
+Recommended values:
+
+```text
+beginner
+intermediate
+advanced
+```
+
+If the current app already has a stronger compatible vocabulary, document and reuse it rather than creating a competing one.
+
+### 3.4 Exercise-muscle mappings
+
+Create a tenant-safe child model supporting:
+
+* Exercise
+* Muscle key
+* Role:
+
+  * `primary`
+  * `secondary`
+* Creation timestamp
+
+Requirements:
+
+* A muscle may appear only once per exercise.
+* Every active exercise requires at least one primary muscle.
+* Child and parent must belong to the same tenant.
+* Use a canonical server-side muscle vocabulary.
+* Inspect current `BodyMap` and programme terminology when defining the initial vocabulary.
+* Do not modify `BodyMap` in this gate.
+* Report legacy muscle terms that do not map cleanly.
+* Do not silently merge ambiguous terms.
+
+### 3.5 Exercise-equipment mappings
+
+Create a tenant-safe child model supporting:
+
+* Exercise
+* Normalised equipment key
+* Whether the equipment is required
+* Creation timestamp
+
+Requirements:
+
+* The same equipment key may appear only once per exercise.
+* Equipment keys must be normalised and non-empty.
+* Child and parent must belong to the same tenant.
+* Do not build a separate equipment-management interface in this gate.
+
+### 3.6 Media
+
+Do not introduce a media provider or upload system.
+
+If the schema contains an optional media reference:
+
+* Follow existing safe asset/path conventions.
+* Keep the field nullable.
+* Validate its format.
+* Do not fetch or verify external media during this gate.
+* Do not create an unsupported foreign key to a nonexistent asset table.
+
+Document the chosen approach.
+
+---
+
+## 4. Activation validation
+
+An exercise may become active only when:
+
+* It has a non-empty name.
+* It has a valid tenant-unique slug.
+* It has a valid performance type.
+* It has a movement pattern.
+* It has client-visible instructions.
+* It has a valid difficulty.
+* It has at least one primary muscle.
+* All muscle and equipment mappings belong to the same tenant.
+* Default rest, when present, is positive and within a reasonable validated bound.
+* Required fields satisfy database and API constraints.
+
+Activation must be transactional.
+
+A failed activation must leave the exercise in draft state.
+
+---
+
+## 5. Capabilities and authorization
+
+Extend the existing capability vocabulary without changing unrelated capability behavior.
+
+Required capabilities:
+
+```text
+exercises:read
+exercises:manage
+exercises:archive
+```
+
+Role behavior for version one:
+
+### Client
+
+* May read active exercises in their tenant.
+* Cannot view drafts or archived exercises.
+* Cannot view internal Marcus notes.
+* Cannot create, update, activate, restore or archive exercises.
+
+### Marcus/Admin
+
+* May list and view all tenant exercises.
+* May create and update drafts.
+* May update allowed active-exercise metadata.
+* May activate exercises.
+* May archive exercises.
+* May restore archived exercises to draft.
+* May view internal notes.
+
+### Legacy trainer
+
+* Receives no exercise access by default unless the current approved capability architecture explicitly says otherwise.
+* Do not broaden legacy trainer permissions silently.
+
+All authorization must be enforced by the API.
+
+Frontend visibility is not a security boundary.
+
+---
+
+## 6. API
+
+Follow existing route, error-envelope, validation and registration conventions.
+
+Use the project’s established `/admin` structure where appropriate.
+
+### 6.1 Client exercise API
+
+Implement authenticated tenant-scoped endpoints equivalent to:
+
+```text
+GET /api/exercises
+GET /api/exercises/:id
+```
+
+Client behavior:
+
+* Return active exercises only.
+* Apply tenant filtering.
+* Support pagination.
+* Support safe search.
+* Allow appropriate filters such as:
+
+  * Muscle
+  * Equipment
+  * Performance type
+  * Difficulty
+* Return client-safe fields only.
+* Never return internal Marcus notes.
+* An invisible, archived, draft, cross-tenant or missing exercise returns the project’s safe not-found response.
+
+### 6.2 Marcus/admin exercise API
+
+Implement capability-protected endpoints equivalent to:
+
+```text
+GET    /api/admin/exercises
+GET    /api/admin/exercises/:id
+POST   /api/admin/exercises
+PATCH  /api/admin/exercises/:id
+POST   /api/admin/exercises/:id/activate
+POST   /api/admin/exercises/:id/archive
+POST   /api/admin/exercises/:id/restore
+```
+
+Management behavior:
+
+* Tenant and actor are derived from the authenticated session.
+* Never accept tenant ownership from the request body.
+* Create exercises initially as drafts.
+* Create/update muscle and equipment mappings transactionally.
+* Reject cross-tenant child identifiers.
+* Return stable error codes and safe messages.
+* Do not provide a hard-delete route.
+* Archive requires a non-empty reason.
+* Restore returns the exercise to draft.
+* Activation uses the complete activation validator.
+* State-transition conflicts return `409`.
+* Validation errors follow the existing API convention.
+* Audit failures must cause the related mutation to fail.
+
+If the project’s established REST conventions require different literal paths, use them and document the decision. Preserve the behavioral contract above.
+
+---
+
+## 7. Audit events
+
+Use the existing append-only audit infrastructure.
+
+Record at minimum:
+
+* Exercise created
+* Exercise updated
+* Exercise activated
+* Exercise archived
+* Exercise restored
+* Safety information changed
+* Performance type changed
+
+Each audit record must include:
+
+* Tenant
+* Actor
+* Action
+* Target exercise
+* Safe relevant metadata
+* Timestamp
+
+Do not store secrets or unnecessary sensitive free text in audit metadata.
+
+Audit records must never be client-readable through the exercise API.
+
+---
+
+## 8. Database constraints and indexes
+
+Use database enforcement wherever practical.
+
+Required protections include:
+
+* Tenant-safe exercise foreign keys
+* Unique tenant/slug
+* Unique exercise/muscle
+* Unique exercise/equipment
+* Valid lifecycle status
+* Valid performance type
+* Valid muscle role
+* Non-negative or positive numeric bounds
+* Tenant indexes for catalogue queries
+* Search-supporting indexes where justified
+* No hard cascade that could destroy future historical references
+
+Cross-row activation requirements, such as at least one primary muscle, must be enforced transactionally by the service.
+
+Do not introduce destructive schema operations.
+
+---
+
+## 9. Development migration
+
+Create the next correctly numbered additive migration.
+
+The migration may create:
+
+* Exercise enums or equivalent constrained values
+* Exercise table
+* Exercise-muscle table
+* Exercise-equipment table
+* Constraints
+* Indexes
+* Composite tenant-safe foreign keys
+
+Requirements:
+
+* Development only.
+* Apply using the project’s established development migration process.
+* Verify the physical database state after applying.
+* Confirm tables, columns, types, nullability, defaults, constraints, foreign keys and indexes.
+* Confirm migration parity in development.
+* Do not run against production.
+* Do not seed or import existing static programmes or exercises.
+* Do not modify existing booking, wallet, notification or commercial tables.
+
+Stop if migration application would require destructive changes.
+
+---
+
+## 10. Tests
+
+Add comprehensive tests covering the new exercise domain.
+
+### 10.1 Unit tests
+
+Cover:
+
+* Performance-type validation
+* Exercise lifecycle validation
+* Activation requirements
+* Slug normalization
+* Muscle normalization
+* Equipment normalization
+* Client-safe response projection
+* Numeric bounds
+* Invalid enum values
+
+### 10.2 API integration tests
+
+Cover:
+
+* Unauthenticated access denied
+* Client may list active exercises
+* Client cannot see draft exercises
+* Client cannot see archived exercises
+* Client cannot see internal notes
+* Client cannot create or mutate exercises
+* Admin may create a draft
+* Admin may update a draft
+* Activation succeeds with valid data
+* Activation fails without a primary muscle
+* Archive requires a reason
+* Archived exercise disappears from client discovery
+* Restore returns archived exercise to draft
+* Same slug rejected within the tenant
+* Same slug permitted across different tenants
+* Cross-tenant reads return safe not-found behavior
+* Cross-tenant mutations are rejected
+* Request-supplied tenant or owner fields are ignored/rejected
+* Invalid performance types are rejected
+* Duplicate muscle mapping is rejected
+* Duplicate equipment mapping is rejected
+* Audit records are written
+* Mutation fails safely if its required audit write fails
+* No hard-delete route exists
+
+### 10.3 Capability tests
+
+Cover:
+
+* Client receives exercise read only.
+* Admin receives approved exercise-management capabilities.
+* Legacy trainer access remains unchanged/no access.
+* Existing capability tests remain green.
+* No unrelated privilege escalation is introduced.
+
+### 10.4 Regression tests
+
+Run the complete existing relevant suites, including:
+
+* Authentication
+* Permissions
+* Cross-tenant protection
+* Sessions and bookings
+* Availability
+* Notifications
+* Commercial engine
+* Wallet and Stripe top-ups
+* Existing frontend tests
+
+---
+
+## 11. Required validation
+
+Before reporting completion, run:
+
+* Database/schema checks
+* Development migration and parity verification
+* Full affected-package typecheck
+* API unit tests
+* API integration tests
+* Complete existing regression suite
+* API production build
+* Client production build if shared types or capability changes affect it
+* Working-tree hygiene inspection
+
+Valid outcomes are:
+
+* PASS
+* BLOCKED
+* NOT APPLICABLE with reason
+
+Do not use “should pass” or “looks correct.”
+
+---
+
+## 12. Protected behavior
+
+Do not change:
+
+* Existing Workouts frontend behavior
+* Static programme display
+* BodyMap behavior
+* Home
+* Sessions
+* Bookings
+* Availability
+* Attendance
+* Notifications
+* Reminders
+* Wallet balances
+* Holds
+* Pricing
+* Settlement
+* Revenue reporting
+* Stripe top-ups
+* Profile behavior
+* Authentication semantics
+* Existing role semantics outside the approved exercise capabilities
+* Production configuration
+* Production data
+
+Do not connect exercise records to existing training-session or booking records.
+
+---
+
+## 13. Stop conditions
+
+Stop and report before continuing if:
+
+* Exercise identity conflicts with another persistent domain.
+* Tenant-safe foreign keys cannot be implemented.
+* Existing capability behavior would need broad redesign.
+* Muscle vocabulary cannot be reconciled safely.
+* Migration requires destructive changes.
+* Audit writes cannot be made transactional.
+* The work would require changing protected domains.
+* Production access or publishing is required.
+* Scope expands into alternatives, programmes, workouts, PBs, progression or AI.
+* Tests expose an unrelated pre-existing failure that cannot be safely separated.
+
+Do not solve a stop condition through silent scope expansion.
+
+---
+
+## 14. Required completion report
+
+Return a Gate 2A build report containing:
+
+1. Prompt classification
+2. Scope delivered
+3. Pre-build inspection findings
+4. Architecture decisions
+5. Exact files created
+6. Exact files modified
+7. Schema and migration details
+8. Development migration result
+9. Physical schema-verification result
+10. Capability changes
+11. API endpoints and contracts
+12. Validation rules
+13. Audit behavior
+14. Tests added
+15. Exact test/build results
+16. Regression results
+17. Working-tree status
+18. Protected-behavior confirmation
+19. Known limitations
+20. Remaining Gate 2 work
+21. Confirmation that no static exercise import occurred
+22. Confirmation that no frontend, production, deployment or publishing action occurred
+
+End with exactly one verdict:
+
+**READY FOR GATE 2A VALIDATION**
+
+or
+
+**BLOCKED — TECHNICAL RISK**
+
+or
+
+**BLOCKED — SCOPE OR ENVIRONMENT**
+
+Do not begin Gate 2B.
