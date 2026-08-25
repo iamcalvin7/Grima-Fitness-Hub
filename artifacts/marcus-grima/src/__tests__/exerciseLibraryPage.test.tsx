@@ -32,6 +32,18 @@ const draftExercise: ExerciseRecord = {
   equipment: [{ equipmentKey: "dumbbell", required: true }],
 };
 
+const activeExercise: ExerciseRecord = {
+  ...draftExercise,
+  status: "active",
+  version: 2,
+};
+
+const archivedExercise: ExerciseRecord = {
+  ...draftExercise,
+  status: "archived",
+  version: 3,
+};
+
 function response(data: unknown, status = 200) {
   return {
     ok: status >= 200 && status < 300,
@@ -96,5 +108,136 @@ describe("ExerciseLibrary page", () => {
     expect(await screen.findByText("This exercise changed elsewhere")).toBeInTheDocument();
     expect(screen.getByLabelText("Exercise name")).toHaveValue("Updated goblet squat");
     expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
+  });
+
+  it("activates a complete draft through an explicit lifecycle action", async () => {
+    const activated = { ...activeExercise, version: 2 };
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST" && url.endsWith(`/admin/exercises/${draftExercise.id}/activate`)) {
+        return response({ exercise: activated });
+      }
+      if (url.endsWith(`/admin/exercises/${draftExercise.id}`)) return response({ exercise: draftExercise });
+      return response({ exercises: [draftExercise], pagination: { page: 1, limit: 25, total: 1 } });
+    });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    await screen.findByRole("button", { name: /activate/i });
+    fireEvent.click(screen.getByRole("button", { name: /activate/i }));
+
+    expect(await screen.findByText("Exercise activated. It is now client-visible.")).toBeInTheDocument();
+    expect(screen.getAllByText("Active").length).toBeGreaterThan(0);
+    expect(fetchMock.mock.calls.some(([input, options]) => String(input).endsWith(`/admin/exercises/${draftExercise.id}/activate`) && options?.method === "POST")).toBe(true);
+  });
+
+  it("shows activation validation failures without closing the editor", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST" && url.endsWith(`/admin/exercises/${draftExercise.id}/activate`)) {
+        return response({ error: "Exercise is missing required activation fields", details: { fields: ["instructions", "primaryMuscle"] } }, 422);
+      }
+      if (url.endsWith(`/admin/exercises/${draftExercise.id}`)) return response({ exercise: draftExercise });
+      return response({ exercises: [draftExercise], pagination: { page: 1, limit: 25, total: 1 } });
+    });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    await screen.findByRole("button", { name: /activate/i });
+    fireEvent.click(screen.getByRole("button", { name: /activate/i }));
+
+    expect(await screen.findByText("Exercise is missing required activation fields")).toBeInTheDocument();
+    expect(screen.getByText(/Complete: Instructions, Primary muscle/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("requires an archive reason before sending the archive action", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST") return response({ exercise: { ...archivedExercise } });
+      if (url.endsWith(`/admin/exercises/${activeExercise.id}`)) return response({ exercise: activeExercise });
+      return response({ exercises: [activeExercise], pagination: { page: 1, limit: 25, total: 1 } });
+    });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    await screen.findByRole("button", { name: /archive/i });
+    fireEvent.click(screen.getByRole("button", { name: /archive/i }));
+
+    expect(await screen.findByText("Archive reason is required")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+  });
+
+  it("archives with the confirmed reason and updates the lifecycle badge", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST" && url.endsWith(`/admin/exercises/${activeExercise.id}/archive`)) {
+        return response({ exercise: archivedExercise });
+      }
+      if (url.endsWith(`/admin/exercises/${activeExercise.id}`)) return response({ exercise: activeExercise });
+      return response({ exercises: [activeExercise], pagination: { page: 1, limit: 25, total: 1 } });
+    });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    await screen.findByRole("button", { name: /archive/i });
+    fireEvent.change(screen.getByLabelText("Archive reason"), { target: { value: "Superseded by a reviewed variation" } });
+    fireEvent.click(screen.getByRole("button", { name: /archive/i }));
+
+    expect(await screen.findByText("Exercise archived. It is no longer client-visible.")).toBeInTheDocument();
+    const archiveCall = fetchMock.mock.calls.find(([input, options]) => String(input).endsWith(`/admin/exercises/${activeExercise.id}/archive`) && options?.method === "POST");
+    expect(JSON.parse(String(archiveCall?.[1]?.body))).toEqual({ reason: "Superseded by a reviewed variation" });
+    expect(screen.getAllByText("Archived").length).toBeGreaterThan(0);
+  });
+
+  it("restores an archived record to draft after confirmation", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST" && url.endsWith(`/admin/exercises/${archivedExercise.id}/restore`)) {
+        return response({ exercise: draftExercise });
+      }
+      if (url.endsWith(`/admin/exercises/${archivedExercise.id}`)) return response({ exercise: archivedExercise });
+      return response({ exercises: [archivedExercise], pagination: { page: 1, limit: 25, total: 1 } });
+    });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    await screen.findByRole("button", { name: /restore to draft/i });
+    fireEvent.click(screen.getByRole("button", { name: /restore to draft/i }));
+
+    expect(await screen.findByText("Exercise restored to draft for review.")).toBeInTheDocument();
+    expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
+  });
+
+  it("shows a stale-version conflict when a lifecycle action races another writer", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST" && url.endsWith(`/admin/exercises/${draftExercise.id}/activate`)) {
+        return response({ error: "Exercise changed during this request; reload and try again" }, 409);
+      }
+      if (url.endsWith(`/admin/exercises/${draftExercise.id}`)) return response({ exercise: draftExercise });
+      return response({ exercises: [draftExercise], pagination: { page: 1, limit: 25, total: 1 } });
+    });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    await screen.findByRole("button", { name: /activate/i });
+    fireEvent.click(screen.getByRole("button", { name: /activate/i }));
+
+    expect(await screen.findByText("This exercise changed elsewhere")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

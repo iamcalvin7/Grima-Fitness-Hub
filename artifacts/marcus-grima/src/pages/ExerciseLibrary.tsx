@@ -927,7 +927,14 @@ function ExerciseEditor({
   };
 
   const activationFields = Array.isArray(error?.details?.fields)
-    ? (error?.details?.fields as string[]).map((field) => field === "primaryMuscle" ? "Primary muscle" : field.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`))
+    ? (error?.details?.fields as string[]).map((field) => ({
+      primaryMuscle: "Primary muscle",
+      instructions: "Instructions",
+      performanceType: "Performance type",
+      movementPattern: "Movement pattern",
+      laterality: "Laterality",
+      difficulty: "Difficulty",
+    }[field] ?? field.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`)))
     : [];
 
   return (
@@ -1101,7 +1108,7 @@ function ExerciseEditor({
                 {record.status === "active" && (
                   <label className="mt-4 block max-w-xl">
                     <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">Archive reason</span>
-                    <input value={archiveReason} onChange={(event) => setArchiveReason(event.target.value)} maxLength={500} placeholder="Required only when archiving" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-primary/60" />
+                    <input aria-label="Archive reason" value={archiveReason} onChange={(event) => setArchiveReason(event.target.value)} maxLength={500} placeholder="Required only when archiving" className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-primary/60" />
                   </label>
                 )}
               </div>
