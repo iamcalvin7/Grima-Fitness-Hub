@@ -1,0 +1,489 @@
+# BUILD — Gate 2B Marcus Exercise Library UI
+
+## Prompt classification
+
+* **Prompt type:** BUILD
+* **Gate:** Gate 2B — Marcus Exercise Library UI
+* **Risk level:** Amber
+* **Authorized environment:** Development only
+* **Backend exercise contract:** Already completed and authoritative
+* **Schema or migration changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+
+## Objective
+
+Build the Marcus-facing Exercise Library interface using the server-authoritative Gate 2A exercise catalogue.
+
+Marcus must be able to:
+
+* View and search the exercise catalogue
+* Filter exercises
+* Create draft exercises
+* Edit exercises
+* Configure exercise metadata
+* Assign muscles and equipment
+* Activate valid drafts
+* Archive active exercises
+* Restore archived exercises to draft
+* Understand validation and concurrency conflicts
+
+This gate is limited to the Marcus/admin exercise-management experience.
+
+Do not build programmes, workout templates, client-created workouts, workout execution, alternatives, personal bests, progression, or AI generation.
+
+---
+
+# 1. Mandatory pre-build inspection
+
+Before editing files, inspect:
+
+* Current working-tree status
+* Gate 2A exercise API routes and contracts
+* Exercise validation rules
+* Admin and client projections
+* Exercise capabilities
+* Lifecycle transitions
+* Version/concurrency requirements
+* Existing API client conventions
+* Existing Marcus HQ navigation and layout
+* Existing role and capability gates
+* Existing form, modal, toast, confirmation, and error patterns
+* Existing `BodyMap` component
+* Existing responsive navigation
+* Existing frontend test setup
+
+Confirm which fields the authoritative Gate 2A API actually supports.
+
+The UI must follow the existing backend contract. Do not invent frontend-only exercise fields or store authoritative exercise data in browser storage.
+
+## Stop conditions
+
+Stop without implementation if:
+
+* The Gate 2A API contract is incomplete for the required management workflow.
+* Exercise routes or schema no longer match the validated Gate 2A report.
+* Unrelated working-tree changes overlap the required frontend files.
+* Implementing the UI would require a schema or migration change.
+* Authorization would depend only on a frontend role gate.
+* The existing BodyMap muscle vocabulary conflicts with the server catalogue.
+* Production or shared-environment access would be required.
+
+If blocked, return:
+
+`BLOCKED — GATE 2B PRODUCT OR BACKEND FIX REQUIRED`
+
+Do not silently extend the backend.
+
+---
+
+# 2. Marcus HQ navigation
+
+Add a clear Exercise Library destination to the existing Marcus/admin experience.
+
+Requirements:
+
+* Follow the current Marcus HQ navigation conventions.
+* Use the existing capability system.
+* Only users with the required exercise-management capability may access management actions.
+* Unauthorized users must receive the established denied/not-found experience.
+* Direct URL access must be guarded.
+* The API remains the final authorization authority.
+* Do not expose the management interface in normal client navigation.
+
+Use a stable route that fits the existing application structure.
+
+---
+
+# 3. Exercise Library list
+
+Build a server-backed exercise catalogue view.
+
+Display useful catalogue information supported by the API, including where available:
+
+* Exercise name
+* Status
+* Performance type
+* Difficulty
+* Primary muscle
+* Additional muscles
+* Equipment
+* Laterality
+* Media availability
+* Current version
+* Last updated state
+
+Support:
+
+* Search
+* Status filtering
+* Performance-type filtering
+* Muscle filtering
+* Equipment filtering
+* Clear-filter action
+* Loading state
+* Empty catalogue state
+* No-results state
+* API error state
+* Refresh/retry behavior
+
+Search and filtering must use the supported backend contract. Do not load a static frontend catalogue as the source of truth.
+
+Make draft, active, and archived states visually distinct without relying on colour alone.
+
+---
+
+# 4. Create exercise flow
+
+Marcus must be able to create an exercise as a draft.
+
+Build a clear creation form based only on fields supported by the Gate 2A API.
+
+Organize the form into understandable sections such as:
+
+1. Basic information
+2. Performance configuration
+3. Muscle targeting
+4. Equipment
+5. Instructions and coaching information
+6. Safety or limitation information
+7. Media references
+8. Review and lifecycle status
+
+Use the actual API vocabulary and required fields.
+
+Requirements:
+
+* New exercises are created as drafts.
+* Client and tenant ownership must never be entered by Marcus.
+* Slugs or canonical identifiers must follow backend rules.
+* Display field-level validation where the API supplies it.
+* Preserve entered form values after recoverable errors.
+* Prevent accidental duplicate submissions.
+* Provide a clear success state after creation.
+* Do not automatically activate a newly created draft.
+
+---
+
+# 5. Edit exercise flow
+
+Marcus must be able to open and edit an existing exercise.
+
+Requirements:
+
+* Load the authoritative current record from the API.
+* Use the current exercise version for mutations.
+* Support all API-approved editable fields.
+* Clearly indicate the current lifecycle status.
+* Clearly separate saving changes from activating the exercise.
+* Avoid silent unsaved-data loss.
+* Warn before closing or navigating away with unsaved changes.
+* Refresh the displayed version after successful mutation.
+* Do not silently overwrite newer server changes.
+
+If an update returns a stale-version conflict:
+
+* Explain that the exercise changed elsewhere.
+* Do not automatically retry with a newer version.
+* Preserve Marcus’s unsaved input where practical.
+* Offer an explicit reload/review action.
+* Do not merge conflicting data silently.
+
+---
+
+# 6. Muscle targeting and BodyMap integration
+
+Reuse the existing `BodyMap` component where compatible with the canonical server muscle keys.
+
+Requirements:
+
+* Marcus can select the primary muscle according to the API contract.
+* Marcus can select additional supported muscles.
+* Primary and secondary muscle roles must remain distinguishable.
+* Duplicate mappings must be prevented.
+* Unsupported free-text muscle identities must not be created.
+* BodyMap selection and form selection must remain synchronized.
+* Front and back views must remain usable.
+* Mouse, touch, and keyboard interaction must work.
+* A non-visual accessible selection method must also be available.
+
+If the existing BodyMap requires a small reusable frontend-only adaptation to consume the canonical keys, that adaptation is authorized.
+
+Do not create a second competing muscle vocabulary.
+
+---
+
+# 7. Equipment and performance metadata
+
+Provide clear controls for the equipment and performance metadata supported by Gate 2A.
+
+Requirements:
+
+* Use only approved API values.
+* Prevent duplicate equipment mappings.
+* Explain performance types in plain language.
+* Show or hide conditional inputs only where supported by the exercise contract.
+* Preserve the distinction between:
+
+  * Weight and repetitions
+  * Bodyweight repetitions
+  * Added-weight repetitions
+  * Assisted repetitions
+  * Duration
+  * Distance and time
+* Do not introduce personal-best calculations or workout logging in this gate.
+
+---
+
+# 8. Exercise lifecycle actions
+
+Implement the approved lifecycle:
+
+```text
+Draft → Active → Archived → Draft
+```
+
+## Activate
+
+* Activation must be a separate explicit action.
+* Explain that activation makes the exercise available to permitted client catalogue consumers.
+* Show validation failures clearly.
+* Do not allow the UI to imply activation succeeded until the server confirms it.
+* Incomplete drafts must remain drafts.
+
+## Archive
+
+* Require confirmation.
+* Require an archive reason if required by the API.
+* Explain that archived exercises are removed from client catalogue results.
+* Do not describe archival as deletion.
+* Do not permanently delete exercise records.
+
+## Restore
+
+* Restore archived exercises to draft.
+* Explain that restored exercises require review and activation before becoming client-visible again.
+
+All lifecycle mutations must use the current version and handle `409` conflicts safely.
+
+---
+
+# 9. Media behavior
+
+Use only the media-reference behavior supported by the Gate 2A contract.
+
+If Gate 2A supports URLs or stored references but no upload pipeline:
+
+* Provide validated reference fields or preview behavior only.
+* Do not build a fake upload flow.
+* Do not add object storage, dependencies, or a media service.
+* Handle missing or broken media gracefully.
+* Make it clear when an exercise has no demonstration media.
+
+A real upload pipeline requires a separate future gate.
+
+---
+
+# 10. UX and responsive requirements
+
+The Exercise Library must work on:
+
+* Marcus desktop HQ
+* Tablet widths
+* Narrow mobile screens
+
+Requirements:
+
+* Follow the existing dark Grima Fitness Hub visual system.
+* Preserve established spacing, typography, navigation, and interaction conventions.
+* Keep primary actions clear.
+* Ensure forms remain usable without horizontal scrolling.
+* Ensure long exercise names and metadata wrap or truncate safely.
+* Ensure confirmation controls are touch-friendly.
+* Provide accessible labels and focus behavior.
+* Do not rely exclusively on hover.
+* Do not rely exclusively on colour to communicate status.
+* Avoid fabricated catalogue statistics or demo analytics.
+
+Do not redesign unrelated Marcus HQ sections.
+
+---
+
+# 11. Error and feedback handling
+
+Provide intentional states for:
+
+* Authentication failure
+* Authorization failure
+* Network failure
+* Validation failure
+* Duplicate slug/conflict
+* Stale-version conflict
+* Invalid lifecycle transition
+* Audit-backed mutation failure
+* Empty catalogue
+* No search results
+* Broken media
+* Unexpected server error
+
+Use the existing API-error and notification/toast conventions.
+
+Never display raw database errors, stack traces, credentials, or internal implementation details.
+
+---
+
+# 12. Tests
+
+Add focused frontend tests covering at minimum:
+
+* Authorized Marcus/admin access
+* Unauthorized client access
+* Direct-route guarding
+* Exercise list loading
+* Empty state
+* Search and filters
+* Create draft
+* Validation failure
+* Edit and save
+* Muscle and equipment mapping
+* Activation success
+* Activation validation failure
+* Archive confirmation and reason
+* Restore to draft
+* Stale-version `409` handling
+* Duplicate conflict handling
+* API failure and retry
+* Unsaved-change protection
+* Archived exercise visibility
+* BodyMap synchronization where applicable
+* Narrow-screen critical interactions
+
+Continue running the complete existing API and frontend regression suites.
+
+Do not weaken or remove existing tests.
+
+---
+
+# 13. Runtime verification
+
+In the development app, verify with appropriate development users:
+
+## Marcus/admin
+
+* Can access the Exercise Library.
+* Can create a draft.
+* Can edit the draft.
+* Can assign muscles and equipment.
+* Cannot activate an incomplete exercise.
+* Can activate a valid exercise.
+* Can archive it.
+* Can restore it to draft.
+* Receives understandable stale-version behavior.
+
+## Client
+
+* Cannot access Marcus management routes.
+* Cannot call management actions.
+* Does not see archived or draft exercises through client catalogue access.
+
+Check:
+
+* Desktop layout
+* Mobile layout
+* Browser console
+* API logs
+* Authentication boundaries
+* No unrelated navigation regression
+
+Use development data only. Any validation records created must be clearly identified and safely removed through normal supported application behavior where possible. Do not perform destructive database cleanup.
+
+---
+
+# 14. Required verification
+
+Run and report:
+
+* Frontend exercise-library tests
+* Complete frontend regression suite
+* Complete API regression suite
+* Frontend typecheck
+* API typecheck
+* Frontend production build
+* API production build
+* `git diff --check`
+* Runtime browser verification
+* Independent review
+
+The independent review must examine:
+
+* Capability and route guarding
+* API contract adherence
+* Stale-version handling
+* Lifecycle accuracy
+* BodyMap vocabulary consistency
+* Accessibility
+* Responsive behavior
+* Scope leakage
+* Regression risk
+
+Fix only issues within the authorized Gate 2B frontend scope. If a backend or schema change is required, stop and report it.
+
+---
+
+# 15. Explicitly out of scope
+
+Do not build or modify:
+
+* Exercise schema or migrations
+* Gate 2A API behavior
+* Exercise alternatives or comparable families
+* Programme creation
+* Workout templates
+* Programme publishing or versioning
+* Programme assignment
+* Client-created workouts
+* Active workout execution
+* Set logging
+* Workout history
+* Personal bests
+* Progressive overload
+* Limitations/health-data workflows
+* AI workout generation
+* Notifications
+* Home integrations
+* Challenges or leaderboards
+* Paid programme access
+* Wallets, holds, settlement, or Stripe
+* Production or deployment configuration
+
+---
+
+# Required final report
+
+Return a structured Gate 2B build report containing:
+
+1. Prompt classification
+2. Pre-build inspection result
+3. Exact files changed
+4. Marcus route and capability behavior
+5. Exercise-list implementation
+6. Create/edit implementation
+7. Muscle and BodyMap implementation
+8. Equipment and performance-type implementation
+9. Lifecycle implementation
+10. Concurrency-conflict behavior
+11. Responsive and accessibility result
+12. Tests and exact totals
+13. Typecheck and build results
+14. Runtime verification
+15. Independent-review findings
+16. Remaining risks or deferred work
+17. Production/deployment confirmation
+18. Gate verdict
+
+The final verdict must be exactly one of:
+
+* `READY FOR GATE 2B VALIDATION`
+* `BLOCKED — GATE 2B FIX REQUIRED`
+
+Do not start the next gate.
