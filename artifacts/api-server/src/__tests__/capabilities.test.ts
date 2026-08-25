@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import {
   COACHING_CAPABILITIES,
+  EXERCISE_CAPABILITIES,
   ADMINISTRATIVE_CAPABILITIES,
   getCapabilities,
   hasCapability,
@@ -24,15 +25,18 @@ const ALL_ROLES = ["client", "trainer", "admin"] as const;
 // Union of every defined capability for convenience
 const ALL_CAPABILITIES: readonly Capability[] = [
   ...COACHING_CAPABILITIES,
+  ...EXERCISE_CAPABILITIES,
   ...ADMINISTRATIVE_CAPABILITIES,
 ];
 
 // ---------------------------------------------------------------------------
-// Case 1 — Client receives no privileged capabilities
+// Case 1 — Client receives catalogue read only
 // ---------------------------------------------------------------------------
 describe("Case 1: client role", () => {
-  it("receives no capabilities", () => {
-    expect(getCapabilities("client")).toHaveLength(0);
+  it("receives exercise read and no management capabilities", () => {
+    expect(getCapabilities("client")).toEqual(["exercises:read"]);
+    expect(hasCapability("client", "exercises:manage")).toBe(false);
+    expect(hasCapability("client", "exercises:archive")).toBe(false);
   });
 });
 
@@ -66,6 +70,12 @@ describe("Case 4: admin receives every administrative capability", () => {
   );
 });
 
+describe("Exercise catalogue capabilities", () => {
+  it.each(EXERCISE_CAPABILITIES)("admin has exercise capability: %s", (cap) => {
+    expect(hasCapability("admin", cap)).toBe(true);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Case 5 — Admin represents Marcus's combined access
 // ---------------------------------------------------------------------------
@@ -80,7 +90,9 @@ describe("Case 5: admin = Marcus combined access", () => {
   it("admin capability count equals coaching + administrative totals", () => {
     const caps = getCapabilities("admin");
     expect(caps).toHaveLength(
-      COACHING_CAPABILITIES.length + ADMINISTRATIVE_CAPABILITIES.length,
+      COACHING_CAPABILITIES.length +
+        EXERCISE_CAPABILITIES.length +
+        ADMINISTRATIVE_CAPABILITIES.length,
     );
   });
 });
@@ -110,11 +122,11 @@ describe("Case 7: missing / nullish role", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Case 8 — Client fails every privileged capability check
+// Case 8 — Client fails every capability except exercise reads
 // ---------------------------------------------------------------------------
 describe("Case 8: client fails every privileged capability", () => {
-  it.each(ALL_CAPABILITIES)("client does not have: %s", (cap) => {
-    expect(hasCapability("client", cap)).toBe(false);
+  it.each(ALL_CAPABILITIES)("client capability is explicitly bounded: %s", (cap) => {
+    expect(hasCapability("client", cap)).toBe(cap === "exercises:read");
   });
 });
 

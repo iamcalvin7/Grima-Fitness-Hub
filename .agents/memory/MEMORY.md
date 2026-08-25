@@ -6,3 +6,4 @@
 - [Weekly schedule & recurrence](weekly-schedule-transition.md) — dated sessions remain canonical; admin-managed weekly availability now materializes safe bookable sessions in the same table.
 - [Commercial value lifecycle](commercial-value-lifecycle.md) — immutable internal value snapshots, single active holds, and completed-session settlement rules.
 - [Stripe sandbox credentials](stripe-sandbox-credentials.md) — native connector may not expose raw API keys; Test Mode wallet checkout uses secure `sk_test_` and webhook secrets.
+- [Exercise catalogue concurrency](exercise-catalogue-concurrency.md) — validate and mutate exercise definitions with versioned CAS; status-only guards permit stale activation.

@@ -32,6 +32,12 @@ export const COACHING_CAPABILITIES = [
   "messages:manage",
 ] as const;
 
+export const EXERCISE_CAPABILITIES = [
+  "exercises:read",
+  "exercises:manage",
+  "exercises:archive",
+] as const;
+
 /**
  * Administrative capabilities — operating the platform as its sole operator.
  */
@@ -48,6 +54,7 @@ export const ADMINISTRATIVE_CAPABILITIES = [
 /** Union of every defined capability identifier. */
 export type Capability =
   | (typeof COACHING_CAPABILITIES)[number]
+  | (typeof EXERCISE_CAPABILITIES)[number]
   | (typeof ADMINISTRATIVE_CAPABILITIES)[number];
 
 // ---------------------------------------------------------------------------
@@ -60,7 +67,7 @@ export type Capability =
 // more capabilities here first.
 //
 // v1 product model:
-//   client  → no privileged capabilities (self-service coaching experience)
+//   client  → tenant-scoped active exercise catalogue reads only
 //   trainer → no privileged capabilities (legacy technical value, not yet
 //              mapped to the approved v1 capability model)
 //   admin   → all coaching + administrative capabilities (Marcus, the sole
@@ -68,9 +75,13 @@ export type Capability =
 // ---------------------------------------------------------------------------
 
 const ROLE_CAPABILITIES: Record<UserRole, readonly Capability[]> = {
-  client: [],
+  client: ["exercises:read"],
   trainer: [],
-  admin: [...COACHING_CAPABILITIES, ...ADMINISTRATIVE_CAPABILITIES],
+  admin: [
+    ...COACHING_CAPABILITIES,
+    ...EXERCISE_CAPABILITIES,
+    ...ADMINISTRATIVE_CAPABILITIES,
+  ],
 };
 
 // ---------------------------------------------------------------------------

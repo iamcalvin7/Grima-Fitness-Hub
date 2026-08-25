@@ -13,6 +13,7 @@ import availabilityRouter from "./availability";
 import notificationsRouter from "./notifications";
 import commercialRouter from "./commercial";
 import walletTopUpsRouter from "./walletTopUps";
+import exercisesRouter from "./exercises";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(availabilityRouter);
 router.use(notificationsRouter);
 router.use(commercialRouter);
 router.use(walletTopUpsRouter);
+router.use(exercisesRouter);
 
 export default router;
