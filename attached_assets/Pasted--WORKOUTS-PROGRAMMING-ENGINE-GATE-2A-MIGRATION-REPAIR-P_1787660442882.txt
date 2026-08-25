@@ -1,0 +1,252 @@
+# WORKOUTS & PROGRAMMING ENGINE — GATE 2A MIGRATION REPAIR
+
+## PROMPT CLASSIFICATION
+
+**Prompt type:** FIX
+**Scope:** Gate 2A migration immutability and reproducibility only
+**Changes allowed:** YES — migration repair in development only
+**Risk level:** AMBER
+**Exercise feature changes:** Not authorised
+**Production access:** Not authorised
+**Production migration:** Not authorised
+**Deployment/publishing:** Not authorised
+**Gate 2B:** Not authorised
+
+The Exercise Catalogue implementation and tests passed, but Gate 2A validation correctly blocked because migration `0011_exercise_catalogue.sql` was edited after being recorded in the development migration ledger.
+
+Repair this using an additive, reproducible migration history.
+
+Do not change exercise behavior, API contracts, capabilities, frontend code or unrelated migrations.
+
+---
+
+## 1. Required inspection
+
+Before editing, determine and report:
+
+1. The exact contents of `0011_exercise_catalogue.sql` when it was first applied and recorded.
+2. How those original contents can be proven:
+
+   * Git history
+   * Task history
+   * Checkpoint
+   * Patch history
+   * Physical development schema before reconciliation
+3. Every change made to `0011` after its initial application.
+4. Whether the only later schema additions were:
+
+   * Exercise `version` column
+   * Version default
+   * Version positivity constraint
+   * Any associated index or concurrency constraint
+5. Whether any production or shared external environment has ever applied either form of `0011`.
+
+Stop without editing if:
+
+* The originally applied `0011` contents cannot be recovered with evidence.
+* More post-application changes exist than can be safely isolated.
+* Production or an unknown shared environment may have applied the amended migration.
+* Repair would require deleting databases, dropping product tables or rewriting production history.
+* Any exercise application behavior would need to change.
+
+---
+
+## 2. Required repair strategy
+
+If the original migration contents are proven:
+
+1. Restore `0011_exercise_catalogue.sql` to the exact contents originally applied and recorded.
+2. Create the next additive migration:
+
+```text
+0012_exercise_catalogue_concurrency_version.sql
+```
+
+3. Move all schema changes introduced after the original `0011` into `0012`.
+4. The final migration sequence must be:
+
+```text
+0011 — original exercise catalogue
+0012 — concurrency version additions
+```
+
+5. Do not leave the version column in both migrations.
+6. Do not edit migrations `0001` through `0010`.
+7. Do not delete or rename migration-ledger rows.
+8. Do not delete the two pre-existing legacy migration entries.
+
+The existing extra development-ledger filenames are pre-existing migration-history debt. Document them separately. Do not attempt destructive ledger cleanup within this fix.
+
+---
+
+## 3. Safe development reconciliation
+
+The development database already contains the final version-aware schema, while its ledger records only `0011`.
+
+Before applying `0012`, verify that the existing physical version column and constraints exactly match the intended `0012` result.
+
+The development reconciliation must:
+
+* Preserve all exercise records.
+* Preserve all existing tables.
+* Preserve all existing migration-ledger rows.
+* Add the `0012` ledger entry through the established migration runner.
+* Avoid manual unrecorded SQL.
+* Fail if an existing column or constraint differs from the expected definition.
+* Never silently accept incompatible drift.
+
+`0012` may use guarded/idempotent DDL only where necessary to reconcile the already-correct development schema.
+
+Any guarded DDL must:
+
+* Validate that an existing object has the exact expected type, default, nullability and constraint.
+* Raise an error when the existing definition is incompatible.
+* Not conceal arbitrary schema drift.
+
+Do not directly insert a fake ledger success without running the approved migration workflow.
+
+---
+
+## 4. Required clean replay
+
+Using an isolated disposable schema or database:
+
+1. Apply migrations `0001` through restored `0011`.
+2. Confirm the catalogue exists without the version-aware additions assigned to `0012`.
+3. Apply `0012`.
+4. Confirm the final schema matches the Drizzle declaration.
+5. Confirm all migrations are recorded in order.
+6. Confirm no manual SQL repair is required.
+7. Drop only the disposable validation schema/database.
+
+Do not recreate or delete the real development database.
+
+---
+
+## 5. Required parity checks
+
+After reconciliation, prove:
+
+* Restored `0011` matches the originally recorded migration.
+* `0012` contains all later version/concurrency schema changes.
+* Development ledger includes both `0011` and `0012`.
+* Development physical schema matches Drizzle.
+* Disposable clean replay matches development.
+* Version column is:
+
+  * Integer
+  * Non-null
+  * Default `1`
+  * Positively constrained
+* No duplicate column or constraint exists.
+* No migration requires manual repair.
+* No exercise data was lost or changed.
+
+Report the two legacy ledger filenames separately as pre-existing history. Confirm they do not prevent the complete current chain through `0012` from being present and ordered.
+
+---
+
+## 6. Allowed files
+
+Expected changes are limited to:
+
+```text
+lib/db/migrations/0011_exercise_catalogue.sql
+lib/db/migrations/0012_exercise_catalogue_concurrency_version.sql
+```
+
+A migration-specific automated test may be added only if required to prevent recurrence.
+
+Do not modify:
+
+* Exercise schema declarations unless a proven parity defect exists
+* Exercise service or routes
+* Capabilities
+* API tests unrelated to migration replay
+* Frontend files
+* Static programme data
+* Existing migrations `0001`–`0010`
+* Booking, commercial, wallet, notification or profile code
+
+Stop and report if the required repair exceeds this scope.
+
+---
+
+## 7. Validation
+
+Run and report:
+
+* Development migration runner
+* Development migration ledger inspection
+* Development physical-schema verification
+* Clean disposable migration replay through `0012`
+* Schema-to-Drizzle parity
+* Exercise unit tests
+* Exercise integration tests
+* Full API regression suite
+* API typecheck
+* API production build
+* Diff hygiene
+* Working-tree status
+
+Do not fix unrelated failures under this prompt.
+
+---
+
+## 8. Independent review
+
+Request an independent review focused only on:
+
+* Whether `0011` now matches its originally applied form
+* Whether `0012` is genuinely additive
+* Whether guarded reconciliation can hide incompatible drift
+* Whether clean replay and development produce identical schemas
+* Whether any ledger history was falsified or deleted
+* Whether production or unrelated domains were touched
+
+Any high-severity or blocking finding prevents completion.
+
+---
+
+## 9. Required completion report
+
+Return:
+
+1. Prompt classification
+2. Root cause
+3. Evidence of original `0011`
+4. Exact post-application differences discovered
+5. Exact files changed
+6. Restored `0011` summary
+7. New `0012` summary
+8. Development reconciliation result
+9. Development ledger result
+10. Clean replay result
+11. Physical schema parity
+12. Exercise-data preservation
+13. Test results
+14. Build results
+15. Independent-review verdict
+16. Diff and working-tree status
+17. Legacy-ledger qualification
+18. Confirmation that no exercise behavior changed
+19. Confirmation that no production, deployment or publishing action occurred
+20. Confirmation that Gate 2B did not start
+
+End with exactly one verdict:
+
+**READY FOR GATE 2A RE-VALIDATION**
+
+or
+
+**BLOCKED — ORIGINAL MIGRATION NOT RECOVERABLE**
+
+or
+
+**BLOCKED — MIGRATION REPAIR FAILED**
+
+or
+
+**BLOCKED — SCOPE OR ENVIRONMENT**
+
+Do not begin Gate 2B.
