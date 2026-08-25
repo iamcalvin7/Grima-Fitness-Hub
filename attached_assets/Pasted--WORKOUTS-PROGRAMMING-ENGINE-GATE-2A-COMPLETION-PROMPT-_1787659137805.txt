@@ -1,0 +1,271 @@
+# WORKOUTS & PROGRAMMING ENGINE — GATE 2A COMPLETION
+
+## PROMPT CLASSIFICATION
+
+**Prompt type:** VALIDATION / BUILD COMPLETION EVIDENCE
+**Changes allowed:** NO SOURCE OR FEATURE CHANGES
+**Risk level:** AMBER
+**Production access:** Not authorised
+**Production migration:** Not authorised
+**Deployment/publishing:** Not authorised
+**Gate 2B:** Not authorised
+
+The Gate 2A implementation appears complete, but the required final completion report was not returned.
+
+Do not implement new functionality. Do not fix defects silently. Do not edit source, schema, migration, configuration, test or documentation files.
+
+You may perform read-only checks and use an isolated disposable test database if required to prove migration reproducibility.
+
+If any check fails, report it as blocked. Do not repair it under this prompt.
+
+---
+
+## 1. Complete Task #41 workflow
+
+Finish the final diff/ledger hygiene check and submit Task #41 for completion validation.
+
+Report:
+
+* Task status
+* Whether Task #41 completed successfully
+* Whether any task-workflow blocker remains
+* Whether the task created any project file outside the approved Gate 2A scope
+
+Clarify whether `exercise-catalogue-backend.md` is:
+
+* A Replit task artifact outside the project source tree, or
+* A project file included in the working-tree diff
+
+If it is a project file, include it in the exact-file ledger and explain its purpose.
+
+---
+
+## 2. Final diff and scope inspection
+
+Run and report:
+
+* Working-tree status
+* Exact tracked files modified
+* Exact new files
+* Exact untracked files
+* Diff summary
+* Diff whitespace/error check
+* Confirmation that every changed file belongs to Gate 2A
+* Confirmation that no temporary scripts, debug logs, test credentials or unrelated changes remain
+
+Do not modify or clean unrelated user files.
+
+Confirm specifically that no changes were made to:
+
+* Workouts frontend
+* Static programme data
+* BodyMap
+* Home
+* Sessions or bookings
+* Attendance
+* Notifications or reminders
+* Commercial engine
+* Wallet
+* Holds or settlement
+* Stripe top-ups
+* Profile behavior
+* Production configuration
+
+---
+
+## 3. Migration reproducibility
+
+Migration `0011_exercise_catalogue.sql` was applied before the concurrency-version field was introduced. Prove that the final migration remains reproducible.
+
+Using the established safe test migration workflow and an isolated disposable database or schema:
+
+1. Start from an empty migration state.
+2. Apply the complete migration chain in order through final `0011`.
+3. Confirm every migration succeeds without manual SQL repair.
+4. Confirm the final `0011` creates the version column and every final constraint/index.
+5. Confirm the final migration ledger is complete and ordered.
+6. Confirm the final development database matches the declared schema.
+7. Confirm no migration file already recorded as immutable was altered incompatibly.
+8. Confirm no unrecorded manual database changes are required.
+
+Do not delete or recreate the real development or production database.
+
+If a safe isolated replay is unavailable, return:
+
+```text
+BLOCKED — CLEAN MIGRATION REPLAY NOT PROVEN
+```
+
+Do not claim parity from inspecting only the already-migrated development database.
+
+---
+
+## 4. Physical schema evidence
+
+Report the final physical state of:
+
+* Exercises
+* Exercise-muscle mappings
+* Exercise-equipment mappings
+* Exercise enums or constrained values
+* Version column
+* Version positivity constraint
+* Tenant-safe composite foreign keys
+* Tenant/slug uniqueness
+* Muscle uniqueness
+* Equipment uniqueness
+* Canonical-key checks
+* Lifecycle checks
+* Performance-type checks
+* Required indexes
+
+Provide counts and names where practical.
+
+Confirm the physical schema matches both:
+
+* Drizzle declarations
+* Final migration SQL
+
+---
+
+## 5. Final tests and builds
+
+Rerun or confirm from the final unchanged candidate:
+
+* Exercise unit tests
+* Capability tests
+* Focused exercise API integration tests
+* Concurrency race tests
+* Full API unit suite
+* Full API integration suite
+* Existing regression suites
+* API typecheck
+* Client typecheck where applicable
+* API production build
+* Client production build with the required non-secret build environment value
+
+The earlier client build initially failed because `PORT` was absent. Explicitly report whether the final client production build passed after invoking it correctly.
+
+For every check, report exactly:
+
+* Command or suite
+* PASS/BLOCKED/NOT APPLICABLE
+* Number passed
+* Number failed
+* Relevant warning or environment qualification
+
+Do not describe a failed first invocation as a code failure if the corrected final invocation passed, but preserve it in the report as an environment invocation issue.
+
+---
+
+## 6. Runtime evidence
+
+Report:
+
+* API restart result
+* Migration startup result
+* Server-listening result
+* Health/readiness result
+* Unauthenticated `/api/exercises` result
+* Browser preview result
+* Relevant API logs
+* Relevant browser-console findings
+
+Distinguish expected authentication `401` responses from unexpected errors.
+
+Do not access production.
+
+---
+
+## 7. Concurrency evidence
+
+Summarise the final proof for:
+
+* Concurrent scalar PATCH
+* Concurrent mapping PATCH
+* PATCH-versus-activation
+* Concurrent lifecycle transitions
+* Stale revision rejection
+* Exactly one successful winner
+* Exactly one audit result
+* Prevention of an invalid active exercise
+
+Confirm that the database-backed monotonic version is present in:
+
+* Schema declaration
+* Migration
+* Development database
+* Clean migration replay
+* API responses and update contracts
+* Tests
+
+---
+
+## 8. Independent review
+
+Report:
+
+* Scope of independent review
+* First high-severity finding
+* Second activation-race finding
+* Corrections made during the build
+* Final reviewer verdict
+* Any remaining medium or low risks
+* Confirmation that no blocking or high-severity finding remains
+
+Do not launch another fix under this prompt.
+
+---
+
+## 9. Required completion report
+
+Return the full Gate 2A completion report with:
+
+1. Prompt classification
+2. Delivered outcome
+3. Pre-build inspection
+4. Architecture decisions
+5. Exact file ledger
+6. Final diff and hygiene result
+7. Schema details
+8. Migration details
+9. Clean migration replay
+10. Physical schema verification
+11. Capability changes
+12. API endpoints
+13. Validation rules
+14. Audit behavior
+15. Concurrency protections
+16. Unit-test results
+17. Integration-test results
+18. Regression-test results
+19. Typecheck results
+20. API build result
+21. Client build result
+22. Runtime verification
+23. Independent-review verdict
+24. Task #41 completion status
+25. Protected-behavior confirmation
+26. Known limitations
+27. Remaining Gate 2 work
+28. Working-tree status
+29. Confirmation that no static content import occurred
+30. Confirmation that no frontend, production, deployment or publishing action occurred
+
+End with exactly one verdict:
+
+**READY FOR GATE 2A INDEPENDENT VALIDATION**
+
+or
+
+**BLOCKED — CLEAN MIGRATION REPLAY NOT PROVEN**
+
+or
+
+**BLOCKED — VALIDATION FAILURE**
+
+or
+
+**BLOCKED — SCOPE OR HYGIENE**
+
+Do not begin Gate 2B.
