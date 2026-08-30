@@ -1,0 +1,336 @@
+# RE-VALIDATION — Gate 2B Exercise Library Fixes
+
+## Prompt classification
+
+* **Prompt type:** RE-VALIDATION
+* **Gate:** Gate 2B — Marcus Exercise Library UI
+* **Mode:** Independent, read-only
+* **Implementation changes:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Backend/API changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+* **Gate 2C:** Must not start
+
+## Objective
+
+Independently verify that the three blocking findings from the previous Gate 2B validation have been fully resolved:
+
+1. Incorrect media-reference availability label.
+2. Missing editor-dialog focus management.
+3. Missing mandatory focused frontend regression coverage.
+
+Also confirm that the fixes did not regress previously accepted Gate 2B behavior or expand the authorized scope.
+
+Do not rely solely on the FIX report. Inspect the actual committed code, diff and tests.
+
+If a defect is found, report it without fixing it. A separate FIX prompt will be issued if necessary.
+
+---
+
+# 1. Scope and file-ledger validation
+
+Inspect Git status, history and the exact fix diff.
+
+Confirm implementation changes are limited to:
+
+* `artifacts/marcus-grima/src/pages/ExerciseLibrary.tsx`
+* `artifacts/marcus-grima/src/__tests__/exerciseLibraryPage.test.tsx`
+
+Treat the attached user prompt as an instruction asset, not product source.
+
+Confirm no changes occurred to:
+
+* Database schema or migrations
+* Gate 2A API routes or behavior
+* Authentication, roles, capabilities or tenant logic
+* Static exercise import
+* Programmes or workout templates
+* Workout execution or logging
+* Alternatives
+* Personal bests or progression
+* AI
+* Upload or storage infrastructure
+* Booking, wallet, payments, Stripe, notifications or profiles
+* Production or deployment configuration
+* Gate 2C work
+
+Run:
+
+```text
+git diff --check
+```
+
+Report the complete tracked and untracked file ledger.
+
+---
+
+# 2. Media-reference fix
+
+Inspect the final exercise-card condition and its tests.
+
+Confirm:
+
+* A non-empty valid `mediaUrl` displays **Reference linked**.
+* A missing, empty or whitespace-only `mediaUrl` displays **No reference**.
+* The states are no longer inverted.
+* The label confirms only the existence of a stored reference.
+* The UI does not imply that the remote resource loaded successfully.
+* No fake upload, storage or media-validation service was introduced.
+* Both linked and missing cases have direct committed regression tests.
+
+Report the exact behavior established by the source and tests.
+
+---
+
+# 3. Dialog focus-management validation
+
+Inspect the complete editor-dialog implementation, including opening, closing, keyboard handling and unmount behavior.
+
+Confirm:
+
+* Focus moves inside the dialog when it opens.
+* The initial focus target is deterministic and accessible.
+* Tab from the final focusable control wraps to the first.
+* Shift+Tab from the first focusable control wraps to the final control.
+* Keyboard focus cannot escape into meaningful background controls while the dialog is open.
+* Escape closes a clean editor.
+* Escape on a dirty editor uses the established unsaved-change confirmation.
+* Rejecting that confirmation leaves the editor open and preserves the entered values.
+* Confirming it closes the editor.
+* Focus returns to the exact New Exercise or Edit control that opened the dialog.
+* Click and touch closing behavior remains intact.
+* Browser-refresh protection remains intact.
+* BodyMap keyboard interaction is not intercepted incorrectly.
+* Input, selector, confirmation and lifecycle controls remain keyboard-operable.
+* Event listeners are removed correctly when the dialog closes or unmounts.
+* No duplicate or conflicting keyboard handler remains.
+* Dialog semantics and accessible labelling remain correct.
+
+Inspect the tests and confirm direct coverage for:
+
+* Initial focus
+* Forward Tab wrapping
+* Reverse Tab wrapping
+* Clean Escape closing
+* Dirty Escape confirmation
+* Rejected dirty-close preservation
+* Opener focus restoration
+
+Do not accept the presence of event-handler code alone as proof. Confirm the behavior and tests agree.
+
+---
+
+# 4. Mandatory regression-coverage validation
+
+Inspect the committed focused suite and independently confirm it now directly covers the required behaviors.
+
+## Catalogue states
+
+* Empty catalogue
+* No search results
+* API failure
+* Retry after failure
+
+## Server-backed search and filters
+
+* Search request parameter
+* Status parameter
+* Performance-type parameter
+* Muscle parameter
+* Equipment parameter
+* Clear-filter behavior
+* Pagination parameters
+
+Confirm these tests verify the outgoing server request or observable server-backed result, not merely that controls render.
+
+## Exercise metadata
+
+* Normalized duplicate-equipment prevention
+* BodyMap and form synchronization
+* Primary and secondary muscle distinction
+* Canonical server muscle values
+* Recoverable-error input preservation
+
+## State protection
+
+* Unsaved-change confirmation
+* Dirty-state preservation when closing is rejected
+* Browser-refresh protection remains implemented
+
+## Lifecycle and visibility
+
+* Archived exercise visibility in the authorized Marcus catalogue
+* Clear archived labelling
+* Archived records are not described as deleted
+* Previously accepted activation, archive, restore and `409` conflict tests remain present and passing
+
+## Narrow-screen critical behavior
+
+Confirm the focused tests and source collectively establish that, at a narrow viewport:
+
+* Critical catalogue controls remain available.
+* Editor controls remain accessible.
+* Lifecycle actions are not hover-only.
+* No critical interaction is intentionally hidden.
+* The layout does not introduce an obvious horizontal-overflow dependency.
+
+Identify any test that is present but does not meaningfully prove its named behavior.
+
+---
+
+# 5. Regression review
+
+Confirm the fixes did not regress:
+
+* Admin-only navigation.
+* Fail-closed direct-route guard.
+* Member and unauthenticated protection.
+* Gate 2A API-contract adherence.
+* Server-backed list behavior.
+* Draft creation.
+* Exercise editing.
+* Activation and activation-validation feedback.
+* Archive confirmation and required reason.
+* Restore to draft.
+* Version-conflict preservation and explicit reload.
+* Canonical muscle vocabulary.
+* Equipment payload structure.
+* BodyMap pointer and keyboard behavior.
+* Desktop and mobile navigation.
+* Existing loading, error, empty and retry states.
+
+No frontend protection should be described as replacing server authorization.
+
+---
+
+# 6. Verification commands
+
+Run and report exact results for:
+
+```text
+pnpm --filter @workspace/marcus-grima exec vitest run --config vitest.config.ts src/__tests__/exerciseLibrary.test.tsx src/__tests__/exerciseLibraryPage.test.tsx
+```
+
+```text
+pnpm --filter @workspace/marcus-grima run test
+```
+
+```text
+pnpm --filter @workspace/api-server run test:all
+```
+
+```text
+pnpm --filter @workspace/marcus-grima run typecheck
+```
+
+```text
+pnpm --filter @workspace/api-server run typecheck
+```
+
+```text
+PORT=5173 BASE_PATH=/marcus-grima/ pnpm --filter @workspace/marcus-grima run build
+```
+
+```text
+pnpm --filter @workspace/api-server run build
+```
+
+```text
+git diff --check
+```
+
+Report:
+
+* Exact test files and totals
+* Failures and warnings
+* Typecheck results
+* Build results
+* Whether any warning is existing or introduced by the fix
+
+Do not edit source if a check fails.
+
+---
+
+# 7. Runtime qualification
+
+Use only safe, existing development access.
+
+If a safe Marcus/admin session already exists, perform a read-only browser check of:
+
+* Exercise Library rendering
+* Media labels
+* Editor opening
+* Initial focus
+* Tab and Shift+Tab containment
+* Escape closing
+* Focus restoration
+* Narrow-screen critical controls
+* Browser console
+
+Do not create or mutate an exercise.
+
+If no safe admin session exists:
+
+* Do not create an account.
+* Do not modify a role.
+* Do not forge authentication.
+* Confirm the unauthenticated/member boundary if safely available.
+* Use deterministic tests and source inspection for the authenticated editor.
+* Record the missing real-admin walkthrough as a validation limitation.
+* Do not claim that an unavailable browser workflow was performed.
+
+The unavailable admin session is not automatically blocking if the relevant behavior is deterministically established and no contradictory runtime evidence exists. Explain the final judgement.
+
+---
+
+# 8. Independent review
+
+Conduct an independent read-only review focused on:
+
+* Media-state correctness
+* Modal focus behavior
+* Escape and dirty-state interaction
+* Focus restoration
+* Test quality and completeness
+* Accessibility regressions
+* API-contract regressions
+* Scope leakage
+* Remaining regression risk
+
+For every finding, report:
+
+* Severity
+* Evidence
+* Whether it blocks Gate 2B completion
+
+Do not fix findings.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification
+2. Scope and file ledger
+3. Media-reference result
+4. Dialog focus-management result
+5. Mandatory test-coverage result
+6. Previously accepted behavior regression result
+7. Focused and complete test totals
+8. Typecheck and build results
+9. Runtime result and admin-session qualification
+10. Independent-review findings
+11. Remaining risks or limitations
+12. Production/deployment confirmation
+13. Gate verdict
+
+The verdict must be exactly one of:
+
+* `PASS — GATE 2B COMPLETE`
+* `BLOCKED — GATE 2B FIX REQUIRED`
+
+A pass requires all three previous blockers to be demonstrably resolved with no new blocking regression.
+
+Do not begin Gate 2C.
