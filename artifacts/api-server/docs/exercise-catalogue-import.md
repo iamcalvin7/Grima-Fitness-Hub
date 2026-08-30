@@ -10,16 +10,37 @@ the `marcus-grima` tenant.
 - `--tenant marcus-grima` and an explicit same-tenant admin `--actor-id` are
   required.
 - Dry-run is the default. `--apply` is required for writes.
-- Apply also requires `--confirm-development-only` and refuses known Replit
-  deployment/production markers. The package script does not set `NODE_ENV`.
+- Apply and reconciliation require `--confirm-development-only` and refuse the
+  documented Replit deployment markers (`REPLIT_DEPLOYMENT`,
+  `REPLIT_DEPLOYMENT_ID`, and `REPLIT_ENV`). The package script does not set
+  `NODE_ENV`.
 - Every record is validated through the normal exercise write validator.
+- The authoritative bundled source and its normalized 47-record inventory are
+  pinned by reviewed SHA-256 values. Alternate `--source` input is rejected;
+  any source-content change requires an explicit importer review and hash
+  update before the command can run.
 - Existing matching slugs are skipped only when every managed value and mapping
   is identical. Any difference is reported as a conflict and blocks the entire
   apply before writes begin.
 - The entire import, all mappings, and all `exercise:create` audit events share
-  one transaction protected by a tenant/import advisory lock. Any failure rolls
-  back the whole run.
-- The import never updates an existing record, lifecycle state, or version.
+  one transaction protected by a tenant/import advisory lock. Lock contention
+  fails immediately instead of waiting, and any failure rolls back the whole
+  run.
+- Normal import mode never updates an existing record, lifecycle state, or
+  version.
+- The one-time `--reconcile` mode updates only rows proven to be unchanged
+  products of this import: exact tenant/slug/source ID, original import audit,
+  original version and timestamps, matching active admin actor, draft status,
+  and no later exercise audit. Any missing, changed, unowned, or unexpected row
+  blocks the complete reconciliation.
+- The reconciliation mutation entry point independently rechecks the
+  development environment, explicit confirmation, approved source hashes,
+  complete canonical manifest, and exact tenant even when invoked outside the
+  CLI parser.
+- Reconciliation preserves exercise IDs, increments versions, replaces child
+  mappings atomically, and records an `exercise:reconcile` audit in the same
+  advisory-locked transaction. It never activates, archives, restores, deletes,
+  or recreates an exercise.
 - All records remain drafts. The source does not contain exercise-level
   difficulty or an explicit movement pattern, so none qualify for activation.
 - Programme sets, reps, and rest remain source context in the report/internal
@@ -41,6 +62,16 @@ Add `--apply --confirm-development-only` only after reviewing the dry-run JSON.
 Re-running the dry-run after an import should report 47 skips, zero creates,
 and zero conflicts.
 
+The accepted one-time hardening reconciliation used:
+
+```sh
+NODE_ENV=development node dist/import-exercise-catalogue.mjs \
+  --tenant marcus-grima \
+  --actor-id <same-tenant-active-admin-uuid> \
+  --reconcile \
+  --confirm-development-only
+```
+
 ## Development reconciliation
 
 The accepted run produced:
@@ -51,11 +82,20 @@ The accepted run produced:
 - Created drafts: 47
 - Activated records: 0
 - Verified media references: 21
-- Records with a canonical primary muscle: 42
-- Records awaiting primary-muscle review: 5
+- Records with a canonical primary muscle: 38
+- Records awaiting primary-muscle review: 9
+- Canonical muscle mappings: 75
+- Equipment mappings: 18
 - Import-scoped `exercise:create` audit records: 47, all attributed to the
   verified same-tenant admin through the CLI actor type
-- Second-run result: 47 exact skips, zero creates, zero conflicts
+- Reconciled rows: 47, all preserving identity and advancing from version 1 to
+  version 2
+- Import-scoped `exercise:reconcile` audit records: 47
+- Final unsupported metadata counts: zero performance types, zero lateralities,
+  zero difficulties, and zero movement patterns
+- Final dry-run and apply/no-op result: 47 exact skips, zero creates, zero
+  conflicts, zero activations, and no row, mapping, timestamp, version, or audit
+  changes
 
 ## Review manifest
 
@@ -89,12 +129,12 @@ pattern review before activation.
 | burpees | Burpees | review | no | draft |
 | push-up-variations | Push-Up Variations | chest | no | draft |
 | jump-squats | Jump Squats | quads | no | draft |
-| mountain-climbers | Mountain Climbers | abs | no | draft |
-| plank-hold | Plank Hold | abs | no | draft |
+| mountain-climbers | Mountain Climbers | review | no | draft |
+| plank-hold | Plank Hold | review | no | draft |
 | pike-push-ups | Pike Push-Ups | review | no | draft |
 | tricep-chair-dips | Tricep Chair Dips | triceps | no | draft |
 | wide-push-ups | Wide Push-Ups | chest | no | draft |
-| leg-raises | Leg Raises | abs | no | draft |
+| leg-raises | Leg Raises | review | no | draft |
 | bulgarian-split-squats | Bulgarian Split Squats | quads | no | draft |
 | glute-bridge-hold | Glute Bridge Hold | glutes | no | draft |
 | reverse-lunges | Reverse Lunges | quads | no | draft |
@@ -103,7 +143,7 @@ pattern review before activation.
 | spiderman-push-ups | Spiderman Push-Ups | chest | no | draft |
 | squat-pulses | Squat Pulses | quads | no | draft |
 | cable-chest-fly-low | Cable Chest Fly (Low) | chest | no | draft |
-| db-lateral-raise-pump | Lateral Raises (Pump Set) | side_delts | no | draft |
+| db-lateral-raise-pump | Lateral Raises (Pump Set) | review | no | draft |
 | incline-curl | Incline Dumbbell Curl | biceps | no | draft |
 | rope-pushdown-pump | Rope Pushdown (High Rep) | triceps | no | draft |
 | face-pull-pump | Face Pulls | rear_delts | no | draft |

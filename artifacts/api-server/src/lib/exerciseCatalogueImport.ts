@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import ts from "typescript";
 import type {
   ExerciseDifficulty,
@@ -12,6 +13,10 @@ import {
 } from "./exercises.js";
 
 export const EXERCISE_IMPORT_VERSION = "gate-2c-v1";
+export const EXPECTED_LEGACY_SOURCE_SHA256 =
+  "c87a5f71890eb3d72f702aa05ad3fa973cdcdb0b9cc6756e3254cf9f188f4a98";
+export const EXPECTED_LEGACY_SOURCE_RECORDS_SHA256 =
+  "c85ad4cf17961eeef11d3d4d586497f607a59244526defdd0734027b9501e724";
 export const EXPECTED_LEGACY_EXERCISE_COUNT = 47;
 export const EXPECTED_LEGACY_EXERCISE_IDS = [
   "pull-ups",
@@ -63,6 +68,26 @@ export const EXPECTED_LEGACY_EXERCISE_IDS = [
   "calf-raise-pump",
 ] as const;
 
+export function assertExerciseImportEnvironment(
+  environment: Partial<
+    Record<
+      "NODE_ENV" | "REPLIT_DEPLOYMENT" | "REPLIT_DEPLOYMENT_ID" | "REPLIT_ENV",
+      string | undefined
+    >
+  >,
+): void {
+  if (
+    environment.NODE_ENV !== "development" ||
+    environment.REPLIT_DEPLOYMENT ||
+    environment.REPLIT_DEPLOYMENT_ID ||
+    environment.REPLIT_ENV
+  ) {
+    throw new Error(
+      "Exercise catalogue import is restricted to an explicit development process outside a Replit deployment",
+    );
+  }
+}
+
 export interface LegacyExerciseSource {
   sourceId: string;
   name: string;
@@ -73,6 +98,23 @@ export interface LegacyExerciseSource {
   musclesWorked: string[];
   equipment: string;
   cues: string[];
+}
+
+export function assertApprovedLegacyExerciseSource(
+  sources: LegacyExerciseSource[],
+  sourceSha256: string,
+): void {
+  const normalizedSourceSha256 = createHash("sha256")
+    .update(JSON.stringify(sources))
+    .digest("hex");
+  if (
+    sourceSha256 !== EXPECTED_LEGACY_SOURCE_SHA256 ||
+    normalizedSourceSha256 !== EXPECTED_LEGACY_SOURCE_RECORDS_SHA256
+  ) {
+    throw new Error(
+      "Legacy exercise source differs from the approved Gate 2C inventory",
+    );
+  }
 }
 
 export interface ExerciseImportManifestEntry {

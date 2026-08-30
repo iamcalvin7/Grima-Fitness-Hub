@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildExerciseImportManifest,
   compareImportEntry,
+  assertExerciseImportEnvironment,
+  assertApprovedLegacyExerciseSource,
   EXPECTED_LEGACY_EXERCISE_IDS,
   EXPECTED_LEGACY_EXERCISE_COUNT,
   extractLegacyExercises,
@@ -39,6 +42,47 @@ function existingFrom(index: number): ExistingImportExercise {
 }
 
 describe("exercise catalogue import manifest", () => {
+  it("pins both the authoritative source file and normalized source records", () => {
+    const extracted = extractLegacyExercises(source);
+    const sourceSha256 = createHash("sha256").update(source).digest("hex");
+    expect(() =>
+      assertApprovedLegacyExerciseSource(extracted, sourceSha256),
+    ).not.toThrow();
+    expect(() =>
+      assertApprovedLegacyExerciseSource(
+        [{ ...extracted[0], name: "Unreviewed replacement" }, ...extracted.slice(1)],
+        sourceSha256,
+      ),
+    ).toThrow(/approved Gate 2C inventory/);
+    expect(() =>
+      assertApprovedLegacyExerciseSource(extracted, "wrong-file-hash"),
+    ).toThrow(/approved Gate 2C inventory/);
+  });
+
+  it("allows only explicit development outside documented deployment markers", () => {
+    expect(() =>
+      assertExerciseImportEnvironment({ NODE_ENV: "development" }),
+    ).not.toThrow();
+    expect(() => assertExerciseImportEnvironment({})).toThrow(/development/);
+    expect(() =>
+      assertExerciseImportEnvironment({
+        NODE_ENV: "production",
+      }),
+    ).toThrow(/development/);
+    for (const marker of [
+      "REPLIT_DEPLOYMENT",
+      "REPLIT_DEPLOYMENT_ID",
+      "REPLIT_ENV",
+    ] as const) {
+      expect(() =>
+        assertExerciseImportEnvironment({
+          NODE_ENV: "development",
+          [marker]: "1",
+        }),
+      ).toThrow(/deployment/);
+    }
+  });
+
   it("extracts every credible source exercise with stable unique ids", () => {
     const extracted = extractLegacyExercises(source);
     expect(extracted).toHaveLength(EXPECTED_LEGACY_EXERCISE_COUNT);

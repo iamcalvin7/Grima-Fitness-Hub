@@ -1,0 +1,323 @@
+# CONTINUATION — Gate 2C Import Hardening and Exact Reconciliation
+
+## Prompt classification
+
+* **Prompt type:** BUILD CONTINUATION
+* **Gate:** Gate 2C — Exercise Catalogue Import
+* **Scope:** Importer hardening and exact development-data reconciliation
+* **Environment:** Development only
+* **Production access:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Deployment/publishing:** Not authorized
+* **Next gate:** Must not start
+
+## Objective
+
+Complete the active Gate 2C task by:
+
+1. Applying the hardening findings from the independent review.
+2. Ensuring the 47 existing development drafts exactly match the final hardened import manifest.
+3. Proving that no inferred or obsolete metadata remains in the database.
+4. Proving the final importer is atomic, environment-safe, tenant-safe, auditable and idempotent.
+
+Do not leave the already imported rows inconsistent with the final importer.
+
+---
+
+# 1. Final mapping policy
+
+The final manifest must preserve only metadata explicitly supported by the legacy source.
+
+Do not infer:
+
+* Performance type
+* Laterality
+* Difficulty
+* Movement pattern
+* Primary muscle where the legacy value is ambiguous
+* Multiple equipment records from a compound or alternative-equipment string
+* Exercise instructions beyond existing source wording
+* Activation readiness
+
+Requirements:
+
+* All 47 records remain drafts.
+* Ambiguous muscle labels remain explicitly unresolved.
+* Ambiguous or alternative equipment text must not be converted into multiple canonical equipment claims without source evidence.
+* Legacy sets, repetitions and rest prescriptions must not become permanent exercise-definition fields.
+* Distinct legacy source IDs remain distinct even where names match.
+* The two “Face Pulls” records must not collapse merely because their names are identical.
+* Exact source-ID coverage must prove all 47 expected IDs are present once each.
+* No unexpected or fabricated source ID may appear.
+
+Produce the final manifest before reconciling database rows.
+
+---
+
+# 2. Importer hardening
+
+Implement the independent-review requirements:
+
+* Use one transaction for the complete import operation.
+* Acquire a transaction-scoped advisory lock before conflict evaluation and writes.
+* Fail safely if another import holds the lock.
+* Recheck conflicts inside the locked transaction.
+* Validate the selected actor is:
+
+  * Active
+  * An admin
+  * In the exact target tenant
+  * Authorized for the required exercise-management action
+* Reject inactive, cross-tenant, client and legacy-trainer actors.
+* Require an explicit development target.
+* Fail closed when production, deployment or an ambiguous environment is detected.
+* Do not rely on one weak environment flag where established deployment markers or connection safeguards are available.
+* Never print credentials, full connection strings or sensitive identifiers.
+* Validate the complete expected source-ID set before any write.
+* Keep dry-run behavior completely write-free.
+* Preserve existing-record conflict protection.
+* Preserve audit failure rollback.
+* Preserve tenant-safe child mappings.
+* Never activate an imported exercise.
+
+Add focused tests for these protections.
+
+---
+
+# 3. Prove ownership of the 47 existing rows
+
+Before correcting any existing row, prove that it was created by this Gate 2C import and has not subsequently been edited.
+
+Use the strongest available combination of:
+
+* Import-scoped audit event
+* Legacy source ID recorded in the audit context or manifest
+* Exact tenant
+* Expected deterministic slug
+* Creation timestamp
+* Current version
+* Absence of later manual update or lifecycle audit events
+* Current draft status
+* Expected import actor
+
+Do not rely only on the exercise name.
+
+Classify every existing row as:
+
+* Proven import-owned and unchanged
+* Import-owned but subsequently changed
+* Not provably import-owned
+* Missing
+* Unexpected
+
+Only the first category may be automatically reconciled.
+
+If any row was manually changed or cannot be proven import-owned, preserve it and stop with:
+
+`BLOCKED — GATE 2C DATA DECISION REQUIRED`
+
+Report the affected source ID and conflict without exposing private identifiers.
+
+---
+
+# 4. Exact forward reconciliation
+
+Compare every proven, unchanged import-owned draft against the final hardened manifest field by field.
+
+If the initial import stored inferred metadata that the hardened manifest no longer permits, correct only those proven task-created rows.
+
+Requirements:
+
+* Use an audited, transactional, version-aware mutation.
+* Preserve tenant ownership and stable exercise identity.
+* Do not delete and recreate records merely to obtain a clean comparison.
+* Do not reset versions.
+* Do not erase existing audit history.
+* Record the reconciliation as a new audit event.
+* Update child muscle or equipment mappings atomically.
+* Do not touch an identical row.
+* Do not modify unrelated development records.
+* Do not archive, restore, activate or delete any record.
+* Roll back the entire reconciliation if any required audit event or child mapping fails.
+
+After reconciliation, the database representation of all 47 records must exactly match the final manifest, allowing only server-owned fields such as IDs, versions and timestamps to differ.
+
+Report:
+
+* Rows already exact
+* Rows safely reconciled
+* Fields removed or corrected by category
+* Rows preserved because of conflicts
+* Final version distribution
+* Reconciliation audit-event count
+
+---
+
+# 5. Idempotency proof
+
+After reconciliation, run the final importer again in dry-run mode.
+
+The required result is:
+
+```text
+creates: 0
+exact skips: 47
+conflicts: 0
+writes: 0
+activations: 0
+```
+
+Then run the supported apply mode again and prove it also performs zero mutations.
+
+Confirm:
+
+* No exercise version changes.
+* No child mappings change.
+* No new audit events are written.
+* No timestamps change because of the no-op execution.
+* Repeated execution remains tenant-scoped.
+* The duplicate “Face Pulls” records remain independently and deterministically identified.
+
+Any non-zero mutation on the final idempotency pass blocks completion.
+
+---
+
+# 6. Temporary rollback-proof cleanup
+
+Verify that the temporary rollback-test infrastructure is completely gone.
+
+Confirm:
+
+* Temporary database trigger removed.
+* Temporary source ID absent.
+* Temporary exercise row absent.
+* Temporary muscle/equipment mappings absent.
+* Temporary audit rows absent.
+* No temporary script, debug output or credential remains.
+* No unrelated database object was changed.
+
+Do not merely rely on the earlier cleanup command; inspect the final development state.
+
+---
+
+# 7. Final reconciliation
+
+Reconcile all authoritative representations:
+
+1. Legacy TypeScript source
+2. Final deterministic manifest
+3. Development exercise rows
+4. Muscle mappings
+5. Equipment mappings
+6. Import and reconciliation audit events
+7. Importer dry-run output
+8. Importer apply/no-op output
+
+Confirm final development counts for:
+
+* Total exercises
+* Drafts
+* Active
+* Archived
+* Canonical primary muscles
+* Unresolved primary muscles
+* Media references
+* Equipment mappings
+* Original import audit events
+* Reconciliation audit events
+* Invalid or missing actor links
+* Unexpected tenant records
+* Conflicts
+
+Do not claim exact parity if any representation disagrees.
+
+---
+
+# 8. Required tests and verification
+
+Run and report:
+
+* Importer and mapping focused tests
+* Transaction and advisory-lock tests
+* Environment-guard tests
+* Actor-validation tests
+* Exact source-ID tests
+* Conflict-preservation tests
+* Audit rollback tests
+* Reconciliation tests
+* Idempotency/no-op tests
+* Gate 2A exercise tests
+* Gate 2B Exercise Library tests
+* Complete API regression suite
+* Complete frontend regression suite
+* API typecheck
+* Client typecheck
+* API production build
+* Client production build
+* `git diff --check`
+* Development runtime startup
+* Final database reconciliation
+* Independent safety review
+
+Report exact commands, files, totals, failures and warnings.
+
+Do not weaken existing tests.
+
+---
+
+# 9. Independent final review
+
+Perform an independent review focused on:
+
+* No unsupported metadata inference
+* Complete 47-ID source coverage
+* Duplicate-name handling
+* Whole-import atomicity
+* Advisory-lock correctness
+* Environment restrictions
+* Active same-tenant admin enforcement
+* Existing-record preservation
+* Safe reconciliation ownership proof
+* Audit integrity
+* Final database/manifest parity
+* No-op idempotency
+* Temporary-object cleanup
+* Scope leakage
+
+Fix only findings within this authorized Gate 2C continuation.
+
+If a correction would require schema, backend-contract, production or unrelated feature work, stop.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification
+2. Hardening changes
+3. Exact files changed
+4. Final mapping policy
+5. Source-ID completeness
+6. Existing-row ownership proof
+7. Reconciliation result
+8. Transaction and advisory-lock result
+9. Environment and actor protections
+10. Final development catalogue counts
+11. Audit reconciliation
+12. Idempotency proof
+13. Temporary-object cleanup
+14. Tests and exact totals
+15. Typecheck and build results
+16. Independent-review findings
+17. Remaining risks or decisions
+18. Production/deployment confirmation
+19. Final verdict
+
+The verdict must be exactly one of:
+
+* `READY FOR GATE 2C VALIDATION`
+* `BLOCKED — GATE 2C DATA DECISION REQUIRED`
+* `BLOCKED — GATE 2C FIX REQUIRED`
+
+Do not start the next gate.
