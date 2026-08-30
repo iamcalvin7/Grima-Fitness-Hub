@@ -397,7 +397,7 @@ function ExerciseCard({
 }) {
   const primary = exercise.muscles.find((muscle) => muscle.role === "primary")?.muscleKey;
   const secondary = exercise.muscles.filter((muscle) => muscle.role === "secondary");
-  const mediaBroken = !exercise.mediaUrl ? false : undefined;
+  const hasMediaReference = Boolean(exercise.mediaUrl?.trim());
   return (
     <article className="group flex min-h-56 flex-col rounded-2xl border border-white/8 bg-[#111111] p-5 transition-colors hover:border-white/20">
       <div className="flex items-start justify-between gap-3">
@@ -430,7 +430,7 @@ function ExerciseCard({
         </div>
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/30">Media</p>
-          <p className="mt-1 font-bold text-white/75">{mediaBroken === false ? "Reference linked" : "No reference"}</p>
+          <p className="mt-1 font-bold text-white/75">{hasMediaReference ? "Reference linked" : "No reference"}</p>
         </div>
       </div>
 
@@ -467,6 +467,7 @@ export function ExerciseLibrary() {
   const [editor, setEditor] = useState<ExerciseRecord | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
   const requestId = useRef(0);
+  const editorOpener = useRef<HTMLElement | null>(null);
 
   const fetchExercises = useCallback(async () => {
     const id = ++requestId.current;
@@ -501,6 +502,13 @@ export function ExerciseLibrary() {
     setPagination((current) => (current.page === 1 ? current : { ...current, page: 1 }));
   }, [search, status, performanceType, muscle, equipment]);
 
+  useEffect(() => {
+    if (editor !== undefined || !editorOpener.current) return;
+    const opener = editorOpener.current;
+    editorOpener.current = null;
+    if (opener.isConnected) opener.focus();
+  }, [editor]);
+
   const hasFilters = Boolean(search || status || performanceType || muscle || equipment);
   const clearFilters = () => {
     setSearch("");
@@ -512,15 +520,18 @@ export function ExerciseLibrary() {
 
   const openCreate = () => {
     setNotice("");
+    editorOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditor(null);
   };
 
   const openEdit = async (exercise: ExerciseRecord) => {
     setNotice("");
+    editorOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     try {
       const result = await apiRequest<{ exercise: ExerciseRecord }>(`/admin/exercises/${exercise.id}`);
       setEditor(result.exercise);
     } catch (caught) {
+      editorOpener.current = null;
       setError(userFacingError(caught, "Unable to load the latest exercise record."));
     }
   };
@@ -540,6 +551,8 @@ export function ExerciseLibrary() {
     setNotice("");
     void refresh();
   };
+
+  const closeEditor = () => setEditor(undefined);
 
   const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
 
@@ -684,7 +697,7 @@ export function ExerciseLibrary() {
       {editor !== undefined && (
         <ExerciseEditor
           exercise={editor}
-          onClose={() => setEditor(undefined)}
+          onClose={closeEditor}
           onCreated={handleCreated}
           onChanged={handleChanged}
         />
@@ -740,8 +753,13 @@ function ExerciseEditor({
   const [archiveReason, setArchiveReason] = useState("");
   const [mediaBroken, setMediaBroken] = useState(false);
   const initialForm = useRef(JSON.stringify(form));
+  const dialogRef = useRef<HTMLDivElement>(null);
   const dirty = JSON.stringify(form) !== initialForm.current;
   const fieldErrors = getFieldErrors(error);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -753,10 +771,52 @@ function ExerciseEditor({
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
 
-  const close = () => {
+  const close = useCallback(() => {
     if (dirty && !window.confirm("You have unsaved changes. Close without saving?")) return;
     onClose();
-  };
+  }, [dirty, onClose]);
+
+  useEffect(() => {
+    const handleDialogKeyDown = (event: KeyboardEvent) => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey) {
+        if (active === first || !dialog.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !dialog.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleDialogKeyDown, true);
+    return () => document.removeEventListener("keydown", handleDialogKeyDown, true);
+  }, [close]);
 
   const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -938,7 +998,7 @@ function ExerciseEditor({
     : [];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 p-0 backdrop-blur-sm md:p-6" role="dialog" aria-modal="true" aria-label={isNew ? "Create exercise" : `Edit ${record?.name ?? "exercise"}`}>
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 overflow-y-auto bg-black/75 p-0 backdrop-blur-sm outline-none md:p-6" role="dialog" aria-modal="true" aria-label={isNew ? "Create exercise" : `Edit ${record?.name ?? "exercise"}`}>
       <div className="ml-auto min-h-full w-full max-w-5xl border-l border-white/10 bg-[#0d0d0d] shadow-2xl md:min-h-0 md:rounded-2xl md:border">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/8 bg-[#0d0d0d]/95 px-5 py-4 backdrop-blur-md md:px-7">
           <div className="flex min-w-0 items-center gap-3">

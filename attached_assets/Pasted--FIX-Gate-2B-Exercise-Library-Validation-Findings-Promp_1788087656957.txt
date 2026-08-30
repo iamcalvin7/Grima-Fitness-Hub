@@ -1,0 +1,304 @@
+# FIX — Gate 2B Exercise Library Validation Findings
+
+## Prompt classification
+
+* **Prompt type:** FIX
+* **Gate:** Gate 2B — Marcus Exercise Library UI
+* **Risk:** Amber
+* **Environment:** Development only
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Backend/API changes:** Not authorized
+* **Gate 2C:** Must not start
+
+## Objective
+
+Resolve only the three blocking findings from the independent Gate 2B validation:
+
+1. Incorrect media-reference availability label.
+2. Missing accessible dialog focus management.
+3. Incomplete mandatory focused frontend test coverage.
+
+Preserve all already-passing Gate 2B behavior.
+
+Do not expand the feature or begin exercise-catalogue migration.
+
+---
+
+# 1. Mandatory pre-fix inspection
+
+Before editing, inspect:
+
+* Current Git status and Gate 2B diff.
+* `ExerciseLibrary.tsx`.
+* Existing Exercise Library tests.
+* Existing modal/dialog utilities and patterns in the client.
+* Existing BodyMap test utilities.
+* Current frontend dependencies.
+* The exact failing media-label condition.
+
+Prefer established application patterns. Do not add a dependency unless the existing project cannot implement compliant focus behavior without one. If a dependency or broader architectural change appears necessary, stop and report it.
+
+## Expected primary scope
+
+Changes should normally remain limited to:
+
+* `artifacts/marcus-grima/src/pages/ExerciseLibrary.tsx`
+* `artifacts/marcus-grima/src/__tests__/exerciseLibraryPage.test.tsx`
+
+A small change to an existing focused test helper is permitted if genuinely required.
+
+Report any additional file before changing it and explain why it is necessary.
+
+---
+
+# 2. Fix the media-reference indicator
+
+Correct the exercise-card media state so that:
+
+* An exercise with a valid `mediaUrl` displays **Reference linked**.
+* An exercise without a media reference displays **No reference**.
+* Missing and linked states are not inverted.
+* The display does not claim that a remote resource successfully loaded unless it was actually loaded.
+* No upload pipeline or new media service is introduced.
+
+Add focused regression tests proving both states.
+
+---
+
+# 3. Implement accessible editor-dialog focus management
+
+The Exercise Library editor currently declares:
+
+```text
+role="dialog"
+aria-modal="true"
+```
+
+Complete the corresponding keyboard and focus behavior.
+
+Requirements:
+
+* Move focus into the dialog when it opens.
+* Focus an appropriate first control or the dialog heading/container.
+* Keep Tab and Shift+Tab focus within the open modal.
+* Close the dialog with Escape when closing is safe.
+* If unsaved changes exist, Escape must follow the existing unsaved-change confirmation behavior rather than silently discard changes.
+* Restore focus to the control that opened the dialog after it closes.
+* Prevent meaningful keyboard interaction with background page controls while the modal is open.
+* Preserve existing click/touch closing behavior.
+* Preserve existing unsaved-change protection.
+* Do not create nested or conflicting keyboard handlers.
+* Do not break form inputs, BodyMap keyboard interaction, confirmation controls, or lifecycle actions.
+
+Use an existing accessible dialog primitive if the application already has one and it can be adopted without unrelated refactoring. Otherwise implement the smallest reusable focus-management solution needed for this editor.
+
+Add deterministic tests covering:
+
+* Initial focus inside the dialog.
+* Tab wrapping from the last focusable control to the first.
+* Shift+Tab wrapping from the first control to the last.
+* Escape close with a clean form.
+* Escape with unsaved changes invoking the existing confirmation protection.
+* Focus restoration to the opener after close.
+
+---
+
+# 4. Complete mandatory focused regression coverage
+
+Add focused tests for the required Gate 2B behaviors that validation found missing.
+
+At minimum, cover:
+
+## Catalogue states
+
+* Empty catalogue.
+* No search results.
+* API failure.
+* Retry after API failure.
+
+## Search and filters
+
+* Search request behavior.
+* Status filter.
+* Performance-type filter.
+* Muscle filter.
+* Equipment filter.
+* Clear filters.
+* Pagination request behavior.
+
+Tests must prove the correct server-backed query behavior, not merely that controls render.
+
+## Exercise metadata
+
+* Duplicate equipment cannot be submitted.
+* BodyMap selection and form selection remain synchronized.
+* Primary and secondary muscle behavior remains distinct.
+* Existing canonical server muscle keys remain authoritative.
+
+## State protection
+
+* Unsaved-change confirmation when closing the editor.
+* Existing form values remain present after a recoverable error.
+
+## Lifecycle visibility
+
+* Archived exercises remain visible in the Marcus/admin catalogue when the relevant status view permits them.
+* Archived state is clearly labelled.
+* Archived exercises are not presented as deleted.
+
+## Responsive critical behavior
+
+At a narrow viewport, verify the critical interaction structure remains usable:
+
+* Exercise Library controls remain available.
+* Editor controls remain accessible.
+* Lifecycle actions are not hidden behind hover-only behavior.
+* The dialog remains operable without unintended horizontal overflow.
+
+Do not use brittle pixel-perfect assertions. Test meaningful responsive behavior and accessibility.
+
+---
+
+# 5. Preserve already-passing behavior
+
+Do not regress:
+
+* Admin-only route and navigation.
+* Fail-closed non-admin guard.
+* Gate 2A API-contract adherence.
+* Server-backed catalogue behavior.
+* Draft creation and editing.
+* Explicit activation.
+* Activation validation feedback.
+* Archive confirmation and required reason.
+* Restore to draft.
+* Version-conflict preservation and explicit reload.
+* Canonical muscle vocabulary.
+* Equipment structure.
+* BodyMap pointer and keyboard behavior.
+* Unsaved browser-refresh protection.
+* Desktop and mobile navigation.
+* Existing frontend and API tests.
+
+---
+
+# 6. Explicitly out of scope
+
+Do not change or add:
+
+* Database schema or migrations.
+* Exercise API routes or backend behavior.
+* Authentication, roles, capabilities, or tenant logic.
+* Static exercise import.
+* Gate 2C work.
+* Programmes or workout templates.
+* Workout execution or logging.
+* Exercise alternatives.
+* Personal bests or progression.
+* AI features.
+* Upload or object-storage infrastructure.
+* Booking, payments, wallet, Stripe, notifications, or profiles.
+* Production or deployment configuration.
+* General Exercise Library redesign.
+* Unrelated refactoring.
+
+If any fix requires backend, schema, dependency, authentication, or production work, stop and return:
+
+`BLOCKED — GATE 2B BROADER FIX REQUIRED`
+
+---
+
+# 7. Verification
+
+Run and report the exact results for:
+
+```text
+pnpm --filter @workspace/marcus-grima exec vitest run --config vitest.config.ts src/__tests__/exerciseLibrary.test.tsx src/__tests__/exerciseLibraryPage.test.tsx
+```
+
+```text
+pnpm --filter @workspace/marcus-grima run test
+```
+
+```text
+pnpm --filter @workspace/api-server run test:all
+```
+
+```text
+pnpm --filter @workspace/marcus-grima run typecheck
+```
+
+```text
+pnpm --filter @workspace/api-server run typecheck
+```
+
+```text
+PORT=5173 BASE_PATH=/marcus-grima/ pnpm --filter @workspace/marcus-grima run build
+```
+
+```text
+pnpm --filter @workspace/api-server run build
+```
+
+```text
+git diff --check
+```
+
+Also perform a source-based accessibility review of the final dialog behavior.
+
+If a safe existing Marcus/admin session is available, verify the corrected UI in the development browser without creating or mutating exercise data.
+
+If no safe admin session exists:
+
+* Do not create an account.
+* Do not change a role.
+* Do not forge authentication.
+* Record the runtime limitation accurately.
+* Use focused deterministic tests for the authenticated editor behavior.
+
+---
+
+# 8. Independent fix review
+
+Perform an independent review limited to:
+
+* Correct media-state logic.
+* Dialog focus management.
+* Escape and unsaved-change interaction.
+* Focus restoration.
+* Completeness and quality of the new tests.
+* Scope leakage.
+* Regression risk.
+
+Fix any finding that remains within this authorized frontend scope. Stop if a broader change is required.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification.
+2. Pre-fix inspection.
+3. Exact files changed.
+4. Media-reference fix.
+5. Dialog focus-management implementation.
+6. Missing test coverage added.
+7. Focused test totals.
+8. Complete frontend and API regression totals.
+9. Typecheck and build results.
+10. Runtime verification and admin-session qualification.
+11. Independent-review findings.
+12. Scope-integrity confirmation.
+13. Remaining risks.
+14. Production/deployment confirmation.
+15. Final verdict.
+
+The verdict must be exactly one of:
+
+* `READY FOR GATE 2B RE-VALIDATION`
+* `BLOCKED — GATE 2B BROADER FIX REQUIRED`
+
+Do not begin Gate 2C.

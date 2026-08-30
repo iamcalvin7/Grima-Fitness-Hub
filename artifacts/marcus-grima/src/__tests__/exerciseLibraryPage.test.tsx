@@ -44,12 +44,21 @@ const archivedExercise: ExerciseRecord = {
   version: 3,
 };
 
+const linkedMediaExercise: ExerciseRecord = {
+  ...draftExercise,
+  mediaUrl: "https://cdn.example.com/goblet-squat.mp4",
+};
+
 function response(data: unknown, status = 200) {
   return {
     ok: status >= 200 && status < 300,
     status,
     json: async () => data,
   } as Response;
+}
+
+function listResponse(exercises: ExerciseRecord[] = [draftExercise], total = exercises.length, page = 1) {
+  return response({ exercises, pagination: { page, limit: 25, total } });
 }
 
 describe("ExerciseLibrary page", () => {
