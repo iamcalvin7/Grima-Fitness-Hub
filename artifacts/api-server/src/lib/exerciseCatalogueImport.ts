@@ -67,6 +67,8 @@ export const EXPECTED_LEGACY_EXERCISE_IDS = [
   "leg-curl-pump",
   "calf-raise-pump",
 ] as const;
+export const EXERCISE_PROVENANCE_ATTESTATION_ACTION =
+  "exercise:provenance-attestation";
 
 export function assertExerciseImportEnvironment(
   environment: Partial<
@@ -104,9 +106,7 @@ export function assertApprovedLegacyExerciseSource(
   sources: LegacyExerciseSource[],
   sourceSha256: string,
 ): void {
-  const normalizedSourceSha256 = createHash("sha256")
-    .update(JSON.stringify(sources))
-    .digest("hex");
+  const normalizedSourceSha256 = normalizedLegacySourceSha256(sources);
   if (
     sourceSha256 !== EXPECTED_LEGACY_SOURCE_SHA256 ||
     normalizedSourceSha256 !== EXPECTED_LEGACY_SOURCE_RECORDS_SHA256
@@ -117,12 +117,58 @@ export function assertApprovedLegacyExerciseSource(
   }
 }
 
+export function normalizedLegacySourceSha256(
+  sources: LegacyExerciseSource[],
+): string {
+  return createHash("sha256").update(JSON.stringify(sources)).digest("hex");
+}
+
 export interface ExerciseImportManifestEntry {
   source: LegacyExerciseSource;
   payload: Required<Pick<ExerciseWriteInput, "name" | "slug">> &
     Omit<ExerciseWriteInput, "name" | "slug">;
   disposition: "draft";
   reviewReasons: string[];
+}
+
+export interface ExerciseImportProvenance {
+  source: "bundled-programmes";
+  sourceId: string;
+  slug: string;
+  importVersion: string;
+  sourceSha256: string;
+  normalizedSourceSha256: string;
+  manifestRecordSha256: string;
+  exerciseId: string;
+  currentExerciseVersion: number;
+}
+
+export function manifestRecordSha256(
+  entry: ExerciseImportManifestEntry,
+): string {
+  return createHash("sha256")
+    .update(JSON.stringify({ source: entry.source, payload: entry.payload }))
+    .digest("hex");
+}
+
+export function buildExerciseImportProvenance(
+  entry: ExerciseImportManifestEntry,
+  sourceSha256: string,
+  normalizedSourceSha256: string,
+  exerciseId: string,
+  currentExerciseVersion: number,
+): ExerciseImportProvenance {
+  return {
+    source: "bundled-programmes",
+    sourceId: entry.source.sourceId,
+    slug: entry.payload.slug,
+    importVersion: EXERCISE_IMPORT_VERSION,
+    sourceSha256,
+    normalizedSourceSha256,
+    manifestRecordSha256: manifestRecordSha256(entry),
+    exerciseId,
+    currentExerciseVersion,
+  };
 }
 
 export interface ExistingImportExercise {

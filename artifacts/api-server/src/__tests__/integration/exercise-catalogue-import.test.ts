@@ -2,23 +2,31 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   auditLogsTable,
   db,
   exerciseEquipmentTable,
   exerciseMusclesTable,
   exercisesTable,
+  usersTable,
   type Tenant,
   type User,
 } from "@workspace/db";
 import {
   buildExerciseImportManifest,
+  buildExerciseImportProvenance,
   EXERCISE_IMPORT_VERSION,
+  EXERCISE_PROVENANCE_ATTESTATION_ACTION,
   extractLegacyExercises,
+  normalizedLegacySourceSha256,
   type ExerciseImportManifestEntry,
 } from "../../lib/exerciseCatalogueImport.js";
-import { reconcileDevelopmentImport } from "../../cli/importExerciseCatalogue.js";
+import {
+  attestDevelopmentImport,
+  proveImportOwnership,
+  reconcileDevelopmentImport,
+} from "../../cli/importExerciseCatalogue.js";
 import { createTenant, createUser } from "./harness.js";
 
 const source = readFileSync(
@@ -27,6 +35,9 @@ const source = readFileSync(
 );
 const manifest = buildExerciseImportManifest(extractLegacyExercises(source));
 const sourceSha256 = createHash("sha256").update(source).digest("hex");
+const normalizedSourceSha256 = normalizedLegacySourceSha256(
+  manifest.map((entry) => entry.source),
+);
 const originalNodeEnv = process.env.NODE_ENV;
 let tenant: Tenant;
 let actor: User;
@@ -35,6 +46,7 @@ async function seedOriginalImport(
   entry: ExerciseImportManifestEntry,
   tenantId: string,
   actorId: string,
+  completeProvenance = true,
 ) {
   const { muscles = [], equipment = [], ...fields } = entry.payload;
   const [exercise] = await db
@@ -75,11 +87,21 @@ async function seedOriginalImport(
     action: "exercise:create",
     targetType: "exercise",
     targetId: exercise.id,
-    metadata: {
-      source: "bundled-programmes",
-      sourceId: entry.source.sourceId,
-      importVersion: EXERCISE_IMPORT_VERSION,
-    },
+    metadata: completeProvenance
+      ? {
+          ...buildExerciseImportProvenance(
+            entry,
+            sourceSha256,
+            normalizedSourceSha256,
+            exercise.id,
+            1,
+          ),
+        }
+      : {
+          source: "bundled-programmes",
+          sourceId: entry.source.sourceId,
+          importVersion: EXERCISE_IMPORT_VERSION,
+        },
   });
   return exercise;
 }
@@ -89,6 +111,92 @@ async function seedCompleteOriginalImport(importActor: User = actor) {
     manifest.map((entry) =>
       seedOriginalImport(entry, tenant.id, importActor.id),
     ),
+  );
+}
+
+async function seedLegacyReconciledImport(importActor: User = actor) {
+  const exercises = [];
+  for (const entry of manifest) {
+    const exercise = await seedOriginalImport(
+      entry,
+      tenant.id,
+      importActor.id,
+      false,
+    );
+    const { muscles: _muscles, equipment: _equipment, ...fields } = entry.payload;
+    const [updated] = await db
+      .update(exercisesTable)
+      .set({
+        ...fields,
+        version: 2,
+        updatedByUserId: importActor.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(exercisesTable.id, exercise.id))
+      .returning();
+    await db.insert(auditLogsTable).values({
+      tenantId: tenant.id,
+      actorType: "cli",
+      actorId: importActor.id,
+      action: "exercise:reconcile",
+      targetType: "exercise",
+      targetId: exercise.id,
+      metadata: {
+        source: "bundled-programmes",
+        sourceId: entry.source.sourceId,
+        slug: entry.payload.slug,
+        importVersion: EXERCISE_IMPORT_VERSION,
+        sourceSha256,
+        fromVersion: 1,
+        toVersion: 2,
+        differences: ["performanceType", "laterality", "internalNotes"],
+      },
+    });
+    exercises.push(updated);
+  }
+  return exercises;
+}
+
+async function loadImportRows() {
+  const exercises = await db
+    .select()
+    .from(exercisesTable)
+    .where(eq(exercisesTable.tenantId, tenant.id));
+  const ids = exercises.map((exercise) => exercise.id);
+  const [muscles, equipment] = await Promise.all([
+    db
+      .select()
+      .from(exerciseMusclesTable)
+      .where(inArray(exerciseMusclesTable.exerciseId, ids)),
+    db
+      .select()
+      .from(exerciseEquipmentTable)
+      .where(inArray(exerciseEquipmentTable.exerciseId, ids)),
+  ]);
+  return exercises.map((exercise) => ({
+    ...exercise,
+    muscles: muscles
+      .filter((item) => item.exerciseId === exercise.id)
+      .map(({ muscleKey, role }) => ({ muscleKey: muscleKey as any, role })),
+    equipment: equipment
+      .filter((item) => item.exerciseId === exercise.id)
+      .map(({ equipmentKey, required }) => ({ equipmentKey, required })),
+  }));
+}
+
+function snapshotImportRows(rows: Awaited<ReturnType<typeof loadImportRows>>) {
+  return JSON.stringify(
+    rows
+      .map((row) => ({
+        ...row,
+        muscles: [...row.muscles].sort((left, right) =>
+          left.muscleKey.localeCompare(right.muscleKey),
+        ),
+        equipment: [...row.equipment].sort((left, right) =>
+          left.equipmentKey.localeCompare(right.equipmentKey),
+        ),
+      }))
+      .sort((left, right) => left.slug.localeCompare(right.slug)),
   );
 }
 
@@ -289,6 +397,370 @@ describe("exercise catalogue import reconciliation", () => {
       .from(exercisesTable)
       .where(eq(exercisesTable.tenantId, tenant.id));
     expect(saved.every((exercise) => exercise.version === 1)).toBe(true);
+  });
+
+  it("requires complete canonical provenance for future create audits", async () => {
+    await seedCompleteOriginalImport();
+    const rows = await loadImportRows();
+    const audits = await db
+      .select()
+      .from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    const createAudit = audits.find(
+      (audit) => audit.metadata?.sourceId === manifest[0].source.sourceId,
+    )!;
+    const complete = proveImportOwnership(
+      manifest,
+      rows,
+      audits,
+      actor.id,
+    );
+    expect(complete.owned.size).toBe(47);
+
+    const invalidValues: Record<string, unknown> = {
+      source: "caller-controlled",
+      sourceId: "wrong-source-id",
+      slug: "wrong-slug",
+      importVersion: "wrong-version",
+      sourceSha256: "wrong-source-hash",
+      normalizedSourceSha256: "wrong-normalized-hash",
+      manifestRecordSha256: "wrong-record-hash",
+      exerciseId: crypto.randomUUID(),
+      currentExerciseVersion: 99,
+    };
+    for (const [key, value] of Object.entries(invalidValues)) {
+      const invalidAudit = {
+        ...createAudit,
+        metadata: { ...createAudit.metadata, [key]: value },
+      };
+      const invalidAudits = audits.map((audit) =>
+        audit.id === createAudit.id ? invalidAudit : audit,
+      );
+      const proof = proveImportOwnership(
+        manifest,
+        rows,
+        invalidAudits,
+        actor.id,
+      );
+      expect(proof.owned.size, key).toBe(46);
+    }
+    const missingHash = {
+      ...createAudit,
+      metadata: { ...createAudit.metadata },
+    };
+    delete missingHash.metadata.sourceSha256;
+    expect(
+      proveImportOwnership(
+        manifest,
+        rows,
+        audits.map((audit) =>
+          audit.id === createAudit.id ? missingHash : audit,
+        ),
+        actor.id,
+      ).owned.size,
+    ).toBe(46);
+    expect(
+      proveImportOwnership(
+        manifest,
+        rows,
+        audits.map((audit) =>
+          audit.id === createAudit.id
+            ? { ...createAudit, tenantId: crypto.randomUUID() }
+            : audit,
+        ),
+        actor.id,
+      ).owned.size,
+    ).toBe(46);
+    expect(
+      proveImportOwnership(
+        manifest,
+        rows,
+        audits.map((audit) =>
+          audit.id === createAudit.id
+            ? {
+                ...createAudit,
+                metadata: {
+                  ...createAudit.metadata,
+                  unreviewedClaim: "not-canonical",
+                },
+              }
+            : audit,
+        ),
+        actor.id,
+      ).owned.size,
+    ).toBe(46);
+  });
+
+  it("attests all legacy reconciled drafts atomically and is idempotent", async () => {
+    await seedLegacyReconciledImport();
+    const before = snapshotImportRows(await loadImportRows());
+    const auditsBefore = await db
+      .select()
+      .from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    const historicalAuditsBefore = JSON.stringify(
+      auditsBefore
+        .map((audit) => ({ ...audit }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    );
+
+    expect(
+      proveImportOwnership(
+        manifest,
+        await loadImportRows(),
+        auditsBefore,
+        actor.id,
+      ).owned.size,
+    ).toBe(0);
+
+    const first = await attestDevelopmentImport(
+      manifest,
+      tenant.id,
+      actor.id,
+      sourceSha256,
+      true,
+    );
+    expect(first).toMatchObject({
+      provenanceAttestationsCreated: 47,
+      exactAttestationsSkipped: 0,
+      exerciseRowsChanged: 0,
+      versionsChanged: 0,
+      mappingsChanged: 0,
+      historicalAuditsChanged: 0,
+    });
+    const second = await attestDevelopmentImport(
+      manifest,
+      tenant.id,
+      actor.id,
+      sourceSha256,
+      true,
+    );
+    expect(second).toMatchObject({
+      provenanceAttestationsCreated: 0,
+      exactAttestationsSkipped: 47,
+    });
+
+    expect(snapshotImportRows(await loadImportRows())).toBe(before);
+    const auditsAfter = await db
+      .select()
+      .from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    expect(
+      auditsAfter.filter(
+        (audit) => audit.action === EXERCISE_PROVENANCE_ATTESTATION_ACTION,
+      ),
+    ).toHaveLength(47);
+    expect(
+      JSON.stringify(
+        auditsAfter
+          .filter(
+            (audit) =>
+              audit.action !== EXERCISE_PROVENANCE_ATTESTATION_ACTION,
+          )
+          .map((audit) => ({ ...audit }))
+          .sort((left, right) => left.id.localeCompare(right.id)),
+      ),
+    ).toBe(historicalAuditsBefore);
+    expect(
+      auditsAfter
+        .filter(
+          (audit) =>
+            audit.action === EXERCISE_PROVENANCE_ATTESTATION_ACTION &&
+            ["face-pulls", "face-pull-pump"].includes(
+              String(audit.metadata?.sourceId),
+            ),
+        )
+        .map((audit) => audit.metadata?.sourceId)
+        .sort(),
+    ).toEqual(["face-pull-pump", "face-pulls"]);
+    expect(
+      proveImportOwnership(
+        manifest,
+        await loadImportRows(),
+        auditsAfter,
+        actor.id,
+      ).owned.size,
+    ).toBe(47);
+  });
+
+  it("rejects fabricated or contradictory attestations", async () => {
+    const [exercise] = await seedLegacyReconciledImport();
+    const [createAudit, reconciliationAudit] = await Promise.all([
+      db
+        .select()
+        .from(auditLogsTable)
+        .where(
+          and(
+            eq(auditLogsTable.targetId, exercise.id),
+            eq(auditLogsTable.action, "exercise:create"),
+          ),
+        )
+        .then((rows) => rows),
+      db
+        .select()
+        .from(auditLogsTable)
+        .where(
+          and(
+            eq(auditLogsTable.targetId, exercise.id),
+            eq(auditLogsTable.action, "exercise:reconcile"),
+          ),
+        )
+        .then((rows) => rows),
+    ]);
+    await db.insert(auditLogsTable).values({
+      tenantId: tenant.id,
+      actorType: "cli",
+      actorId: actor.id,
+      action: EXERCISE_PROVENANCE_ATTESTATION_ACTION,
+      targetType: "exercise",
+      targetId: exercise.id,
+      metadata: {
+        ...buildExerciseImportProvenance(
+          manifest[0],
+          sourceSha256,
+          normalizedSourceSha256,
+          exercise.id,
+          2,
+        ),
+        originalCreateAuditId: createAudit[0].id,
+        reconciliationAuditId: reconciliationAudit[0].id,
+        sourceSha256: "contradictory-hash",
+      },
+    });
+    await expect(
+      attestDevelopmentImport(
+        manifest,
+        tenant.id,
+        actor.id,
+        sourceSha256,
+        true,
+      ),
+    ).rejects.toThrow(/conflicts with canonical provenance/);
+  });
+
+  it("rejects lock contention, inactive actors, and later manual activity", async () => {
+    await seedLegacyReconciledImport();
+    const client = await db.$client.connect();
+    const lockKey = `exercise-import:${tenant.id}:${EXERCISE_IMPORT_VERSION}`;
+    try {
+      await client.query("select pg_advisory_lock(hashtext($1))", [lockKey]);
+      await expect(
+        attestDevelopmentImport(
+          manifest,
+          tenant.id,
+          actor.id,
+          sourceSha256,
+          true,
+        ),
+      ).rejects.toThrow(/already running/);
+    } finally {
+      await client.query("select pg_advisory_unlock(hashtext($1))", [lockKey]);
+      client.release();
+    }
+
+    await db
+      .update(usersTable)
+      .set({ isActive: false })
+      .where(eq(usersTable.id, actor.id));
+    await expect(
+      attestDevelopmentImport(
+        manifest,
+        tenant.id,
+        actor.id,
+        sourceSha256,
+        true,
+      ),
+    ).rejects.toThrow(/active admin/);
+    await db
+      .update(usersTable)
+      .set({ isActive: true })
+      .where(eq(usersTable.id, actor.id));
+
+    const [exercise] = await db
+      .select()
+      .from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id))
+      .limit(1);
+    await db.insert(auditLogsTable).values({
+      tenantId: tenant.id,
+      actorType: "user",
+      actorId: actor.id,
+      action: "exercise:update",
+      targetType: "exercise",
+      targetId: exercise.id,
+      metadata: {},
+    });
+    await expect(
+      attestDevelopmentImport(
+        manifest,
+        tenant.id,
+        actor.id,
+        sourceSha256,
+        true,
+      ),
+    ).rejects.toThrow(/later disqualifying audit activity/);
+    const attestations = await db
+      .select()
+      .from(auditLogsTable)
+      .where(
+        and(
+          eq(auditLogsTable.tenantId, tenant.id),
+          eq(
+            auditLogsTable.action,
+            EXERCISE_PROVENANCE_ATTESTATION_ACTION,
+          ),
+        ),
+      );
+    expect(attestations).toHaveLength(0);
+  });
+
+  it("rolls back every attestation when a later audit write fails", async () => {
+    await seedLegacyReconciledImport();
+    const rejectedSourceId = manifest.at(-1)!.source.sourceId.replaceAll("'", "''");
+    await db.$client.query(`
+      CREATE OR REPLACE FUNCTION reject_later_provenance_attestation()
+      RETURNS trigger AS $$
+      BEGIN
+        IF NEW.action = '${EXERCISE_PROVENANCE_ATTESTATION_ACTION}'
+          AND NEW.metadata->>'sourceId' = '${rejectedSourceId}' THEN
+          RAISE EXCEPTION 'later provenance attestation rejected by test';
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      CREATE TRIGGER reject_later_provenance_attestation_trigger
+        BEFORE INSERT ON audit_logs
+        FOR EACH ROW EXECUTE FUNCTION reject_later_provenance_attestation();
+    `);
+    try {
+      await expect(
+        attestDevelopmentImport(
+          manifest,
+          tenant.id,
+          actor.id,
+          sourceSha256,
+          true,
+        ),
+      ).rejects.toThrow();
+      const attestations = await db
+        .select()
+        .from(auditLogsTable)
+        .where(
+          and(
+            eq(auditLogsTable.tenantId, tenant.id),
+            eq(
+              auditLogsTable.action,
+              EXERCISE_PROVENANCE_ATTESTATION_ACTION,
+            ),
+          ),
+        );
+      expect(attestations).toHaveLength(0);
+    } finally {
+      await db.$client.query(`
+        DROP TRIGGER IF EXISTS reject_later_provenance_attestation_trigger ON audit_logs;
+        DROP FUNCTION IF EXISTS reject_later_provenance_attestation();
+      `);
+    }
   });
 
   it("rolls back earlier rows when a later reconciliation audit fails", async () => {

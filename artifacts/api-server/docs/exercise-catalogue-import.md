@@ -26,6 +26,10 @@ the `marcus-grima` tenant.
   one transaction protected by a tenant/import advisory lock. Lock contention
   fails immediately instead of waiting, and any failure rolls back the whole
   run.
+- Future `exercise:create` audits record the canonical source, source ID, slug,
+  import version, pinned source-file and normalized-source hashes, deterministic
+  manifest-record hash, exercise linkage, and initial version. Ownership checks
+  compare these values only to internally pinned or generated expectations.
 - Normal import mode never updates an existing record, lifecycle state, or
   version.
 - The one-time `--reconcile` mode updates only rows proven to be unchanged
@@ -41,6 +45,18 @@ the `marcus-grima` tenant.
   mappings atomically, and records an `exercise:reconcile` audit in the same
   advisory-locked transaction. It never activates, archives, restores, deletes,
   or recreates an exercise.
+- The original development import predates complete create-audit provenance.
+  Its immutable create and reconciliation events remain unchanged. A dedicated
+  append-only attestation mode first verifies all 47 current drafts, mappings,
+  media, versions, actors, and historical audit links against the pinned
+  manifest, then writes one `exercise:provenance-attestation` per exercise in a
+  single advisory-locked transaction. Incomplete legacy create evidence is
+  rejected unless the genuine create event, reconciliation event, and exact
+  attestation all agree.
+- Attestation is all-or-nothing and idempotent. Missing, duplicate,
+  contradictory, cross-tenant, wrong-actor, or caller-controlled evidence
+  blocks the run. Exact existing attestations are skipped; historical audits
+  and exercise rows are never edited.
 - All records remain drafts. The source does not contain exercise-level
   difficulty or an explicit movement pattern, so none qualify for activation.
 - Programme sets, reps, and rest remain source context in the report/internal
@@ -71,6 +87,20 @@ NODE_ENV=development node dist/import-exercise-catalogue.mjs \
   --reconcile \
   --confirm-development-only
 ```
+
+The append-only provenance repair uses:
+
+```sh
+NODE_ENV=development node dist/import-exercise-catalogue.mjs \
+  --tenant marcus-grima \
+  --actor-id <same-tenant-active-admin-uuid> \
+  --attest-provenance \
+  --confirm-development-only
+```
+
+This mode is permitted only after the catalogue is already reconciled at
+version 2. It changes only the append-only audit log. The first valid run writes
+47 attestations; a second run writes zero and reports 47 exact skips.
 
 ## Development reconciliation
 
