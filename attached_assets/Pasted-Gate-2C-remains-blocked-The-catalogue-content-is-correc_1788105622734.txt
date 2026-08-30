@@ -1,0 +1,384 @@
+Gate 2C remains blocked. The catalogue content is correct, but its automated ownership proof is not strict enough. Task #48 is the correct next action.
+
+Paste this into Replit:
+
+FIX — Task #48 Gate 2C Import Provenance Integrity
+
+Prompt classification
+
+* Prompt type: FIX
+* Task: #48 — Require Complete Import Provenance
+* Gate: Gate 2C — Exercise Catalogue Import
+* Risk: Amber
+* Environment: Development only
+* Exercise-data changes: Not authorized
+* Audit repair: Authorized only as defined below
+* Schema or migration changes: Not authorized
+* Production access: Not authorized
+* Deployment/publishing: Not authorized
+* Next gate: Must not start
+
+Objective
+
+Fix the blocking Gate 2C validation finding:
+
+proveImportOwnership currently accepts incomplete import provenance and does not require:
+
+* Canonical source
+* Deterministic slug
+* Pinned source SHA-256
+
+The existing 47 create audits also lack sourceSha256.
+
+Strengthen ownership proof and create a safe, append-only provenance attestation for the existing 47 development drafts.
+
+Do not rewrite, delete or conceal the original audit history.
+
+⸻
+
+1. Mandatory inspection
+
+Before editing or writing development data, inspect:
+
+* proveImportOwnership
+* Import create-audit metadata
+* Reconciliation audit metadata
+* Audit-table conventions
+* Existing audit immutability expectations
+* Current 47 create audits
+* Current 47 reconciliation audits
+* Final pinned source hashes
+* Final deterministic manifest
+* Existing transaction and advisory-lock behavior
+* Current importer unit and integration tests
+
+Confirm the exact root cause independently.
+
+Stop if the repair requires:
+
+* Schema changes
+* Production access
+* Exercise mutation
+* Deleting or rewriting historical audit events
+* Relaxing another ownership or tenant boundary
+
+⸻
+
+2. Complete provenance requirements
+
+An import-owned exercise must not be accepted unless ownership evidence proves all applicable canonical fields:
+
+* Correct exercise ID
+* Correct tenant
+* Original import actor
+* Actor ID
+* Actor is a valid same-tenant administrator
+* Canonical source exactly:
+    * bundled-programmes
+* Exact legacy source ID
+* Exact deterministic slug
+* Exact import version
+* Exact pinned source-file SHA-256
+* Exact pinned normalized-source SHA-256, where available
+* Draft lifecycle state
+* Expected current version
+* No disqualifying later manual exercise activity
+
+Values must be compared to internally pinned or deterministically generated values—not caller-controlled expected values.
+
+Name alone must never establish ownership.
+
+Reject evidence with:
+
+* Missing provenance
+* Incorrect source
+* Incorrect source ID
+* Incorrect slug
+* Incorrect source hash
+* Incorrect normalized hash
+* Incorrect import version
+* Incorrect actor
+* Incorrect tenant
+* Incorrect exercise linkage
+* Later manual modification
+* Duplicate or contradictory provenance attestations
+
+Fail closed.
+
+⸻
+
+3. Future import audit behavior
+
+Update future import create audits so they record the complete canonical provenance at creation time.
+
+Include at minimum:
+
+* Canonical source
+* Source ID
+* Deterministic slug
+* Import version
+* Pinned source SHA-256
+* Pinned normalized-source SHA-256
+* Exercise linkage
+* Actor through the established audit structure
+
+Do not accept these values from an alternate caller manifest or source path.
+
+A future complete create audit may establish provenance directly when every required field matches.
+
+⸻
+
+4. Existing 47-record repair
+
+Do not edit the existing 47 create audits to make them appear as though they originally contained the missing hash.
+
+Use an append-only provenance-attestation approach unless the established audit architecture has a stronger documented immutable correction mechanism.
+
+For each existing exercise, independently prove before attestation:
+
+* It belongs to the marcus-grima tenant.
+* It is one of the expected 47 deterministic records.
+* Its legacy source ID is expected.
+* Its slug exactly matches the final manifest.
+* Its full scalar content matches the pinned manifest.
+* Muscle mappings match.
+* Equipment mappings match.
+* Media reference matches.
+* Unsupported fields remain null.
+* It remains a draft.
+* It has the original expected create audit.
+* It has the expected reconciliation audit.
+* Actor provenance is consistent.
+* No later manual edit or lifecycle audit exists.
+* Its current version is the expected reconciled version.
+
+Only then append one attestation event containing the complete canonical provenance.
+
+The attestation should identify or link to:
+
+* Exercise
+* Original create audit, where supported
+* Canonical source
+* Source ID
+* Deterministic slug
+* Import version
+* Pinned source SHA-256
+* Pinned normalized-source SHA-256
+* Manifest-record hash, if deterministically supported
+* Current exercise version
+* Attesting actor
+
+Atomicity
+
+* Validate all 47 before writing any attestation.
+* Use one development-only transaction.
+* Use the existing transaction-scoped advisory lock.
+* If any record fails verification, write zero attestations.
+* If any audit write fails, roll back all attestations.
+* Do not change exercises, versions, timestamps, muscles, equipment or lifecycle states.
+
+⸻
+
+5. Attestation idempotency
+
+The repair must be idempotent.
+
+On a second execution:
+
+* Existing exact attestations are skipped.
+* No duplicate audit event is added.
+* No exercise changes.
+* No version changes.
+* No timestamp changes.
+* No mapping changes.
+* No new reconciliation event.
+* No new attestation event.
+
+If an existing attestation conflicts with the canonical provenance, stop and report it. Do not overwrite it.
+
+⸻
+
+6. Ownership-proof behavior after repair
+
+proveImportOwnership must support:
+
+Future imported records
+
+A complete original create audit containing every canonical provenance field.
+
+Existing repaired records
+
+The combination of:
+
+* Original create audit
+* Original reconciliation evidence
+* Exact append-only provenance attestation
+
+The attestation must not replace the need for the genuine original create audit.
+
+A fabricated standalone attestation must not establish ownership.
+
+Ensure future reconciliation rejects:
+
+* The incomplete legacy create audit by itself
+* A mismatched attestation
+* An attestation for another exercise
+* An attestation for another tenant
+* An attestation using another source ID or slug
+* An attestation with an incorrect hash
+* An attestation from the wrong actor
+* Any record with later manual changes
+
+⸻
+
+7. Tests
+
+Add focused negative and positive tests covering:
+
+* Complete future create provenance accepted
+* Legacy incomplete create audit rejected without attestation
+* Valid original audit plus exact attestation accepted
+* Missing canonical source rejected
+* Incorrect canonical source rejected
+* Missing source hash rejected
+* Incorrect source hash rejected
+* Incorrect normalized hash rejected
+* Missing deterministic slug rejected
+* Incorrect deterministic slug rejected
+* Incorrect source ID rejected
+* Incorrect import version rejected
+* Wrong exercise linkage rejected
+* Wrong tenant rejected
+* Wrong actor rejected
+* Inactive actor rejected
+* Fabricated standalone attestation rejected
+* Contradictory attestations rejected
+* Later manual activity rejected
+* Both Face Pulls records remain independently proven
+* All-or-nothing 47-record attestation
+* Audit failure rolls back every attestation
+* Lock contention fails safely
+* Second repair run writes nothing
+* Exercise rows and mappings remain unchanged
+
+Do not weaken existing tests.
+
+⸻
+
+8. Development repair verification
+
+Before repair, record read-only hashes/counts for:
+
+* Exercises
+* Versions
+* Timestamps
+* Muscle mappings
+* Equipment mappings
+* Existing audits
+
+Run the attestation repair once.
+
+Expected:
+
+* Exercises changed: 0
+* Versions changed: 0
+* Exercise timestamps changed: 0
+* Muscle mappings changed: 0
+* Equipment mappings changed: 0
+* Original audits changed/deleted: 0
+* Provenance attestations created: 47
+
+Run it again.
+
+Expected:
+
+* Provenance attestations created: 0
+* Exact attestations skipped: 47
+* All other writes: 0
+
+After repair, prove every one of the 47 exercises passes the complete hardened ownership check.
+
+⸻
+
+9. Required verification
+
+Run and report:
+
+* Focused provenance unit tests
+* Focused import integration tests
+* Complete API unit suite
+* Complete API integration suite
+* Complete frontend suite
+* Workspace typecheck
+* API production build
+* Client production build
+* git diff --check
+* Pre/post development-state hashes
+* First attestation run
+* Second idempotency run
+* Read-only audit reconciliation
+* Independent security review
+
+The independent review must focus on:
+
+* Audit immutability
+* Provenance completeness
+* Caller-controlled evidence
+* Fabricated-attestation resistance
+* Exercise/tenant/actor linkage
+* Transactional atomicity
+* Idempotency
+* Existing exercise-data preservation
+* Scope leakage
+
+⸻
+
+10. Explicitly out of scope
+
+Do not:
+
+* Change exercise content
+* Change exercise versions
+* Activate any draft
+* Edit or delete original audit events
+* Change schema or migrations
+* Modify Gate 2A routes
+* Modify Gate 2B UI
+* Cut over workout consumers
+* Access production
+* Deploy or publish
+* Start the next gate
+
+⸻
+
+Required final report
+
+Return:
+
+1. Prompt classification
+2. Root-cause confirmation
+3. Exact files changed
+4. Complete provenance contract
+5. Future create-audit behavior
+6. Append-only repair architecture
+7. Existing 47-record qualification
+8. First attestation result
+9. Second-run idempotency result
+10. Exercise-data preservation hashes
+11. Ownership-proof negative tests
+12. Complete test totals
+13. Typecheck and build results
+14. Independent-review findings
+15. Remaining risks
+16. Production/deployment confirmation
+17. Final verdict
+
+The verdict must be exactly one of:
+
+* READY FOR GATE 2C RE-VALIDATION
+* BLOCKED — GATE 2C DATA DECISION REQUIRED
+* BLOCKED — GATE 2C FIX REQUIRED
+
+Do not start the next gate.
+
+Accept and assign Task #48 with this refined scope.
