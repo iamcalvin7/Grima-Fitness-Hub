@@ -1,0 +1,444 @@
+The report is complete and internally consistent. Gate 2C can now receive its independent validation.
+
+# VALIDATION — Gate 2C Exercise Catalogue Import
+
+## Prompt classification
+
+* **Prompt type:** VALIDATION
+* **Gate:** Gate 2C — Exercise Catalogue Import
+* **Mode:** Independent, read-only validation
+* **Implementation changes:** Not authorized
+* **Existing development-data changes:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+* **Next gate:** Must not start
+
+## Objective
+
+Independently validate the completed Gate 2C catalogue import against:
+
+* The approved Gate 2C build scope
+* The final hardened importer
+* The authoritative legacy exercise source
+* The Gate 2A exercise contract
+* The Gate 2B management interface
+* The final development catalogue and audit state
+
+Do not rely solely on the build report. Inspect the actual source, commits, tests, development data and importer behavior.
+
+If a defect is found, report it without fixing it.
+
+---
+
+# 1. Scope and file ledger
+
+Inspect Git history, status and the complete Gate 2C diff.
+
+Confirm Gate 2C changes are limited to:
+
+* `artifacts/api-server/build.mjs`
+* `artifacts/api-server/package.json`
+* `artifacts/api-server/docs/exercise-catalogue-import.md`
+* `artifacts/api-server/src/lib/exerciseCatalogueImport.ts`
+* `artifacts/api-server/src/cli/importExerciseCatalogue.ts`
+* `artifacts/api-server/src/__tests__/exerciseCatalogueImport.test.ts`
+* `artifacts/api-server/src/__tests__/integration/exercise-catalogue-import.test.ts`
+
+Confirm no changes occurred to:
+
+* Database schema or migrations
+* Gate 2A API routes or contracts
+* Gate 2B Exercise Library behavior
+* Authentication or capability definitions
+* Legacy programme source
+* Workout consumers
+* Programme or workout execution
+* Production or deployment configuration
+* Any next-gate feature
+
+Confirm these remain unchanged:
+
+* `artifacts/marcus-grima/src/data/programs.ts`
+* `artifacts/marcus-grima/src/pages/Workouts.tsx`
+
+Report the exact tracked and untracked ledger and run:
+
+```text
+git diff --check
+```
+
+---
+
+# 2. Independently inventory the legacy source
+
+Parse the authoritative TypeScript source independently.
+
+Do not copy counts from the build report or importer output.
+
+Confirm:
+
+* Source records: 47
+* Legacy IDs: 47
+* Unique normalized names: 46
+* Duplicate name: “Face Pulls”
+* Unique deterministic slugs: 47
+* The two Face Pulls records remain distinct
+* No source record is missing
+* No unexpected record is introduced
+
+Recompute and report:
+
+* Authoritative source-file SHA-256
+* Normalized 47-record source SHA-256
+
+Confirm they match the importer’s pinned hashes.
+
+Confirm alternate source input cannot bypass the pinned canonical source.
+
+---
+
+# 3. Validate mapping accuracy
+
+Compare the legacy source, generated manifest and development records.
+
+Confirm the importer does not invent:
+
+* Performance type
+* Laterality
+* Difficulty
+* Movement pattern
+* Primary muscles for ambiguous labels
+* Multiple equipment claims from ambiguous alternative-equipment text
+* Instructions absent from the source
+* Activation readiness
+
+Confirm final non-null counts are zero for:
+
+* Performance type
+* Laterality
+* Difficulty
+* Movement pattern
+
+Confirm:
+
+* Sets, repetitions and rest prescriptions are not stored as permanent exercise-definition fields.
+* Existing names and cues are preserved accurately.
+* Canonical muscle keys are used exclusively.
+* Equipment mappings are supported and explicit.
+* Media references follow the Gate 2A contract.
+* All records remain drafts.
+* Nothing is silently activated.
+
+List the nine records with unresolved primary muscles and explain why each remains unresolved without inventing a mapping.
+
+---
+
+# 4. Validate environment, tenant and actor protections
+
+Inspect the actual CLI and library enforcement.
+
+Confirm:
+
+* `NODE_ENV=development` is required.
+* The exact `marcus-grima` tenant is required.
+* Writes require explicit development-only confirmation.
+* Production or ambiguous environments fail closed.
+* Replit deployment markers are rejected.
+* Environment checks are repeated inside reconciliation.
+* Alternate source paths are rejected.
+* Sensitive database or actor values are not logged.
+* Actor ID is explicit.
+* Actor must exist.
+* Actor must be active.
+* Actor must belong to the same tenant.
+* Actor must have the required admin authority.
+* Client, trainer, inactive and cross-tenant actors are rejected.
+
+Run the existing deterministic guard tests. Do not change accounts or roles.
+
+---
+
+# 5. Validate transaction and lock safety
+
+Inspect and test:
+
+* The entire logical import uses one transaction.
+* The advisory lock is transaction-scoped.
+* `pg_try_advisory_xact_lock` is used.
+* Lock contention fails immediately.
+* Conflict checks occur after the lock is acquired.
+* Exercise, muscle, equipment and audit writes are atomic.
+* Any record, mapping or audit failure rolls back the complete operation.
+* The lock key is deterministic and appropriately scoped.
+* No operation can partially import only some of the 47 exercises.
+* Reconciliation receives equivalent transactional protection.
+
+Run existing integration tests in their isolated validation environment.
+
+Do not create temporary objects in the existing development schema.
+
+---
+
+# 6. Validate conflict and ownership protection
+
+Inspect the reconciliation ownership proof.
+
+Confirm automatic reconciliation requires evidence including:
+
+* Correct tenant
+* Deterministic slug
+* Matching source ID
+* Original import audit
+* Matching import version
+* Matching original actor
+* Draft state
+* Original version/timestamp expectations
+* Absence of later exercise audit activity
+
+Confirm:
+
+* Name alone is never sufficient proof.
+* Manually changed records are preserved.
+* Unknown records are preserved.
+* Existing lifecycle states are not reset.
+* Existing versions are not reset.
+* Missing, changed or unowned records block reconciliation.
+* No blind upsert or overwrite path exists.
+* Exercise identities remain stable.
+* Child mappings update atomically.
+* Reconciliation produces its own audit event.
+
+Run ownership-conflict and cross-tenant tests.
+
+---
+
+# 7. Validate final development state
+
+Use read-only development-database inspection.
+
+Confirm:
+
+| Measure                    | Expected |
+| -------------------------- | -------: |
+| Total exercises            |       47 |
+| Draft                      |       47 |
+| Active                     |        0 |
+| Archived                   |        0 |
+| Version 2                  |       47 |
+| Canonical primary muscles  |       38 |
+| Unresolved primary muscles |        9 |
+| Media references           |       21 |
+| Equipment mappings         |       18 |
+| Muscle mappings            |       75 |
+| Import create audits       |       47 |
+| Reconciliation audits      |       47 |
+| Invalid actor links        |        0 |
+
+Confirm:
+
+* Every expected source ID appears exactly once.
+* Every deterministic slug appears exactly once.
+* Both Face Pulls records exist independently.
+* Every record belongs to the intended tenant.
+* No cross-tenant child mapping exists.
+* Database fields match the hardened manifest field by field.
+* Unsupported scalar fields remain null.
+* No imported record is client-visible through the active client projection.
+* No unexpected exercise record exists.
+
+Do not modify the development data.
+
+---
+
+# 8. Validate idempotency safely
+
+Run the importer only in guaranteed no-write dry-run mode against development.
+
+Expected result:
+
+```text
+creates: 0
+exact skips: 47
+conflicts: 0
+writes: 0
+activations: 0
+```
+
+Capture read-only before/after state evidence proving the dry run changed none of:
+
+* Exercises
+* Versions
+* Timestamps
+* Muscle mappings
+* Equipment mappings
+* Audit records
+
+Do not run apply mode against the existing development database during this validation.
+
+Validate apply-mode no-op behavior through isolated integration tests and source inspection.
+
+---
+
+# 9. Validate rollback and temporary-object cleanup
+
+Through isolated tests and read-only development inspection, confirm:
+
+* Forced audit failure rolls back all exercise changes.
+* Mapping changes roll back.
+* Audit changes roll back.
+* No partial reconciliation remains.
+* Temporary exercise rows: 0
+* Temporary mapping rows: 0
+* Temporary audit records: 0
+* Temporary public triggers: 0
+* Temporary public functions: 0
+* No test credential or debugging artifact remains.
+
+Ensure cleanup inspection distinguishes project-created temporary objects from PostgreSQL system objects.
+
+---
+
+# 10. Validate API and Exercise Library compatibility
+
+Confirm imported records conform to Gate 2A and Gate 2B expectations:
+
+* Admin catalogue can represent all 47 drafts.
+* Pagination totals are correct.
+* Search can find imported names.
+* Draft filtering returns the expected catalogue.
+* Muscle and equipment filtering use canonical values.
+* Media availability matches stored references.
+* Exercise details load without projection errors.
+* Missing activation metadata is displayed as incomplete rather than fabricated.
+* Client active-catalogue reads do not expose drafts.
+* Existing static workout consumers remain functional and unchanged.
+
+Use deterministic tests and safe read-only runtime inspection.
+
+If no authenticated admin session is available:
+
+* Do not create an account.
+* Do not change a role.
+* Do not forge authentication.
+* Record the browser limitation accurately.
+* Do not claim an unavailable admin walkthrough was performed.
+
+---
+
+# 11. Run complete verification
+
+Run and report:
+
+```text
+pnpm --filter @workspace/api-server exec vitest run src/__tests__/exerciseCatalogueImport.test.ts
+```
+
+```text
+pnpm --filter @workspace/api-server exec vitest run --config vitest.integration.config.ts src/__tests__/integration/exercise-catalogue-import.test.ts
+```
+
+```text
+pnpm --filter @workspace/api-server test
+```
+
+```text
+pnpm --filter @workspace/api-server test:integration
+```
+
+```text
+pnpm --filter @workspace/marcus-grima test
+```
+
+```text
+pnpm run typecheck
+```
+
+```text
+pnpm --filter @workspace/api-server run build
+```
+
+```text
+BASE_PATH=/marcus-grima PORT=5173 pnpm --filter @workspace/marcus-grima build
+```
+
+```text
+git diff --check
+```
+
+Report exact:
+
+* Test files
+* Test totals
+* Failures
+* Typecheck results
+* Build results
+* Warnings
+* Whether any warning was introduced by Gate 2C
+
+Do not modify source to make validation pass.
+
+---
+
+# 12. Independent review
+
+Perform an independent review focused on:
+
+* Canonical-source integrity
+* Source-parser completeness
+* Unsupported inference
+* Environment and deployment guards
+* Tenant and actor enforcement
+* Transaction scope
+* Advisory locking
+* Conflict preservation
+* Ownership proof
+* Audit integrity
+* Database-to-manifest parity
+* Idempotency
+* Temporary-object cleanup
+* Static-consumer preservation
+* Scope leakage
+* Regression risk
+
+For every finding, report:
+
+* Severity
+* Evidence
+* Blocking status
+
+Do not fix findings.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification
+2. Scope and file ledger
+3. Independent source inventory
+4. Source-hash result
+5. Mapping and unsupported-inference result
+6. Environment, tenant and actor result
+7. Transaction and advisory-lock result
+8. Conflict and ownership-protection result
+9. Development catalogue reconciliation
+10. Audit result
+11. Idempotency result
+12. Rollback and cleanup result
+13. API and Exercise Library compatibility
+14. Tests, typechecks and builds
+15. Runtime qualification
+16. Independent-review findings
+17. Remaining limitations or Marcus content decisions
+18. Production/deployment confirmation
+19. Gate verdict
+
+The verdict must be exactly one of:
+
+* `PASS — GATE 2C COMPLETE`
+* `BLOCKED — GATE 2C FIX REQUIRED`
+* `BLOCKED — GATE 2C DATA DECISION REQUIRED`
+
+Do not start the next gate.
