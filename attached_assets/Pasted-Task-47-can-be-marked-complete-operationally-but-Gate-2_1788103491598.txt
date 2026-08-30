@@ -1,0 +1,79 @@
+Task #47 can be marked complete operationally, but **Gate 2C is not yet formally complete**. We still need the full build evidence report, followed by independent read-only validation.
+
+Send this:
+
+# REPORT — Gate 2C Final Build Evidence
+
+Task #47 has been marked complete, but the required structured Gate 2C build report was not returned.
+
+Do not make further implementation or data changes. Do not start the next gate.
+
+Using the completed task, committed source, final development state and existing verification results, return the complete Gate 2C evidence report.
+
+If an exact result is unavailable, mark it as unverified. Do not replace evidence with “fully validated,” “all gaps closed,” or similar summary claims.
+
+## Required report
+
+Return:
+
+1. Prompt classification
+2. Final commit history and exact file ledger
+3. Legacy source inventory:
+
+   * 47 source records
+   * 47 legacy IDs
+   * 46 unique names
+   * Duplicate “Face Pulls” handling
+4. Final mapping policy
+5. Unsupported-inference prevention
+6. Exact source-ID completeness
+7. Development tenant and active-admin validation
+8. Environment and deployment guards
+9. Transaction and advisory-lock implementation
+10. Existing-row ownership proof
+11. Forward-reconciliation result
+12. Final catalogue counts:
+
+    * Total
+    * Draft
+    * Active
+    * Archived
+    * Canonical primaries
+    * Unresolved primaries
+    * Media references
+    * Equipment mappings
+13. Import and reconciliation audit counts
+14. Database-to-manifest field parity
+15. Final dry-run result
+16. Final apply/no-op result
+17. Idempotency proof:
+
+    * `0 creates`
+    * `47 exact skips`
+    * `0 conflicts`
+    * `0 writes`
+    * `0 activations`
+18. Rollback-proof result
+19. Confirmation that all temporary triggers, records and audit artifacts were removed
+20. Focused importer test files, commands and exact totals
+21. Complete API regression command and exact totals
+22. Complete frontend regression command and exact totals
+23. API and client typecheck results
+24. API and client production-build results
+25. `git diff --check`
+26. Runtime and Exercise Library verification
+27. Independent-review findings with severity and blocking status
+28. Remaining limitations or content requiring Marcus’s review
+29. Confirmation that static workout consumers were not cut over
+30. Production/deployment confirmation
+31. Final verdict
+
+The verdict must be exactly one of:
+
+* `READY FOR GATE 2C VALIDATION`
+* `BLOCKED — GATE 2C DATA DECISION REQUIRED`
+* `BLOCKED — GATE 2C FIX REQUIRED`
+
+Do not describe Gate 2C as formally complete. Independent validation has not yet been accepted.
+
+Once that report arrives, we will issue the independent Gate 2C validation prompt.
