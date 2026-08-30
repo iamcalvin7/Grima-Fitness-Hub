@@ -1,0 +1,447 @@
+Gate 2B is officially complete. The next gate can now begin: importing the existing static exercises into the new server-backed catalogue.
+
+# BUILD — Gate 2C Exercise Catalogue Import
+
+## Prompt classification
+
+* **Prompt type:** BUILD
+* **Gate:** Gate 2C — Exercise Catalogue Import
+* **Risk level:** Amber
+* **Authorized environment:** Development only
+* **Gate 2A backend:** Complete and authoritative
+* **Gate 2B Marcus Exercise Library:** Complete and authoritative
+* **Schema or migration changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+
+## Objective
+
+Migrate the existing bundled/static exercise content into the server-authoritative Exercise Catalogue so Marcus begins with a useful, real exercise library rather than an empty database.
+
+This is a content-import and reconciliation gate—not a database-schema migration.
+
+The imported catalogue must:
+
+* Use the Gate 2A exercise domain and API rules.
+* Be visible and manageable through the Gate 2B Marcus Exercise Library.
+* Preserve valid existing exercise information.
+* Avoid fabricating missing coaching or safety content.
+* Activate only exercises that satisfy the authoritative activation contract.
+* Keep incomplete or ambiguous exercises as drafts.
+* Be reproducible, tenant-safe, auditable and idempotent.
+* Never overwrite an exercise Marcus has already changed manually.
+
+Do not cut programmes, client workouts or workout execution over to the new catalogue in this gate.
+
+---
+
+# 1. Mandatory pre-build inspection
+
+Before editing files or importing data, inspect:
+
+* Current Git status and recent Gate 2A/2B history.
+* Every bundled or static exercise source in the client.
+* Every current consumer of that static content.
+* Gate 2A exercise fields, enums and activation requirements.
+* Gate 2A create, update and activation services.
+* Audit requirements.
+* Tenant-isolation requirements.
+* Slug and duplicate-conflict behavior.
+* Canonical muscle keys.
+* Equipment-key rules.
+* Media-reference rules.
+* Approved performance types.
+* Existing development exercise records.
+* Existing seed/import conventions.
+* Existing development tenant and safe audit-actor conventions.
+* Relevant tests and documentation patterns.
+
+Produce an inventory before importing anything:
+
+* Static source files.
+* Total source records.
+* Unique exercise names.
+* Unique proposed slugs.
+* Duplicate or near-duplicate exercises.
+* Fields available in the source.
+* Fields missing from the source.
+* Muscle values requiring mapping.
+* Equipment values requiring mapping.
+* Performance types requiring mapping.
+* Invalid or unsupported media references.
+* Exercises that can satisfy activation requirements.
+* Exercises that must remain drafts.
+* Existing database records that may conflict.
+
+Do not treat old screenshots, demo presentation text or unrelated programme labels as canonical exercise records.
+
+---
+
+# 2. Stop conditions
+
+Stop without importing if:
+
+* No single credible static exercise source can be identified.
+* The intended development tenant cannot be resolved safely.
+* No legitimate development audit actor is available.
+* Importing would require a schema or migration change.
+* Importing would require weakening Gate 2A validation.
+* Source values cannot be mapped to canonical muscles or performance types without material product decisions.
+* Existing database records would need to be deleted or overwritten.
+* The import cannot be made idempotent.
+* A production or shared external environment would be required.
+* The source contains conflicting exercise definitions that cannot be resolved objectively.
+* Required content would have to be invented.
+
+If blocked, return:
+
+`BLOCKED — GATE 2C DATA DECISION REQUIRED`
+
+Include a concise decision table listing every unresolved exercise or mapping.
+
+---
+
+# 3. Canonical import mapping
+
+Create one explicit, reviewable mapping from the legacy/static exercise content to the Gate 2A contract.
+
+For each exercise, determine only from existing source evidence:
+
+* Name
+* Deterministic slug
+* Description, if available
+* Instructions, if available
+* Performance type
+* Difficulty, if supported and available
+* Laterality, if supported and available
+* Primary muscle
+* Secondary muscles
+* Equipment
+* Coaching notes, if supported and available
+* Safety information, if supported and available
+* Media reference, if compatible
+* Import status:
+
+  * Active candidate
+  * Draft because incomplete
+  * Blocked because ambiguous
+  * Excluded because it is not genuinely an exercise
+
+Requirements:
+
+* Trim accidental whitespace.
+* Preserve meaningful names and wording.
+* Do not rewrite exercise instructions creatively.
+* Do not invent muscles, equipment, safety notes or performance metadata.
+* Use only canonical server muscle keys.
+* Use only the six approved performance types.
+* Normalize equipment through the supported server structure.
+* Prevent duplicate primary/secondary muscle mappings.
+* Prevent duplicate equipment mappings.
+* Use server-generated IDs.
+* Do not import tenant IDs, owner IDs or lifecycle versions from static data.
+* Do not treat programme-specific sets, repetitions, rest times or loads as permanent exercise-definition fields.
+* Do not import personal-best or workout-history information.
+
+If two records are semantic duplicates, do not silently choose one. Resolve only objectively identical formatting variants; otherwise report the conflict.
+
+---
+
+# 4. Import mechanism
+
+Implement the smallest supported, reproducible import mechanism that follows existing project conventions.
+
+Requirements:
+
+* Development-only execution.
+* Explicit target tenant.
+* Legitimate audit actor.
+* Dry-run mode before writes.
+* Exact proposed create, skip, conflict, draft and activation counts.
+* Idempotent repeated execution.
+* Transactional behavior where supported.
+* Stable slug-based reconciliation.
+* No destructive deletion.
+* No blind upsert that overwrites manual changes.
+* No direct mutation that bypasses domain validation, capabilities, tenant rules or auditing.
+* No browser storage.
+* No runtime dependency on frontend static data after import.
+* Clear failure output without secrets or raw connection values.
+
+Preferred behavior for an existing slug:
+
+* If the existing record is demonstrably identical to the import definition, skip it.
+* If it differs, report a conflict and preserve the existing record.
+* Never replace Marcus’s current database record automatically.
+* Never reset an existing version.
+* Never change an existing lifecycle state automatically.
+
+The import manifest may remain version-controlled as reproducible bootstrap content, but the database must be the runtime authority.
+
+---
+
+# 5. Draft and activation policy
+
+Every imported record must first satisfy normal creation rules.
+
+## Active exercises
+
+An exercise may be activated only when:
+
+* All Gate 2A activation requirements are satisfied.
+* Performance type is unambiguous.
+* Required muscle information is valid.
+* Equipment mappings are valid.
+* Required instructions or other activation fields exist.
+* The normal activation service accepts it.
+* The audit record succeeds.
+
+Do not insert an exercise directly as active if doing so bypasses the approved lifecycle.
+
+## Draft exercises
+
+Keep an imported exercise as a draft when:
+
+* Required content is missing.
+* Muscle mapping is ambiguous.
+* Performance type is uncertain.
+* Equipment cannot be mapped confidently.
+* Media information is invalid but non-essential.
+* Activation validation rejects it.
+
+Draft status is preferable to fabricated data.
+
+The final report must list every draft and the exact missing or ambiguous information Marcus needs to review.
+
+---
+
+# 6. Development-data safety
+
+Before writing:
+
+* Record the existing development exercise count by lifecycle state.
+* Record existing slugs.
+* Run the importer in dry-run mode.
+* Confirm no existing record will be overwritten, archived, restored or deleted.
+* Confirm the target tenant and audit actor without exposing sensitive identifiers in the report.
+
+During import:
+
+* Use only the intended development tenant.
+* Preserve tenant isolation.
+* Stop safely on unexpected conflict.
+* Do not partially apply a logically atomic record with missing child mappings.
+* Do not create cross-tenant muscle or equipment mappings.
+* Do not reset or reseed unrelated development data.
+
+After import:
+
+* Reconcile created, activated, drafted, skipped and conflicted counts.
+* Confirm no unintended record changed.
+* Confirm audit records exist.
+* Confirm every imported exercise has valid tenant ownership.
+* Confirm all versions remain positive and monotonic.
+
+Do not perform destructive cleanup if verification fails. Stop and report the exact state.
+
+---
+
+# 7. Static-source preservation
+
+Do not delete or rewrite the existing frontend static catalogue in this gate if current programme or workout screens still depend on it.
+
+Requirements:
+
+* Identify every remaining consumer.
+* Document that the database catalogue is now authoritative for new Exercise Library management.
+* Treat the old static content as a temporary legacy dependency.
+* Do not switch client programmes, workout execution or history to server exercise IDs.
+* Do not create mixed static/server relationships.
+* Defer consumer cutover and eventual static-source removal to a separately approved gate.
+
+---
+
+# 8. Marcus Exercise Library verification
+
+After a successful development import, verify through the API and, where safe access exists, the Gate 2B interface:
+
+* Imported exercises appear in the Marcus catalogue.
+* Search finds imported exercises.
+* Status filters return correct active and draft records.
+* Performance-type filters work.
+* Muscle filters work.
+* Equipment filters work.
+* Exercise details load correctly.
+* Primary and secondary muscles display correctly.
+* Equipment displays correctly.
+* Media-reference labels are correct.
+* Active exercises are clearly active.
+* Incomplete exercises remain drafts.
+* No duplicate catalogue cards appear.
+* Version values are present.
+* Pagination totals match authoritative API counts.
+
+Do not manually edit imported content merely to make verification pass.
+
+If no safe admin browser session is available, record the limitation and verify through authenticated integration tests, domain/service tests and database/API reconciliation without forging authentication.
+
+---
+
+# 9. Tests
+
+Add focused tests covering at minimum:
+
+* Complete source inventory is represented in the mapping.
+* Deterministic slug generation.
+* Duplicate source-slug detection.
+* Semantic duplicate reporting.
+* Canonical muscle mapping.
+* Unsupported muscle rejection.
+* Equipment normalization.
+* Duplicate-equipment prevention.
+* Performance-type mapping.
+* Ambiguous performance type remains blocked or draft.
+* Programme-specific prescription data is not imported as exercise metadata.
+* Complete exercise activation.
+* Incomplete exercise remains draft.
+* Activation uses normal lifecycle validation.
+* Correct tenant ownership.
+* Correct audit attribution.
+* Audit failure rolls back the affected mutation.
+* Idempotent second run.
+* Identical existing record is skipped.
+* Differing existing record is preserved and reported as a conflict.
+* Existing version and lifecycle state are not reset.
+* Partial child mappings are not left behind after failure.
+* Dry-run mode performs no writes.
+* Import counts reconcile with database results.
+
+Do not weaken or delete existing tests.
+
+---
+
+# 10. Documentation
+
+Document:
+
+* Authoritative legacy source used.
+* Import mapping rules.
+* Muscle and equipment normalization decisions.
+* Performance-type mapping decisions.
+* Activation-versus-draft policy.
+* Import command and dry-run command.
+* Idempotency behavior.
+* Conflict behavior.
+* Target-environment safety.
+* Exact imported catalogue counts.
+* Remaining draft-content gaps.
+* Remaining static consumers.
+* Future cutover dependency.
+
+Do not include credentials, sensitive tenant identifiers or private connection values.
+
+---
+
+# 11. Required verification
+
+Run and report:
+
+* Importer/mapping focused tests.
+* Gate 2A exercise backend tests.
+* Gate 2B Exercise Library tests.
+* Complete API regression suite.
+* Complete frontend regression suite.
+* API typecheck.
+* Client typecheck.
+* API production build.
+* Client production build.
+* `git diff --check`.
+* Dry-run import.
+* Development import.
+* Second idempotency run.
+* Database/API reconciliation.
+* Development runtime startup.
+* Safe Marcus Exercise Library verification where available.
+* Independent review.
+
+The independent review must examine:
+
+* Source completeness.
+* Mapping accuracy.
+* Fabricated-data risk.
+* Tenant safety.
+* Audit integrity.
+* Idempotency.
+* Existing-record preservation.
+* Draft/activation correctness.
+* Static-consumer impact.
+* Scope leakage.
+* Regression risk.
+
+Fix only findings within the authorized Gate 2C development-import scope.
+
+---
+
+# 12. Explicitly out of scope
+
+Do not build or modify:
+
+* Database schema or migrations
+* Gate 2A API contracts
+* Gate 2B interface behavior
+* Production data
+* Production seed/import execution
+* Client programme cutover
+* Workout-template builder
+* Programme builder
+* Programme assignment
+* Client-created workouts
+* Active workout execution
+* Set logging
+* Workout history
+* Exercise alternatives
+* Personal bests
+* Progressive overload
+* AI generation
+* Upload infrastructure
+* Notifications
+* Payments, wallet, Stripe or settlement
+* Deployment or publishing configuration
+
+Do not remove legacy static content while existing consumers still rely on it.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification
+2. Pre-build inspection
+3. Static-source inventory
+4. Existing development-catalogue state
+5. Exact files changed
+6. Import architecture
+7. Mapping and normalization decisions
+8. Duplicate and conflict handling
+9. Draft and activation decisions
+10. Dry-run result
+11. Development import result
+12. Idempotency result
+13. Database/API reconciliation
+14. Marcus Exercise Library verification
+15. Remaining static consumers
+16. Tests and exact totals
+17. Typecheck and build results
+18. Independent-review findings
+19. Remaining draft-content gaps or decisions
+20. Production/deployment confirmation
+21. Gate verdict
+
+The verdict must be exactly one of:
+
+* `READY FOR GATE 2C VALIDATION`
+* `BLOCKED — GATE 2C DATA DECISION REQUIRED`
+* `BLOCKED — GATE 2C FIX REQUIRED`
+
+Do not start the next gate.
