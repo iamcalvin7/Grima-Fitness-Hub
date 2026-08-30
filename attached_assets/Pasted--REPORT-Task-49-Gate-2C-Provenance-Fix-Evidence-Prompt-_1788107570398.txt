@@ -1,0 +1,303 @@
+# REPORT — Task #49 Gate 2C Provenance Fix Evidence
+
+## Prompt classification
+
+* **Prompt type:** REPORT
+* **Task:** #49 — Complete Import Provenance and Append-Only Attestation Repair
+* **Gate:** Gate 2C
+* **Implementation:** Already complete
+* **Further code or data changes:** Not authorized
+* **Production/deployment:** Not authorized
+* **Next gate:** Must not start
+
+## Objective
+
+Return the complete evidence report for Task #49 so the provenance fix can proceed to independent Gate 2C re-validation.
+
+Do not implement, repair, format, commit or mutate anything further.
+
+Use the completed task, committed source, test results, independent review and final development state.
+
+If evidence is unavailable, mark it as unverified. Do not replace missing evidence with general statements such as “everything passed.”
+
+---
+
+# Required report
+
+## 1. Prompt classification
+
+Confirm:
+
+* Development-only FIX
+* No schema or migration changes
+* No production access
+* No deployment
+* No next-gate work
+
+## 2. Root-cause confirmation
+
+Explain:
+
+* What `proveImportOwnership` previously accepted
+* Which provenance fields were previously missing
+* Why incomplete provenance could permit an unsafe future reconciliation
+* Why the existing exercise content itself was not incorrect
+
+## 3. Exact commit and file ledger
+
+Report:
+
+* Final Task #49 commit SHA
+* Parent SHA
+* Every product file changed
+* Every test file changed
+* Every documentation file changed
+* Current tracked and untracked working-tree state
+* `git diff --check` result
+
+Separate product files from attached prompts, reports and agent-memory files.
+
+## 4. Hardened provenance contract
+
+List every field now required to prove import ownership, including:
+
+* Exercise linkage
+* Tenant
+* Original actor
+* Actor status and authority
+* Canonical source
+* Legacy source ID
+* Deterministic slug
+* Import version
+* Pinned source-file SHA-256
+* Pinned normalized-source SHA-256
+* Current lifecycle/version expectations
+* Absence of disqualifying later activity
+
+Explain which expected values are internally pinned or deterministically generated rather than caller-controlled.
+
+## 5. Future create-audit behavior
+
+Confirm that future imports write complete canonical provenance at creation time.
+
+Report the exact metadata written and prove that:
+
+* Alternate sources are rejected
+* Caller-controlled hashes are rejected
+* Caller-controlled slugs cannot establish ownership
+* A future complete create audit can establish provenance only when every field matches
+
+## 6. Append-only repair architecture
+
+Explain how the existing 47 records were repaired without rewriting history.
+
+Confirm:
+
+* Original create audits edited: 0
+* Original create audits deleted: 0
+* Original reconciliation audits edited: 0
+* Original reconciliation audits deleted: 0
+* Provenance attestations appended: 47
+
+Report the attestation action/type and exact canonical metadata included.
+
+Explain how each attestation links to:
+
+* The exercise
+* The original create evidence
+* The canonical source record
+* The source hashes
+* The deterministic slug
+* The import version
+* The actor
+* The current exercise version
+
+## 7. Existing-record qualification
+
+Report the checks performed before any attestation was written.
+
+Confirm all 47 records matched:
+
+* Intended tenant
+* Expected source ID
+* Expected deterministic slug
+* Full pinned manifest content
+* Muscle mappings
+* Equipment mappings
+* Media reference
+* Null unsupported fields
+* Draft status
+* Expected version
+* Original create audit
+* Reconciliation audit
+* Actor provenance
+* Absence of later manual or lifecycle activity
+
+Report any mismatch or exception.
+
+## 8. Atomic first attestation run
+
+Report the exact command and result.
+
+Expected:
+
+* Qualified exercises: 47
+* Attestations created: 47
+* Exercises changed: 0
+* Versions changed: 0
+* Exercise timestamps changed: 0
+* Muscle mappings changed: 0
+* Equipment mappings changed: 0
+* Historical audits changed/deleted: 0
+* Activations: 0
+* Conflicts: 0
+
+Confirm one transaction and advisory-lock behavior.
+
+## 9. Second-run idempotency
+
+Report the exact second-run command and result.
+
+Expected:
+
+* Exact attestations skipped: 47
+* Attestations created: 0
+* Exercise writes: 0
+* Mapping writes: 0
+* Version changes: 0
+* Timestamp changes: 0
+* Audit writes: 0
+* Conflicts: 0
+
+Confirm a conflicting existing attestation would block rather than be overwritten.
+
+## 10. State-hash preservation
+
+Provide the before/after hashes or equivalent exact evidence for:
+
+* Exercise scalar rows
+* Exercise IDs
+* Versions
+* Timestamps
+* Muscle mappings
+* Equipment mappings
+* Original create audits
+* Original reconciliation audits
+
+Separate the expected addition of the 47 attestation events from the state that had to remain unchanged.
+
+## 11. Final audit reconciliation
+
+Report final counts for:
+
+* Original import create audits
+* Original reconciliation audits
+* Provenance attestation audits
+* Distinct attested source IDs
+* Duplicate attestations
+* Missing attestations
+* Conflicting attestations
+* Invalid actor links
+* Wrong-tenant attestations
+* Attestations with incorrect hashes
+* Attestations with incorrect slugs
+
+Confirm both Face Pulls records have distinct, correct provenance.
+
+## 12. Ownership-proof behavior
+
+Prove that ownership now works for:
+
+* Future records with a complete original create audit
+* Existing records with original create evidence plus an exact attestation
+
+Prove rejection of:
+
+* Incomplete legacy create audit alone
+* Fabricated standalone attestation
+* Missing canonical source
+* Incorrect source
+* Missing or incorrect source hash
+* Incorrect normalized hash
+* Missing or incorrect deterministic slug
+* Incorrect source ID
+* Incorrect import version
+* Wrong exercise linkage
+* Wrong tenant
+* Wrong actor
+* Inactive actor
+* Contradictory attestations
+* Later manual activity
+
+## 13. Tests
+
+Report exact commands, files and totals for:
+
+* Focused provenance unit tests
+* Focused importer integration tests
+* Complete API unit suite
+* Complete API integration suite
+* Complete frontend suite
+
+Identify the tests proving each negative provenance case.
+
+Report failures, skips and warnings.
+
+## 14. Typechecks and builds
+
+Report exact commands and results for:
+
+* Workspace typecheck
+* API production build
+* Client production build
+* `git diff --check`
+
+Include exact warning output or state that it was not retained.
+
+## 15. Independent final review
+
+Report every finding with:
+
+* Severity
+* Evidence
+* Blocking status
+
+Confirm the review examined:
+
+* Audit immutability
+* Provenance completeness
+* Caller-controlled evidence
+* Fabricated-attestation resistance
+* Exercise, tenant and actor linkage
+* Atomicity
+* Idempotency
+* Exercise-data preservation
+* Scope leakage
+
+## 16. Remaining risks
+
+List any remaining technical or content limitation.
+
+Keep the nine unresolved primary-muscle decisions separate from the provenance fix; they are expected draft-review items, not automatically a Task #49 defect.
+
+## 17. Production/deployment confirmation
+
+Confirm:
+
+* No production access
+* No production data mutation
+* No schema or migration changes
+* No deployment
+* No exercise activation
+* No workout-consumer cutover
+* No next-gate work
+
+## 18. Final verdict
+
+The verdict must be exactly one of:
+
+* `READY FOR GATE 2C RE-VALIDATION`
+* `BLOCKED — GATE 2C DATA DECISION REQUIRED`
+* `BLOCKED — GATE 2C FIX REQUIRED`
+
+Do not describe Gate 2C as complete. Formal acceptance requires independent re-validation.
