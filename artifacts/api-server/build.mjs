@@ -15,7 +15,13 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    entryPoints: {
+      index: path.resolve(artifactDir, "src/index.ts"),
+      "import-exercise-catalogue": path.resolve(
+        artifactDir,
+        "src/cli/importExerciseCatalogue.ts",
+      ),
+    },
     platform: "node",
     bundle: true,
     format: "esm",
@@ -101,6 +107,7 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
+      "typescript",
     ],
     sourcemap: "linked",
     plugins: [
