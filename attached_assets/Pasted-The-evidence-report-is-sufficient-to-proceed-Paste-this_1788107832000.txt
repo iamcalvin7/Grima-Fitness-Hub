@@ -1,0 +1,466 @@
+The evidence report is sufficient to proceed. Paste this final re-validation prompt into Replit:
+
+# RE-VALIDATION — Gate 2C Provenance Integrity Fix
+
+## Prompt classification
+
+* **Prompt type:** RE-VALIDATION
+* **Gate:** Gate 2C — Exercise Catalogue Import
+* **Fix:** Task #49 — Complete Import Provenance and Append-Only Attestation Repair
+* **Mode:** Independent, read-only validation
+* **Implementation changes:** Not authorized
+* **Development-data changes:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+* **Next gate:** Must not start
+
+## Objective
+
+Independently verify that Task #49 fully resolves the blocking Gate 2C provenance finding:
+
+* Incomplete create-audit provenance must no longer establish ownership.
+* Future imports must record complete canonical provenance.
+* The existing 47 drafts must have valid append-only attestations.
+* Historical audits and exercise data must remain unchanged.
+* Fabricated, incomplete or contradictory evidence must fail closed.
+
+Do not rely solely on the Task #49 report or its internal review. Inspect the committed source, tests and final development state.
+
+If a defect is found, report it without fixing it.
+
+---
+
+# 1. Scope and file ledger
+
+Inspect Git history, status and the complete Task #49 diff.
+
+Confirm product changes are limited to:
+
+* `artifacts/api-server/src/lib/exerciseCatalogueImport.ts`
+* `artifacts/api-server/src/cli/importExerciseCatalogue.ts`
+* `artifacts/api-server/src/__tests__/integration/exercise-catalogue-import.test.ts`
+* `artifacts/api-server/docs/exercise-catalogue-import.md`
+
+Confirm:
+
+* No schema or migration changes
+* No Gate 2A route changes
+* No Gate 2B UI changes
+* No exercise-content changes
+* No activation
+* No workout-consumer cutover
+* No production/deployment changes
+* No next-gate work
+
+Separate product files from attached prompts, reports and agent-memory files.
+
+Run:
+
+```text
+git diff --check
+```
+
+---
+
+# 2. Reproduce the original blocker
+
+Inspect the pre-fix ownership behavior and the final implementation.
+
+Confirm the original issue was:
+
+* An incomplete legacy `exercise:create` audit could establish ownership.
+* Canonical source, deterministic slug and pinned hashes were not all required.
+* Existing create audits lacked the complete canonical provenance.
+* The exercise content itself was correct; the defect concerned authority for future automated reconciliation.
+
+Prove the final implementation no longer accepts the original incomplete evidence.
+
+---
+
+# 3. Validate the complete provenance contract
+
+Inspect `proveImportOwnership` and every helper it trusts.
+
+Confirm ownership now requires exact canonical evidence for:
+
+* Exercise ID
+* Target type
+* Target ID
+* Tenant
+* Original CLI actor
+* Active same-tenant admin authority
+* Canonical source exactly `bundled-programmes`
+* Legacy source ID
+* Deterministic slug
+* Import version
+* Pinned source-file SHA-256
+* Pinned normalized-source SHA-256
+* Deterministic manifest-record SHA-256
+* Current exercise version
+* Draft status
+* Exact scalar content
+* Exact muscle mappings
+* Exact equipment mappings
+* Exact media reference
+* Null unsupported fields
+* No disqualifying later activity
+
+Confirm expected values come from pinned constants or deterministic manifest generation—not caller-controlled metadata.
+
+Confirm metadata matching rejects both:
+
+* Missing expected fields
+* Unknown or additional unreviewed fields
+
+---
+
+# 4. Validate future create audits
+
+Confirm future imports write complete canonical provenance in the original create audit.
+
+Independently verify the metadata contains exactly:
+
+* `source`
+* `sourceId`
+* `slug`
+* `importVersion`
+* `sourceSha256`
+* `normalizedSourceSha256`
+* `manifestRecordSha256`
+* `exerciseId`
+* `currentExerciseVersion`
+
+Confirm the audit envelope correctly binds:
+
+* CLI actor
+* Actor ID
+* `exercise:create`
+* `exercise` target type
+* Exact exercise target ID
+* Intended tenant context
+
+Confirm a future create audit establishes ownership only when every key and value matches the internally generated canonical record.
+
+---
+
+# 5. Validate the append-only repair
+
+Use read-only development inspection.
+
+Confirm:
+
+| Audit category                 | Expected |
+| ------------------------------ | -------: |
+| Original create audits         |       47 |
+| Original reconciliation audits |       47 |
+| Provenance attestations        |       47 |
+| Distinct attested source IDs   |       47 |
+| Duplicate attestations         |        0 |
+| Missing attestations           |        0 |
+| Conflicting attestations       |        0 |
+| Invalid actor links            |        0 |
+| Wrong-tenant attestations      |        0 |
+| Incorrect-hash attestations    |        0 |
+| Incorrect-slug attestations    |        0 |
+
+Confirm every attestation:
+
+* Uses action `exercise:provenance-attestation`.
+* Targets the correct exercise.
+* Links to the correct original create audit.
+* Links to the correct reconciliation audit.
+* Uses the expected canonical source.
+* Uses the expected source ID.
+* Uses the expected deterministic slug.
+* Uses the expected import version.
+* Uses both pinned source hashes.
+* Uses the correct manifest-record hash.
+* Uses the correct exercise ID.
+* Records current exercise version 2.
+* Uses the correct original actor relationship.
+
+Confirm the two Face Pulls records remain independently attested under:
+
+* `face-pulls`
+* `face-pull-pump`
+
+A standalone attestation without genuine original create evidence must not establish ownership.
+
+---
+
+# 6. Validate historical immutability and exercise preservation
+
+Independently calculate the current state hashes and compare them with the recorded pre-repair values.
+
+Expected unchanged hashes:
+
+| State                                       | Expected hash                      |
+| ------------------------------------------- | ---------------------------------- |
+| Exercise rows, IDs, versions and timestamps | `ce9eaa86c6087a5d14a40dc8c260c4bc` |
+| Muscle mappings                             | `c222fbbee454fddcc973039922cdb723` |
+| Equipment mappings                          | `8c59cc5b24be10be1d113e576d6b37ce` |
+| Historical audits excluding attestations    | `59510821b9af659644db8477dd0c451c` |
+| Original create audits                      | `bfc37be6c11c089c22262e26308d63c9` |
+| Original reconciliation audits              | `4cb2aca988d11608ebb4c881356b1466` |
+
+Expected attestation hash:
+
+```text
+fd6466b40026e199e90914f6b74ebda0
+```
+
+Confirm:
+
+* Historical audits edited: 0
+* Historical audits deleted: 0
+* Exercise rows changed: 0
+* Exercise versions changed: 0
+* Exercise timestamps changed: 0
+* Muscle mappings changed: 0
+* Equipment mappings changed: 0
+* Lifecycle changes: 0
+* The only intended database addition was 47 attestation events
+
+Do not modify data while checking.
+
+---
+
+# 7. Validate qualification and atomicity
+
+Inspect the attestation process.
+
+Confirm:
+
+* All 47 records are qualified before the first attestation write.
+* Qualification checks the complete pinned manifest.
+* Qualification checks original create evidence.
+* Qualification checks reconciliation evidence.
+* Qualification checks actor authority.
+* Qualification checks later audit activity.
+* Qualification checks duplicate or contradictory attestations.
+* One transaction covers the entire repair.
+* Transaction-scoped advisory locking is used.
+* Exercise, mapping, audit and actor write barriers prevent qualification races.
+* Lock ordering is deterministic and does not introduce an avoidable deadlock path.
+* Any qualification or audit failure rolls back all attestations.
+* Partial attestation of fewer than 47 records is impossible.
+* No exercise or mapping mutation occurs in attestation mode.
+
+Validate these through source inspection and isolated integration tests.
+
+---
+
+# 8. Validate idempotency safely
+
+Do not run attestation apply mode against the existing development database.
+
+Run the supported guaranteed no-write inspection/dry-run behavior.
+
+Confirm the live ownership result is:
+
+```text
+proven: 47
+changed: 0
+notOwned: 0
+missing: 0
+unexpected: 0
+```
+
+Confirm catalogue behavior remains:
+
+```text
+create: 0
+skip: 47
+conflict: 0
+```
+
+Validate second-run attestation behavior through:
+
+* Existing database counts
+* Source inspection
+* Isolated integration tests
+
+Confirm a second run creates zero attestations and performs no other writes.
+
+---
+
+# 9. Negative provenance validation
+
+Run and inspect deterministic tests proving rejection of:
+
+* Incomplete legacy create audit alone
+* Fabricated standalone attestation
+* Missing canonical source
+* Incorrect canonical source
+* Missing source-file hash
+* Incorrect source-file hash
+* Missing normalized-source hash
+* Incorrect normalized-source hash
+* Missing deterministic slug
+* Incorrect deterministic slug
+* Incorrect source ID
+* Incorrect import version
+* Incorrect manifest-record hash
+* Wrong exercise linkage
+* Wrong target type
+* Wrong target ID
+* Wrong tenant
+* Wrong actor
+* Inactive actor
+* Contradictory attestation
+* Duplicate attestation
+* Unknown metadata keys
+* Later manual activity
+* Later lifecycle activity
+* Lock contention
+* Partial qualification
+* Audit-write failure
+
+Identify any listed behavior that is asserted in the report but not genuinely tested or enforced.
+
+---
+
+# 10. Residual-risk classification
+
+Independently assess both remaining risks.
+
+## Database-level audit immutability
+
+Determine:
+
+* Whether any application route, service, normal runtime workflow or importer path can update or delete existing audits.
+* Whether append-only behavior is consistently enforced by application code.
+* Whether mutation is possible only through privileged direct database access.
+* Whether the absence of a database trigger or restrictive database privilege blocks Gate 2C, or is appropriately recorded as a future database-hardening task.
+
+Do not accept “out of scope” alone as the reason it is non-blocking. Base the decision on actual exploitability and the authority available to normal application paths.
+
+## Actor deletion
+
+Determine:
+
+* What happens to historical audit attribution when a user is deleted.
+* Whether ownership proof fails closed if the actor link disappears.
+* Whether deletion could ever cause an unowned exercise to be treated as owned.
+* Whether the risk affects safety or only future reconciliation availability.
+
+Report each risk with evidence, severity and blocking status.
+
+Do not implement either hardening change during validation.
+
+---
+
+# 11. Complete verification
+
+Run and report:
+
+```text
+pnpm --filter @workspace/api-server exec vitest run src/__tests__/exerciseCatalogueImport.test.ts
+```
+
+```text
+pnpm --filter @workspace/api-server exec vitest run --config vitest.integration.config.ts src/__tests__/integration/exercise-catalogue-import.test.ts
+```
+
+```text
+pnpm --filter @workspace/api-server test
+```
+
+```text
+pnpm --filter @workspace/api-server test:integration
+```
+
+```text
+pnpm --filter @workspace/marcus-grima test
+```
+
+```text
+pnpm run typecheck
+```
+
+```text
+pnpm --filter @workspace/api-server run build
+```
+
+```text
+BASE_PATH=/marcus-grima PORT=5173 pnpm --filter @workspace/marcus-grima build
+```
+
+```text
+git diff --check
+```
+
+Report exact:
+
+* Test files
+* Test totals
+* Failures
+* Skips
+* Warnings
+* Typecheck result
+* Build result
+* Whether warnings are existing or introduced
+
+Do not modify source to make validation pass.
+
+---
+
+# 12. Independent review
+
+Perform an independent final review focused on:
+
+* Closure of the original provenance blocker
+* Canonical evidence completeness
+* Caller-controlled evidence resistance
+* Standalone-attestation resistance
+* Audit-history preservation
+* Exercise-data preservation
+* Tenant and actor linkage
+* Qualification races
+* Transactional atomicity
+* Idempotency
+* Residual audit risks
+* Scope leakage
+* Regression risk
+
+For every finding, report:
+
+* Severity
+* Evidence
+* Blocking status
+
+Do not fix findings.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification
+2. Scope and file ledger
+3. Original-blocker reproduction
+4. Complete provenance-contract result
+5. Future create-audit result
+6. Existing-attestation result
+7. Historical-audit preservation
+8. Exercise-state preservation
+9. Qualification and atomicity result
+10. Idempotency result
+11. Negative provenance result
+12. Complete test totals
+13. Typecheck and build results
+14. Residual-risk classification
+15. Independent-review findings
+16. Remaining Marcus content decisions
+17. Production/deployment confirmation
+18. Gate verdict
+
+The verdict must be exactly one of:
+
+* `PASS — GATE 2C COMPLETE`
+* `BLOCKED — GATE 2C FIX REQUIRED`
+* `BLOCKED — GATE 2C DATA DECISION REQUIRED`
+
+Do not start the next gate.
