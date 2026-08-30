@@ -105,6 +105,106 @@ describe("ExerciseLibrary page", () => {
     expect(body).not.toHaveProperty("version");
   });
 
+  it("reports linked and missing media references without claiming they loaded", async () => {
+    fetchMock.mockResolvedValue(listResponse([linkedMediaExercise, { ...draftExercise, id: "6f2be118-c34c-4f76-8fe2-3c88acd86912", name: "Air squat", mediaUrl: null }]));
+
+    render(<ExerciseLibrary />);
+
+    expect(await screen.findByText("Goblet squat")).toBeInTheDocument();
+    expect(screen.getByText("Air squat")).toBeInTheDocument();
+    expect(screen.getByText("Reference linked")).toBeInTheDocument();
+    expect(screen.getByText("No reference")).toBeInTheDocument();
+    expect(screen.queryByText(/loaded/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the empty catalogue state when the server returns no exercises", async () => {
+    fetchMock.mockResolvedValue(listResponse([]));
+
+    render(<ExerciseLibrary />);
+
+    expect(await screen.findByText("Your catalogue is empty")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create draft/i })).toBeInTheDocument();
+  });
+
+  it("shows a no-results state for a server-backed search", async () => {
+    fetchMock.mockResolvedValue(listResponse([]));
+
+    render(<ExerciseLibrary />);
+    fireEvent.change(screen.getByLabelText("Search exercises"), { target: { value: "missing movement" } });
+
+    expect(await screen.findByText("No exercises match those filters")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([input]) => new URL(String(input), "http://localhost").searchParams.get("search") === "missing movement")).toBe(true);
+    });
+  });
+
+  it("shows an API failure and retries the catalogue request", async () => {
+    let shouldFail = true;
+    fetchMock.mockImplementation(async () => shouldFail
+      ? response({ error: "Catalogue temporarily unavailable" }, 503)
+      : listResponse([draftExercise]));
+
+    render(<ExerciseLibrary />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Catalogue temporarily unavailable");
+    shouldFail = false;
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    expect(await screen.findByText("Goblet squat")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("sends search and every catalogue filter to the server and clears them", async () => {
+    fetchMock.mockResolvedValue(listResponse([draftExercise]));
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+
+    fireEvent.change(screen.getByLabelText("Search exercises"), { target: { value: "goblet" } });
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "draft" } });
+    fireEvent.change(screen.getByLabelText("Performance"), { target: { value: "weight_reps" } });
+    fireEvent.change(screen.getByLabelText("Muscle"), { target: { value: "quads" } });
+    fireEvent.change(screen.getByLabelText("Equipment filter"), { target: { value: "dumbbell" } });
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([input]) => {
+        const params = new URL(String(input), "http://localhost").searchParams;
+        return params.get("search") === "goblet"
+          && params.get("status") === "draft"
+          && params.get("performanceType") === "weight_reps"
+          && params.get("muscle") === "quads"
+          && params.get("equipment") === "dumbbell";
+      })).toBe(true);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([input]) => {
+        const params = new URL(String(input), "http://localhost").searchParams;
+        return params.get("page") === "1"
+          && !params.has("search")
+          && !params.has("status")
+          && !params.has("performanceType")
+          && !params.has("muscle")
+          && !params.has("equipment");
+      })).toBe(true);
+    });
+  });
+
+  it("requests the next server page through catalogue pagination", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      const page = Number(new URL(String(input), "http://localhost").searchParams.get("page") ?? "1");
+      return listResponse([draftExercise], 26, page);
+    });
+
+    render(<ExerciseLibrary />);
+    await screen.findByText("Page 1 of 2");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByText("Page 2 of 2")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([input]) => new URL(String(input), "http://localhost").searchParams.get("page") === "2")).toBe(true);
+  });
+
   it("keeps edited input visible when the server reports a version conflict", async () => {
     render(<ExerciseLibrary />);
     await screen.findByText("Goblet squat");
@@ -117,6 +217,114 @@ describe("ExerciseLibrary page", () => {
     expect(await screen.findByText("This exercise changed elsewhere")).toBeInTheDocument();
     expect(screen.getByLabelText("Exercise name")).toHaveValue("Updated goblet squat");
     expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
+  });
+
+  it("prevents normalized duplicate equipment from being submitted", async () => {
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+    fireEvent.change(screen.getByLabelText("Exercise name"), { target: { value: "Duplicate equipment exercise" } });
+    fireEvent.click(screen.getByRole("button", { name: /add equipment/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add equipment/i }));
+    fireEvent.change(screen.getByLabelText("Equipment 1"), { target: { value: "Pull-up bar" } });
+    fireEvent.change(screen.getByLabelText("Equipment 2"), { target: { value: "pull up bar" } });
+    fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
+
+    expect(await screen.findByText("Each equipment item may appear only once")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+  });
+
+  it("keeps BodyMap, canonical muscle selectors, and primary/secondary roles synchronized", async () => {
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Mock BodyMap" }));
+    expect(screen.getByLabelText("Primary muscle")).toHaveValue("chest");
+    expect(screen.getAllByRole("option", { name: "Upper chest" }).some((option) => (option as HTMLOptionElement).value === "upper_chest")).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Primary muscle"), { target: { value: "quads" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Chest" }));
+    fireEvent.change(screen.getByLabelText("Exercise name"), { target: { value: "Canonical mapping exercise" } });
+    fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const createCall = fetchMock.mock.calls.find(([, options]) => options?.method === "POST");
+    const body = JSON.parse(String(createCall?.[1]?.body));
+    expect(body.muscles).toEqual([
+      { muscleKey: "quads", role: "primary" },
+      { muscleKey: "chest", role: "secondary" },
+    ]);
+  });
+
+  it("protects unsaved values when the editor close control is used", async () => {
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+    fireEvent.change(screen.getByLabelText("Exercise name"), { target: { value: "Unsaved exercise" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Close editor" })[0]);
+
+    expect(confirm).toHaveBeenCalledWith("You have unsaved changes. Close without saving?");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("Exercise name")).toHaveValue("Unsaved exercise");
+
+    confirm.mockReturnValue(true);
+    fireEvent.click(screen.getAllByRole("button", { name: "Close editor" })[0]);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("moves focus into the editor and wraps Tab in both directions", async () => {
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+    const dialog = await screen.findByRole("dialog");
+
+    await waitFor(() => expect(document.activeElement).toBe(dialog));
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ));
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    last.focus();
+    fireEvent.keyDown(last, { key: "Tab" });
+    expect(document.activeElement).toBe(first);
+
+    first.focus();
+    fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
+  });
+
+  it("closes a clean editor with Escape and restores focus to its opener", async () => {
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    const opener = screen.getByRole("button", { name: /new exercise/i });
+    opener.focus();
+    fireEvent.click(opener);
+    const dialog = await screen.findByRole("dialog");
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("routes Escape through unsaved-change confirmation", async () => {
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    render(<ExerciseLibrary />);
+    await screen.findByText("Goblet squat");
+    fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+    fireEvent.change(screen.getByLabelText("Exercise name"), { target: { value: "Keep this value" } });
+    const dialog = screen.getByRole("dialog");
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(confirm).toHaveBeenCalledWith("You have unsaved changes. Close without saving?");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("Exercise name")).toHaveValue("Keep this value");
   });
 
   it("activates a complete draft through an explicit lifecycle action", async () => {
@@ -248,5 +456,38 @@ describe("ExerciseLibrary page", () => {
     expect(await screen.findByText("This exercise changed elsewhere")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("keeps archived exercises visible and clearly labelled in the archived status view", async () => {
+    fetchMock.mockResolvedValue(listResponse([archivedExercise]));
+
+    render(<ExerciseLibrary />);
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "archived" } });
+
+    expect(await screen.findByText("Goblet squat")).toBeInTheDocument();
+    expect(screen.getAllByText("Archived").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([input]) => new URL(String(input), "http://localhost").searchParams.get("status") === "archived")).toBe(true);
+    });
+    expect(screen.queryByText(/deleted/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps catalogue and editor controls operable at a narrow viewport", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    window.dispatchEvent(new Event("resize"));
+    fetchMock.mockImplementation(async (input) => String(input).endsWith(`/admin/exercises/${activeExercise.id}`)
+      ? response({ exercise: activeExercise })
+      : listResponse([activeExercise]));
+
+    render(<ExerciseLibrary />);
+
+    expect(await screen.findByLabelText("Exercise filters")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /new exercise/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveClass("overflow-y-auto");
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /archive/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /archive/i }).className).not.toMatch(/hidden/);
   });
 });
