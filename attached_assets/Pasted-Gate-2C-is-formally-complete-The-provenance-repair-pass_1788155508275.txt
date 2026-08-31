@@ -1,0 +1,292 @@
+Gate 2C is formally complete. The provenance repair passed, and the two residual audit concerns are recorded as non-blocking technical debt.
+
+Next is **Gate 2D — Exercise Catalogue Review and Activation**. Before changing anything, we need an exact decision sheet showing what Marcus must approve for each draft.
+
+# INSPECTION — Gate 2D Exercise Catalogue Review and Activation
+
+## Prompt classification
+
+* **Prompt type:** INSPECTION / DECISION PREPARATION
+* **Gate:** Gate 2D — Exercise Catalogue Review and Activation
+* **Mode:** Read-only
+* **Implementation changes:** Not authorized
+* **Exercise-data changes:** Not authorized
+* **Exercise activation:** Not authorized
+* **Schema or migration changes:** Not authorized
+* **Production access:** Not authorized
+* **Deployment/publishing:** Not authorized
+
+## Objective
+
+Prepare the 47 imported exercise drafts for Marcus’s content review and eventual activation.
+
+The inspection must determine:
+
+* Exactly what every exercise still needs before activation
+* Which values already exist and are trustworthy
+* Which decisions require Marcus’s coaching judgement
+* Which decisions can be grouped consistently
+* Whether the existing Gate 2B interface is sufficient for completing the review efficiently
+* The safest future update and activation sequence
+
+Do not modify or activate any exercise.
+
+---
+
+# 1. Inspect the authoritative activation contract
+
+Inspect the actual Gate 2A validation and activation logic.
+
+Report the exact requirements for activation, including:
+
+* Required scalar fields
+* Required performance type
+* Difficulty requirements
+* Movement-pattern requirements
+* Laterality requirements
+* Primary-muscle requirements
+* Instruction requirements
+* Equipment behavior
+* Media behavior
+* Safety-note behavior
+* Version/concurrency requirements
+* Valid lifecycle transition
+* Any additional validation not listed above
+
+Use the actual backend contract—not prior summaries.
+
+List every approved enum value with a plain-English explanation suitable for Marcus.
+
+---
+
+# 2. Inspect all 47 development drafts
+
+Use read-only development inspection.
+
+For every exercise, report:
+
+* Legacy source ID
+* Exercise name
+* Deterministic slug
+* Current version
+* Current lifecycle state
+* Existing description or cues
+* Existing instructions
+* Existing primary muscle
+* Existing secondary muscles
+* Existing equipment
+* Existing media reference
+* Current performance type
+* Current difficulty
+* Current movement pattern
+* Current laterality
+* Current safety information
+* Every field blocking activation
+
+Confirm:
+
+* Total records: 47
+* Drafts: 47
+* Active: 0
+* Archived: 0
+* Records with unresolved primary muscle: 9
+* No database or audit state changes occur during inspection
+
+---
+
+# 3. Produce the Marcus decision sheet
+
+Return one complete table containing all 47 exercises.
+
+Required columns:
+
+| Field                        | Purpose                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| Source ID                    | Stable legacy reference                              |
+| Exercise                     | Exercise name                                        |
+| Current primary muscle       | Existing canonical value or unresolved               |
+| Missing activation fields    | Everything preventing activation                     |
+| Source evidence              | Relevant existing cues or labels                     |
+| Recommended performance type | One approved value or clearly marked options         |
+| Recommended difficulty       | Proposed approved value                              |
+| Recommended movement pattern | Proposed approved value                              |
+| Recommended laterality       | Proposed value only if required or clearly supported |
+| Primary-muscle decision      | Existing value or Marcus decision required           |
+| Other content issue          | Instruction, safety, equipment or media concern      |
+| Confidence                   | High, medium or low                                  |
+| Marcus approval required     | Yes or no                                            |
+
+Recommendations are decision support only.
+
+Do not:
+
+* Write recommendations to the database
+* Present uncertain mappings as facts
+* Invent safety instructions
+* Invent exercise cues
+* Infer multiple equipment types from ambiguous wording
+* Change the canonical source or manifest
+* Activate records automatically
+
+Where confidence is low, provide two or three supported choices and explain the distinction briefly.
+
+---
+
+# 4. Give special attention to the nine unresolved muscles
+
+Review these exercises:
+
+* Burpees
+* Inchworms
+* Mountain Climbers
+* Plank Hold
+* Leg Raises
+* Pike Push-Ups
+* Seated Shoulder Press
+* Lateral Raises (Pump Set)
+* Seated Rows
+
+For each, provide:
+
+* Existing source label
+* Relevant exercise cues
+* Supported canonical primary-muscle options
+* Recommended option
+* Why that recommendation is reasonable
+* Why Marcus’s approval is still required
+
+Do not silently apply exercise-name assumptions.
+
+---
+
+# 5. Identify batchable decisions
+
+Determine whether consistent rules can safely reduce the number of individual decisions.
+
+Examples to inspect:
+
+* Exercises sharing the same movement and tracking behavior
+* Exercises using repetitions and weight
+* Bodyweight repetition exercises
+* Timed holds
+* Duration-based conditioning exercises
+* Bilateral versus unilateral exercises
+* Similar movement-pattern families
+* Consistent difficulty policy
+
+For each proposed batch rule, report:
+
+* Exercises affected
+* Proposed value
+* Supporting evidence
+* Exceptions
+* Risk of applying the rule
+* Whether Marcus must approve the group
+
+Do not create or apply a batch rule during this inspection.
+
+---
+
+# 6. Review existing Exercise Library usability
+
+Inspect the Gate 2B Marcus Exercise Library against this 47-record review task.
+
+Determine whether Marcus can efficiently:
+
+* Filter all drafts
+* Identify incomplete fields
+* Open each record
+* Understand why activation is blocked
+* Edit the required metadata
+* Save without losing his place
+* Move to the next draft
+* Activate after review
+* Handle stale-version conflicts
+* Track which exercises remain incomplete
+
+Report:
+
+* What the existing UI already supports
+* Any friction affecting 47-record review
+* Whether individual editing is sufficient
+* Whether a future batch-review or review-queue enhancement is justified
+* The smallest safe enhancement, if one is genuinely needed
+
+Do not build or modify the UI.
+
+---
+
+# 7. Propose the future activation process
+
+Design a safe future workflow without executing it.
+
+The workflow should include:
+
+1. Marcus approves the decision sheet.
+2. Approved metadata is applied through normal version-aware mutations.
+3. Each exercise is revalidated.
+4. Complete exercises are activated through the normal lifecycle.
+5. Incomplete or rejected exercises remain drafts.
+6. Audit events are verified.
+7. Client active-catalogue projection is checked.
+8. Static workout consumers remain unchanged until a separate cutover gate.
+
+Recommend whether updates should be:
+
+* Entered manually through the existing UI
+* Applied through a reviewed development-only batch tool
+* Split between batchable values and individual Marcus decisions
+
+Explain the trade-off.
+
+---
+
+# 8. Preserve Gate 2C guarantees
+
+Confirm this inspection does not alter:
+
+* The 47 provenance attestations
+* Original create audits
+* Reconciliation audits
+* Exercise versions
+* Exercise timestamps
+* Muscle mappings
+* Equipment mappings
+* Lifecycle states
+* Source hashes
+* Static programme consumers
+
+Record the following separately as deferred technical debt:
+
+* Database-level audit immutability
+* Actor deletion weakening historical attribution
+
+Do not fix either item in this gate inspection.
+
+---
+
+# Required final report
+
+Return:
+
+1. Prompt classification
+2. Exact activation contract
+3. Approved enum explanations
+4. Current 47-record catalogue summary
+5. Full 47-exercise decision sheet
+6. Nine unresolved-muscle recommendations
+7. Proposed batch rules
+8. Exercise Library usability result
+9. Recommended update method
+10. Proposed activation sequence
+11. Deferred technical debt
+12. Production/deployment confirmation
+13. Final verdict
+
+The verdict must be exactly one of:
+
+* `READY FOR MARCUS CONTENT DECISIONS`
+* `BLOCKED — GATE 2D PRODUCT DECISION REQUIRED`
+* `BLOCKED — GATE 2D BACKEND OR UI FIX REQUIRED`
+
+Do not update or activate exercises. Do not start programme or workout-consumer cutover.
