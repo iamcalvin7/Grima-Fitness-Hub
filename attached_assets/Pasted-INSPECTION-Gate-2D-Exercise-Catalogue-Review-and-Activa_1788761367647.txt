@@ -1,0 +1,106 @@
+INSPECTION — Gate 2D Exercise Catalogue Review and Activation
+
+Prompt type: INSPECTION
+Environment: Development only
+Mode: Read-only
+Prerequisite: Gate 2C accepted as complete
+Objective: Prepare a complete exercise review sheet and a concrete activation plan.
+
+Gate 2C imported 47 exercises as drafts and established their provenance. Inspect the current repository and development catalogue to identify exactly what each exercise needs before activation.
+
+Complete this inspection end-to-end without stopping for routine implementation questions. Return product decisions together in one review sheet.
+
+1. Confirm the current baseline
+
+Inspect the current Git state, accepted Gate 2C implementation, import manifest, provenance enforcement, and development catalogue.
+
+Confirm the target tenant and reconcile the 47 imported identities against their source records. Distinguish these records from any exercises subsequently created through normal management workflows.
+
+Report current lifecycle counts and any changes since the accepted import. Preserve the two distinct “Face Pulls” records and explain their source differences; do not merge them.
+
+Do not rerun the importer or attestation repair in write mode.
+
+2. Establish the exact activation requirements
+
+Inspect the authoritative Gate 2A validator, API contracts, lifecycle service, and Gate 2B editor.
+
+Report:
+
+* Every field required for activation.
+* Allowed values and conditional requirements.
+* Fields that are optional.
+* Which requirements are already satisfied by imported data.
+* Which missing values require Marcus’s content decision.
+* Whether the existing editor supports entering and saving every required value.
+
+Use the actual backend contract. Do not introduce new requirements or weaken validation to make records eligible.
+
+3. Produce the complete 47-record review sheet
+
+Include one row for every imported exercise, with:
+
+* Legacy ID and current exercise identifier.
+* Exercise name and lifecycle status.
+* Missing activation requirements.
+* Existing source evidence.
+* Proposed values where a recommendation is supportable.
+* Confidence and the reason for uncertainty.
+* The exact decision Marcus needs to make.
+* Whether the exercise would qualify for activation if those decisions were approved.
+
+Where relevant, cover performance type, difficulty, movement pattern, laterality, primary and additional muscles, equipment, instructions, and media.
+
+Separate source facts from recommendations. Do not present inferred values as existing or approved metadata. If the source cannot establish a value, mark it “Marcus decision required.”
+
+Do not infer a specific exercise variant solely from its name. Do not convert alternative-equipment descriptions into a requirement to use all listed equipment.
+
+Verify the previously reported unresolved primary-muscle records, including Burpees, Inchworms, Mountain Climbers, Plank Hold, Leg Raises, Pike Push-Ups, Seated Shoulder Press, Lateral Raises (Pump Set), and Seated Rows. Report any difference from the current data.
+
+4. Make the review practical
+
+Group repeated decisions where the same clearly explained rule could apply to several exercises. List the affected records and exceptions so Marcus can approve a group without reviewing duplicate explanations.
+
+Keep ambiguous variants and duplicate names explicit.
+
+Assess whether the existing Exercise Library can practically support this review. Record concrete UI limitations with evidence; do not build bulk-editing tools or redesign the editor during inspection.
+
+5. Prepare the subsequent execution plan
+
+Describe how approved decisions would be applied through the existing authorized management workflow, with:
+
+* Current-version checks.
+* Normal validation and transactional auditing.
+* Separate saving and explicit activation.
+* Conflict handling that preserves newer edits.
+* Verification of the resulting admin and client catalogue projections.
+
+Explain which existing tests provide coverage and what additional verification would resolve any specific remaining gap.
+
+Activation makes an exercise eligible for permitted catalogue consumers. Do not claim it completes programme integration or workout execution.
+
+6. Boundaries
+
+Do not edit repository files, exercise records, mappings, historical audits, or attestations. Do not activate exercises, change accounts or permissions, alter schema or migrations, access production, deploy, or start programme/workout integration.
+
+If development access is unavailable, complete the source-based inspection and clearly identify what remains unverified. Do not substitute another environment.
+
+Required final report:
+
+* Current baseline and reconciliation.
+* Exact activation contract.
+* Complete 47-record review sheet.
+* Grouped Marcus decisions and exceptions.
+* Existing UI readiness and evidenced limitations.
+* Proposed update and activation procedure.
+* Inspection limitations and blocking findings.
+* Confirmation that no implementation or data changes occurred.
+
+End with exactly one verdict:
+
+READY FOR MARCUS CONTENT DECISIONS
+
+BLOCKED — GATE 2D PRODUCT DECISION REQUIRED
+
+BLOCKED — GATE 2D BACKEND OR UI FIX REQUIRED
+
+Ordinary unanswered exercise metadata belongs in the review sheet and does not by itself block inspection completion. Gate 2D remains open until the approved content work and its validation are complete.
