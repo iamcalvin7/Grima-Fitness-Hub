@@ -46,15 +46,29 @@ the `marcus-grima` tenant.
 - A complete-provenance version-2 reconciliation may be performed by a
   replacement operator. Its exact canonical same-tenant audit must link to the
   target row and precede it, and the row updater must be that reconciliation
-  actor. A version-3 reviewed edit must extend a valid version-2 chain with
-  exactly one later same-tenant `exercise:update` user audit by the row updater;
-  its non-empty, unique `metadata.fields` must cover every canonical difference.
-  Only documented same-actor/same-timestamp companion audit actions are allowed.
-  Every other target audit is rejected at every sequence boundary (including
-  equal timestamps), and a legacy attestation must precede the reviewed update.
-  Legacy create and reconciliation evidence is accepted only in its exact
-  recognized historical shape: extra or contradictory provenance fields fail
-  closed, and both events must retain their original actor linkage.
+  actor. The original version-1/version-2 evidence (and, where needed, its
+  legacy attestation) remains immutable and is matched in its exact historical
+  shape.
+- The historical version-3 reviewed edit shape is supported only as a genuine
+  extension of that evidence: one later same-tenant, target-linked user
+  `exercise:update` by the row updater with non-empty unique `metadata.fields`
+  covering canonical differences. A legacy attestation must precede that edit.
+  Later events are replayed fail-closed in strict timestamp order.
+- New management audits carry contiguous `fromVersion`/`toVersion` metadata;
+  lifecycle audits also carry `fromStatus`/`toStatus`. Ownership replay accepts
+  reviewed updates plus activate, archive, and restore only when tenant, target,
+  user actor, transition, ordering, final row version/status/updater, and the
+  final canonical field differences all agree. The only non-primary events
+  permitted are the documented performance-type or safety companions written by
+  the same user at the exact update timestamp. Unrelated or equal-boundary
+  events, forged metadata, gaps, and duplicate evidence fail closed.
+- Management PATCH, activate, archive, and restore requests require an
+  `If-Match` header containing the exercise version reviewed by the caller
+  (plain or quoted positive integer). Missing or malformed preconditions are
+  rejected, and stale versions conflict after the row is locked. Replay rejects
+  edits while archived and requires safety/performance companion evidence
+  exactly when those fields changed; performance companions must form a valid
+  nullable transition from the previously replayed canonical value.
 - The one-time `--reconcile` mode updates only rows proven to be unchanged
   products of this import: exact tenant/slug/source ID, original import audit,
   original version and timestamps, draft status, and no disqualifying later

@@ -31,7 +31,10 @@ import {
   summarizeExerciseImport,
   type ExistingImportExercise,
 } from "../lib/exerciseCatalogueImport.js";
-import { parseExerciseWriteInput } from "../lib/exercises.js";
+import {
+  EXERCISE_PERFORMANCE_TYPES,
+  parseExerciseWriteInput,
+} from "../lib/exercises.js";
 import { DEFAULT_TENANT_SLUG } from "../lib/tenant.js";
 
 interface CliOptions {
@@ -311,13 +314,30 @@ export function proveImportOwnership(
       missing.push(entry.source.sourceId);
       continue;
     }
+    // A foreign audit may coincidentally use this UUID as its target.  It is
+    // not exercise provenance and must not poison ownership.  Conversely, an
+    // exercise provenance/lifecycle action with this ID but the wrong target
+    // type is forged evidence and is deliberately retained for fail-closed
+    // replay below.
+    const exerciseEvidenceActions = new Set([
+      "exercise:create",
+      "exercise:reconcile",
+      EXERCISE_PROVENANCE_ATTESTATION_ACTION,
+      "exercise:update",
+      "exercise:activate",
+      "exercise:archive",
+      "exercise:restore",
+      "exercise:performance_type_change",
+      "exercise:safety_change",
+    ]);
     const targetAudits = audits.filter(
-      (audit) =>
-        audit.targetType === "exercise" && audit.targetId === current.id,
+      (audit) => audit.targetId === current.id &&
+        (audit.targetType === "exercise" || exerciseEvidenceActions.has(audit.action)),
     );
     const candidateCreateAudits = targetAudits.filter(
       (audit) =>
         audit.tenantId === current.tenantId &&
+        audit.targetType === "exercise" &&
         audit.action === "exercise:create" &&
         audit.actorType === "cli" &&
         audit.metadata?.importVersion === EXERCISE_IMPORT_VERSION &&
@@ -346,6 +366,7 @@ export function proveImportOwnership(
     const reconciliationAudits = targetAudits.filter(
       (audit) =>
         audit.tenantId === current.tenantId &&
+        audit.targetType === "exercise" &&
         audit.action === "exercise:reconcile" &&
         audit.actorType === "cli" &&
         audit.metadata?.source === "bundled-programmes" &&
@@ -384,6 +405,7 @@ export function proveImportOwnership(
     const attestationAudits = anyAttestationAudits.filter(
       (audit) =>
         audit.tenantId === current.tenantId &&
+        audit.targetType === "exercise" &&
         audit.actorType === "cli" &&
         expectedAttestationMetadata !== undefined &&
         auditMetadataMatches(audit, expectedAttestationMetadata),
@@ -412,9 +434,9 @@ export function proveImportOwnership(
     ) {
       ownershipReasons.push("missing or duplicate import audit");
     }
-    if (current.status !== "draft") ownershipReasons.push("status is not draft");
-    if (current.version !== 1 && current.version !== 2 && current.version !== 3) {
-      ownershipReasons.push("version is not an expected imported version");
+    if (current.version < 1) ownershipReasons.push("version predates imported version");
+    if (current.version === 1 && current.status !== "draft") {
+      ownershipReasons.push("version-1 import is not draft");
     }
     if (hasLegacyAttestation && current.version < 2) {
       ownershipReasons.push("attested reconciliation has an unexpected current version");
@@ -448,113 +470,163 @@ export function proveImportOwnership(
     if (createAudit && current.createdAt.getTime() > createAudit.createdAt.getTime()) {
       ownershipReasons.push("creation audit predates the exercise row");
     }
-    if (createAudit) {
-      const laterAudits = targetAudits.filter(
-        (audit) => {
-          const isAllowed =
-            audit.id === createAudit.id ||
-            (hasCompleteCreate
-              ? completeReconciliationAudits
-              : legacyReconciliationAudits
-            ).some((item) => item.id === audit.id) ||
-            attestationAudits.some((item) => item.id === audit.id);
-          return !isAllowed && audit.createdAt.getTime() > createAudit.createdAt.getTime();
-        },
-      );
-      if (current.version < 3 && laterAudits.length > 0) {
-        ownershipReasons.push("later audit activity exists");
-      }
+    const v2Audit =
+      completeReconciliationAudits[0] ?? legacyReconciliationAudits[0];
+    if (current.version >= 2 && (!v2Audit || !createAudit ||
+      v2Audit.createdAt.getTime() <= createAudit.createdAt.getTime())) {
+      ownershipReasons.push("reconciliation audit does not follow the original import audit");
     }
-    if (hasLegacyAttestation || (hasCompleteCreate && current.version === 2)) {
+    if (hasLegacyAttestation) {
       const attestation = attestationAudits[0];
-      if (
-        hasLegacyAttestation &&
-        attestation.createdAt.getTime() <= createAudit!.createdAt.getTime()
-      ) {
-        ownershipReasons.push("attestation does not follow the original import audit");
-      }
-      if (
-        hasLegacyAttestation &&
-        attestation.createdAt.getTime() <= legacyReconciliationAudits[0].createdAt.getTime()
-      ) {
-        ownershipReasons.push("attestation does not follow reconciliation audit");
-      }
-      if (
-        (hasCompleteCreate
-          ? completeReconciliationAudits[0]
-          : legacyReconciliationAudits[0]
-        ).createdAt.getTime() <= createAudit!.createdAt.getTime()
-      ) {
-        ownershipReasons.push("reconciliation audit does not follow the original import audit");
-      }
-      if (current.version < 3 && compareImportEntry(entry, current).length > 0) {
-        ownershipReasons.push("attested exercise differs from the canonical manifest");
+      if (attestation.createdAt.getTime() <= createAudit!.createdAt.getTime() ||
+          attestation.createdAt.getTime() <= v2Audit!.createdAt.getTime()) {
+        ownershipReasons.push("attestation does not follow historical provenance");
       }
     }
-    if (current.version === 3) {
-      const v2Audit =
-        completeReconciliationAudits[0] ?? legacyReconciliationAudits[0];
-      if (!v2Audit || !createAudit ||
-          v2Audit.createdAt.getTime() <= createAudit.createdAt.getTime()) {
-        ownershipReasons.push("reconciliation audit does not follow the original import audit");
+    if (current.version === 1) {
+      if (targetAudits.some((audit) => audit.id !== createAudit?.id)) {
+        ownershipReasons.push("unexplained post-import activity exists");
       }
-      if (v2Audit && createAudit && targetAudits.some((audit) =>
-        audit.id !== createAudit.id &&
-        audit.id !== v2Audit.id &&
-        audit.createdAt.getTime() > createAudit.createdAt.getTime() &&
-        audit.createdAt.getTime() < v2Audit.createdAt.getTime(),
+    }
+
+    /*
+     * Versions one and two are immutable import evidence.  Version three is
+     * the one historical reviewed-edit shape written before transition
+     * metadata existed; every later mutation must use the new strict shape.
+     */
+    if (createAudit && v2Audit) {
+      const baseAuditIds = new Set([
+        createAudit.id, v2Audit.id, ...attestationAudits.map((audit) => audit.id),
+      ]);
+      const afterReconciliation = targetAudits
+        .filter((audit) => !baseAuditIds.has(audit.id))
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      if (targetAudits.some((audit) =>
+        audit.id !== createAudit.id && audit.id !== v2Audit.id &&
+        audit.createdAt.getTime() >= createAudit.createdAt.getTime() &&
+        audit.createdAt.getTime() <= v2Audit.createdAt.getTime(),
       )) {
-        ownershipReasons.push("disqualifying audit exists before reconciliation");
+        ownershipReasons.push("disqualifying audit exists at an import boundary");
       }
-      const reviewedUpdates = targetAudits.filter(
-        (audit) =>
-          audit.tenantId === current.tenantId &&
-          audit.action === "exercise:update" &&
-          audit.actorType === "user" &&
-          v2Audit !== undefined &&
-          audit.createdAt.getTime() > v2Audit.createdAt.getTime(),
-      );
-      const reviewedUpdate = reviewedUpdates.length === 1 ? reviewedUpdates[0] : undefined;
-      const fields = reviewedUpdate?.metadata?.fields;
-      const differences = compareImportEntry(entry, current);
-      if (
-        !v2Audit ||
-        !reviewedUpdate ||
-        reviewedUpdate.actorId !== current.updatedByUserId ||
-        !Array.isArray(fields) ||
-        fields.length === 0 ||
-        fields.some((field) => typeof field !== "string") ||
-        new Set(fields).size !== fields.length ||
-        !differences.every((field) => fields.includes(field))
-      ) {
-        ownershipReasons.push("invalid version-3 reviewed update evidence");
-      } else {
-        const companionActions = new Set([
-          "exercise:performance_type_change",
-          "exercise:safety_change",
-        ]);
-        const allowedAuditIds = new Set([
-          createAudit?.id,
-          v2Audit.id,
-          reviewedUpdate.id,
-          ...attestationAudits.map((audit) => audit.id),
-        ]);
-        if (attestationAudits.some((audit) =>
-          audit.createdAt.getTime() >= reviewedUpdate.createdAt.getTime()
-        )) {
-          ownershipReasons.push("attestation does not precede reviewed update");
-        }
-        if (targetAudits.some((audit) =>
-          !allowedAuditIds.has(audit.id) &&
-          !(companionActions.has(audit.action) &&
-            audit.tenantId === current.tenantId &&
-            audit.actorType === "user" &&
-            audit.actorId === reviewedUpdate.actorId &&
-            audit.createdAt.getTime() === reviewedUpdate.createdAt.getTime()),
-        )) {
-          ownershipReasons.push("unexplained later audit activity exists");
-        }
+      if (attestationAudits.some((audit) =>
+        audit.createdAt.getTime() >= (afterReconciliation[0]?.createdAt.getTime() ?? Infinity),
+      )) ownershipReasons.push("attestation does not precede reviewed update");
+
+      let version = 2;
+      let status: Exercise["status"] = "draft";
+      let performanceType = entry.payload.performanceType ?? null;
+      let updater = v2Audit.actorId;
+      let previousTime = v2Audit.createdAt.getTime();
+      const explainedFields = new Set<string>();
+      let valid = true;
+      const auditGroups = new Map<number, AuditLog[]>();
+      for (const audit of afterReconciliation) {
+        const time = audit.createdAt.getTime();
+        auditGroups.set(time, [...(auditGroups.get(time) ?? []), audit]);
       }
+      for (const [time, group] of [...auditGroups.entries()].sort(([a], [b]) => a - b)) {
+        if (time <= previousTime) { valid = false; continue; }
+        const primaries = group.filter((audit) =>
+          ["exercise:update", "exercise:activate", "exercise:archive", "exercise:restore"]
+            .includes(audit.action),
+        );
+        if (primaries.length !== 1) { valid = false; continue; }
+        const primary = primaries[0];
+        const actorId = typeof primary.actorId === "string" ? primary.actorId : undefined;
+        const linked = primary.tenantId === current.tenantId &&
+          primary.targetType === "exercise" && primary.targetId === current.id &&
+          primary.actorType === "user" && actorId !== undefined;
+        const fields = primary.metadata?.fields;
+        const isFields = Array.isArray(fields) && fields.length > 0 &&
+          fields.every((field) => typeof field === "string") &&
+          new Set(fields).size === fields.length;
+        let primaryValid = linked;
+        if (primary.action === "exercise:update") {
+          const legacyV3 = version === 2 && auditMetadataMatches(primary, { fields });
+          const strict = isFields && auditMetadataMatches(primary, {
+            fields, fromVersion: version, toVersion: version + 1,
+          });
+          primaryValid &&= status !== "archived" && isFields && (legacyV3 || strict);
+          if (primaryValid) {
+            (fields as string[]).forEach((field) => explainedFields.add(field));
+          }
+        } else {
+          const transitions: Record<string, [Exercise["status"], Exercise["status"]]> = {
+            "exercise:activate": ["draft", "active"],
+            "exercise:archive": ["active", "archived"],
+            "exercise:restore": ["archived", "draft"],
+          };
+          const transition = transitions[primary.action];
+          const expected = transition && {
+            fromVersion: version, toVersion: version + 1,
+            fromStatus: transition[0], toStatus: transition[1],
+            ...(primary.action === "exercise:archive" ? { reason: primary.metadata?.reason } : {}),
+          };
+          primaryValid &&= !!transition && status === transition[0] && !!expected &&
+            (primary.action !== "exercise:archive" ||
+              (typeof primary.metadata?.reason === "string" && !!primary.metadata.reason)) &&
+            auditMetadataMatches(primary, expected);
+          if (primaryValid) status = transition![1];
+        }
+        const companionActions = new Set<string>();
+        let performanceCompanion: AuditLog | undefined;
+        for (const companion of group.filter((audit) => audit !== primary)) {
+          const companionField = companion.action === "exercise:performance_type_change"
+            ? "performanceType"
+            : companion.action === "exercise:safety_change" ? "safetyNotes" : undefined;
+          const validCompanionMetadata = companion.action === "exercise:safety_change"
+            ? auditMetadataMatches(companion, { changed: true })
+            : companion.action === "exercise:performance_type_change" &&
+              Object.keys(companion.metadata ?? {}).sort().join(",") === "from,to" &&
+              (companion.metadata?.from === null ||
+                typeof companion.metadata?.from === "string") &&
+              (companion.metadata?.to === null ||
+                typeof companion.metadata?.to === "string");
+          if (!companionField || primary.action !== "exercise:update" ||
+              companionActions.has(companion.action) ||
+              companion.tenantId !== current.tenantId ||
+              companion.targetType !== "exercise" || companion.targetId !== current.id ||
+              companion.actorType !== "user" || companion.actorId !== actorId ||
+              !Array.isArray(fields) || !fields.includes(companionField) ||
+              !validCompanionMetadata) primaryValid = false;
+          if (companion.action === "exercise:performance_type_change") {
+            performanceCompanion = companion;
+          }
+          companionActions.add(companion.action);
+        }
+        if (primary.action === "exercise:update" && Array.isArray(fields)) {
+          const changesPerformance = fields.includes("performanceType");
+          const changesSafety = fields.includes("safetyNotes");
+          primaryValid &&=
+            companionActions.has("exercise:performance_type_change") === changesPerformance &&
+            companionActions.has("exercise:safety_change") === changesSafety;
+          if (changesPerformance && performanceCompanion) {
+            const from = performanceCompanion.metadata?.from;
+            const to = performanceCompanion.metadata?.to;
+            primaryValid &&= from === performanceType &&
+              (to === null ||
+                (typeof to === "string" &&
+                  EXERCISE_PERFORMANCE_TYPES.includes(
+                    to as (typeof EXERCISE_PERFORMANCE_TYPES)[number],
+                  )));
+            if (primaryValid) performanceType = to as Exercise["performanceType"];
+          }
+        }
+        if (!primaryValid) { valid = false; continue; }
+        version += 1;
+        updater = actorId!;
+        previousTime = time;
+      }
+      if (current.version === 1 && afterReconciliation.length) valid = false;
+      if (current.version === 2 && afterReconciliation.length) valid = false;
+      if (current.version >= 3 && version !== current.version) valid = false;
+      if (current.version >= 2 &&
+          (status !== current.status || updater !== current.updatedByUserId)) valid = false;
+      if (current.version >= 2 && performanceType !== current.performanceType) valid = false;
+      if (!compareImportEntry(entry, current).every((field) => explainedFields.has(field))) {
+        valid = false;
+      }
+      if (!valid) ownershipReasons.push("invalid ordered post-reconciliation audit evidence");
     }
     if (ownershipReasons.length > 0) {
       (createAudit ? changed : notOwned).push(
@@ -562,7 +634,7 @@ export function proveImportOwnership(
       );
       continue;
     }
-    if (current.version === 3 && compareImportEntry(entry, current).length > 0) {
+    if (current.version >= 3 && compareImportEntry(entry, current).length > 0) {
       contentDrift.push(`${entry.source.sourceId}: later reviewed content differs from canonical manifest`);
     }
     owned.set(entry.source.sourceId, current);

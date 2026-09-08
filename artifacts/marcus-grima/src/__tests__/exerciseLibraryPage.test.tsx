@@ -208,7 +208,7 @@ describe("ExerciseLibrary page", () => {
   it("keeps edited input visible when the server reports a version conflict", async () => {
     render(<ExerciseLibrary />);
     await screen.findByText("Goblet squat");
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Exercise name"), { target: { value: "Updated goblet squat" } });
@@ -217,6 +217,8 @@ describe("ExerciseLibrary page", () => {
     expect(await screen.findByText("This exercise changed elsewhere")).toBeInTheDocument();
     expect(screen.getByLabelText("Exercise name")).toHaveValue("Updated goblet squat");
     expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
+    const patchCall = fetchMock.mock.calls.find(([, options]) => options?.method === "PATCH");
+    expect(patchCall?.[1]?.headers).toMatchObject({ "If-Match": String(draftExercise.version) });
   });
 
   it("prevents normalized duplicate equipment from being submitted", async () => {
@@ -347,7 +349,10 @@ describe("ExerciseLibrary page", () => {
 
     expect(await screen.findByText("Exercise activated. It is now client-visible.")).toBeInTheDocument();
     expect(screen.getAllByText("Active").length).toBeGreaterThan(0);
-    expect(fetchMock.mock.calls.some(([input, options]) => String(input).endsWith(`/admin/exercises/${draftExercise.id}/activate`) && options?.method === "POST")).toBe(true);
+    const activateCall = fetchMock.mock.calls.find(([input, options]) =>
+      String(input).endsWith(`/admin/exercises/${draftExercise.id}/activate`) &&
+      options?.method === "POST");
+    expect(activateCall?.[1]?.headers).toMatchObject({ "If-Match": String(draftExercise.version) });
   });
 
   it("shows activation validation failures without closing the editor", async () => {
@@ -412,6 +417,7 @@ describe("ExerciseLibrary page", () => {
     expect(await screen.findByText("Exercise archived. It is no longer client-visible.")).toBeInTheDocument();
     const archiveCall = fetchMock.mock.calls.find(([input, options]) => String(input).endsWith(`/admin/exercises/${activeExercise.id}/archive`) && options?.method === "POST");
     expect(JSON.parse(String(archiveCall?.[1]?.body))).toEqual({ reason: "Superseded by a reviewed variation" });
+    expect(archiveCall?.[1]?.headers).toMatchObject({ "If-Match": String(activeExercise.version) });
     expect(screen.getAllByText("Archived").length).toBeGreaterThan(0);
   });
 
@@ -434,6 +440,10 @@ describe("ExerciseLibrary page", () => {
 
     expect(await screen.findByText("Exercise restored to draft for review.")).toBeInTheDocument();
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
+    const restoreCall = fetchMock.mock.calls.find(([input, options]) =>
+      String(input).endsWith(`/admin/exercises/${archivedExercise.id}/restore`) &&
+      options?.method === "POST");
+    expect(restoreCall?.[1]?.headers).toMatchObject({ "If-Match": String(archivedExercise.version) });
   });
 
   it("shows a stale-version conflict when a lifecycle action races another writer", async () => {
@@ -483,7 +493,7 @@ describe("ExerciseLibrary page", () => {
 
     expect(await screen.findByLabelText("Exercise filters")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new exercise/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveClass("overflow-y-auto");
     expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();

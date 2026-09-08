@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
+import request from "supertest";
 import {
   auditLogsTable,
   db,
@@ -28,7 +29,13 @@ import {
   proveImportOwnership,
   reconcileDevelopmentImport,
 } from "../../cli/importExerciseCatalogue.js";
-import { createTenant, createUser } from "./harness.js";
+import {
+  app,
+  createSession,
+  createTenant,
+  createUser,
+  sessionCookie,
+} from "./harness.js";
 
 const source = readFileSync(
   path.resolve(process.cwd(), "../marcus-grima/src/data/programs.ts"),
@@ -500,6 +507,250 @@ describe("exercise catalogue import reconciliation", () => {
       .from(exercisesTable)
       .where(eq(exercisesTable.id, reviewed.id));
     expect(preserved).toMatchObject({ version: 3, name: "Coach reviewed name" });
+  });
+
+  it("proves strict update and activation metadata through version 4", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [row] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id)).limit(1);
+    const updateAt = new Date(Date.now() + 60_000);
+    const activateAt = new Date(Date.now() + 120_000);
+    await db.update(exercisesTable).set({
+      version: 4, status: "active", name: "Reviewed then activated",
+      updatedByUserId: actor.id, updatedAt: activateAt,
+    }).where(eq(exercisesTable.id, row.id));
+    await db.insert(auditLogsTable).values([
+      {
+        tenantId: tenant.id, actorType: "user", actorId: actor.id,
+        action: "exercise:update", targetType: "exercise", targetId: row.id,
+        createdAt: updateAt,
+        metadata: { fields: ["name"], fromVersion: 2, toVersion: 3 },
+      },
+      {
+        tenantId: tenant.id, actorType: "user", actorId: actor.id,
+        action: "exercise:activate", targetType: "exercise", targetId: row.id,
+        createdAt: activateAt,
+        metadata: {
+          fromVersion: 3, toVersion: 4, fromStatus: "draft", toStatus: "active",
+        },
+      },
+    ]);
+    const proof = proveImportOwnership(
+      manifest, await loadImportRows(),
+      await db.select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+    );
+    expect(proof.owned.size).toBe(47);
+    expect(proof.contentDrift).toHaveLength(1);
+  });
+
+  it("accepts strict provenance emitted by the management PATCH API", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [row] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id)).limit(1);
+    const cookie = sessionCookie((await createSession(actor.id)).token);
+    const changed = await request(app)
+      .patch(`/api/admin/exercises/${row.id}`)
+      .set("Cookie", cookie)
+      .set("If-Match", String(row.version))
+      .send({ name: "API-reviewed imported exercise" })
+      .expect(200);
+    const beforeNoOp = changed.body.exercise;
+    const auditsBeforeNoOp = await db.select().from(auditLogsTable)
+      .where(and(
+        eq(auditLogsTable.tenantId, tenant.id),
+        eq(auditLogsTable.targetId, row.id),
+      ));
+    const noOp = await request(app)
+      .patch(`/api/admin/exercises/${row.id}`)
+      .set("Cookie", cookie)
+      .set("If-Match", String(beforeNoOp.version))
+      .send({
+        name: "  API-reviewed imported exercise  ",
+        slug: manifest.find((entry) => entry.payload.slug === row.slug)!
+          .payload.slug.toUpperCase().replaceAll("-", " "),
+        muscles: [...beforeNoOp.muscles].reverse(),
+        equipment: [...beforeNoOp.equipment].reverse().map(
+          (item: { equipmentKey: string; required: boolean }) => ({
+            ...item,
+            equipmentKey: item.equipmentKey.replaceAll("_", " ").toUpperCase(),
+          }),
+        ),
+      })
+      .expect(200);
+    expect(noOp.body.exercise).toEqual(beforeNoOp);
+    const auditsAfterNoOp = await db.select().from(auditLogsTable)
+      .where(and(
+        eq(auditLogsTable.tenantId, tenant.id),
+        eq(auditLogsTable.targetId, row.id),
+      ));
+    expect(auditsAfterNoOp).toHaveLength(auditsBeforeNoOp.length);
+    expect(proveImportOwnership(
+      manifest,
+      await loadImportRows(),
+      await db.select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+    ).owned.size).toBe(47);
+  });
+
+  it("accepts a companion before its update and rejects forged or duplicate companions", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [row] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id)).limit(1);
+    const at = new Date(Date.now() + 60_000);
+    await db.update(exercisesTable).set({
+      version: 3, performanceType: "bodyweight_reps",
+      updatedByUserId: actor.id, updatedAt: at,
+    }).where(eq(exercisesTable.id, row.id));
+    await db.insert(auditLogsTable).values([
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id,
+        action: "exercise:performance_type_change", targetType: "exercise", targetId: row.id,
+        createdAt: at, metadata: { from: null, to: "bodyweight_reps" } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id,
+        action: "exercise:update", targetType: "exercise", targetId: row.id,
+        createdAt: at, metadata: { fields: ["performanceType"], fromVersion: 2, toVersion: 3 } },
+    ]);
+    const audits = await db.select().from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    const companion = audits.find((audit) =>
+      audit.targetId === row.id &&
+      audit.action === "exercise:performance_type_change")!;
+    const update = audits.find((audit) =>
+      audit.targetId === row.id && audit.action === "exercise:update")!;
+    const companionFirst = [
+      ...audits.filter((audit) => audit.id !== companion.id && audit.id !== update.id),
+      companion,
+      update,
+    ];
+    expect(proveImportOwnership(manifest, await loadImportRows(), companionFirst).owned.size)
+      .toBe(47);
+    expect(proveImportOwnership(manifest, await loadImportRows(), [
+      ...companionFirst,
+      { ...companion, id: crypto.randomUUID() },
+    ]).owned.size).toBe(46);
+    expect(proveImportOwnership(manifest, await loadImportRows(), companionFirst.map((audit) =>
+      audit.id === companion.id ? { ...audit, metadata: { from: 123, to: "bodyweight_reps" } } : audit,
+    )).owned.size).toBe(46);
+  });
+
+  it("replays a historical v3 review followed by multiple strict updates and lifecycle events", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [row] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id)).limit(1);
+    const times = [1, 2, 3, 4, 5].map((offset) => new Date(Date.now() + offset * 60_000));
+    await db.update(exercisesTable).set({
+      version: 7, status: "draft", name: "Historical review", description: "Second review",
+      updatedByUserId: actor.id, updatedAt: times[4],
+    }).where(eq(exercisesTable.id, row.id));
+    await db.insert(auditLogsTable).values([
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:update",
+        targetType: "exercise", targetId: row.id, createdAt: times[0], metadata: { fields: ["name"] } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:update",
+        targetType: "exercise", targetId: row.id, createdAt: times[1],
+        metadata: { fields: ["description"], fromVersion: 3, toVersion: 4 } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:activate",
+        targetType: "exercise", targetId: row.id, createdAt: times[2],
+        metadata: { fromVersion: 4, toVersion: 5, fromStatus: "draft", toStatus: "active" } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:archive",
+        targetType: "exercise", targetId: row.id, createdAt: times[3],
+        metadata: { reason: "Reviewed", fromVersion: 5, toVersion: 6, fromStatus: "active", toStatus: "archived" } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:restore",
+        targetType: "exercise", targetId: row.id, createdAt: times[4],
+        metadata: { fromVersion: 6, toVersion: 7, fromStatus: "archived", toStatus: "draft" } },
+    ]);
+    expect(proveImportOwnership(manifest, await loadImportRows(),
+      await db.select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+    ).owned.size).toBe(47);
+  });
+
+  it("rejects forged or noncontiguous strict transition metadata", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [row] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id)).limit(1);
+    const audit = {
+      tenantId: tenant.id, actorType: "user" as const, actorId: actor.id,
+      action: "exercise:update", targetType: "exercise", targetId: row.id,
+      createdAt: new Date(Date.now() + 60_000),
+      metadata: { fields: ["name"], fromVersion: 2, toVersion: 3 },
+    };
+    await db.update(exercisesTable).set({
+      version: 3, name: "Changed", updatedByUserId: actor.id, updatedAt: audit.createdAt,
+    }).where(eq(exercisesTable.id, row.id));
+    const audits = await db.select().from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    for (const metadata of [
+      { ...audit.metadata, toVersion: 4 },
+      { ...audit.metadata, fromVersion: 1 },
+    ]) {
+      expect(proveImportOwnership(manifest, await loadImportRows(), [
+        ...audits, { ...audit, id: crypto.randomUUID(), metadata },
+      ]).owned.size).toBe(46);
+    }
+  });
+
+  it("replays nullable performance transitions and rejects contradictory companions", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [row] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id)).limit(1);
+    const at = new Date(Date.now() + 60_000);
+    await db.update(exercisesTable).set({
+      version: 3, performanceType: "weight_reps",
+      updatedByUserId: actor.id, updatedAt: at,
+    }).where(eq(exercisesTable.id, row.id));
+    await db.insert(auditLogsTable).values([
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id,
+        action: "exercise:update", targetType: "exercise", targetId: row.id,
+        createdAt: at, metadata: { fields: ["performanceType"], fromVersion: 2, toVersion: 3 } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id,
+        action: "exercise:performance_type_change", targetType: "exercise", targetId: row.id,
+        createdAt: at, metadata: { from: null, to: "weight_reps" } },
+    ]);
+    const rows = await loadImportRows();
+    const audits = await db.select().from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    expect(proveImportOwnership(manifest, rows, audits).owned.size).toBe(47);
+    expect(proveImportOwnership(manifest, rows, audits.map((audit) =>
+      audit.targetId === row.id && audit.action === "exercise:performance_type_change"
+        ? { ...audit, metadata: { from: "duration", to: "weight_reps" } }
+        : audit,
+    )).owned.size).toBe(46);
+  });
+
+  it("rejects updates while archived and a non-draft version-1 import", async () => {
+    await seedCompleteOriginalImport();
+    let rows = await loadImportRows();
+    const audits = await db.select().from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    const row = rows[0];
+    expect(proveImportOwnership(manifest, rows.map((item) =>
+      item.id === row.id ? { ...item, status: "active" as const } : item,
+    ), audits).owned.size).toBe(46);
+
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const times = [1, 2, 3].map((offset) => new Date(Date.now() + offset * 60_000));
+    await db.update(exercisesTable).set({
+      version: 5, status: "archived", name: "Forbidden archived edit",
+      updatedByUserId: actor.id, updatedAt: times[2],
+    }).where(eq(exercisesTable.id, row.id));
+    await db.insert(auditLogsTable).values([
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:activate",
+        targetType: "exercise", targetId: row.id, createdAt: times[0],
+        metadata: { fromVersion: 2, toVersion: 3, fromStatus: "draft", toStatus: "active" } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:archive",
+        targetType: "exercise", targetId: row.id, createdAt: times[1],
+        metadata: { reason: "Review", fromVersion: 3, toVersion: 4, fromStatus: "active", toStatus: "archived" } },
+      { tenantId: tenant.id, actorType: "user", actorId: actor.id, action: "exercise:update",
+        targetType: "exercise", targetId: row.id, createdAt: times[2],
+        metadata: { fields: ["name"], fromVersion: 4, toVersion: 5 } },
+    ]);
+    rows = await loadImportRows();
+    expect(proveImportOwnership(manifest, rows,
+      await db.select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+    ).owned.size).toBe(46);
   });
 
   it("preserves legacy-attested ownership after a reviewed version-3 edit", async () => {

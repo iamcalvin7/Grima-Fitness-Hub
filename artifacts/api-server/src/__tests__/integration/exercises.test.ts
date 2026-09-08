@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import request from "supertest";
 import {
+  auditLogsTable,
   db,
   exerciseMusclesTable,
   exercisesTable,
@@ -118,11 +119,31 @@ describe("exercise catalogue API", () => {
     const activation = await request(app)
       .post(`/api/admin/exercises/${created.body.exercise.id}/activate`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "1")
       .expect(422);
     expect(activation.body).toMatchObject({
       code: "activation_requirements_missing",
     });
     expect(activation.body.details.fields).toContain("primaryMuscle");
+  });
+
+  it("requires a valid current If-Match version for every mutation", async () => {
+    const created = await request(app)
+      .post("/api/admin/exercises")
+      .set("Cookie", adminCookie)
+      .send({ name: "Versioned draft", slug: `versioned-${crypto.randomUUID()}` })
+      .expect(201);
+    const endpoint = `/api/admin/exercises/${created.body.exercise.id}`;
+    expect((await request(app).patch(endpoint).set("Cookie", adminCookie)
+      .send({ description: "Missing" }).expect(400)).body.code)
+      .toBe("version_precondition_required");
+    expect((await request(app).patch(endpoint).set("Cookie", adminCookie)
+      .set("If-Match", "not-a-version").send({ description: "Malformed" }).expect(400))
+      .body.code).toBe("invalid_version_precondition");
+    await request(app).patch(endpoint).set("Cookie", adminCookie)
+      .set("If-Match", '"1"').send({ description: "Reviewed" }).expect(200);
+    expect((await request(app).post(`${endpoint}/activate`).set("Cookie", adminCookie)
+      .set("If-Match", "1").expect(409)).body.code).toBe("stale_exercise_version");
   });
 
   it("creates, deduplicates and activates a complete exercise atomically", async () => {
@@ -149,6 +170,7 @@ describe("exercise catalogue API", () => {
     const activated = await request(app)
       .post(`/api/admin/exercises/${created.body.exercise.id}/activate`)
       .set("Cookie", adminCookie)
+      .set("If-Match", String(created.body.exercise.version))
       .expect(200);
     expect(activated.body.exercise.status).toBe("active");
     activeExercise = activated.body.exercise;
@@ -218,6 +240,7 @@ describe("exercise catalogue API", () => {
     const invalidated = await request(app)
       .patch(`/api/admin/exercises/${activeExercise.id}`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "2")
       .send({ muscles: [] })
       .expect(422);
     expect(invalidated.body.code).toBe("activation_requirements_missing");
@@ -230,30 +253,74 @@ describe("exercise catalogue API", () => {
     const updated = await request(app)
       .patch(`/api/admin/exercises/${activeExercise.id}`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "2")
       .send({
         performanceType: "bodyweight_reps",
         safetyNotes: "Stop if pain occurs.",
       })
       .expect(200);
     expect(updated.body.exercise.performanceType).toBe("bodyweight_reps");
-    expect(await countAuditLogs(tenantA.id, "exercise:update")).toBe(1);
+    expect(await countAuditLogs(tenantA.id, "exercise:update")).toBe(2);
     expect(
       await countAuditLogs(tenantA.id, "exercise:performance_type_change"),
     ).toBe(1);
     expect(await countAuditLogs(tenantA.id, "exercise:safety_change")).toBe(1);
+    const [updateAudit] = await db.select().from(auditLogsTable).where(and(
+      eq(auditLogsTable.tenantId, tenantA.id),
+      eq(auditLogsTable.targetId, activeExercise.id),
+      eq(auditLogsTable.action, "exercise:update"),
+    ));
+    expect(updateAudit.metadata?.fields).toEqual([
+      "performanceType",
+      "safetyNotes",
+    ]);
 
     const slugChange = await request(app)
       .patch(`/api/admin/exercises/${activeExercise.id}`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "3")
       .send({ slug: "changed-active-slug" })
       .expect(409);
     expect(slugChange.body.code).toBe("active_slug_locked");
+  });
+
+  it("does not write or audit normalization-equivalent scalar and mapping patches", async () => {
+    const beforeDetail = await request(app)
+      .get(`/api/admin/exercises/${activeExercise.id}`)
+      .set("Cookie", adminCookie)
+      .expect(200);
+    const before = beforeDetail.body.exercise;
+    const beforeAudits = await countAuditLogs(tenantA.id, "exercise:update");
+    const result = await request(app)
+      .patch(`/api/admin/exercises/${activeExercise.id}`)
+      .set("Cookie", adminCookie)
+      .set("If-Match", String(before.version))
+      .send({
+        name: `  ${before.name}  `,
+        slug: "  BARBELL BACK SQUAT ",
+        muscles: [...before.muscles].reverse(),
+        equipment: [...before.equipment].reverse().map(
+          (item: { equipmentKey: string; required: boolean }) => ({
+            ...item,
+            equipmentKey: item.equipmentKey.replaceAll("_", " ").toUpperCase(),
+          }),
+        ),
+      })
+      .expect(200);
+    expect(result.body.exercise).toEqual(before);
+    expect(await countAuditLogs(tenantA.id, "exercise:update")).toBe(beforeAudits);
+    const [saved] = await db.select().from(exercisesTable)
+      .where(eq(exercisesTable.id, activeExercise.id));
+    expect(saved.version).toBe(before.version);
+    expect(saved.updatedAt.toISOString()).toBe(before.updatedAt);
+    expect(saved.updatedByUserId).toBe(before.updatedByUserId);
   });
 
   it("requires an archive reason, hides archived records, and restores to draft", async () => {
     const missingReason = await request(app)
       .post(`/api/admin/exercises/${activeExercise.id}/archive`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "3")
       .send({})
       .expect(400);
     expect(missingReason.body.code).toBe("archive_reason_required");
@@ -261,6 +328,7 @@ describe("exercise catalogue API", () => {
     const archived = await request(app)
       .post(`/api/admin/exercises/${activeExercise.id}/archive`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "3")
       .send({ reason: "Temporarily removed from programming." })
       .expect(200);
     expect(archived.body.exercise.status).toBe("archived");
@@ -273,6 +341,7 @@ describe("exercise catalogue API", () => {
     const restored = await request(app)
       .post(`/api/admin/exercises/${activeExercise.id}/restore`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "4")
       .expect(200);
     expect(restored.body.exercise.status).toBe("draft");
     await request(app)
@@ -330,10 +399,12 @@ describe("exercise catalogue API", () => {
     const responses = await Promise.all([
       request(app)
         .post(`/api/admin/exercises/${created.body.exercise.id}/activate`)
-        .set("Cookie", adminCookie),
+        .set("Cookie", adminCookie)
+        .set("If-Match", "1"),
       request(app)
         .post(`/api/admin/exercises/${created.body.exercise.id}/activate`)
-        .set("Cookie", adminCookie),
+        .set("Cookie", adminCookie)
+        .set("If-Match", "1"),
     ]);
     expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
     expect(
@@ -350,6 +421,7 @@ describe("exercise catalogue API", () => {
     await request(app)
       .post(`/api/admin/exercises/${scalarCreated.body.exercise.id}/activate`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "1")
       .expect(200);
 
     const mappingCreated = await request(app)
@@ -360,6 +432,7 @@ describe("exercise catalogue API", () => {
     await request(app)
       .post(`/api/admin/exercises/${mappingCreated.body.exercise.id}/activate`)
       .set("Cookie", adminCookie)
+      .set("If-Match", "1")
       .expect(200);
 
     await db.$client.query(`
@@ -379,10 +452,12 @@ describe("exercise catalogue API", () => {
         request(app)
           .patch(`/api/admin/exercises/${scalarCreated.body.exercise.id}`)
           .set("Cookie", adminCookie)
+          .set("If-Match", "2")
           .send({ description: "First concurrent description" }),
         request(app)
           .patch(`/api/admin/exercises/${scalarCreated.body.exercise.id}`)
           .set("Cookie", adminCookie)
+          .set("If-Match", "2")
           .send({ description: "Second concurrent description" }),
       ]);
       expect(scalarResponses.map((response) => response.status).sort()).toEqual([
@@ -400,10 +475,12 @@ describe("exercise catalogue API", () => {
         request(app)
           .patch(`/api/admin/exercises/${mappingCreated.body.exercise.id}`)
           .set("Cookie", adminCookie)
+          .set("If-Match", "2")
           .send({ muscles: [{ muscleKey: "quads", role: "primary" }] }),
         request(app)
           .patch(`/api/admin/exercises/${mappingCreated.body.exercise.id}`)
           .set("Cookie", adminCookie)
+          .set("If-Match", "2")
           .send({ muscles: [{ muscleKey: "glutes", role: "primary" }] }),
       ]);
       expect(mappingResponses.map((response) => response.status).sort()).toEqual([
@@ -453,10 +530,12 @@ describe("exercise catalogue API", () => {
         request(app)
           .patch(`/api/admin/exercises/${created.body.exercise.id}`)
           .set("Cookie", adminCookie)
+          .set("If-Match", "1")
           .send({ muscles: [] }),
         request(app)
           .post(`/api/admin/exercises/${created.body.exercise.id}/activate`)
-          .set("Cookie", adminCookie),
+          .set("Cookie", adminCookie)
+          .set("If-Match", "1"),
       ]);
       expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
 

@@ -1,0 +1,210 @@
+Approved: **complete and activate the 46 eligible exercises in development, with `push-up-variations` remaining draft.**
+
+Paste this into Replit:
+
+BUILD + VALIDATION — Gate 2D Approved Catalogue Completion
+
+Environment: Development only.
+Scope: Complete the approved metadata, activate eligible records, and independently validate the result.
+
+The product owner has approved the content below and its development activation. This authorizes the complete workflow: preflight, saving, testing, activation, and independent read-only validation. Do not request approval again for these steps.
+
+1. Confirm the baseline
+
+Inspect the current repository, authoritative API contract, development tenant, legitimate current admin, catalogue, and historical-provenance fix.
+
+Expected starting state:
+
+* 47 imported exercises.
+* All remain drafts.
+* `calf-raise-pump`, `leg-raises`, and `seated-rows` are version 3.
+* The other 44 are version 2.
+* All 47 historical ownership proofs succeed.
+* Three expected content differences correspond to the approved edits.
+* Existing provenance attestations remain intact.
+
+Use current server versions for mutations. If the state differs, identify the cause and preserve subsequent legitimate edits.
+
+Confirm the full API regression result, reporting unit and integration totals separately. The previous “154 complete API tests” figure appears to represent integration tests only. Reuse sufficient existing evidence where available.
+
+2. Approved content manifest
+
+Use these exact performance-type and difficulty values.
+
+All records below are `bilateral` EXCEPT these four, which are `unilateral`:
+
+* `bulgarian-split-squats`
+* `concentration-curl`
+* `mountain-climbers`
+* `reverse-lunges`
+
+The primary-muscle column specifies the approved expected primary. Preserve compatible existing secondary mappings.
+
+| Slug                     | Performance type    | Difficulty     | Movement pattern                               | Primary muscle |
+| ------------------------ | ------------------- | -------------- | ---------------------------------------------- | -------------- |
+| `bulgarian-split-squats` | `bodyweight_reps`   | `intermediate` | Single-leg knee-dominant squat                 | `quads`        |
+| `burpees`                | `bodyweight_reps`   | `intermediate` | Full-body conditioning                         | `quads`        |
+| `cable-chest-fly-low`    | `weight_reps`       | `intermediate` | Shoulder horizontal adduction                  | `chest`        |
+| `cable-flies-mid`        | `weight_reps`       | `intermediate` | Shoulder horizontal adduction                  | `chest`        |
+| `calf-raise-pump`        | `bodyweight_reps`   | `beginner`     | Ankle plantar flexion                          | `calves`       |
+| `concentration-curl`     | `weight_reps`       | `beginner`     | Elbow flexion                                  | `biceps`       |
+| `db-lateral-raise-pump`  | `weight_reps`       | `beginner`     | Shoulder abduction                             | `side_delts`   |
+| `face-pull-pump`         | `weight_reps`       | `intermediate` | Horizontal pull with external rotation         | `rear_delts`   |
+| `face-pulls`             | `weight_reps`       | `intermediate` | Horizontal pull with external rotation         | `rear_delts`   |
+| `flat-bench-press`       | `weight_reps`       | `intermediate` | Horizontal push                                | `chest`        |
+| `forward-raises`         | `weight_reps`       | `beginner`     | Shoulder flexion                               | `front_delts`  |
+| `glute-bridge-hold`      | `bodyweight_reps`   | `beginner`     | Hip extension                                  | `glutes`       |
+| `hammer-curl-beach`      | `weight_reps`       | `beginner`     | Elbow flexion                                  | `biceps`       |
+| `hip-thrust-pump`        | `weight_reps`       | `intermediate` | Hip extension                                  | `glutes`       |
+| `hyper-extension`        | `bodyweight_reps`   | `intermediate` | Hip hinge and back extension                   | `lower_back`   |
+| `inchworms`              | `bodyweight_reps`   | `beginner`     | Locomotion with core stability                 | `abs`          |
+| `incline-curl`           | `weight_reps`       | `intermediate` | Elbow flexion                                  | `biceps`       |
+| `incline-dumbbell-press` | `weight_reps`       | `intermediate` | Incline horizontal push                        | `upper_chest`  |
+| `jump-squats`            | `bodyweight_reps`   | `intermediate` | Squat jump                                     | `quads`        |
+| `lat-pull-downs`         | `weight_reps`       | `intermediate` | Vertical pull                                  | `lats`         |
+| `lateral-raises`         | `weight_reps`       | `beginner`     | Shoulder abduction                             | `side_delts`   |
+| `leg-curl-pump`          | `weight_reps`       | `beginner`     | Knee flexion                                   | `hamstrings`   |
+| `leg-press-pump`         | `weight_reps`       | `intermediate` | Knee-dominant leg press                        | `quads`        |
+| `leg-raises`             | `bodyweight_reps`   | `beginner`     | Trunk and hip flexion                          | `abs`          |
+| `mountain-climbers`      | `bodyweight_reps`   | `intermediate` | Alternating core drive and locomotion          | `abs`          |
+| `narrow-grip-pull-down`  | `weight_reps`       | `intermediate` | Vertical pull                                  | `lats`         |
+| `pike-push-ups`          | `bodyweight_reps`   | `intermediate` | Vertical push                                  | `front_delts`  |
+| `plank-hold`             | `duration`          | `beginner`     | Anti-extension core hold                       | `abs`          |
+| `pull-ups`               | `bodyweight_reps`   | `intermediate` | Vertical pull                                  | `lats`         |
+| `rear-delt-fly`          | `weight_reps`       | `intermediate` | Shoulder horizontal abduction                  | `rear_delts`   |
+| `reverse-lunges`         | `bodyweight_reps`   | `beginner`     | Reverse lunge                                  | `quads`        |
+| `rope-pushdown-pump`     | `weight_reps`       | `beginner`     | Elbow extension                                | `triceps`      |
+| `seated-hammer-curl`     | `weight_reps`       | `beginner`     | Elbow flexion                                  | `biceps`       |
+| `seated-rows`            | `weight_reps`       | `intermediate` | Horizontal pull                                | `lats`         |
+| `seated-shoulder-press`  | `weight_reps`       | `intermediate` | Vertical push                                  | `front_delts`  |
+| `shrugs`                 | `weight_reps`       | `beginner`     | Scapular elevation                             | `traps`        |
+| `skull-crushers`         | `weight_reps`       | `intermediate` | Elbow extension                                | `triceps`      |
+| `spiderman-push-ups`     | `bodyweight_reps`   | `intermediate` | Horizontal push with alternating trunk flexion | `chest`        |
+| `squat-pulses`           | `bodyweight_reps`   | `beginner`     | Knee-dominant squat pulses                     | `quads`        |
+| `tricep-chair-dips`      | `bodyweight_reps`   | `beginner`     | Elbow extension and vertical push              | `triceps`      |
+| `tricep-rope-extensions` | `weight_reps`       | `intermediate` | Overhead elbow extension                       | `triceps`      |
+| `twentyone-curl`         | `weight_reps`       | `intermediate` | Elbow flexion                                  | `biceps`       |
+| `wall-sit`               | `duration`          | `beginner`     | Isometric knee-dominant squat                  | `quads`        |
+| `weighted-dips`          | `added_weight_reps` | `advanced`     | Vertical push                                  | `triceps`      |
+| `weighted-push-ups`      | `added_weight_reps` | `intermediate` | Horizontal push                                | `chest`        |
+| `wide-push-ups`          | `bodyweight_reps`   | `beginner`     | Horizontal push                                | `chest`        |
+
+Explicitly excluded from updates and activation:
+
+* `push-up-variations`: preserve as draft, unchanged.
+
+3. Apply the agreed exercise definitions
+
+The approved interpretations are:
+
+* Standing calf raises: bodyweight, both legs together, optional light wall support for balance.
+* Leg raises: lying on the floor, both legs together, controlled pelvic positioning.
+* Seated rows: seated cable row, neutral grip, elbows close to the torso.
+* Forward raises: both arms together.
+* Glute bridge hold: repetitions are the tracked result; retain the existing five-second hold instruction.
+* Spiderman push-ups: bilateral classification follows the pressing action; retain the alternating knee-action description.
+* Burpees and inchworms: their primary tags are catalogue classifications, not statements that only one muscle contributes.
+
+Check existing instructions, mappings and available media against these definitions. A linked media reference is not proof of its contents.
+
+Minimal instruction clarification directly implementing an approved choice is permitted—for example, specifying both arms together for forward raises. Preserve compatible cues and source meaning. Do not invent new coaching or safety content.
+
+If the evidence clearly describes a different variant, leave that record as draft and report the mismatch. Continue with unaffected records.
+
+Preserve exercise names, IDs, slugs, equipment mappings, media, rest values and unrelated fields. Optional equipment improvements, renaming and new secondary-muscle mappings remain deferred.
+
+Keep both Face Pulls identities separate.
+
+4. Preflight the execution path
+
+Before catalogue writes:
+
+* Validate the complete proposed payload for every target against the real API contract.
+* Capture current versions and the exact intended field differences.
+* Confirm the historical-provenance checker supports subsequent legitimate updates and activation, including versions beyond 3.
+* Use existing regression evidence or isolated fixtures to verify that workflow. Do not discover a known version limitation by mutating all 46 records first.
+
+Do not weaken validation or provenance rules to accept the manifest. If an actual backend defect prevents execution, report the defect and completed evidence.
+
+5. Save and activate through normal APIs
+
+Use the legitimate current same-tenant admin and the established API authentication mechanism. Do not expose credentials or session tokens.
+
+For each compatible target:
+
+* Load its current record and version.
+* Save only the approved differences.
+* Preserve compatible secondary mappings; ensure exactly one primary and no duplicate keys.
+* Re-fetch the saved record and verify all activation requirements.
+* Activate through the explicit lifecycle endpoint using the resulting version.
+* Re-fetch and confirm the server-reported active state.
+
+Saving and activation remain separate API operations. Both are authorized by this prompt; no further routine approval checkpoint is needed.
+
+Skip already-satisfied operations on reruns. Do not generate unnecessary version increments or audit events.
+
+On a conflict, preserve the newer edit. Do not automatically overwrite or silently merge it. Report the affected record and continue only where independent operations remain safe.
+
+6. Verify the completed workflow
+
+Independently inspect the final state and evidence after mutations finish.
+
+Confirm:
+
+* Every activated record matches the approved manifest.
+* Each successful save and activation has the expected audit evidence.
+* All 47 historical ownership proofs remain valid.
+* Original audits and provenance attestations remain unchanged; new management events are append-only.
+* Approved content differences cannot be overwritten by importer reconciliation.
+* `push-up-variations` remains unchanged and draft.
+* No unrelated exercise, account or role changed.
+
+Verify through the legitimate admin browser session:
+
+* Active catalogue rendering and filtering.
+* Representative updated exercise details.
+* Correct muscle, performance and lifecycle display.
+* No new console or API errors.
+* Desktop and narrow-screen usability.
+
+Use an existing legitimate client context, or isolated integration coverage where runtime access is unavailable, to verify active-only same-tenant projections and exclusion of private fields. Do not create accounts or change roles for testing.
+
+Report runtime limitations honestly.
+
+Run the relevant lifecycle, concurrency, tenant-isolation and provenance tests, complete API regression suite, and established typecheck/build checks. Report unit and integration totals separately. Add focused tests only where a concrete coverage gap requires them.
+
+Do not broaden testing after the required evidence is sufficient.
+
+7. Boundaries
+
+No schema or migration changes, account or role changes, authentication-policy changes, importer write-mode execution, reconciliation writes, attestation repair, production access, publishing or deployment.
+
+No programme or workout-consumer cutover. Activation makes exercises available through permitted catalogue consumers; it does not complete workout integration.
+
+8. Final report and verdict
+
+Return:
+
+* Exact files changed, if any.
+* Per-record outcome: saved, activated, already satisfied, conflicted or held.
+* Final lifecycle and version counts.
+* Approved manifest comparison.
+* Audit and provenance results.
+* Tests and exact totals.
+* Typecheck/build results.
+* Browser and API verification, with limitations.
+* Independent-review findings.
+* Any remaining decision or blocker.
+* Production/deployment confirmation.
+
+Expected successful result: 46 active exercises and one unchanged draft, `push-up-variations`.
+
+If any other record remains blocked, identify it and preserve the draft state. Do not claim full completion from a partial activation.
+
+End with exactly one:
+
+PASS — GATE 2D COMPLETE
+
+BLOCKED — GATE 2D COMPLETION REQUIRED
+
+Do not start the next gate.

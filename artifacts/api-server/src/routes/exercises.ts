@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Response } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import {
   and,
   asc,
@@ -68,6 +68,49 @@ function requireUuid(id: unknown): string {
     throw new ExerciseInputError("invalid_exercise_id", "Invalid exercise id");
   }
   return id;
+}
+
+function requireExpectedVersion(req: Request): number {
+  const value = req.get("If-Match");
+  if (!value) {
+    throw new ExerciseInputError(
+      "version_precondition_required",
+      "If-Match with the reviewed exercise version is required",
+      400,
+    );
+  }
+  const match = /^(?:\"([1-9]\d*)\"|([1-9]\d*))$/.exec(value.trim());
+  const version = Number(match?.[1] ?? match?.[2]);
+  if (!match || !Number.isSafeInteger(version)) {
+    throw new ExerciseInputError(
+      "invalid_version_precondition",
+      "If-Match must be a positive integer exercise version",
+      400,
+    );
+  }
+  return version;
+}
+
+async function lockExercise(
+  client: Pick<typeof db, "execute">,
+  tenantId: string,
+  id: string,
+): Promise<void> {
+  await client.execute(sql`
+    select id from exercises
+    where tenant_id = ${tenantId} and id = ${id}
+    for update
+  `);
+}
+
+function assertExpectedVersion(current: ExerciseDetail, expectedVersion: number): void {
+  if (current.version !== expectedVersion) {
+    throw new ExerciseInputError(
+      "stale_exercise_version",
+      "Exercise changed since it was reviewed; reload and try again",
+      409,
+    );
+  }
 }
 
 function parsePagination(query: Record<string, unknown>) {
@@ -191,6 +234,32 @@ async function replaceMappings(
       );
     }
   }
+}
+
+function changedExerciseFields(
+  current: ExerciseDetail,
+  input: ReturnType<typeof parseExerciseWriteInput>,
+): string[] {
+  return Object.keys(input).filter((field) => {
+    if (field === "muscles") {
+      const normalized = (items: ExerciseDetail["muscles"]) =>
+        [...items]
+          .map(({ muscleKey, role }) => `${muscleKey}:${role}`)
+          .sort();
+      return JSON.stringify(normalized(current.muscles)) !==
+        JSON.stringify(normalized(input.muscles ?? []));
+    }
+    if (field === "equipment") {
+      const normalized = (items: ExerciseDetail["equipment"]) =>
+        [...items]
+          .map(({ equipmentKey, required }) => `${equipmentKey}:${required}`)
+          .sort();
+      return JSON.stringify(normalized(current.equipment)) !==
+        JSON.stringify(normalized(input.equipment ?? []));
+    }
+    return current[field as keyof ExerciseDetail] !==
+      input[field as keyof typeof input];
+  });
 }
 
 function exerciseUpdates(
@@ -500,10 +569,13 @@ router.patch(
   async (req, res) => {
     try {
       const id = requireUuid(req.params.id);
+      const expectedVersion = requireExpectedVersion(req);
       const input = parseExerciseWriteInput(req.body, "patch");
       const exercise = await db.transaction(async (tx) => {
+        await lockExercise(tx, req.user!.tenantId, id);
         const current = await loadOne(tx, req.user!.tenantId, id);
         if (!current) return null;
+        assertExpectedVersion(current, expectedVersion);
         if (current.status === "archived") {
           throw new ExerciseInputError(
             "invalid_state_transition",
@@ -521,6 +593,11 @@ router.patch(
             "An active exercise slug cannot be changed",
             409,
           );
+        }
+        const changedFields = changedExerciseFields(current, input);
+        if (changedFields.length === 0) {
+          if (current.status === "active") validateExerciseActivation(current);
+          return current;
         }
         const [updated] = await tx
           .update(exercisesTable)
@@ -555,7 +632,11 @@ router.patch(
             action: "exercise:update",
             targetType: "exercise",
             targetId: id,
-            metadata: { fields: Object.keys(input) },
+            metadata: {
+              fields: changedFields,
+              fromVersion: current.version,
+              toVersion: current.version + 1,
+            },
           },
           tx as Parameters<typeof writeAuditLog>[1],
         );
@@ -617,9 +698,12 @@ router.post(
   async (req, res) => {
     try {
       const id = requireUuid(req.params.id);
+      const expectedVersion = requireExpectedVersion(req);
       const exercise = await db.transaction(async (tx) => {
+        await lockExercise(tx, req.user!.tenantId, id);
         const current = await loadOne(tx, req.user!.tenantId, id);
         if (!current) return null;
+        assertExpectedVersion(current, expectedVersion);
         if (current.status !== "draft") {
           throw new ExerciseInputError(
             "invalid_state_transition",
@@ -660,6 +744,12 @@ router.post(
             action: "exercise:activate",
             targetType: "exercise",
             targetId: id,
+            metadata: {
+              fromVersion: current.version,
+              toVersion: current.version + 1,
+              fromStatus: "draft",
+              toStatus: "active",
+            },
           },
           tx as Parameters<typeof writeAuditLog>[1],
         );
@@ -684,6 +774,7 @@ router.post(
   async (req, res) => {
     try {
       const id = requireUuid(req.params.id);
+      const expectedVersion = requireExpectedVersion(req);
       const reason =
         typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
       if (!reason) {
@@ -699,8 +790,10 @@ router.post(
         );
       }
       const exercise = await db.transaction(async (tx) => {
+        await lockExercise(tx, req.user!.tenantId, id);
         const current = await loadOne(tx, req.user!.tenantId, id);
         if (!current) return null;
+        assertExpectedVersion(current, expectedVersion);
         if (current.status !== "active") {
           throw new ExerciseInputError(
             "invalid_state_transition",
@@ -740,7 +833,13 @@ router.post(
             action: "exercise:archive",
             targetType: "exercise",
             targetId: id,
-            metadata: { reason },
+            metadata: {
+              reason,
+              fromVersion: current.version,
+              toVersion: current.version + 1,
+              fromStatus: "active",
+              toStatus: "archived",
+            },
           },
           tx as Parameters<typeof writeAuditLog>[1],
         );
@@ -765,9 +864,12 @@ router.post(
   async (req, res) => {
     try {
       const id = requireUuid(req.params.id);
+      const expectedVersion = requireExpectedVersion(req);
       const exercise = await db.transaction(async (tx) => {
+        await lockExercise(tx, req.user!.tenantId, id);
         const current = await loadOne(tx, req.user!.tenantId, id);
         if (!current) return null;
+        assertExpectedVersion(current, expectedVersion);
         if (current.status !== "archived") {
           throw new ExerciseInputError(
             "invalid_state_transition",
@@ -807,6 +909,12 @@ router.post(
             action: "exercise:restore",
             targetType: "exercise",
             targetId: id,
+            metadata: {
+              fromVersion: current.version,
+              toVersion: current.version + 1,
+              fromStatus: "archived",
+              toStatus: "draft",
+            },
           },
           tx as Parameters<typeof writeAuditLog>[1],
         );

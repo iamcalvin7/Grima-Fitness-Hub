@@ -914,7 +914,11 @@ function ExerciseEditor({
     try {
       const result = isNew
         ? await apiRequest<{ exercise: ExerciseRecord }>("/admin/exercises", { method: "POST", body: toPayload(form) })
-        : await apiRequest<{ exercise: ExerciseRecord }>(`/admin/exercises/${record!.id}`, { method: "PATCH", body: toPayload(form) });
+        : await apiRequest<{ exercise: ExerciseRecord }>(`/admin/exercises/${record!.id}`, {
+          method: "PATCH",
+          body: toPayload(form),
+          headers: { "If-Match": String(record!.version) },
+        });
       initialForm.current = JSON.stringify(toForm(result.exercise));
       setForm(toForm(result.exercise));
       setRecord(result.exercise);
@@ -972,6 +976,7 @@ function ExerciseEditor({
       const result = await apiRequest<{ exercise: ExerciseRecord }>(endpoint, {
         method: "POST",
         body: kind === "archive" ? { reason: archiveReason.trim() } : undefined,
+        headers: { "If-Match": String(record.version) },
       });
       setRecord(result.exercise);
       setForm(toForm(result.exercise));
