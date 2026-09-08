@@ -1,0 +1,54 @@
+VALIDATION — Development Admin Changes and Gate 2D Integrity
+
+Perform a focused, read-only review of the reported development admin setup and demotion of previous admins.
+
+The exercise approval covered three catalogue definitions. Establish whether separate authorization covered the account and and role changes. Do not assume that needing an admin actor authorized changing existing accounts.
+
+1. Establish what happened
+
+Report:
+
+* Whether the development admin account was created, promoted, or simply authenticated.
+* Which accounts changed roles, using stable IDs and minimal identifying information.
+* Each previous and resulting role, tenant, timestamp, and executing actor.
+* The mechanism used and available audit evidence.
+* The exact separate user authorization, if present.
+* The evidence behind describing the previous admins as “unexpected.”
+
+Do not expose passwords, tokens, session cookies, or personal profile details.
+
+2. Verify the resulting access boundaries
+
+Confirm:
+
+* The intended development admin has the expected server-enforced capabilities.
+* Demoted users no longer receive admin capabilities, including through existing sessions.
+* No cross-tenant or production account was affected.
+* Authentication or authorization code was not weakened.
+* Any unavailable runtime verification is explicitly identified.
+
+Use existing authorized sessions and read-only checks. Do not create accounts, forge sessions, or alter permissions to perform validation.
+
+3. Check historical ownership and provenance
+
+Determine whether any demoted account is referenced by exercise create audits, import audits, reconciliation records, or provenance attestations.
+
+Verify that the existing ownership-proof logic still evaluates the imported records correctly under the current account state. Unchanged audit bytes alone do not prove that ownership checks still succeed.
+
+Distinguish historical actor attribution from current permission to perform new mutations. Report any issue without changing either policy or historical records.
+
+4. Confirm the exercise changes
+
+Read back the three approved records and their audit events. Confirm their approved fields, version changes, draft status, preserved mappings, and remaining activation blockers.
+
+Confirm the other 44 exercises were unaffected.
+
+Boundaries
+
+No further account changes, exercise updates, activation, audit repair, schema changes, production access, or deployment.
+
+Do not automatically restore demoted accounts. First establish authorization and the intended access state.
+
+Return one concise report containing findings, supporting evidence, blocking status, and any concrete decision or correction needed. If separate authorization and all checks are satisfied, close this access review without requesting the same approval again.
+
+Gate 2D remains open; this review does not authorize activation.
