@@ -1,0 +1,64 @@
+VALIDATION ADDENDUM — Gate 2D API Compatibility and Scope
+
+The approved catalogue outcome is achieved. Preserve the 46 active records and unchanged `push-up-variations` draft.
+
+Provide a focused, read-only evidence addendum for the additional runtime code changes made during Gate 2D. Reuse existing tests and independent-review evidence where they directly answer these questions. Do not repeat the entire build or activation workflow.
+
+1. Explain the additional changes
+
+For `routes/exercises.ts`, the shared frontend `lib/api.ts`, and `ExerciseLibrary.tsx`, identify:
+
+* The concrete defect requiring the change.
+* Previous and resulting behavior.
+* Every affected caller.
+* Whether the external API contract changed.
+* Why the change was necessary for the approved workflow.
+
+Identify the final commit or candidate reviewed and tested.
+
+2. Verify version-precondition compatibility
+
+Show evidence that:
+
+* All exercise mutation callers supply the intended reviewed version.
+* Create, PATCH, activate, archive and restore follow their respective contracts.
+* Missing, malformed and stale preconditions receive deliberate, documented responses.
+* Version values are never silently refreshed before retrying a conflicting mutation.
+* Shared API-client changes preserve unrelated requests, headers and error handling.
+
+Explain whether existing body-version behavior remains supported or was replaced. Identify any caller that would now fail.
+
+3. Verify no-op and provenance behavior
+
+Confirm that no-op PATCH handling still performs authentication, capability, tenant and version checks before returning success. A stale request must not escape conflict detection merely because its values match.
+
+Confirm that generalized provenance replay:
+
+* Supports legitimate successive updates and lifecycle transitions.
+* Preserves historical attribution after actor demotion.
+* Rejects forged or incomplete chains.
+* Cannot authorize reconciliation to overwrite reviewed content.
+
+Reference the relevant existing test cases and results. Run additional focused checks only for a specific uncovered risk.
+
+4. Qualify runtime evidence
+
+Clearly distinguish authenticated API verification, authenticated management-browser verification, and unauthenticated responsive snapshots.
+
+Retain the unavailable admin-browser walkthrough as a limitation unless it has actually been completed through a legitimate session. Do not change accounts, roles or authentication to obtain it.
+
+5. Return the completion decision
+
+Report whether these changes introduce any compatibility defect or unresolved material scope issue. Include the exact evidence supporting the conclusion.
+
+No implementation fixes, data writes, activation reruns, role changes, production access or deployment during this addendum. Report any discovered defect for a bounded correction.
+
+If the evidence establishes compatibility and no blocking issue remains, return:
+
+PASS — GATE 2D COMPLETE
+
+Otherwise return:
+
+BLOCKED — GATE 2D COMPLETION REQUIRED
+
+Do not start the next gate.
