@@ -1,0 +1,63 @@
+BUILD — Gate 2D Approved Exercise Definitions
+
+Environment: Development only.
+
+The product owner has approved the following three definitions. Apply these decisions through the existing authorized exercise-management API, then verify the saved results.
+
+Existing slug	Approved definition	Performance type	Laterality	Primary muscle
+calf-raise-pump	Bodyweight standing calf raises, both legs together, light wall support for balance	bodyweight_reps	bilateral	calves
+leg-raises	Lying floor leg raises, both legs together, with controlled pelvic positioning	bodyweight_reps	bilateral	abs
+seated-rows	Seated cable row, neutral grip, elbows close to the torso	weight_reps	bilateral	lats
+
+1. Check compatibility before saving
+
+Read each current development record, its source instructions, equipment mappings, media references and current version.
+
+Confirm the approved definition is compatible with the imported exercise. A stored media URL alone does not establish what the demonstration shows.
+
+If existing evidence clearly contradicts the approved definition, leave that record unchanged and report the specific mismatch. Continue with compatible records.
+
+Do not silently repurpose a legacy identity or replace contradictory source content.
+
+2. Apply the approved fields
+
+Use a legitimate same-tenant admin actor and the normal API validation, version protection, transactions and auditing.
+
+Preserve stable IDs, slugs, names, existing compatible secondary muscles and unrelated metadata. When assigning a primary muscle, ensure the mapping contains exactly one primary and no duplicate muscle keys.
+
+Do not overwrite the complete mapping collection without preserving its existing compatible entries.
+
+Do not add equipment mappings or rewrite instructions merely to make the record appear compatible. Report any additional content change needed.
+
+On a stale-version conflict, preserve the newer edit and report the affected record. Do not automatically overwrite it.
+
+3. Verify the result
+
+Re-fetch the records and confirm:
+
+* Saved values match the approved table.
+* Successful mutations incremented the version.
+* Expected audit events exist.
+* Existing unrelated fields and mappings were preserved.
+* Historical import audits and provenance attestations remain unchanged.
+* No unrelated exercise was modified.
+
+Run relevant existing tests if needed to resolve an implementation concern. No new code or test suite is required for ordinary successful content updates.
+
+4. Consolidate the remaining approval package
+
+Using the existing 47-row decision sheet and subsequent discussion, return one concise package containing:
+
+* These three approved definitions and their actual save results.
+* The other proposed classifications, clearly marked as pending approval.
+* The proposed decision to retain push-up-variations as a draft.
+* Any source mismatches or remaining unresolved choices.
+* The exact proposed activation set and each record’s remaining activation blockers.
+
+Prepare this from the existing evidence without repeating the entire inspection.
+
+This approval covers the three definitions above. Do not describe the other recommendations as approved or activate records during this task.
+
+No schema changes, importer reruns, provenance repairs, production access, deployment or programme/workout integration.
+
+Complete the authorized work and return the results without stopping for routine questions. Gate 2D remains open until the remaining content and activation scope are approved and verified.
