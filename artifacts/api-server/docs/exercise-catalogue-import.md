@@ -25,18 +25,44 @@ the `marcus-grima` tenant.
 - The entire import, all mappings, and all `exercise:create` audit events share
   one transaction protected by a tenant/import advisory lock. Lock contention
   fails immediately instead of waiting, and any failure rolls back the whole
-  run.
+  run. Apply also locks the current operator's user row before revalidating
+  active same-tenant admin authority and holds that lock through commit, so a
+  concurrent revocation cannot race the writes.
 - Future `exercise:create` audits record the canonical source, source ID, slug,
   import version, pinned source-file and normalized-source hashes, deterministic
   manifest-record hash, exercise linkage, and initial version. Ownership checks
   compare these values only to internally pinned or generated expectations.
 - Normal import mode never updates an existing record, lifecycle state, or
   version.
+- **Durable provenance rule:** current authorization and historical attribution
+  are separate. Every invocation and mutation entry point independently requires
+  its current `--actor-id` to be an active same-tenant admin. Historical import
+  ownership is derived fail-closed only from exact same-tenant create,
+  reconciliation, and (where required) attestation evidence, including pinned
+  hashes and audit links; it is never derived from the caller-supplied actor or
+  from that actor's current role. Historical actor IDs are preserved, while new
+  reconciliation and attestation audit writes are attributed to the current
+  authorized operator.
+- A complete-provenance version-2 reconciliation may be performed by a
+  replacement operator. Its exact canonical same-tenant audit must link to the
+  target row and precede it, and the row updater must be that reconciliation
+  actor. A version-3 reviewed edit must extend a valid version-2 chain with
+  exactly one later same-tenant `exercise:update` user audit by the row updater;
+  its non-empty, unique `metadata.fields` must cover every canonical difference.
+  Only documented same-actor/same-timestamp companion audit actions are allowed.
+  Every other target audit is rejected at every sequence boundary (including
+  equal timestamps), and a legacy attestation must precede the reviewed update.
+  Legacy create and reconciliation evidence is accepted only in its exact
+  recognized historical shape: extra or contradictory provenance fields fail
+  closed, and both events must retain their original actor linkage.
 - The one-time `--reconcile` mode updates only rows proven to be unchanged
   products of this import: exact tenant/slug/source ID, original import audit,
-  original version and timestamps, matching active admin actor, draft status,
-  and no later exercise audit. Any missing, changed, unowned, or unexpected row
-  blocks the complete reconciliation.
+  original version and timestamps, draft status, and no disqualifying later
+  audit. Invalid ownership evidence is reported separately from content drift.
+  A legitimate later reviewed version-3 edit remains historically owned but is
+  reported as content drift and blocks reconciliation without being overwritten.
+  Any missing, invalid, drifted, unowned, or unexpected row blocks the complete
+  reconciliation.
 - The reconciliation mutation entry point independently rechecks the
   development environment, explicit confirmation, approved source hashes,
   complete canonical manifest, and exact tenant even when invoked outside the
@@ -54,9 +80,9 @@ the `marcus-grima` tenant.
   rejected unless the genuine create event, reconciliation event, and exact
   attestation all agree.
 - Attestation is all-or-nothing and idempotent. Missing, duplicate,
-  contradictory, cross-tenant, wrong-actor, or caller-controlled evidence
-  blocks the run. Exact existing attestations are skipped; historical audits
-  and exercise rows are never edited.
+  contradictory, cross-tenant, forged linkage/hash, or caller-controlled
+  evidence blocks the run. Exact existing attestations are skipped; historical
+  audits and exercise rows are never edited.
 - All records remain drafts. The source does not contain exercise-level
   difficulty or an explicit movement pattern, so none qualify for activation.
 - Programme sets, reps, and rest remain source context in the report/internal

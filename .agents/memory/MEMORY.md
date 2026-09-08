@@ -8,4 +8,5 @@
 - [Stripe sandbox credentials](stripe-sandbox-credentials.md) — native connector may not expose raw API keys; Test Mode wallet checkout uses secure `sk_test_` and webhook secrets.
 - [Exercise catalogue concurrency](exercise-catalogue-concurrency.md) — validate and mutate exercise definitions with versioned CAS; status-only guards permit stale activation.
 - [Exercise migration baseline](exercise-migration-baseline.md) — canonical version-aware 0011 was re-baselined only while development exercise tables were empty; treat it as immutable.
+- [Exercise provenance authority](exercise-provenance-authority.md) — historical attribution survives role changes; current operators need independent live authorization for verification and every write.
 - [Deployment environment markers](deployment-environment-markers.md) — use documented Replit deployment markers; REPLIT_ENVIRONMENT can misleadingly say production in a development shell.

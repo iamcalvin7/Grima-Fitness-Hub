@@ -24,6 +24,7 @@ import {
 } from "../../lib/exerciseCatalogueImport.js";
 import {
   attestDevelopmentImport,
+  lockAndLoadCurrentOperator,
   proveImportOwnership,
   reconcileDevelopmentImport,
 } from "../../cli/importExerciseCatalogue.js";
@@ -98,6 +99,7 @@ async function seedOriginalImport(
           ),
         }
       : {
+          slug: entry.payload.slug,
           source: "bundled-programmes",
           sourceId: entry.source.sourceId,
           importVersion: EXERCISE_IMPORT_VERSION,
@@ -397,6 +399,234 @@ describe("exercise catalogue import reconciliation", () => {
       .from(exercisesTable)
       .where(eq(exercisesTable.tenantId, tenant.id));
     expect(saved.every((exercise) => exercise.version === 1)).toBe(true);
+  });
+
+  it("serializes apply authorization with a concurrent operator revocation", async () => {
+    const revoker = await db.$client.connect();
+    try {
+      await revoker.query("begin");
+      await revoker.query(
+        "update users set is_active = false where id = $1 and tenant_id = $2",
+        [actor.id, tenant.id],
+      );
+      const authorization = db.transaction((tx) =>
+        lockAndLoadCurrentOperator(tx, tenant.id, actor.id),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await revoker.query("commit");
+      await expect(authorization).rejects.toThrow(/active admin/);
+    } finally {
+      try {
+        await revoker.query("rollback");
+      } finally {
+        revoker.release();
+      }
+    }
+  });
+
+  it("uses a replacement admin for new writes while preserving a demoted historical actor", async () => {
+    const historicalActor = await createUser(tenant.id, { role: "admin" });
+    const replacementAdmin = await createUser(tenant.id, { role: "admin" });
+    await seedCompleteOriginalImport(historicalActor);
+    await db
+      .update(usersTable)
+      .set({ isActive: false })
+      .where(eq(usersTable.id, historicalActor.id));
+
+    await reconcileDevelopmentImport(
+      manifest,
+      tenant.id,
+      replacementAdmin.id,
+      sourceSha256,
+      true,
+    );
+
+    const saved = await db
+      .select()
+      .from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id));
+    expect(saved.every((exercise) => exercise.createdByUserId === historicalActor.id)).toBe(true);
+    expect(saved.every((exercise) => exercise.updatedByUserId === replacementAdmin.id)).toBe(true);
+    const audits = await db.select().from(auditLogsTable).where(
+      and(eq(auditLogsTable.tenantId, tenant.id), eq(auditLogsTable.action, "exercise:reconcile")),
+    );
+    expect(audits.every((audit) => audit.actorId === replacementAdmin.id)).toBe(true);
+    expect(
+      proveImportOwnership(manifest, await loadImportRows(), await db
+        .select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+      replacementAdmin.id).owned.size,
+    ).toBe(47);
+  });
+
+  it("reports valid version-3 ownership drift without overwriting reviewed content", async () => {
+    await seedCompleteOriginalImport();
+    await reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const [reviewed] = await db
+      .select()
+      .from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id))
+      .limit(1);
+    await db
+      .update(exercisesTable)
+      .set({
+        version: 3,
+        name: "Coach reviewed name",
+        updatedAt: new Date(),
+      })
+      .where(eq(exercisesTable.id, reviewed.id));
+    await db.insert(auditLogsTable).values({
+      tenantId: tenant.id,
+      actorType: "user",
+      actorId: actor.id,
+      action: "exercise:update",
+      targetType: "exercise",
+      targetId: reviewed.id,
+      metadata: { fields: ["name"] },
+    });
+
+    const proof = proveImportOwnership(
+      manifest,
+      await loadImportRows(),
+      await db.select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+      actor.id,
+    );
+    expect(proof.changed).toHaveLength(0);
+    expect(proof.contentDrift).toHaveLength(1);
+    await expect(
+      reconcileDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true),
+    ).rejects.toThrow(/Coach reviewed name|content differs|later reviewed content/);
+    const [preserved] = await db
+      .select()
+      .from(exercisesTable)
+      .where(eq(exercisesTable.id, reviewed.id));
+    expect(preserved).toMatchObject({ version: 3, name: "Coach reviewed name" });
+  });
+
+  it("preserves legacy-attested ownership after a reviewed version-3 edit", async () => {
+    const historicalActor = await createUser(tenant.id, { role: "admin" });
+    const replacementAdmin = await createUser(tenant.id, { role: "admin" });
+    await seedLegacyReconciledImport(historicalActor);
+    await attestDevelopmentImport(
+      manifest,
+      tenant.id,
+      historicalActor.id,
+      sourceSha256,
+      true,
+    );
+    await db
+      .update(usersTable)
+      .set({ role: "client" })
+      .where(eq(usersTable.id, historicalActor.id));
+
+    const [reviewed] = await db
+      .select()
+      .from(exercisesTable)
+      .where(eq(exercisesTable.tenantId, tenant.id))
+      .limit(1);
+    await db
+      .update(exercisesTable)
+      .set({
+        version: 3,
+        name: "Coach reviewed legacy name",
+        updatedByUserId: replacementAdmin.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(exercisesTable.id, reviewed.id));
+    await db.insert(auditLogsTable).values({
+      tenantId: tenant.id,
+      actorType: "user",
+      actorId: replacementAdmin.id,
+      action: "exercise:update",
+      targetType: "exercise",
+      targetId: reviewed.id,
+      metadata: { fields: ["name"] },
+    });
+
+    const proof = proveImportOwnership(
+      manifest,
+      await loadImportRows(),
+      await db.select().from(auditLogsTable).where(eq(auditLogsTable.tenantId, tenant.id)),
+      replacementAdmin.id,
+    );
+    expect(proof.owned.size).toBe(47);
+    expect(proof.changed).toHaveLength(0);
+    expect(proof.notOwned).toHaveLength(0);
+    expect(proof.contentDrift).toEqual([
+      expect.stringContaining("later reviewed content differs from canonical manifest"),
+    ]);
+
+    const audits = await db.select().from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    const reconciliationAudit = audits.find((item) =>
+      item.targetId === reviewed.id && item.action === "exercise:reconcile")!;
+    const boundaryLifecycleAudit = {
+      ...reconciliationAudit,
+      id: crypto.randomUUID(),
+      action: "exercise:archive",
+      actorType: "user" as const,
+      actorId: replacementAdmin.id,
+      metadata: {},
+    };
+    expect(
+      proveImportOwnership(
+        manifest,
+        await loadImportRows(),
+        [...audits, boundaryLifecycleAudit],
+        replacementAdmin.id,
+      ).owned.size,
+    ).toBe(46);
+
+    const reviewedUpdate = audits.find((item) =>
+      item.targetId === reviewed.id && item.action === "exercise:update")!;
+    const lateAttestationAudits = audits.map((item) =>
+      item.targetId === reviewed.id &&
+      item.action === EXERCISE_PROVENANCE_ATTESTATION_ACTION
+        ? { ...item, createdAt: new Date(reviewedUpdate.createdAt.getTime() + 1) }
+        : item,
+    );
+    expect(
+      proveImportOwnership(
+        manifest,
+        await loadImportRows(),
+        lateAttestationAudits,
+        replacementAdmin.id,
+      ).owned.size,
+    ).toBe(46);
+  });
+
+  it("rejects contradictory legacy shapes and broken historical actor linkage", async () => {
+    await seedLegacyReconciledImport();
+    await attestDevelopmentImport(manifest, tenant.id, actor.id, sourceSha256, true);
+    const rows = await loadImportRows();
+    const audits = await db.select().from(auditLogsTable)
+      .where(eq(auditLogsTable.tenantId, tenant.id));
+    const row = rows.find((item) => item.slug === manifest[0].payload.slug)!;
+    const createAudit = audits.find((item) =>
+      item.targetId === row.id && item.action === "exercise:create")!;
+    const reconcileAudit = audits.find((item) =>
+      item.targetId === row.id && item.action === "exercise:reconcile")!;
+
+    for (const changedAudits of [
+      audits.map((item) => item.id === createAudit.id
+        ? { ...item, metadata: { ...item.metadata, sourceSha256: "forged" } }
+        : item),
+      audits.map((item) => item.id === reconcileAudit.id
+        ? { ...item, metadata: { ...item.metadata, manifestRecordSha256: "forged" } }
+        : item),
+    ]) {
+      expect(proveImportOwnership(manifest, rows, changedAudits, actor.id).owned.size)
+        .toBe(46);
+    }
+
+    const forgedActor = crypto.randomUUID();
+    const changedRows = rows.map((item) => item.id === row.id
+      ? { ...item, updatedByUserId: forgedActor }
+      : item);
+    const changedAudits = audits.map((item) => item.id === reconcileAudit.id
+      ? { ...item, actorId: forgedActor }
+      : item);
+    expect(proveImportOwnership(manifest, changedRows, changedAudits, actor.id).owned.size)
+      .toBe(46);
   });
 
   it("requires complete canonical provenance for future create audits", async () => {

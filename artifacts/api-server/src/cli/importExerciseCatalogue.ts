@@ -136,6 +136,17 @@ async function loadActor(
   return actor as { id: string; role: "admin" };
 }
 
+export async function lockAndLoadCurrentOperator(
+  client: ReadClient & LockClient,
+  tenantId: string,
+  actorId: string,
+): Promise<{ id: string; role: "admin" }> {
+  await client.execute(
+    sql`select id from users where id = ${actorId} and tenant_id = ${tenantId} for update`,
+  );
+  return loadActor(client, tenantId, actorId);
+}
+
 async function loadTenantAudits(
   client: ReadClient,
   tenantId: string,
@@ -201,16 +212,77 @@ async function verifyMedia(
 interface OwnershipProof {
   owned: Map<string, ExistingImportExercise & Exercise>;
   missing: string[];
+  /** Evidence is invalid; this is distinct from a legitimate later edit. */
   changed: string[];
+  /** Canonical-content drift on otherwise valid historical ownership. */
+  contentDrift: string[];
   notOwned: string[];
   unexpected: string[];
+}
+
+function isCanonicalReconciliationAudit(
+  audit: AuditLog,
+  entry: ReturnType<typeof buildExerciseImportManifest>[number],
+  sourceSha256: string,
+  normalizedSourceSha256: string,
+  exerciseId: string,
+): boolean {
+  const metadata = audit.metadata;
+  if (!metadata || !Array.isArray(metadata.differences) || metadata.differences.length === 0) return false;
+  if (metadata.differences.some((field) => typeof field !== "string") ||
+      new Set(metadata.differences).size !== metadata.differences.length) return false;
+  const expected = {
+    slug: entry.payload.slug, source: "bundled-programmes",
+    sourceId: entry.source.sourceId, importVersion: EXERCISE_IMPORT_VERSION,
+    sourceSha256, normalizedSourceSha256, exerciseId,
+    manifestRecordSha256: buildExerciseImportProvenance(
+      entry, sourceSha256, normalizedSourceSha256, exerciseId, 2,
+    ).manifestRecordSha256,
+    fromVersion: 1, toVersion: 2,
+  };
+  return Object.keys(metadata).sort().join(",") ===
+      [...Object.keys(expected), "differences"].sort().join(",") &&
+    Object.entries(expected).every(([key, value]) => metadata[key] === value);
+}
+
+function isLegacyCreateAudit(
+  audit: AuditLog,
+  entry: ReturnType<typeof buildExerciseImportManifest>[number],
+): boolean {
+  return auditMetadataMatches(audit, {
+    slug: entry.payload.slug,
+    source: "bundled-programmes",
+    sourceId: entry.source.sourceId,
+    importVersion: EXERCISE_IMPORT_VERSION,
+  });
+}
+
+function isLegacyReconciliationAudit(
+  audit: AuditLog,
+  entry: ReturnType<typeof buildExerciseImportManifest>[number],
+  sourceSha256: string,
+): boolean {
+  const differences = audit.metadata?.differences;
+  if (!Array.isArray(differences) || differences.length === 0 ||
+      differences.some((field) => typeof field !== "string") ||
+      new Set(differences).size !== differences.length) return false;
+  return auditMetadataMatches(audit, {
+    source: "bundled-programmes",
+    sourceId: entry.source.sourceId,
+    slug: entry.payload.slug,
+    importVersion: EXERCISE_IMPORT_VERSION,
+    sourceSha256,
+    fromVersion: 1,
+    toVersion: 2,
+    differences,
+  });
 }
 
 export function proveImportOwnership(
   manifest: ReturnType<typeof buildExerciseImportManifest>,
   existing: (ExistingImportExercise & Exercise)[],
   audits: AuditLog[],
-  actorId: string,
+  _currentOperatorId?: string,
 ): OwnershipProof {
   assertApprovedLegacyExerciseSource(
     manifest.map((entry) => entry.source),
@@ -229,6 +301,7 @@ export function proveImportOwnership(
   const owned = new Map<string, ExistingImportExercise & Exercise>();
   const missing: string[] = [];
   const changed: string[] = [];
+  const contentDrift: string[] = [];
   const notOwned: string[] = [];
 
   for (const entry of manifest) {
@@ -247,7 +320,6 @@ export function proveImportOwnership(
         audit.tenantId === current.tenantId &&
         audit.action === "exercise:create" &&
         audit.actorType === "cli" &&
-        audit.actorId === actorId &&
         audit.metadata?.importVersion === EXERCISE_IMPORT_VERSION &&
         audit.metadata?.sourceId === entry.source.sourceId,
     );
@@ -261,22 +333,21 @@ export function proveImportOwnership(
       );
       return auditMetadataMatches(audit, { ...expected });
     });
-    const legacyCreateAudits = candidateCreateAudits.filter(
-      (audit) =>
-        audit.metadata?.source === "bundled-programmes" &&
-        audit.metadata?.sourceId === entry.source.sourceId &&
-        audit.metadata?.importVersion === EXERCISE_IMPORT_VERSION,
+    const legacyCreateAudits = candidateCreateAudits.filter((audit) =>
+      isLegacyCreateAudit(audit, entry),
     );
     const createAudit =
       createAudits.length === 1 || legacyCreateAudits.length === 1
         ? createAudits[0] ?? legacyCreateAudits[0]
         : undefined;
+    // The creator is historical evidence, never a claim made by today's CLI
+    // operator. Reconciliation may legitimately be performed by a replacement.
+    const historicalActorId = createAudit?.actorId;
     const reconciliationAudits = targetAudits.filter(
       (audit) =>
         audit.tenantId === current.tenantId &&
         audit.action === "exercise:reconcile" &&
         audit.actorType === "cli" &&
-        audit.actorId === actorId &&
         audit.metadata?.source === "bundled-programmes" &&
         audit.metadata?.sourceId === entry.source.sourceId &&
         audit.metadata?.slug === entry.payload.slug &&
@@ -285,28 +356,25 @@ export function proveImportOwnership(
         audit.metadata?.fromVersion === 1 &&
         audit.metadata?.toVersion === 2,
     );
-    const completeReconciliationAudits = reconciliationAudits.filter(
+    const completeReconciliationAudits = reconciliationAudits.filter((audit) =>
+      isCanonicalReconciliationAudit(
+        audit, entry, sourceSha256, normalizedSourceSha256, current.id,
+      ),
+    );
+    const legacyReconciliationAudits = reconciliationAudits.filter(
       (audit) =>
-        audit.metadata?.normalizedSourceSha256 === normalizedSourceSha256 &&
-        audit.metadata?.exerciseId === current.id &&
-        audit.metadata?.manifestRecordSha256 ===
-          buildExerciseImportProvenance(
-            entry,
-            sourceSha256,
-            normalizedSourceSha256,
-            current.id,
-            2,
-          ).manifestRecordSha256,
+        audit.actorId === historicalActorId &&
+        isLegacyReconciliationAudit(audit, entry, sourceSha256),
     );
     const expectedAttestationMetadata =
-      legacyCreateAudits.length === 1 && reconciliationAudits.length === 1
+      legacyCreateAudits.length === 1 && legacyReconciliationAudits.length === 1
         ? attestationMetadata(
             entry,
             sourceSha256,
             normalizedSourceSha256,
             current.id,
             legacyCreateAudits[0].id,
-            reconciliationAudits[0].id,
+            legacyReconciliationAudits[0].id,
           )
         : undefined;
     const anyAttestationAudits = targetAudits.filter(
@@ -317,7 +385,6 @@ export function proveImportOwnership(
       (audit) =>
         audit.tenantId === current.tenantId &&
         audit.actorType === "cli" &&
-        audit.actorId === actorId &&
         expectedAttestationMetadata !== undefined &&
         auditMetadataMatches(audit, expectedAttestationMetadata),
     );
@@ -325,14 +392,15 @@ export function proveImportOwnership(
     const hasCompleteCreate =
       createAudits.length === 1 &&
       ((current.version === 1 && reconciliationAudits.length === 0) ||
-        (current.version === 2 &&
+        (current.version >= 2 &&
           completeReconciliationAudits.length === 1 &&
           reconciliationAudits.length === 1));
     const hasLegacyAttestation =
       legacyCreateAudits.length === 1 &&
-      reconciliationAudits.length === 1 &&
+      legacyReconciliationAudits.length === 1 &&
       attestationAudits.length === 1 &&
-      anyAttestationAudits.length === 1;
+      anyAttestationAudits.length === 1 &&
+      current.version >= 2;
     if (!hasCompleteCreate && !hasLegacyAttestation) {
       ownershipReasons.push("missing complete import provenance");
     }
@@ -345,10 +413,10 @@ export function proveImportOwnership(
       ownershipReasons.push("missing or duplicate import audit");
     }
     if (current.status !== "draft") ownershipReasons.push("status is not draft");
-    if (current.version !== 1 && current.version !== 2) {
+    if (current.version !== 1 && current.version !== 2 && current.version !== 3) {
       ownershipReasons.push("version is not an expected imported version");
     }
-    if (hasLegacyAttestation && current.version !== 2) {
+    if (hasLegacyAttestation && current.version < 2) {
       ownershipReasons.push("attested reconciliation has an unexpected current version");
     }
     if (
@@ -357,8 +425,19 @@ export function proveImportOwnership(
     ) {
       ownershipReasons.push("conflicting or duplicate provenance attestation");
     }
-    if (current.createdByUserId !== actorId) ownershipReasons.push("creator does not match the import actor");
-    if (current.updatedByUserId !== actorId) ownershipReasons.push("updater does not match the import actor");
+    if (current.createdByUserId !== historicalActorId) ownershipReasons.push("creator does not match historical import actor");
+    if (current.version === 1 && current.updatedByUserId !== historicalActorId) {
+      ownershipReasons.push("updater does not match historical import actor");
+    }
+    const reconciliationAudit =
+      completeReconciliationAudits[0] ?? legacyReconciliationAudits[0];
+    if (
+      current.version === 2 &&
+      reconciliationAudit &&
+      current.updatedByUserId !== reconciliationAudit.actorId
+    ) {
+      ownershipReasons.push("updater does not match reconciliation actor");
+    }
     if (
       hasCompleteCreate &&
       current.version === 1 &&
@@ -376,13 +455,15 @@ export function proveImportOwnership(
             audit.id === createAudit.id ||
             (hasCompleteCreate
               ? completeReconciliationAudits
-              : reconciliationAudits
+              : legacyReconciliationAudits
             ).some((item) => item.id === audit.id) ||
             attestationAudits.some((item) => item.id === audit.id);
           return !isAllowed && audit.createdAt.getTime() > createAudit.createdAt.getTime();
         },
       );
-      if (laterAudits.length > 0) ownershipReasons.push("later audit activity exists");
+      if (current.version < 3 && laterAudits.length > 0) {
+        ownershipReasons.push("later audit activity exists");
+      }
     }
     if (hasLegacyAttestation || (hasCompleteCreate && current.version === 2)) {
       const attestation = attestationAudits[0];
@@ -393,15 +474,86 @@ export function proveImportOwnership(
         ownershipReasons.push("attestation does not follow the original import audit");
       }
       if (
+        hasLegacyAttestation &&
+        attestation.createdAt.getTime() <= legacyReconciliationAudits[0].createdAt.getTime()
+      ) {
+        ownershipReasons.push("attestation does not follow reconciliation audit");
+      }
+      if (
         (hasCompleteCreate
           ? completeReconciliationAudits[0]
-          : reconciliationAudits[0]
+          : legacyReconciliationAudits[0]
         ).createdAt.getTime() <= createAudit!.createdAt.getTime()
       ) {
         ownershipReasons.push("reconciliation audit does not follow the original import audit");
       }
-      if (compareImportEntry(entry, current).length > 0) {
+      if (current.version < 3 && compareImportEntry(entry, current).length > 0) {
         ownershipReasons.push("attested exercise differs from the canonical manifest");
+      }
+    }
+    if (current.version === 3) {
+      const v2Audit =
+        completeReconciliationAudits[0] ?? legacyReconciliationAudits[0];
+      if (!v2Audit || !createAudit ||
+          v2Audit.createdAt.getTime() <= createAudit.createdAt.getTime()) {
+        ownershipReasons.push("reconciliation audit does not follow the original import audit");
+      }
+      if (v2Audit && createAudit && targetAudits.some((audit) =>
+        audit.id !== createAudit.id &&
+        audit.id !== v2Audit.id &&
+        audit.createdAt.getTime() > createAudit.createdAt.getTime() &&
+        audit.createdAt.getTime() < v2Audit.createdAt.getTime(),
+      )) {
+        ownershipReasons.push("disqualifying audit exists before reconciliation");
+      }
+      const reviewedUpdates = targetAudits.filter(
+        (audit) =>
+          audit.tenantId === current.tenantId &&
+          audit.action === "exercise:update" &&
+          audit.actorType === "user" &&
+          v2Audit !== undefined &&
+          audit.createdAt.getTime() > v2Audit.createdAt.getTime(),
+      );
+      const reviewedUpdate = reviewedUpdates.length === 1 ? reviewedUpdates[0] : undefined;
+      const fields = reviewedUpdate?.metadata?.fields;
+      const differences = compareImportEntry(entry, current);
+      if (
+        !v2Audit ||
+        !reviewedUpdate ||
+        reviewedUpdate.actorId !== current.updatedByUserId ||
+        !Array.isArray(fields) ||
+        fields.length === 0 ||
+        fields.some((field) => typeof field !== "string") ||
+        new Set(fields).size !== fields.length ||
+        !differences.every((field) => fields.includes(field))
+      ) {
+        ownershipReasons.push("invalid version-3 reviewed update evidence");
+      } else {
+        const companionActions = new Set([
+          "exercise:performance_type_change",
+          "exercise:safety_change",
+        ]);
+        const allowedAuditIds = new Set([
+          createAudit?.id,
+          v2Audit.id,
+          reviewedUpdate.id,
+          ...attestationAudits.map((audit) => audit.id),
+        ]);
+        if (attestationAudits.some((audit) =>
+          audit.createdAt.getTime() >= reviewedUpdate.createdAt.getTime()
+        )) {
+          ownershipReasons.push("attestation does not precede reviewed update");
+        }
+        if (targetAudits.some((audit) =>
+          !allowedAuditIds.has(audit.id) &&
+          !(companionActions.has(audit.action) &&
+            audit.tenantId === current.tenantId &&
+            audit.actorType === "user" &&
+            audit.actorId === reviewedUpdate.actorId &&
+            audit.createdAt.getTime() === reviewedUpdate.createdAt.getTime()),
+        )) {
+          ownershipReasons.push("unexplained later audit activity exists");
+        }
       }
     }
     if (ownershipReasons.length > 0) {
@@ -410,6 +562,9 @@ export function proveImportOwnership(
       );
       continue;
     }
+    if (current.version === 3 && compareImportEntry(entry, current).length > 0) {
+      contentDrift.push(`${entry.source.sourceId}: later reviewed content differs from canonical manifest`);
+    }
     owned.set(entry.source.sourceId, current);
   }
 
@@ -417,6 +572,7 @@ export function proveImportOwnership(
     owned,
     missing,
     changed,
+    contentDrift,
     notOwned,
     unexpected: existing
       .filter((exercise) => !expectedSlugs.has(exercise.slug))
@@ -516,10 +672,7 @@ export async function attestDevelopmentImport(
     await tx.execute(
       sql`lock table exercises, exercise_muscles, exercise_equipment, audit_logs in share row exclusive mode`,
     );
-    await tx.execute(
-      sql`select id from users where id = ${actorId} and tenant_id = ${tenantId} for update`,
-    );
-    await loadActor(tx, tenantId, actorId);
+    await lockAndLoadCurrentOperator(tx, tenantId, actorId);
 
     const existing = await loadExisting(tx, tenantId);
     const audits = await loadTenantAudits(tx, tenantId);
@@ -544,25 +697,18 @@ export async function attestDevelopmentImport(
       );
       const createAudits = targetAudits.filter(
         (audit) =>
+          audit.tenantId === exercise.tenantId &&
           audit.action === "exercise:create" &&
           audit.actorType === "cli" &&
-          audit.actorId === actorId &&
-          audit.metadata?.source === "bundled-programmes" &&
-          audit.metadata?.sourceId === entry.source.sourceId &&
-          audit.metadata?.importVersion === EXERCISE_IMPORT_VERSION,
+          isLegacyCreateAudit(audit, entry),
       );
       const reconciliationAudits = targetAudits.filter(
         (audit) =>
+          audit.tenantId === exercise.tenantId &&
           audit.action === "exercise:reconcile" &&
           audit.actorType === "cli" &&
-          audit.actorId === actorId &&
-          audit.metadata?.source === "bundled-programmes" &&
-          audit.metadata?.sourceId === entry.source.sourceId &&
-          audit.metadata?.slug === entry.payload.slug &&
-          audit.metadata?.importVersion === EXERCISE_IMPORT_VERSION &&
-          audit.metadata?.sourceSha256 === sourceSha256 &&
-          audit.metadata?.fromVersion === 1 &&
-          audit.metadata?.toVersion === 2,
+          audit.actorId === createAudits[0]?.actorId &&
+          isLegacyReconciliationAudit(audit, entry, sourceSha256),
       );
       const createAudit = createAudits.length === 1 ? createAudits[0] : undefined;
       const reconciliationAudit =
@@ -583,8 +729,8 @@ export async function attestDevelopmentImport(
       const exactAttestations = targetAudits.filter(
         (audit) =>
           audit.action === EXERCISE_PROVENANCE_ATTESTATION_ACTION &&
+          audit.tenantId === exercise.tenantId &&
           audit.actorType === "cli" &&
-          audit.actorId === actorId &&
           expectedMetadata !== undefined &&
           auditMetadataMatches(audit, expectedMetadata),
       );
@@ -595,8 +741,13 @@ export async function attestDevelopmentImport(
       const reasons: string[] = [];
       if (exercise.status !== "draft") reasons.push("status is not draft");
       if (exercise.version !== 2) reasons.push("version is not reconciled version 2");
-      if (exercise.createdByUserId !== actorId) reasons.push("creator does not match actor");
-      if (exercise.updatedByUserId !== actorId) reasons.push("updater does not match actor");
+      const historicalActorId = createAudit?.actorId;
+      if (exercise.createdByUserId !== historicalActorId) {
+        reasons.push("creator does not match historical import actor");
+      }
+      if (exercise.updatedByUserId !== historicalActorId) {
+        reasons.push("updater does not match historical import actor");
+      }
       if (compareImportEntry(entry, exercise).length > 0) {
         reasons.push("exercise content or mappings differ from manifest");
       }
@@ -722,6 +873,7 @@ export async function reconcileDevelopmentImport(
       );
     }
     await acquireImportLock(tx, tenantId);
+    await lockAndLoadCurrentOperator(tx, tenantId, actorId);
     const lockedExisting = await loadExisting(tx, tenantId);
     const lockedAudits = await loadTenantAudits(tx, tenantId);
     const proof = proveImportOwnership(
@@ -732,6 +884,7 @@ export async function reconcileDevelopmentImport(
     );
     const blockers = [
       ...proof.changed,
+      ...proof.contentDrift,
       ...proof.notOwned,
       ...proof.missing.map((sourceId) => `${sourceId}: missing`),
       ...proof.unexpected.map((slug) => `${slug}: unexpected exercise slug`),
@@ -741,8 +894,6 @@ export async function reconcileDevelopmentImport(
         `BLOCKED — GATE 2C DATA DECISION REQUIRED (${blockers.join("; ")})`,
       );
     }
-    await loadActor(tx, tenantId, actorId);
-
     let rowsAlreadyExact = 0;
     let rowsSafelyReconciled = 0;
     let reconciliationAuditEvents = 0;
@@ -870,6 +1021,7 @@ export async function reconcileDevelopmentImport(
       ownership: {
         provenImportOwnedUnchanged: proof.owned.size,
         importOwnedButChanged: proof.changed.length,
+        contentDrift: proof.contentDrift.length,
         notProvablyImportOwned: proof.notOwned.length,
         missing: proof.missing.length,
         unexpected: proof.unexpected.length,
@@ -922,7 +1074,9 @@ async function main(): Promise<void> {
     summary,
     ownership: {
       proven: ownership.owned.size,
+      invalidEvidence: ownership.changed.length,
       changed: ownership.changed.length,
+      contentDrift: ownership.contentDrift.length,
       notOwned: ownership.notOwned.length,
       missing: ownership.missing.length,
       unexpected: ownership.unexpected.length,
@@ -993,12 +1147,12 @@ async function main(): Promise<void> {
 
   const applied = await db.transaction(async (tx) => {
     await acquireImportLock(tx, tenant.id);
+    await lockAndLoadCurrentOperator(tx, tenant.id, actor.id);
     const lockedPlan = planExerciseImport(manifest, await loadExisting(tx, tenant.id));
     const lockedSummary = summarizeExerciseImport(lockedPlan);
     if (lockedSummary.conflict > 0) {
       throw new Error("Import refused because existing slugs changed during apply");
     }
-    await loadActor(tx, tenant.id, actor.id);
     let created = 0;
     for (const item of lockedPlan) {
       if (item.outcome === "skip") continue;

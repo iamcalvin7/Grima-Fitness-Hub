@@ -1,0 +1,134 @@
+**The admin replacement was separately authorized. That approval is settled.**
+
+The recommended correction is sound: historical provenance should survive an actor’s demotion, while new writes must still require a current authorized admin. Unchanged audit records alone do not prove that verification still works.
+
+Send Replit:
+
+FIX — Historical Exercise Provenance After Admin Replacement
+
+Environment: Development only.
+Scope: Importer ownership verification, affected CLI paths, regression tests and supporting documentation.
+Risk: Security-sensitive separation of historical attribution and current write authorization.
+
+Complete implementation, testing, independent review and read-only development verification in one task. Do not stop for routine implementation decisions.
+
+The development admin replacement had separate product-owner authorization. Do not request that approval again or reverse the role changes.
+
+1. Inspect and reproduce the defect
+
+Trace the actual ownership-proof entry point, `proveImportOwnership`, actor validation and every caller involved in import, reconciliation and provenance attestation.
+
+Identify exactly where the historical actor is required to currently hold an active admin role. Reproduce the failure in an isolated test.
+
+Distinguish:
+
+* The caller requesting verification.
+* The historical actor recorded in the evidence.
+* The current operator authorized to perform a new mutation.
+
+Inspect the development-environment marker failure separately. Report its exact cause without exposing sensitive environment values.
+
+2. Separate historical attribution from current authorization
+
+Historical ownership verification must evaluate the recorded evidence and actor linkage without requiring the historical actor to remain an active admin.
+
+Preserve the existing requirements for:
+
+* Canonical source identity.
+* Deterministic slug and exact source ID.
+* Pinned source hashes.
+* Per-record manifest hash.
+* Tenant and exercise identity.
+* Complete create, reconciliation and attestation linkage.
+* Existing version and content-integrity checks where applicable.
+
+Do not replace historical actor references with the new admin. Do not accept arbitrary caller-supplied historical identities as proof.
+
+Preserve fail-closed behavior for missing, mismatched, tampered or cross-tenant evidence. Do not introduce permissive fallbacks for deleted actors or incomplete provenance.
+
+Read-only verification must retain appropriate caller authorization and environment restrictions.
+
+3. Preserve authorization for every new write
+
+New import, reconciliation and attestation mutations must independently require a current active, same-tenant admin through the established authorization mechanism.
+
+A valid historical ownership proof must never grant permission to write.
+
+A new authorized admin may operate on records whose history belongs to a different actor, provided ownership, content and conflict checks pass.
+
+Attribute any future mutation to its actual current operator while preserving historical attribution. Existing idempotency, transactions, locking, auditing and conflict protection must remain effective.
+
+Trace every affected caller so no write path inherits the relaxed historical-role requirement.
+
+4. Preserve reviewed exercise content
+
+Ownership verification and content reconciliation are separate questions.
+
+The three legitimately edited exercises are now version 3; the other 44 remain version 2. Verification must not reset those edits, require the records to return to their imported state, or silently treat content drift as permission to reconcile.
+
+Report ownership validity separately from whether an import rerun would skip or conflict with current content.
+
+5. Add focused regression coverage
+
+Prove that:
+
+* Historical ownership remains verifiable after the original admin is demoted.
+* A current authorized admin can verify another actor’s historical chain.
+* A demoted or inactive operator cannot perform new mutations.
+* Cross-tenant verification and mutation attempts remain rejected.
+* Forged actor linkage and invalid source, slug, hash or attestation evidence fail closed.
+* Legitimate later edits preserve historical attribution and are protected from importer overwrite.
+* Audit failure still rolls back associated test mutations.
+* Verification itself writes no exercise, mapping or audit records.
+
+Use isolated test fixtures and disposable test schemas. Do not change real development roles or introduce rejection triggers into the existing development schema.
+
+6. Verify the actual development state read-only
+
+Use the legitimate new admin and supported development configuration to evaluate ownership for all 47 records.
+
+Do not bypass deployment guards, spoof environment identity or remove marker checks. If an unresolved environment restriction prevents this check, report it explicitly; passing tests alone does not establish successful live verification.
+
+Compare the protected state before and after:
+
+* 47 exercises remain drafts.
+* Three records remain version 3 and 44 remain version 2.
+* Exercise content and child mappings are unchanged.
+* Existing audits and all 47 provenance attestations are unchanged.
+* Account roles are unchanged.
+
+Do not run import, reconciliation or attestation commands in write mode against the existing catalogue.
+
+7. Verification and prevention
+
+Run the focused regression tests, complete API regression suite, API typecheck, API build and diff hygiene. Run additional established project checks where shared code or project rules require them.
+
+Perform an independent review focused on authorization bypasses, historical linkage, tenant isolation, content preservation and affected CLI callers.
+
+Document the regression and the durable rule: historical attribution and current mutation authority are separate concerns.
+
+Boundaries
+
+No exercise content changes or activation. No account, role, session-policy, schema or migration changes. No historical audit edits, replacement attestations, production access, deployment or workout integration.
+
+Required final report
+
+Return:
+
+* Root cause and affected call paths.
+* Exact files changed.
+* Historical-verification and current-write authorization behavior.
+* Test commands and totals.
+* Typecheck, build and review results.
+* Development verification results for all 47 records.
+* Separate ownership and content-drift findings.
+* Protected-state preservation evidence.
+* Any remaining blocker.
+
+End with exactly one:
+
+PASS — HISTORICAL PROVENANCE FIX VALIDATED
+
+BLOCKED — HISTORICAL PROVENANCE FIX INCOMPLETE
+
+This verdict covers the provenance correction only. Gate 2D content completion and activation remain pending.
