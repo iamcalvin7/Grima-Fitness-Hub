@@ -1,0 +1,36 @@
+WORKFLOW UPDATE — Feature Batches Through Tested Completion
+
+Apply this workflow to subsequent Grima Fitness Hub development work. It supersedes earlier requirements for separate routine planning, build, fix and validation handoffs.
+
+One approved feature batch covers inspection, implementation, necessary integration work, tests, in-scope fixes, documentation and independent completion validation.
+
+Before implementation:
+
+* Inspect the relevant existing code and dependencies.
+* Define one coherent feature outcome and its acceptance criteria.
+* Present material product, architecture, permission and migration decisions together, with recommended defaults.
+* Include any required development migrations in the proposed scope.
+
+Once the batch is approved:
+
+* Continue end-to-end without asking permission for routine implementation choices.
+* Implement complete user workflows across frontend, backend and persistence.
+* Perform focused checks during development, particularly around authorization and data writes.
+* Run full feature journeys, appropriate regression checks and independent review at the end.
+* Fix defects within the approved behavior automatically.
+* Reuse evidence that remains valid for unchanged code. After fixes, rerun affected checks and any broader checks justified by their impact.
+* Return one consolidated completion report.
+
+Stop only for a material scope change, an unresolved product decision that changes behavior, a new security or data-design boundary, an unapproved destructive operation or migration, or production/publishing approval.
+
+Do not:
+
+* Split routine work into additional approval tasks.
+* Finish at “ready for validation” when validation is already authorized.
+* Request another full inspection merely to clarify a report.
+* Claim unperformed browser journeys or failing checks passed.
+* Start an unapproved feature or deploy.
+
+For the current programme/workout-template inspection, produce one consolidated implementation proposal covering a useful complete workflow. Bundle the necessary decisions and testing plan into that proposal.
+
+The final batch report should state what works, what was tested, any remaining limitations, and whether the agreed acceptance criteria passed.
