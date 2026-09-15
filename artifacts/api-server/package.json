@@ -8,6 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "import:exercises": "pnpm run build && node --enable-source-maps ./dist/import-exercise-catalogue.mjs",
+    "import:programmes": "pnpm run build && node --enable-source-maps ./dist/import-programme-templates.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",

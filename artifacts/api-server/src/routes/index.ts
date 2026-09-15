@@ -14,6 +14,7 @@ import notificationsRouter from "./notifications";
 import commercialRouter from "./commercial";
 import walletTopUpsRouter from "./walletTopUps";
 import exercisesRouter from "./exercises";
+import programmesRouter from "./programmes";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(notificationsRouter);
 router.use(commercialRouter);
 router.use(walletTopUpsRouter);
 router.use(exercisesRouter);
+router.use(programmesRouter);
 
 export default router;

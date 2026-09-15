@@ -271,8 +271,10 @@ function SlideScreen({ s, onNext, isLast, onSkip }: {
 function ChoiceScreen({ onNew, onReturning, onAuth, providers }: {
   onNew: () => void; onReturning: () => void; onAuth: () => void; providers: AuthProviders | null;
 }) {
-  const { signIn } = useAuth();
+  const { signIn, devAdminSignIn } = useAuth();
   const [devBusy, setDevBusy] = useState(false);
+  const [devAdminBusy, setDevAdminBusy] = useState(false);
+  const [devAdminError, setDevAdminError] = useState('');
   const devSignIn = async () => {
     setDevBusy(true);
     try {
@@ -280,6 +282,17 @@ function ChoiceScreen({ onNew, onReturning, onAuth, providers }: {
       onAuth();
     } catch {
       setDevBusy(false);
+    }
+  };
+  const devAdminSignInClick = async () => {
+    setDevAdminBusy(true);
+    setDevAdminError('');
+    try {
+      await devAdminSignIn();
+      onAuth();
+    } catch (err) {
+      setDevAdminError(authErrorMessage(err));
+      setDevAdminBusy(false);
     }
   };
   return (
@@ -340,11 +353,23 @@ function ChoiceScreen({ onNew, onReturning, onAuth, providers }: {
           Already a member? Sign in
         </button>
         {import.meta.env.DEV && (
-          <button onClick={devSignIn} disabled={devBusy}
-            className="text-center text-[11px] font-bold tracking-[0.15em] uppercase mt-3 transition-colors disabled:opacity-50"
-            style={{ color: '#CAFF33' }}>
-            {devBusy ? 'Signing in…' : 'Skip — dev sign-in'}
-          </button>
+          <>
+            <button onClick={devSignIn} disabled={devBusy || devAdminBusy}
+              className="text-center text-[11px] font-bold tracking-[0.15em] uppercase mt-3 transition-colors disabled:opacity-50"
+              style={{ color: '#CAFF33' }}>
+              {devBusy ? 'Signing in…' : 'Skip — dev sign-in'}
+            </button>
+            <button onClick={devAdminSignInClick} disabled={devBusy || devAdminBusy}
+              className="text-center text-[11px] font-bold tracking-[0.15em] uppercase transition-colors disabled:opacity-50"
+              style={{ color: '#CAFF33' }}>
+              {devAdminBusy ? 'Signing in…' : 'Skip — Marcus admin'}
+            </button>
+            {devAdminError && (
+              <p role="alert" className="text-center text-[10px] text-red-300 font-semibold mt-1">
+                {devAdminError}
+              </p>
+            )}
+          </>
         )}
       </div>
     </motion.div>

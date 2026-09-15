@@ -17,7 +17,7 @@ export function OAuthCallback({ outcome, onSuccess, onError }: Props) {
     if (outcome !== 'success') return;
     let cancelled = false;
     // Refresh AuthContext from the newly-set session cookie.
-    refreshUser()
+      refreshUser({ clearDevAdmin: true })
       .then(() => { if (!cancelled) setLoading(false); })
       .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; }; // eslint-disable-line react-hooks/exhaustive-deps

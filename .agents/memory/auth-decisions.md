@@ -60,3 +60,10 @@ description: Cookie sessions, scrypt, tenant model, CORS, security rules, OAuth 
 ## OAuth-only onboarding
 - Google users land authenticated but with no profile → App.tsx detects `!profile?.onboardingCompleted` → shows `<Onboarding profileOnly />`
 - Profile-only wizard skips name (pre-filled from Google) and login steps; runs gender → age → weight → height → goal → activity → createProfile
+
+## Development admin authentication
+- Admin shortcuts must be unavailable in deployments, choose no request-controlled identity or role, and create only the normal cookie session.
+- A temporary onboarding bypass must be bound in memory to the exact authenticated admin ID and role, and cleared on every session or identity transition.
+- Development admin profile loading is read-only; it must never migrate browser-local profile data or create/update the admin profile.
+
+**Why:** A boolean bypass can leak across user changes, while legacy local-profile migration can silently persist another browser user's data into the admin account.

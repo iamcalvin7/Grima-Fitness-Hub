@@ -101,6 +101,14 @@ export function BurgerMenu({ open, onClose, onNavigate, activePage }: BurgerMenu
           accent: '#4ade80',
           badge: undefined as string | undefined,
         },
+        {
+          id: 'programme-library' as Page,
+          label: 'Programme Library',
+          sub: 'Author and publish workout programmes',
+          icon: <Folders size={26} weight="fill" />,
+          accent: '#4ade80',
+          badge: undefined as string | undefined,
+        },
       ]
     : MENU_ITEMS;
 

@@ -13,6 +13,7 @@ import { Team }               from '@/pages/Team';
 import { Feed }               from '@/pages/Feed';
 import { ContentAdminGuard }  from '@/components/ContentAdminGuard';
 import { ExerciseLibraryGuard } from '@/components/ExerciseLibraryGuard';
+import { ProgrammeLibraryGuard } from '@/components/ProgrammeLibraryGuard';
 import { Proposal }           from '@/pages/Proposal';
 import { ClientLanding }      from '@/pages/ClientLanding';
 import { AccountSecurity }    from '@/pages/AccountSecurity';
@@ -31,11 +32,12 @@ export type Page =
   | 'home' | 'sessions' | 'workouts' | 'meals' | 'messages'
   | 'profile' | 'leaderboard' | 'offers' | 'memberships' | 'team'
   | 'security' | 'active-sessions' | 'delete-account' | 'exercise-library'
-  | 'feed' | 'content-admin';
+  | 'feed' | 'content-admin' | 'programme-library';
 
 /* Standalone proposal page: lives at its own URL under the app base path. */
 export const PROPOSAL_PATH = `${import.meta.env.BASE_URL}proposal`;
 export const EXERCISE_LIBRARY_PATH = `${import.meta.env.BASE_URL}exercise-library`;
+export const PROGRAMME_LIBRARY_PATH = `${import.meta.env.BASE_URL}programme-library`;
 
 function isProposalEntry(): boolean {
   return window.location.pathname.replace(/\/+$/, '') === PROPOSAL_PATH.replace(/\/+$/, '');
@@ -43,6 +45,10 @@ function isProposalEntry(): boolean {
 
 function isExerciseLibraryEntry(): boolean {
   return window.location.pathname.replace(/\/+$/, '') === EXERCISE_LIBRARY_PATH.replace(/\/+$/, '');
+}
+
+function isProgrammeLibraryEntry(): boolean {
+  return window.location.pathname.replace(/\/+$/, '') === PROGRAMME_LIBRARY_PATH.replace(/\/+$/, '');
 }
 
 /* ── Query-parameter entry points ─────────────────────────────────────── */
@@ -108,9 +114,12 @@ function App() {
 }
 
 function FullApp() {
-  const { isLoading, isAuthenticated, isProfileLoading, profile, user, signOut } = useAuth();
+  const {
+    isLoading, isAuthenticated, isProfileLoading, isDevAdminSession,
+    profile, user, signOut,
+  } = useAuth();
   const [showSplash,    setShowSplash]    = useState(true);
-  const [activePage,    setActivePage]    = useState<Page>(() => isExerciseLibraryEntry() ? 'exercise-library' : 'home');
+  const [activePage,    setActivePage]    = useState<Page>(() => isExerciseLibraryEntry() ? 'exercise-library' : isProgrammeLibraryEntry() ? 'programme-library' : 'home');
   const [sessionFocus,  setSessionFocus]  = useState<string | number | undefined>(undefined);
   const [bookingIntent, setBookingIntent] = useState<BookingIntent | null>(() => readBookingIntent());
 
@@ -148,7 +157,7 @@ function FullApp() {
   // in-app page state. Keep browser back/forward navigation in sync with it.
   useEffect(() => {
     const syncPageFromHistory = () => {
-      setActivePage(isExerciseLibraryEntry() ? 'exercise-library' : 'home');
+      setActivePage(isExerciseLibraryEntry() ? 'exercise-library' : isProgrammeLibraryEntry() ? 'programme-library' : 'home');
     };
     window.addEventListener('popstate', syncPageFromHistory);
     return () => window.removeEventListener('popstate', syncPageFromHistory);
@@ -189,7 +198,9 @@ function FullApp() {
     }
     if (page === 'exercise-library') {
       window.history.pushState({}, '', EXERCISE_LIBRARY_PATH);
-    } else if (window.location.pathname.replace(/\/+$/, '') === EXERCISE_LIBRARY_PATH.replace(/\/+$/, '')) {
+    } else if (page === 'programme-library') {
+      window.history.pushState({}, '', PROGRAMME_LIBRARY_PATH);
+    } else if (window.location.pathname.replace(/\/+$/, '') === EXERCISE_LIBRARY_PATH.replace(/\/+$/, '') || window.location.pathname.replace(/\/+$/, '') === PROGRAMME_LIBRARY_PATH.replace(/\/+$/, '')) {
       window.history.pushState({}, '', import.meta.env.BASE_URL);
     }
     setActivePage(page);
@@ -269,13 +280,15 @@ function FullApp() {
   }
 
   /* Authenticated but no profile yet (OAuth users): run profile-only flow. */
-  if (!profile?.onboardingCompleted) {
+  if (!profile?.onboardingCompleted && !isDevAdminSession) {
     return <Onboarding onComplete={() => setEnteredApp(true)} profileOnly />;
   }
 
   /* ── Standalone proposal page (own URL, staff only) ──────────────────── */
   if (isProposalEntry()) {
-    const isStaff = profile && (user?.role === 'trainer' || user?.role === 'admin');
+    const isStaff = isDevAdminSession
+      ? user?.role === 'admin'
+      : profile && (user?.role === 'trainer' || user?.role === 'admin');
     if (!isStaff) {
       window.location.replace(import.meta.env.BASE_URL);
       return null;
@@ -285,6 +298,11 @@ function FullApp() {
 
   /* Standalone Exercise Library URL is guarded before the protected page mounts. */
   if (isExerciseLibraryEntry() && user?.role !== 'admin') {
+    window.location.replace(import.meta.env.BASE_URL);
+    return null;
+  }
+
+  if (isProgrammeLibraryEntry() && user?.role !== 'admin') {
     window.location.replace(import.meta.env.BASE_URL);
     return null;
   }
@@ -339,6 +357,7 @@ function FullApp() {
       {activePage === 'team'          && <Team />}
       {activePage === 'feed'          && <Feed />}
       <ExerciseLibraryGuard activePage={activePage} setActivePage={handleSetPage} user={user} />
+      <ProgrammeLibraryGuard activePage={activePage} setActivePage={handleSetPage} user={user} />
       <ContentAdminGuard activePage={activePage} setActivePage={handleSetPage} user={user} />
     </Layout>
   );

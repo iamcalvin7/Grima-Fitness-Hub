@@ -210,6 +210,209 @@ CREATE TABLE exercise_equipment (
 CREATE INDEX exercise_equipment_tenant_key_idx ON exercise_equipment(tenant_id, equipment_key);
 CREATE INDEX exercise_equipment_exercise_idx ON exercise_equipment(tenant_id, exercise_id);
 
+-- ── programme templates ──────────────────────────────────────────────────
+CREATE TYPE programme_lifecycle AS ENUM ('draft', 'published', 'archived');
+CREATE TABLE programme_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  slug TEXT NOT NULL,
+  status programme_lifecycle NOT NULL DEFAULT 'draft',
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  current_draft_revision_id UUID,
+  current_published_revision_id UUID,
+  created_by_user_id UUID NOT NULL,
+  updated_by_user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, slug),
+  FOREIGN KEY (tenant_id, created_by_user_id) REFERENCES users(tenant_id, id),
+  FOREIGN KEY (tenant_id, updated_by_user_id) REFERENCES users(tenant_id, id)
+);
+CREATE INDEX programme_templates_tenant_status_idx ON programme_templates(tenant_id, status);
+CREATE TABLE programme_revisions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  template_id UUID NOT NULL,
+  revision_number INTEGER NOT NULL CHECK (revision_number > 0),
+  status programme_lifecycle NOT NULL DEFAULT 'draft',
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  name TEXT NOT NULL,
+  description TEXT,
+  difficulty TEXT,
+  goal TEXT,
+  source_metadata JSONB,
+  created_by_user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (tenant_id, template_id) REFERENCES programme_templates(tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, created_by_user_id) REFERENCES users(tenant_id, id),
+  UNIQUE (template_id, revision_number),
+  UNIQUE (tenant_id, id)
+);
+ALTER TABLE programme_templates
+  ADD CONSTRAINT programme_templates_current_draft_revision_fk
+  FOREIGN KEY (tenant_id, current_draft_revision_id)
+  REFERENCES programme_revisions(tenant_id, id)
+  DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE programme_templates
+  ADD CONSTRAINT programme_templates_current_published_revision_fk
+  FOREIGN KEY (tenant_id, current_published_revision_id)
+  REFERENCES programme_revisions(tenant_id, id)
+  DEFERRABLE INITIALLY DEFERRED;
+CREATE TABLE programme_days (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  revision_id UUID NOT NULL,
+  day_number INTEGER NOT NULL CHECK (day_number > 0),
+  name TEXT NOT NULL,
+  estimated_minutes INTEGER,
+  source_metadata JSONB,
+  FOREIGN KEY (tenant_id, revision_id) REFERENCES programme_revisions(tenant_id, id) ON DELETE CASCADE,
+  UNIQUE (revision_id, day_number),
+  UNIQUE (tenant_id, id),
+  CONSTRAINT programme_days_minutes_bounds
+    CHECK (estimated_minutes IS NULL OR (estimated_minutes > 0 AND estimated_minutes <= 1440))
+);
+CREATE TABLE programme_exercise_prescriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  day_id UUID NOT NULL,
+  exercise_id UUID NOT NULL,
+  position INTEGER NOT NULL CHECK (position > 0),
+  sets INTEGER NOT NULL CHECK (sets > 0),
+  reps TEXT NOT NULL,
+  rest_seconds INTEGER,
+  notes TEXT,
+  source_exercise_id TEXT,
+  source_metadata JSONB,
+  FOREIGN KEY (tenant_id, day_id) REFERENCES programme_days(tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, exercise_id) REFERENCES exercises(tenant_id, id) ON DELETE RESTRICT,
+  UNIQUE (day_id, position),
+  UNIQUE (tenant_id, id)
+);
+CREATE OR REPLACE FUNCTION test_prevent_published_programme_mutation()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+  old_revision_status programme_lifecycle;
+  new_revision_status programme_lifecycle;
+BEGIN
+  IF TG_TABLE_NAME = 'programme_revisions' THEN
+    IF OLD.status = 'published' THEN RAISE EXCEPTION 'published programme revisions are immutable'; END IF;
+  ELSIF TG_TABLE_NAME = 'programme_days' THEN
+    SELECT status INTO old_revision_status FROM programme_revisions WHERE id = OLD.revision_id;
+    IF TG_OP <> 'DELETE' THEN
+      SELECT status INTO new_revision_status FROM programme_revisions WHERE id = NEW.revision_id;
+    END IF;
+  ELSE
+    SELECT r.status INTO old_revision_status FROM programme_days d
+      JOIN programme_revisions r ON r.id = d.revision_id WHERE d.id = OLD.day_id;
+    IF TG_OP <> 'DELETE' THEN
+      SELECT r.status INTO new_revision_status FROM programme_days d
+        JOIN programme_revisions r ON r.id = d.revision_id WHERE d.id = NEW.day_id;
+    END IF;
+  END IF;
+  IF old_revision_status = 'published' OR new_revision_status = 'published' THEN
+    RAISE EXCEPTION 'published programme children are immutable';
+  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER programme_revisions_immutable BEFORE UPDATE OR DELETE ON programme_revisions
+  FOR EACH ROW EXECUTE FUNCTION test_prevent_published_programme_mutation();
+CREATE TRIGGER programme_days_immutable BEFORE UPDATE OR DELETE ON programme_days
+  FOR EACH ROW EXECUTE FUNCTION test_prevent_published_programme_mutation();
+CREATE TRIGGER programme_prescriptions_immutable BEFORE UPDATE OR DELETE ON programme_exercise_prescriptions
+  FOR EACH ROW EXECUTE FUNCTION test_prevent_published_programme_mutation();
+CREATE OR REPLACE FUNCTION test_prevent_published_programme_insert()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE revision_status programme_lifecycle;
+BEGIN
+  IF TG_TABLE_NAME = 'programme_days' THEN
+    SELECT status INTO revision_status FROM programme_revisions WHERE id = NEW.revision_id;
+  ELSE
+    SELECT r.status INTO revision_status FROM programme_days d
+      JOIN programme_revisions r ON r.id = d.revision_id WHERE d.id = NEW.day_id;
+  END IF;
+  IF revision_status = 'published' THEN RAISE EXCEPTION 'published programme children are immutable'; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER programme_days_insert_immutable BEFORE INSERT ON programme_days
+  FOR EACH ROW EXECUTE FUNCTION test_prevent_published_programme_insert();
+CREATE TRIGGER programme_prescriptions_insert_immutable BEFORE INSERT ON programme_exercise_prescriptions
+  FOR EACH ROW EXECUTE FUNCTION test_prevent_published_programme_insert();
+CREATE OR REPLACE FUNCTION test_validate_programme_template_pointers()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+  draft_template_id UUID;
+  draft_status programme_lifecycle;
+  published_template_id UUID;
+  published_status programme_lifecycle;
+  pointer_template programme_templates%ROWTYPE;
+BEGIN
+  IF TG_TABLE_NAME = 'programme_templates' THEN
+    IF NEW.current_draft_revision_id IS NOT NULL THEN
+      SELECT template_id, status INTO draft_template_id, draft_status
+        FROM programme_revisions
+        WHERE tenant_id = NEW.tenant_id AND id = NEW.current_draft_revision_id;
+      IF draft_template_id IS NULL OR draft_template_id <> NEW.id OR draft_status <> 'draft' THEN
+        RAISE EXCEPTION 'current draft revision pointer is inconsistent';
+      END IF;
+    END IF;
+    IF NEW.current_published_revision_id IS NOT NULL THEN
+      SELECT template_id, status INTO published_template_id, published_status
+        FROM programme_revisions
+        WHERE tenant_id = NEW.tenant_id AND id = NEW.current_published_revision_id;
+      IF published_template_id IS NULL OR published_template_id <> NEW.id OR published_status <> 'published' THEN
+        RAISE EXCEPTION 'current published revision pointer is inconsistent';
+      END IF;
+    END IF;
+    IF NEW.status = 'published' AND NEW.current_published_revision_id IS NULL THEN
+      RAISE EXCEPTION 'published programme templates require a current published revision';
+    END IF;
+    IF NEW.status = 'archived' AND NEW.current_draft_revision_id IS NOT NULL THEN
+      RAISE EXCEPTION 'archived programme templates cannot have a current draft revision';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  FOR pointer_template IN
+    SELECT * FROM programme_templates
+    WHERE (current_draft_revision_id = COALESCE(NEW.id, OLD.id)
+       OR current_published_revision_id = COALESCE(NEW.id, OLD.id))
+  LOOP
+    IF pointer_template.current_draft_revision_id = COALESCE(NEW.id, OLD.id) THEN
+      SELECT template_id, status INTO draft_template_id, draft_status
+        FROM programme_revisions
+        WHERE tenant_id = pointer_template.tenant_id AND id = pointer_template.current_draft_revision_id;
+      IF draft_template_id IS NULL OR draft_template_id <> pointer_template.id OR draft_status <> 'draft' THEN
+        RAISE EXCEPTION 'current draft revision pointer is inconsistent';
+      END IF;
+    END IF;
+    IF pointer_template.current_published_revision_id = COALESCE(NEW.id, OLD.id) THEN
+      SELECT template_id, status INTO published_template_id, published_status
+        FROM programme_revisions
+        WHERE tenant_id = pointer_template.tenant_id AND id = pointer_template.current_published_revision_id;
+      IF published_template_id IS NULL OR published_template_id <> pointer_template.id OR published_status <> 'published' THEN
+        RAISE EXCEPTION 'current published revision pointer is inconsistent';
+      END IF;
+    END IF;
+  END LOOP;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE CONSTRAINT TRIGGER programme_templates_pointer_consistency
+  AFTER INSERT OR UPDATE ON programme_templates
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION test_validate_programme_template_pointers();
+CREATE CONSTRAINT TRIGGER programme_revisions_pointer_consistency
+  AFTER INSERT OR UPDATE OR DELETE ON programme_revisions
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION test_validate_programme_template_pointers();
+
 -- ── sessions ───────────────────────────────────────────────────────────────
 CREATE TABLE sessions (
   id           UUID        DEFAULT gen_random_uuid() PRIMARY KEY,

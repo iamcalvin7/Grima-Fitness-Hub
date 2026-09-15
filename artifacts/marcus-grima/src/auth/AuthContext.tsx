@@ -39,14 +39,17 @@ export type ProfileInput = Partial<
   >
 >;
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** True only for the current in-memory development admin sign-in. */
+  isDevAdminSession: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  devAdminSignIn: () => Promise<AuthUser>;
   signUp: (input: { email: string; password: string; firstName: string; lastName: string }) => Promise<AuthUser>;
   signOut: () => Promise<void>;
-  refreshUser: () => Promise<AuthUser | null>;
+  refreshUser: (options?: { clearDevAdmin?: boolean }) => Promise<AuthUser | null>;
   profile: ClientProfile | null;
   isProfileLoading: boolean;
   refreshProfile: () => Promise<ClientProfile | null>;
@@ -107,6 +110,7 @@ function clearLegacyKeys() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [devAdminUserId, setDevAdminUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   // User id whose profile load has settled — drives isProfileLoading with no
@@ -114,17 +118,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileSettledFor, setProfileSettledFor] = useState<string | null>(null);
   // Who the app currently considers signed in; late responses for anyone else are dropped.
   const currentUserIdRef = useRef<string | null>(null);
+  // A ref is deliberately kept alongside state so the profile effect can
+  // observe provenance synchronously while a dev-admin sign-in sets user.
+  const devAdminUserIdRef = useRef<string | null>(null);
   // Migration attempted at most once per user per app load.
   const migrationAttemptedFor = useRef<Set<string>>(new Set());
 
-  const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
+  const refreshUser = useCallback(async (
+    options?: { clearDevAdmin?: boolean },
+  ): Promise<AuthUser | null> => {
     try {
       const { user: me } = await apiRequest<{ user: AuthUser }>('/auth/me');
+      if (!me) {
+        setUser(null);
+        devAdminUserIdRef.current = null;
+        setDevAdminUserId(null);
+        return null;
+      }
+      if (
+        options?.clearDevAdmin ||
+        me.role !== 'admin' ||
+        (devAdminUserIdRef.current !== null && devAdminUserIdRef.current !== me.id)
+      ) {
+        devAdminUserIdRef.current = null;
+        setDevAdminUserId(null);
+      }
       setUser(me);
       return me;
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setUser(null);
+        devAdminUserIdRef.current = null;
+        setDevAdminUserId(null);
         return null;
       }
       // Network / server errors: keep whatever state we had.
@@ -169,10 +194,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Legacy migration runs at most once per app load, only when the server
    * has no profile yet — a newer server profile is never overwritten.
    */
-  const loadProfileFor = useCallback(async (userId: string) => {
+  const loadProfileFor = useCallback(async (profileUser: AuthUser) => {
+    const userId = profileUser.id;
+    // Dev-admin sessions are intentionally profile-read-only. In particular,
+    // do not even inspect legacy local storage: stale mg_profile data must
+    // never be migrated into the admin account.
+    const isDevAdmin = () =>
+      devAdminUserIdRef.current === userId && profileUser.role === 'admin';
     try {
       const serverProfile = await refreshProfile();
       if (currentUserIdRef.current !== userId) return; // user changed mid-flight
+      if (isDevAdmin()) return;
       const legacy = readLegacyProfile();
       if (serverProfile) {
         // Server wins; any lingering local copy is obsolete.
@@ -238,16 +270,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     currentUserIdRef.current = user?.id ?? null;
     if (user) {
-      void loadProfileFor(user.id);
+      void loadProfileFor(user);
     } else {
       setProfile(null);
       setProfileSettledFor(null);
+      devAdminUserIdRef.current = null;
+      setDevAdminUserId(null);
     }
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isDevAdminSession =
+    user !== null &&
+    user.role === 'admin' &&
+    devAdminUserId === user.id;
   const isProfileLoading = user !== null && profileSettledFor !== user.id;
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthUser> => {
+    devAdminUserIdRef.current = null;
+    setDevAdminUserId(null);
     const { user: me } = await apiRequest<{ user: AuthUser }>('/auth/signin', {
       method: 'POST',
       body: { email, password },
@@ -256,8 +296,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return me;
   }, []);
 
+  const devAdminSignIn = useCallback(async (): Promise<AuthUser> => {
+    // Keep this path compile-time development-only in Vite builds. The
+    // server remains the security boundary and independently fails closed.
+    if (!import.meta.env.DEV) {
+      throw new ApiError(404, 'Not found');
+    }
+    const { user: me } = await apiRequest<{ user: AuthUser }>('/auth/dev-signin/admin', {
+      method: 'POST',
+    });
+    // Establish provenance before changing user so the profile effect can
+    // never enter the legacy migration branch for this session.
+    devAdminUserIdRef.current = me.id;
+    setDevAdminUserId(me.id);
+    setUser(me);
+    return me;
+  }, []);
+
   const signUp = useCallback(
     async (input: { email: string; password: string; firstName: string; lastName: string }): Promise<AuthUser> => {
+      devAdminUserIdRef.current = null;
+      setDevAdminUserId(null);
       const { user: me } = await apiRequest<{ user: AuthUser }>('/auth/signup', {
         method: 'POST',
         body: input,
@@ -275,6 +334,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Even if the request fails, drop client-side auth state.
       setUser(null);
       setProfile(null);
+      devAdminUserIdRef.current = null;
+      setDevAdminUserId(null);
     }
   }, []);
 
@@ -283,7 +344,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isLoading,
       isAuthenticated: user !== null,
+      isDevAdminSession,
       signIn,
+      devAdminSignIn,
       signUp,
       signOut,
       refreshUser,
@@ -293,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       createProfile,
     }),
-    [user, isLoading, signIn, signUp, signOut, refreshUser, profile, isProfileLoading, refreshProfile, updateProfile, createProfile],
+    [user, isLoading, isDevAdminSession, signIn, devAdminSignIn, signUp, signOut, refreshUser, profile, isProfileLoading, refreshProfile, updateProfile, createProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

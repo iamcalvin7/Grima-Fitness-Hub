@@ -14,3 +14,4 @@ export * from "./availability";
 export * from "./notifications";
 export * from "./commercial";
 export * from "./exercises";
+export * from "./programmes";

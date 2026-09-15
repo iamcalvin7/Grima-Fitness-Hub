@@ -30,6 +30,7 @@ export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
     ? [
         { id: 'home' as Page, label: 'Home', icon: <HomeIcon size={18} weight="fill" /> },
         { id: 'sessions' as Page, label: 'Sessions HQ', icon: <Calendar size={18} weight="fill" /> },
+        { id: 'programme-library' as Page, label: 'Programme Library', icon: <Folders size={18} weight="fill" /> },
         { id: 'exercise-library' as Page, label: 'Exercise Library', icon: <Dumbbell size={18} weight="fill" /> },
         { id: 'messages' as Page, label: 'Messages', icon: <MessageSquare size={18} weight="fill" />, badge: true },
         { id: 'feed' as Page, label: 'Feed', icon: <Newspaper size={18} weight="fill" /> },

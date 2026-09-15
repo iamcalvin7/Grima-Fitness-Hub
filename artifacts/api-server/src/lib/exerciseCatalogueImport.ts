@@ -11,6 +11,10 @@ import {
   type ExerciseMuscleInput,
   type ExerciseWriteInput,
 } from "./exercises.js";
+import {
+  assertDevelopmentOutsideDeployment,
+  type DevelopmentEnvironment,
+} from "./developmentEnvironment.js";
 
 export const EXERCISE_IMPORT_VERSION = "gate-2c-v1";
 export const EXPECTED_LEGACY_SOURCE_SHA256 =
@@ -71,19 +75,11 @@ export const EXERCISE_PROVENANCE_ATTESTATION_ACTION =
   "exercise:provenance-attestation";
 
 export function assertExerciseImportEnvironment(
-  environment: Partial<
-    Record<
-      "NODE_ENV" | "REPLIT_DEPLOYMENT" | "REPLIT_DEPLOYMENT_ID" | "REPLIT_ENV",
-      string | undefined
-    >
-  >,
+  environment: DevelopmentEnvironment,
 ): void {
-  if (
-    environment.NODE_ENV !== "development" ||
-    environment.REPLIT_DEPLOYMENT ||
-    environment.REPLIT_DEPLOYMENT_ID ||
-    environment.REPLIT_ENV
-  ) {
+  try {
+    assertDevelopmentOutsideDeployment(environment);
+  } catch {
     throw new Error(
       "Exercise catalogue import is restricted to an explicit development process outside a Replit deployment",
     );

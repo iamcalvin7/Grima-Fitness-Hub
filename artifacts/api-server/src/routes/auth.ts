@@ -21,6 +21,7 @@ import {
   consumeVerificationToken,
 } from "../lib/tokens";
 import { sendEmailSafely } from "../lib/email";
+import { isDevelopmentOutsideDeployment } from "../lib/developmentEnvironment";
 import {
   emailChangeEmail,
   emailVerificationEmail,
@@ -176,6 +177,68 @@ router.post("/auth/signin", rateLimit({ name: "signin-ip", max: 20, windowMs: 15
   const { token } = await createSession(user.id, requestMeta(req));
   setSessionCookie(res, token);
   res.json({ user: publicUser(user) });
+});
+
+/**
+ * Development-only Marcus admin sign-in.
+ *
+ * Identity is entirely server-owned: the request has no credential or
+ * identity fields. The configured password is checked against every active
+ * admin in the default tenant, and a session is issued only when exactly one
+ * account matches.
+ */
+router.post("/auth/dev-signin/admin", async (req, res) => {
+  if (!isDevelopmentOutsideDeployment()) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  const adminPassword = process.env.MG_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    res.status(503).json({ error: "Development admin sign-in unavailable" });
+    return;
+  }
+
+  try {
+    const tenant = await getDefaultTenant();
+    const candidates = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.tenantId, tenant.id),
+          eq(usersTable.role, "admin"),
+          eq(usersTable.isActive, true),
+        ),
+      );
+
+    const matches: User[] = [];
+    for (const candidate of candidates) {
+      if (!candidate.passwordHash) continue;
+      try {
+        if (await verifyPassword(adminPassword, candidate.passwordHash)) {
+          matches.push(candidate);
+        }
+      } catch {
+        // A malformed stored hash is a configuration failure, not a reason to
+        // expose credential or account details to the caller.
+        res.status(503).json({ error: "Development admin sign-in unavailable" });
+        return;
+      }
+    }
+
+    if (matches.length !== 1) {
+      res.status(503).json({ error: "Development admin sign-in unavailable" });
+      return;
+    }
+
+    const user = matches[0]!;
+    const { token } = await createSession(user.id, requestMeta(req));
+    setSessionCookie(res, token);
+    res.json({ user: publicUser(user) });
+  } catch {
+    res.status(503).json({ error: "Development admin sign-in unavailable" });
+  }
 });
 
 router.post("/auth/signout", attachUser, async (req, res) => {

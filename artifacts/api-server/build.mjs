@@ -21,6 +21,10 @@ async function buildAll() {
         artifactDir,
         "src/cli/importExerciseCatalogue.ts",
       ),
+      "import-programme-templates": path.resolve(
+        artifactDir,
+        "src/cli/importProgrammeTemplates.ts",
+      ),
     },
     platform: "node",
     bundle: true,

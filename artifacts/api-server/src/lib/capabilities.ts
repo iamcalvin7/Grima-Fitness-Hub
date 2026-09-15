@@ -27,6 +27,8 @@ export const COACHING_CAPABILITIES = [
   "clients:read",
   "clients:manage",
   "programmes:manage",
+  "programmes:publish",
+  "programmes:archive",
   "bookings:manage",
   "progress:review",
   "messages:manage",
